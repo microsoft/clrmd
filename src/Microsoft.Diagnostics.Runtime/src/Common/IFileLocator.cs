@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="originalPlatform">The platform of the binary specified by <paramref name="archivedUnder"/>.</param>
         /// <param name="checkProperties">Whether or not to validate the properties of the binary after download.</param>
         /// <returns>A full path on disk (local) of where the binary was copied to or <see langword="null"/> if it was not found.</returns>
-        string? FindPEImage(string fileName, string archivedUnder, ImmutableArray<byte> buildIdOrUUID, OSPlatform originalPlatform, bool checkProperties);
+        string? FindPEImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildIdOrUUID, OSPlatform originalPlatform, bool checkProperties);
 
         /// <summary>
         /// Locates an Elf binary.
@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="buildId">The buildId of the Elf image to locate or the buildId of the image specified by <paramref name="archivedUnder"/>.</param>
         /// <param name="checkProperties">Whether or not to validate that the given file matches the build id.</param>
         /// <returns>A full path on disk (local) of where the binary was copied to or <see langword="null"/> if it was not found.</returns>
-        string? FindElfImage(string fileName, string? archivedUnder, ImmutableArray<byte> buildId, bool checkProperties);
+        string? FindElfImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildId, bool checkProperties);
 
         /// <summary>
         /// 
@@ -47,6 +47,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="uuid">The UUID of the image or of the image specified by <paramref name="archivedUnder"/>.</param>
         /// <param name="checkProperties">Whether or not to validate that the given file matches the uuid.</param>
         /// <returns>A full path on disk (local) of where the binary was copied to or <see langword="null"/> if it was not found.</returns>
-        string? FindMachOImage(string fileName, string? archivedUnder, ImmutableArray<byte> uuid, bool checkProperties);
+        string? FindMachOImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> uuid, bool checkProperties);
     }
 }

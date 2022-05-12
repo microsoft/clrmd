@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             _realLocator = locator;
         }
 
-        public string FindElfImage(string fileName, string archivedUnder, ImmutableArray<byte> buildId, bool checkProperties)
+        public string FindElfImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildId, bool checkProperties)
         {
             if (fileName.Contains("mscordac", StringComparison.OrdinalIgnoreCase))
                 return _realLocator.FindElfImage(fileName, archivedUnder, buildId, checkProperties);
@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return null;
         }
 
-        public string FindMachOImage(string fileName, string archivedUnder, ImmutableArray<byte> uuid, bool checkProperties)
+        public string FindMachOImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> uuid, bool checkProperties)
         {
             if (fileName.Contains("mscordac", StringComparison.OrdinalIgnoreCase))
                 return _realLocator.FindMachOImage(fileName, archivedUnder, uuid, checkProperties);
@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return null;
         }
 
-        public string FindPEImage(string fileName, string archivedUnder, ImmutableArray<byte> buildIdOrUUID, OSPlatform originalPlatform, bool checkProperties)
+        public string FindPEImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildIdOrUUID, OSPlatform originalPlatform, bool checkProperties)
         {
             if (fileName.Contains("mscordac", StringComparison.OrdinalIgnoreCase))
                 return _realLocator.FindPEImage(fileName, archivedUnder, buildIdOrUUID, originalPlatform, checkProperties);

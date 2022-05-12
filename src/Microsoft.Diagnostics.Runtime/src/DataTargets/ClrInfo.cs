@@ -98,18 +98,18 @@ namespace Microsoft.Diagnostics.Runtime
             else if (DataTarget.DataReader.TargetPlatform == OSPlatform.Linux)
             {
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                    dac ??= DataTarget.FileLocator?.FindPEImage(DacInfo.PlatformSpecificFileName, "coreclr", DacInfo.ClrBuildId, DataTarget.DataReader.TargetPlatform, checkProperties: false);
+                    dac ??= DataTarget.FileLocator?.FindPEImage(DacInfo.PlatformSpecificFileName, SymbolProperties.Coreclr, DacInfo.ClrBuildId, DataTarget.DataReader.TargetPlatform, checkProperties: false);
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                    dac ??= DataTarget.FileLocator?.FindElfImage(DacInfo.PlatformSpecificFileName, "coreclr", DacInfo.ClrBuildId, checkProperties: false);
+                    dac ??= DataTarget.FileLocator?.FindElfImage(DacInfo.PlatformSpecificFileName, SymbolProperties.Coreclr, DacInfo.ClrBuildId, checkProperties: false);
                 else
                     ThrowCrossDebugError();
             }
             else if (DataTarget.DataReader.TargetPlatform == OSPlatform.OSX)
             {
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                    dac ??= DataTarget.FileLocator?.FindMachOImage(DacInfo.PlatformSpecificFileName, "coreclr", DacInfo.ClrBuildId, checkProperties: false);
+                    dac ??= DataTarget.FileLocator?.FindMachOImage(DacInfo.PlatformSpecificFileName, SymbolProperties.Coreclr, DacInfo.ClrBuildId, checkProperties: false);
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                    dac ??= DataTarget.FileLocator?.FindPEImage(DacInfo.PlatformSpecificFileName, "coreclr", DacInfo.ClrBuildId, DataTarget.DataReader.TargetPlatform, checkProperties: false);
+                    dac ??= DataTarget.FileLocator?.FindPEImage(DacInfo.PlatformSpecificFileName, SymbolProperties.Coreclr, DacInfo.ClrBuildId, DataTarget.DataReader.TargetPlatform, checkProperties: false);
                 else
                     ThrowCrossDebugError();
             }

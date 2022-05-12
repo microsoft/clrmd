@@ -2403,11 +2403,14 @@ Microsoft.Diagnostics.Runtime.Utilities.SigParser.SigParser() -> void
 Microsoft.Diagnostics.Runtime.VectorRegisterArea.VectorRegisterArea() -> void
 Microsoft.Diagnostics.Runtime.VersionInfo.VersionInfo() -> void
 Microsoft.Diagnostics.Runtime.IFileLocator
-Microsoft.Diagnostics.Runtime.IFileLocator.FindElfImage(string! fileName, string? archivedUnder, System.Collections.Immutable.ImmutableArray<byte> buildId, bool checkProperties) -> string?
-Microsoft.Diagnostics.Runtime.IFileLocator.FindMachOImage(string! fileName, string? archivedUnder, System.Collections.Immutable.ImmutableArray<byte> uuid, bool checkProperties) -> string?
 Microsoft.Diagnostics.Runtime.IFileLocator.FindPEImage(string! fileName, int buildTimeStamp, int imageSize, bool checkProperties) -> string?
 Microsoft.Diagnostics.Runtime.CustomDataTarget.FileLocator.get -> Microsoft.Diagnostics.Runtime.IFileLocator?
 Microsoft.Diagnostics.Runtime.CustomDataTarget.FileLocator.set -> void
 Microsoft.Diagnostics.Runtime.DataTarget.FileLocator.get -> Microsoft.Diagnostics.Runtime.IFileLocator?
 Microsoft.Diagnostics.Runtime.DataTarget.FileLocator.set -> void
-Microsoft.Diagnostics.Runtime.IFileLocator.FindPEImage(string! fileName, string! archivedUnder, System.Collections.Immutable.ImmutableArray<byte> buildIdOrUUID, System.Runtime.InteropServices.OSPlatform originalPlatform, bool checkProperties) -> string?
+Microsoft.Diagnostics.Runtime.IFileLocator.FindElfImage(string! fileName, Microsoft.Diagnostics.Runtime.SymbolProperties archivedUnder, System.Collections.Immutable.ImmutableArray<byte> buildId, bool checkProperties) -> string?
+Microsoft.Diagnostics.Runtime.IFileLocator.FindMachOImage(string! fileName, Microsoft.Diagnostics.Runtime.SymbolProperties archivedUnder, System.Collections.Immutable.ImmutableArray<byte> uuid, bool checkProperties) -> string?
+Microsoft.Diagnostics.Runtime.IFileLocator.FindPEImage(string! fileName, Microsoft.Diagnostics.Runtime.SymbolProperties archivedUnder, System.Collections.Immutable.ImmutableArray<byte> buildIdOrUUID, System.Runtime.InteropServices.OSPlatform originalPlatform, bool checkProperties) -> string?
+Microsoft.Diagnostics.Runtime.SymbolProperties
+Microsoft.Diagnostics.Runtime.SymbolProperties.Coreclr = 1 -> Microsoft.Diagnostics.Runtime.SymbolProperties
+Microsoft.Diagnostics.Runtime.SymbolProperties.Self = 0 -> Microsoft.Diagnostics.Runtime.SymbolProperties

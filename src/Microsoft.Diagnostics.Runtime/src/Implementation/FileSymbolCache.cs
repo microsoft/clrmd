@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Location = cacheLocation;
         }
 
-        public override string? FindElfImage(string fileName, string? archivedUnder, ImmutableArray<byte> buildId, bool checkProperties)
+        public override string? FindElfImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildId, bool checkProperties)
         {
             if (Path.GetFileName(fileName) != fileName && File.Exists(fileName))
             {
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return FindImage(key);
         }
 
-        public override string? FindMachOImage(string fileName, string? archivedUnder, ImmutableArray<byte> uuid, bool checkProperties)
+        public override string? FindMachOImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> uuid, bool checkProperties)
         {
             if (Path.GetFileName(fileName) != fileName && File.Exists(fileName))
             {
@@ -92,7 +92,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return image;
         }
 
-        public override string? FindPEImage(string fileName, string archivedUnder, ImmutableArray<byte> buildIdOrUUID, OSPlatform platform, bool checkProperties)
+        public override string? FindPEImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildIdOrUUID, OSPlatform platform, bool checkProperties)
         {
             string? key = base.FindPEImage(fileName, archivedUnder, buildIdOrUUID, platform, checkProperties);
             return FindImage(key);

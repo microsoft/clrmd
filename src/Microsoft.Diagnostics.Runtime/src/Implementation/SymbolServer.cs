@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override string? FindElfImage(string fileName, string? archivedUnder, ImmutableArray<byte> buildId, bool checkProperties)
+        public override string? FindElfImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildId, bool checkProperties)
         {
             string? result = _cache.FindElfImage(fileName, archivedUnder, buildId, checkProperties);
             if (result != null)
@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return null;
         }
 
-        public override string? FindMachOImage(string fileName, string? archivedUnder, ImmutableArray<byte> uuid, bool checkProperties)
+        public override string? FindMachOImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> uuid, bool checkProperties)
         {
             string? result = _cache.FindMachOImage(fileName, archivedUnder, uuid, checkProperties);
             if (result != null)
@@ -100,7 +100,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return null;
         }
 
-        public override string? FindPEImage(string fileName, string archivedUnder, ImmutableArray<byte> buildIdOrUUID, OSPlatform originalPlatform, bool checkProperties)
+        public override string? FindPEImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildIdOrUUID, OSPlatform originalPlatform, bool checkProperties)
         {
             string? result = _cache.FindPEImage(fileName, archivedUnder, buildIdOrUUID, originalPlatform, checkProperties);
             if (result != null)

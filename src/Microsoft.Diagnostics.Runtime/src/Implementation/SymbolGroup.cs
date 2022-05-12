@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return null;
         }
 
-        public string? FindPEImage(string fileName, string archivedUnder, ImmutableArray<byte> buildIdOrUUID, OSPlatform originalPlatform, bool checkProperties)
+        public string? FindPEImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildIdOrUUID, OSPlatform originalPlatform, bool checkProperties)
         {
             foreach (IFileLocator locator in _groups)
             {
@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return null;
         }
 
-        public string? FindElfImage(string fileName, string? archivedUnder, ImmutableArray<byte> buildId, bool checkProperties)
+        public string? FindElfImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildId, bool checkProperties)
         {
             foreach (IFileLocator locator in _groups)
             {
@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return null;
         }
 
-        public string? FindMachOImage(string fileName, string? archivedUnder, ImmutableArray<byte> uuid, bool checkProperties)
+        public string? FindMachOImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> uuid, bool checkProperties)
         {
             foreach (IFileLocator locator in _groups)
             {

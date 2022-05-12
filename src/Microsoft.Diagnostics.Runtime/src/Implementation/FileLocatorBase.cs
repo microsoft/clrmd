@@ -13,9 +13,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private const string MachOPlatformKey = "mach-uuid";
         private const string ElfPlatformKey = "elf-buildid";
 
-        public virtual string? FindElfImage(string fileName, string? archivedUnder, ImmutableArray<byte> buildId, bool checkProperties) => GetUnixKey(ElfPlatformKey, fileName, archivedUnder, buildId);
-        public virtual string? FindMachOImage(string fileName, string? archivedUnder, ImmutableArray<byte> uuid, bool checkProperties) => GetUnixKey(MachOPlatformKey, fileName, archivedUnder, uuid);
-        public virtual string? FindPEImage(string fileName, string archivedUnder, ImmutableArray<byte> buildIdOrUUID, OSPlatform originalPlatform, bool checkProperties)
+        public virtual string? FindElfImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildId, bool checkProperties) => GetUnixKey(ElfPlatformKey, fileName, archivedUnder, buildId);
+        public virtual string? FindMachOImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> uuid, bool checkProperties) => GetUnixKey(MachOPlatformKey, fileName, archivedUnder, uuid);
+        public virtual string? FindPEImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildIdOrUUID, OSPlatform originalPlatform, bool checkProperties)
         {
             string osKey;
 
@@ -35,15 +35,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return $"{fileName}\\{unchecked((uint)buildTimeStamp):x8}{unchecked((uint)imageSize):x}\\{fileName}";
         }
 
-        private static string? GetUnixKey(string osKey, string fileName, string? archivedUnder, ImmutableArray<byte> buildId)
+        private static string? GetUnixKey(string osKey, string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildId)
         {
             if (buildId.IsDefaultOrEmpty)
                 return null;
 
             fileName = Path.GetFileName(fileName).ToLowerInvariant();
             string specialKey = "";
-            if (!string.IsNullOrWhiteSpace(archivedUnder))
-                specialKey = $"{archivedUnder}-";
+            if (archivedUnder == SymbolProperties.Coreclr)
+                specialKey = "coreclr-";
 
             string id = string.Join("", buildId.Select(b => b.ToString("x2")));
             return $"{fileName}/{osKey}-{specialKey}{id}/{fileName}";
