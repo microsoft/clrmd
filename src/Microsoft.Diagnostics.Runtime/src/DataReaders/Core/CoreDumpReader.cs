@@ -83,8 +83,9 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (file is null)
             {
-                using Stream stream = image.AsStream();
-                PEImage.ReadIndexProperties(stream, out timestamp, out filesize);
+                using PEImage img = new PEImage(image.AsStream(), leaveOpen: false);
+                timestamp = img.IndexTimeStamp;
+                filesize = img.IndexFileSize;
             }
 
             // It's true that we are setting "IndexFileSize" to be the raw size on linux for Linux modules,
