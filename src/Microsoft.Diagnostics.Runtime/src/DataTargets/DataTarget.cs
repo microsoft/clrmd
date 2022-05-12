@@ -161,12 +161,12 @@ namespace Microsoft.Diagnostics.Runtime
             if (!_clrs.IsDefault)
                 return _clrs;
 
-            IExportReader? exportReader = DataReader as IExportReader;
             Architecture arch = DataReader.Architecture;
-            RuntimeInfo? singleFileRuntimeInfo = null;
+            ClrRuntimeInfo? singleFileRuntimeInfo = null;
             ImmutableArray<ClrInfo>.Builder versions = ImmutableArray.CreateBuilder<ClrInfo>(2);
             foreach (ModuleInfo module in EnumerateModules())
             {
+                string? dacAgnosticName = null;
                 ImmutableArray<byte> runtimeBuildId = ImmutableArray<byte>.Empty;
                 int runtimeTimeStamp = 0;
                 int runtimeFileSize = 0;
@@ -179,16 +179,16 @@ namespace Microsoft.Diagnostics.Runtime
                 }
                 else
                 {
-                    if (exportReader is null || !exportReader.TryGetSymbolAddress(module.ImageBase, RuntimeInfo.SymbolValue, out ulong runtimeInfoAddress))
+                    if (DataReader is not IExportReader exportReader || !exportReader.TryGetSymbolAddress(module.ImageBase, ClrRuntimeInfo.SymbolValue, out ulong runtimeInfoAddress))
                         continue;
 
-                    if (!DataReader.Read(runtimeInfoAddress, out RuntimeInfo runtimeInfo))
+                    if (!DataReader.Read(runtimeInfoAddress, out ClrRuntimeInfo runtimeInfo))
                         continue;
 
                     unsafe
                     {
-                        string signature = Encoding.ASCII.GetString(runtimeInfo.Signature, RuntimeInfo.SignatureValueLength);
-                        if (signature != RuntimeInfo.SignatureValue || runtimeInfo.Version <= 0)
+                        string signature = Encoding.ASCII.GetString(runtimeInfo.Signature, ClrRuntimeInfo.SignatureValueLength);
+                        if (signature != ClrRuntimeInfo.SignatureValue || runtimeInfo.Version <= 0)
                             continue;
 
                         platform = DataReader.TargetPlatform;
@@ -199,14 +199,16 @@ namespace Microsoft.Diagnostics.Runtime
                         {
                             if (runtimeInfo.RuntimeModuleIndex[0] >= sizeof(int) + sizeof(int))
                             {
-                                runtimeTimeStamp = BitConverter.ToInt32(new ReadOnlySpan<byte>(runtimeInfo.RuntimeModuleIndex + sizeof(byte), sizeof(int)).ToArray(), 0);
-                                runtimeFileSize = BitConverter.ToInt32(new ReadOnlySpan<byte>(runtimeInfo.RuntimeModuleIndex + sizeof(byte) + sizeof(int), sizeof(int)).ToArray(), 0);
+                                runtimeTimeStamp = BitConverter.ToInt32(new ReadOnlySpan<byte>(runtimeInfo.DacModuleIndex + sizeof(byte), sizeof(int)).ToArray(), 0);
+                                runtimeFileSize = BitConverter.ToInt32(new ReadOnlySpan<byte>(runtimeInfo.DacModuleIndex + sizeof(byte) + sizeof(int), sizeof(int)).ToArray(), 0);
+                                dacAgnosticName = ClrInfoProvider.GetDacFileName(flavor, platform);
                             }
                         }
                         else
                         {
                             // The first byte of the module indexes is the length of the build id
                             runtimeBuildId = new ReadOnlySpan<byte>(runtimeInfo.RuntimeModuleIndex + sizeof(byte), runtimeInfo.RuntimeModuleIndex[0]).ToArray().ToImmutableArray();
+                            dacAgnosticName = ClrInfoProvider.GetDacFileName(flavor, platform);
                         }
                     }
                 }
@@ -239,8 +241,14 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 VersionInfo version = module.Version;
-                string dacAgnosticName = ClrInfoProvider.GetDacRequestFileName(flavor, arch, arch, version, platform);
+
                 string dacRegularName = ClrInfoProvider.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, arch, version, platform);
+
+                if (dacAgnosticName is null)
+                    dacAgnosticName = ClrInfoProvider.GetDacRequestFileName(flavor, arch, arch, version, platform);
+                else
+                    dacRegularName = dacAgnosticName;
+
 
                 DacInfo dacInfo = new DacInfo(dacLocation, dacRegularName, dacAgnosticName, arch, runtimeFileSize, runtimeTimeStamp, version, runtimeBuildId);
                 versions.Add(new ClrInfo(this, flavor, module, dacInfo) {
