@@ -57,34 +57,32 @@ namespace Microsoft.Diagnostics.Runtime
         /// If the PEImage cannot be constructed, <see langword="null"/> is returned.
         /// </summary>
         /// <returns></returns>
-        public PEImage? GetPEImage()
+        internal PEImage? GetPEImage()
         {
             try
             {
                 PEImage image = new PEImage(new ReadVirtualStream(DataReader, (long)ImageBase, IndexFileSize), leaveOpen: false, isVirtual: _isVirtual);
-                if (image.PEHeader == null)
+                if (!image.IsValid)
                 {
-                    PEImage otherLayout = new PEImage(new ReadVirtualStream(DataReader, (long)ImageBase, IndexFileSize), leaveOpen: false, isVirtual: !_isVirtual);
-                    if (otherLayout.PEHeader != null)
-                    {
-                        image.Dispose();
-                        image = otherLayout;
-                    }
-                    else
-                    {
-                        otherLayout.Dispose();
-                    }
+                    image.Dispose();
+                    image = new PEImage(new ReadVirtualStream(DataReader, (long)ImageBase, IndexFileSize), leaveOpen: false, isVirtual: !_isVirtual);
                 }
 
-                if (!_isManaged.HasValue)
-                    _isManaged = image.IsManaged;
+                if (image.IsValid)
+                {
+                    if (!_isManaged.HasValue)
+                        _isManaged = image.IsManaged;
 
-                return image.IsValid ? image : null;
+                    return image;
+                }
+
+                image.Dispose();
             }
             catch
             {
-                return null;
             }
+
+            return null;
         }
 
         /// <summary>
