@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime
 {
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public unsafe struct RuntimeInfo
+    public unsafe struct ClrRuntimeInfo
     {
         public const string SymbolValue = "DotNetRuntimeInfo";
         public const string SignatureValue = "DotNetRuntimeInfo\0";

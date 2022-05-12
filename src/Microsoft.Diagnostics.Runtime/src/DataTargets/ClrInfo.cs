@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// If the application is single-file, this contains the runtime, DAC and DBI index information
         /// </summary>
-        public RuntimeInfo? SingleFileRuntimeInfo { get; internal set; }
+        public ClrRuntimeInfo? SingleFileRuntimeInfo { get; internal set; }
 
         /// <summary>
         /// To string.
