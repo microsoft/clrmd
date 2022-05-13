@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void MinidumpExceptionPropertiesNoSymbolsTest()
         {
             using DataTarget dt = TestTargets.NestedException.LoadMinidump();
-            dt.BinaryLocator = new NullBinaryLocator();
+            dt.FileLocator = new NullBinaryLocator(dt.FileLocator);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ExceptionTests.TestProperties(runtime);
         }
