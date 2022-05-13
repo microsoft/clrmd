@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime
     {
         internal static ImmutableArray<T> AsImmutableArray<T>(this T[] array)
         {
-            Debug.Assert(Unsafe.SizeOf<T[]>() == Unsafe.SizeOf<ImmutableArray<T>>());
+            DebugOnly.Assert(Unsafe.SizeOf<T[]>() == Unsafe.SizeOf<ImmutableArray<T>>());
             return Unsafe.As<T[], ImmutableArray<T>>(ref array);
         }
 

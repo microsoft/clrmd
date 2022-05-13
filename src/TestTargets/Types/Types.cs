@@ -3,11 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
-
-[assembly: System.Reflection.AssemblyFileVersionAttribute("1.2.3.4")]
-[assembly: System.Reflection.AssemblyVersionAttribute("1.2.3.4")]
-
-
 class Types
 {
     static object s_one = new object();

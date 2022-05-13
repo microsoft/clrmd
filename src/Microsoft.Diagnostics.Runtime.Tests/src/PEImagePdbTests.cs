@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotNull(imgPdb.Path);
         }
 
-        [Fact]
+        [WindowsFact]
         public void ExportSymbolTest()
         {
             // Load Windows' ntdll.dll
