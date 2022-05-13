@@ -25,15 +25,15 @@ namespace Microsoft.Diagnostics.Runtime
         public CacheOptions? CacheOptions { get; set; }
 
         /// <summary>
-        /// An optional binary locator.  Returning null from this property will use ClrMD's default binary
+        /// An optional file locator.  Returning null from this property will use ClrMD's file binary
         /// locator, which uses either <see cref="DefaultSymbolPath"/> (if non null) or the _NT_SYMBOL_PATH (if
         /// <see cref="DefaultSymbolPath"/> is null) environment variable to search for missing binaries.
         /// </summary>
-        public IBinaryLocator? BinaryLocator { get; set; }
+        public IFileLocator? FileLocator { get; set; }
 
         /// <summary>
-        /// If <see cref="BinaryLocator"/> is null, this path will be used as the symbol path for the default
-        /// binary locator.  This property has no effect if <see cref="BinaryLocator"/> is non-null.
+        /// If <see cref="FileLocator"/> is null, this path will be used as the symbol path for the default
+        /// binary locator.  This property has no effect if <see cref="FileLocator"/> is non-null.
         /// </summary>
         public string? DefaultSymbolPath { get; set; }
 
