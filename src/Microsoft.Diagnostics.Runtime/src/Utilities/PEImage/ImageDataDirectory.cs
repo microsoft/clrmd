@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     [StructLayout(LayoutKind.Sequential)]
-    public struct ImageDataDirectory
+    internal struct ImageDataDirectory
     {
         public int VirtualAddress;
         public int Size;

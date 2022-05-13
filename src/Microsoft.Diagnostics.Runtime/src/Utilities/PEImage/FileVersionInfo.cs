@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// FileVersionInfo represents the extended version formation that is optionally placed in the PE file resource area.
     /// </summary>
-    public sealed unsafe class FileVersionInfo
+    internal sealed unsafe class FileVersionInfo
     {
         /// <summary>
         /// Gets the version string

@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     [StructLayout(LayoutKind.Sequential)]
-    public struct ImageCor20Header
+    internal struct ImageCor20Header
     {
         // Header versioning
         public uint cb;

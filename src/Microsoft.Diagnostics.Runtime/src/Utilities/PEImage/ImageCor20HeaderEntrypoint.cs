@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     [StructLayout(LayoutKind.Explicit)]
-    public readonly struct ImageCor20HeaderEntrypoint
+    internal readonly struct ImageCor20HeaderEntrypoint
     {
         [FieldOffset(0)]
         public readonly uint Token;
