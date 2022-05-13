@@ -1136,7 +1136,6 @@ Microsoft.Diagnostics.Runtime.ModuleInfo.BuildId.get -> System.Collections.Immut
 Microsoft.Diagnostics.Runtime.ModuleInfo.DataReader.get -> Microsoft.Diagnostics.Runtime.IDataReader!
 Microsoft.Diagnostics.Runtime.ModuleInfo.DataTarget.get -> Microsoft.Diagnostics.Runtime.DataTarget!
 Microsoft.Diagnostics.Runtime.ModuleInfo.FileName.get -> string?
-Microsoft.Diagnostics.Runtime.ModuleInfo.GetPEImage() -> Microsoft.Diagnostics.Runtime.Utilities.PEImage?
 Microsoft.Diagnostics.Runtime.ModuleInfo.ImageBase.get -> ulong
 Microsoft.Diagnostics.Runtime.ModuleInfo.IndexFileSize.get -> int
 Microsoft.Diagnostics.Runtime.ModuleInfo.IndexTimeStamp.get -> int
@@ -1245,10 +1244,6 @@ Microsoft.Diagnostics.Runtime.Utilities.CallableCOMWrapper.Self.get -> System.In
 Microsoft.Diagnostics.Runtime.Utilities.CallableCOMWrapper.SuppressRelease() -> void
 Microsoft.Diagnostics.Runtime.Utilities.CallableCOMWrapper._vtable.get -> void*
 Microsoft.Diagnostics.Runtime.Utilities.CallableCOMWrapper.~CallableCOMWrapper() -> void
-Microsoft.Diagnostics.Runtime.Utilities.FileVersionInfo
-Microsoft.Diagnostics.Runtime.Utilities.FileVersionInfo.Comments.get -> string?
-Microsoft.Diagnostics.Runtime.Utilities.FileVersionInfo.FileVersion.get -> string?
-Microsoft.Diagnostics.Runtime.Utilities.FileVersionInfo.VersionInfo.get -> Microsoft.Diagnostics.Runtime.VersionInfo
 Microsoft.Diagnostics.Runtime.Utilities.HResult
 Microsoft.Diagnostics.Runtime.Utilities.HResult.HResult(int hr) -> void
 Microsoft.Diagnostics.Runtime.Utilities.HResult.IsOK.get -> bool
@@ -1259,38 +1254,6 @@ Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.AddRef -> delegate* unman
 Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.IUnknownVTable() -> void
 Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.QueryInterface -> delegate* unmanaged[Stdcall]<System.IntPtr, in System.Guid, out System.IntPtr, Microsoft.Diagnostics.Runtime.Utilities.HResult>
 Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.Release -> delegate* unmanaged[Stdcall]<System.IntPtr, int>
-Microsoft.Diagnostics.Runtime.Utilities.PEImage
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.CoffHeader.get -> System.Reflection.PortableExecutable.CoffHeader?
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.CorHeader.get -> System.Reflection.PortableExecutable.CorHeader?
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.DefaultPdb.get -> Microsoft.Diagnostics.Runtime.PdbInfo?
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.Dispose() -> void
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.GetFileVersionInfo() -> Microsoft.Diagnostics.Runtime.Utilities.FileVersionInfo?
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.IndexFileSize.get -> int
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.IndexTimeStamp.get -> int
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.IsManaged.get -> bool
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.IsPE64.get -> bool
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.IsValid.get -> bool
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.PEHeader.get -> System.Reflection.PortableExecutable.PEHeader?
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.PEImage(System.IO.Stream! stream, bool leaveOpen = false) -> void
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.PEImage(System.IO.Stream! stream, bool leaveOpen, bool isVirtual) -> void
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.Pdbs.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.PdbInfo!>
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.Read(int virtualAddress, System.Span<byte> dest) -> int
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.Reader.get -> System.Reflection.PortableExecutable.PEReader?
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.Resources.get -> Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry!
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.RvaToOffset(int virtualAddress) -> int
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.Sections.get -> System.Collections.Immutable.ImmutableArray<System.Reflection.PortableExecutable.SectionHeader>
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.TryGetExportSymbol(string! symbolName, out ulong offset) -> bool
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.ChildCount.get -> int
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.Children.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry!>
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.GetData(System.Span<byte> span) -> int
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.GetData<T>(int offset = 0) -> T
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.Image.get -> Microsoft.Diagnostics.Runtime.Utilities.PEImage!
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.IsLeaf.get -> bool
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.Name.get -> string!
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.Parent.get -> Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry?
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.Size.get -> int
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.this[string! name].get -> Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry?
 Microsoft.Diagnostics.Runtime.Utilities.SigParser
 Microsoft.Diagnostics.Runtime.Utilities.SigParser.GetCallingConvInfo(out int data) -> bool
 Microsoft.Diagnostics.Runtime.Utilities.SigParser.GetData(out int data) -> bool
@@ -2015,9 +1978,7 @@ override Microsoft.Diagnostics.Runtime.ModuleInfo.ToString() -> string?
 override Microsoft.Diagnostics.Runtime.PdbInfo.Equals(object? obj) -> bool
 override Microsoft.Diagnostics.Runtime.PdbInfo.GetHashCode() -> int
 override Microsoft.Diagnostics.Runtime.PdbInfo.ToString() -> string!
-override Microsoft.Diagnostics.Runtime.Utilities.FileVersionInfo.ToString() -> string?
 override Microsoft.Diagnostics.Runtime.Utilities.HResult.ToString() -> string!
-override Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.ToString() -> string!
 override Microsoft.Diagnostics.Runtime.VersionInfo.Equals(object? obj) -> bool
 override Microsoft.Diagnostics.Runtime.VersionInfo.GetHashCode() -> int
 override Microsoft.Diagnostics.Runtime.VersionInfo.ToString() -> string!
@@ -2334,10 +2295,6 @@ static Microsoft.Diagnostics.Runtime.Utilities.COMHelper.Release(System.IntPtr p
 static Microsoft.Diagnostics.Runtime.Utilities.HResult.implicit operator Microsoft.Diagnostics.Runtime.Utilities.HResult(int hr) -> Microsoft.Diagnostics.Runtime.Utilities.HResult
 static Microsoft.Diagnostics.Runtime.Utilities.HResult.implicit operator bool(Microsoft.Diagnostics.Runtime.Utilities.HResult hr) -> bool
 static Microsoft.Diagnostics.Runtime.Utilities.HResult.implicit operator int(Microsoft.Diagnostics.Runtime.Utilities.HResult hr) -> int
-static Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.MaxChildrenCount.get -> int
-static Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.MaxChildrenCount.set -> void
-static Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.MaxNameLength.get -> int
-static Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.MaxNameLength.set -> void
 static Microsoft.Diagnostics.Runtime.VersionInfo.operator !=(Microsoft.Diagnostics.Runtime.VersionInfo left, Microsoft.Diagnostics.Runtime.VersionInfo right) -> bool
 static Microsoft.Diagnostics.Runtime.VersionInfo.operator <(Microsoft.Diagnostics.Runtime.VersionInfo left, Microsoft.Diagnostics.Runtime.VersionInfo right) -> bool
 static Microsoft.Diagnostics.Runtime.VersionInfo.operator <=(Microsoft.Diagnostics.Runtime.VersionInfo left, Microsoft.Diagnostics.Runtime.VersionInfo right) -> bool
