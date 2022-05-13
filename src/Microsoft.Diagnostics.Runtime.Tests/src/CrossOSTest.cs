@@ -2,7 +2,7 @@
 using System.Linq;
 using Xunit;
 
-namespace Microsoft.Diagnostics.Runtime.Tests.src
+namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class CrossOSTest
     {
