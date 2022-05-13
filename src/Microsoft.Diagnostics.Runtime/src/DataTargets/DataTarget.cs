@@ -178,7 +178,8 @@ namespace Microsoft.Diagnostics.Runtime
                 }
                 else
                 {
-                    if (DataReader is not IExportReader exportReader || !exportReader.TryGetSymbolAddress(module.ImageBase, ClrRuntimeInfo.SymbolValue, out ulong runtimeInfoAddress))
+                    ulong runtimeInfoAddress = module.GetSymbolAddress(ClrRuntimeInfo.SymbolValue);
+                    if (runtimeInfoAddress == 0)
                         continue;
 
                     if (!DataReader.Read(runtimeInfoAddress, out ClrRuntimeInfo runtimeInfo))
@@ -239,7 +240,7 @@ namespace Microsoft.Diagnostics.Runtime
                     dacLocation = null;
                 }
 
-                VersionInfo version = module.Version;
+                Version version = module.Version;
 
                 string dacRegularName = ClrInfoProvider.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, arch, version, platform);
 
@@ -273,11 +274,6 @@ namespace Microsoft.Diagnostics.Runtime
             char[] invalid = Path.GetInvalidPathChars();
             ModuleInfo[] modules = DataReader.EnumerateModules().Where(m => m.FileName != null && m.FileName.IndexOfAny(invalid) < 0).ToArray();
             Array.Sort(modules, (a, b) => a.ImageBase.CompareTo(b.ImageBase));
-
-#pragma warning disable CS0618 // Type or member is obsolete
-            foreach (ModuleInfo module in modules)
-                module.DataTarget = this;
-#pragma warning restore CS0618 // Type or member is obsolete
 
             return _modules = modules;
         }

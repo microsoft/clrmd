@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
+
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal readonly struct FixedFileInfo
@@ -26,6 +28,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public readonly uint FileDateMS;           /* e.g. 0 */
         public readonly uint FileDateLS;           /* e.g. 0 */
 
-        public VersionInfo AsVersionInfo() => new VersionInfo(Major, Minor, Revision, Patch);
+        public Version AsVersionInfo() => new Version(Major, Minor, Revision, Patch);
     }
 }

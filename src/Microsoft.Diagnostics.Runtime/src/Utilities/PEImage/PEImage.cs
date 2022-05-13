@@ -45,14 +45,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private object? _metadata;
         private bool _disposed;
 
-        /// <summary>
-        /// Constructs a PEImage class for a given PE image (dll/exe) on disk.
-        /// </summary>
-        /// <param name="stream">A Stream that contains a PE image at its 0th offset.  This stream must be seekable.</param>
-        /// <param name="leaveOpen">Whether or not to leave the stream open, if this is set to false stream will be
-        /// disposed when this object is.</param>
-        public PEImage(Stream stream, bool leaveOpen = false)
+        public PEImage(FileStream stream, bool leaveOpen = false)
             : this(stream, leaveOpen, isVirtual: false)
+        {
+        }
+
+        public PEImage(ReadVirtualStream stream, bool leaveOpen, bool isVirtual)
+            :this((Stream)stream, leaveOpen, isVirtual)
+        {
+        }
+
+        public PEImage(ReaderStream stream, bool leaveOpen, bool isVirtual)
+            : this((Stream)stream, leaveOpen, isVirtual)
         {
         }
 
@@ -63,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <param name="leaveOpen">Whether or not to leave the stream open, if this is set to false stream will be
         /// disposed when this object is.</param>
         /// <param name="isVirtual">Whether stream points to a PE image mapped into an address space (such as in a live process or crash dump).</param>
-        public PEImage(Stream stream, bool leaveOpen, bool isVirtual)
+        private PEImage(Stream stream, bool leaveOpen, bool isVirtual)
         {
             _isVirtual = isVirtual;
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));

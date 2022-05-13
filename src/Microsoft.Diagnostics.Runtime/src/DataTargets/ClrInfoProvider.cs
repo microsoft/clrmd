@@ -94,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the file name of the DAC dll for the requests to the symbol server.
         /// </summary>
-        public static string GetDacRequestFileName(ClrFlavor flavor, Architecture currentArchitecture, Architecture targetArchitecture, VersionInfo version, OSPlatform platform)
+        public static string GetDacRequestFileName(ClrFlavor flavor, Architecture currentArchitecture, Architecture targetArchitecture, Version version, OSPlatform platform)
         {
             // Linux never has a "long" named DAC
             if (platform == OSPlatform.Linux)
@@ -105,7 +105,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return c_macOSCoreDacFileName;
 
             var dacNameBase = flavor == ClrFlavor.Core ? c_coreDacFileNameBase : c_desktopDacFileNameBase;
-            return $"{dacNameBase}_{currentArchitecture}_{targetArchitecture}_{version.Major}.{version.Minor}.{version.Revision}.{version.Patch:D2}.dll";
+            return $"{dacNameBase}_{currentArchitecture}_{targetArchitecture}_{version.Major}.{version.Minor}.{version.Build}.{version.Revision:D2}.dll";
         }
     }
 }

@@ -1,4 +1,4 @@
-#Migrating to 2.1
+# Migrating to 2.1
 
 Here is a summary of breaking changes in ClrMD 2.1:
 
@@ -16,3 +16,18 @@ Most folks don't need to implement these interface specifically, and ClrMD provi
 
 It was a lot cleaner to replace `IBinaryLocator` than to try to hack around the original implementation.
 
+## PEImage and Elf related classes are now internal
+
+
+
+
+### Why did we make this change?
+
+We had to completely redesign and rethink the internals of PEImage.
+
+## ModuleInfo has changed slightly
+
+
+## VersionInfo is removed
+
+Use `System.Version` instead.

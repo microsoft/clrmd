@@ -1,1 +1,13 @@
 #nullable enable
+Microsoft.Diagnostics.Runtime.ClrInfo.Version.get -> System.Version!
+Microsoft.Diagnostics.Runtime.ModuleInfo.FileName.get -> string!
+Microsoft.Diagnostics.Runtime.ModuleInfo.ModuleInfo(ulong imageBase, string! fileName) -> void
+static Microsoft.Diagnostics.Runtime.ClrInfoProvider.GetDacRequestFileName(Microsoft.Diagnostics.Runtime.ClrFlavor flavor, Microsoft.Diagnostics.Runtime.Architecture currentArchitecture, Microsoft.Diagnostics.Runtime.Architecture targetArchitecture, System.Version! version, System.Runtime.InteropServices.OSPlatform platform) -> string!
+virtual Microsoft.Diagnostics.Runtime.ModuleInfo.BuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
+virtual Microsoft.Diagnostics.Runtime.ModuleInfo.GetSymbolAddress(string! symbol) -> ulong
+virtual Microsoft.Diagnostics.Runtime.ModuleInfo.IndexFileSize.get -> int
+virtual Microsoft.Diagnostics.Runtime.ModuleInfo.IndexTimeStamp.get -> int
+virtual Microsoft.Diagnostics.Runtime.ModuleInfo.IsManaged.get -> bool
+virtual Microsoft.Diagnostics.Runtime.ModuleInfo.Pdb.get -> Microsoft.Diagnostics.Runtime.PdbInfo?
+virtual Microsoft.Diagnostics.Runtime.ModuleInfo.Version.get -> System.Version!
+virtual Microsoft.Diagnostics.Runtime.PlatformFunctions.IsEqualFileVersion(string! file, System.Version! version) -> bool

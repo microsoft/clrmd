@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Diagnostics.Runtime.DataReaders.Windows;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -158,29 +159,17 @@ namespace Microsoft.Diagnostics.Runtime
                 GetFileProperties(baseAddr, out int filesize, out int timestamp);
 
                 string fileName = sb.ToString();
-                ModuleInfo module = new ModuleInfo(this, baseAddr, fileName, true, filesize, timestamp, ImmutableArray<byte>.Empty);
+
+
+                Version? version = null;
+                if (DataTarget.PlatformFunctions.GetFileVersion(fileName, out int major, out int minor, out int revision, out int patch))
+                    version = new Version(major, minor, revision, patch);
+
+                ModuleInfo module = new PEModuleInfo(this, baseAddr, fileName, true, timestamp, filesize, version);
                 result.Add(module);
             }
 
             return result;
-        }
-
-        public ImmutableArray<byte> GetBuildId(ulong baseAddress) => ImmutableArray<byte>.Empty;
-
-        public bool GetVersionInfo(ulong addr, out VersionInfo version)
-        {
-            StringBuilder fileName = new StringBuilder(1024);
-            uint res = GetModuleFileNameEx(_process, addr.AsIntPtr(), fileName, fileName.Capacity);
-            DebugOnly.Assert(res != 0);
-
-            if (DataTarget.PlatformFunctions.GetFileVersion(fileName.ToString(), out int major, out int minor, out int revision, out int patch))
-            {
-                version = new VersionInfo(major, minor, revision, patch, true);
-                return true;
-            }
-
-            version = default;
-            return false;
         }
 
         public override int Read(ulong address, Span<byte> buffer)

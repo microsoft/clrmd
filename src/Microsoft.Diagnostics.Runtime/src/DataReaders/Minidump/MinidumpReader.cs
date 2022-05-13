@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using Microsoft.Diagnostics.Runtime.Windows;
 using System;
@@ -14,7 +15,7 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class MinidumpReader : IDataReader, IDisposable, IThreadReader, IExportReader
+    internal sealed class MinidumpReader : IDataReader, IDisposable, IThreadReader
     {
         private readonly Minidump _minidump;
         private IMemoryReader? _readerCached;
@@ -67,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime
             // We set buildId to "Empty" since only PEImages exist where minidumps are created, and we do not
             // want to try to lazily evaluate the buildId later
             return from module in _minidump.EnumerateModuleInfo()
-                   select new ModuleInfo(this, module.BaseOfImage, module.ModuleName, true, module.SizeOfImage, module.DateTimeStamp, ImmutableArray<byte>.Empty);
+                   select new PEModuleInfo(this,  module.BaseOfImage, module.ModuleName ??"", true, module.DateTimeStamp, module.SizeOfImage);
         }
 
         public void FlushCachedData()
@@ -93,40 +94,6 @@ namespace Microsoft.Diagnostics.Runtime
                 return false;
 
             return _minidump.MemoryReader.ReadFromRva(ctx.ContextRva, context) == context.Length;
-        }
-
-        public ImmutableArray<byte> GetBuildId(ulong baseAddress) => ImmutableArray<byte>.Empty;
-
-        public bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
-        {
-            MinidumpModuleInfo? module = _minidump.EnumerateModuleInfo().FirstOrDefault(m => m.BaseOfImage == baseAddress);
-            if (module == null)
-            {
-                version = default;
-                return false;
-            }
-
-            version = module.VersionInfo.AsVersionInfo();
-            return true;
-        }
-
-        /// <summary>
-        /// Returns the address of a module export symbol if found
-        /// </summary>
-        /// <param name="baseAddress">module base address</param>
-        /// <param name="name">symbol name (without the module name prepended)</param>
-        /// <param name="address">address returned</param>
-        /// <returns>true if found</returns>
-        bool IExportReader.TryGetSymbolAddress(ulong baseAddress, string name, out ulong address)
-        {
-            using PEImage? image = EnumerateModules().First(mod => mod.ImageBase == baseAddress).GetPEImage();
-            if (image is not null && image.TryGetExportSymbol(name, out ulong offset))
-            {
-                address = baseAddress + offset;
-                return true;
-            }
-            address = 0;
-            return false;
         }
 
         public int Read(ulong address, Span<byte> buffer) => MemoryReader.Read(address, buffer);

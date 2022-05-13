@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the version number of this runtime.
         /// </summary>
-        public VersionInfo Version => ModuleInfo.Version;
+        public Version Version => ModuleInfo.Version;
 
         /// <summary>
         /// Gets the type of CLR this module represents.
@@ -72,7 +72,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!ignoreMismatch)
             {
                 DataTarget.PlatformFunctions.GetFileVersion(dacPath, out int major, out int minor, out int revision, out int patch);
-                if (major != Version.Major || minor != Version.Minor || revision != Version.Revision || patch != Version.Patch)
+                if (major != Version.Major || minor != Version.Minor || revision != Version.Build || patch != Version.Revision)
                     throw new InvalidOperationException($"Mismatched dac. Dac version: {major}.{minor}.{revision}.{patch}, expected: {Version}.");
             }
 
@@ -145,7 +145,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (Flavor == ClrFlavor.Core)
                 return factory.GetOrCreateRuntime();
 
-            if (Version.Major < 4 || (Version.Major == 4 && Version.Minor == 5 && Version.Patch < 10000))
+            if (Version.Major < 4 || (Version.Major == 4 && Version.Minor == 5 && Version.Revision < 10000))
                 throw new NotSupportedException($"CLR version '{Version}' is not supported by ClrMD.  For Desktop CLR, only CLR 4.6 and beyond are supported.");
 
             return factory.GetOrCreateRuntime();

@@ -36,8 +36,12 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             _ => Architecture.Unknown
         };
 
-        public MachOCoreDump(Stream stream, bool leaveOpen, string displayName)
+        public MachOCoreReader Parent { get; }
+
+        public MachOCoreDump(MachOCoreReader parent, Stream stream, bool leaveOpen, string displayName)
         {
+            Parent = parent;
+
             fixed (MachHeader64* header = &_header)
                 if (stream.Read(new Span<byte>(header, sizeof(MachHeader64))) != sizeof(MachHeader64))
                     throw new IOException($"Failed to read header from {displayName}.");

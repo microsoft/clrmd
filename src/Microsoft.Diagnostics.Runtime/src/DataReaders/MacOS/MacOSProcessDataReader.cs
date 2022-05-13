@@ -134,10 +134,14 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             Native.dyld_all_image_infos infos = Read<Native.dyld_all_image_infos>(dyldInfo.all_image_info_addr);
             for (uint i = 0; i < infos.infoArrayCount; i++)
             {
+                // TODO:  UUID?
+
                 Native.dyld_image_info info = Read<Native.dyld_image_info>(infos.infoArray, i);
                 ulong imageAddress = info.imageLoadAddress;
                 string imageFilePath = ReadNullTerminatedAscii(info.imageFilePath);
-                yield return new ModuleInfo(this, imageAddress, imageFilePath, true, 0, 0, ImmutableArray<byte>.Empty);
+
+                Version version = GetVersionInfo(info.imageLoadAddress) ?? new Version();
+                yield return new MachOModuleInfo(null, imageAddress, imageFilePath, version, 0);
             }
 
             unsafe T Read<T>(ulong address, uint index = 0)
@@ -172,15 +176,10 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             }
         }
 
-        public ImmutableArray<byte> GetBuildId(ulong baseAddress) => ImmutableArray<byte>.Empty;
-
-        public unsafe bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
+        public unsafe Version? GetVersionInfo(ulong baseAddress)
         {
             if (!Read(baseAddress, out MachOHeader64 header) || header.Magic != MachOHeader64.ExpectedMagic)
-            {
-                version = default;
-                return false;
-            }
+                return null;
 
             baseAddress += (uint)sizeof(MachOHeader64);
 
@@ -205,7 +204,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                             {
                                 long dataOffset = section.Address;
                                 long dataSize = section.Size;
-                                return this.GetVersionInfo(baseAddress + (ulong)dataOffset, (ulong)dataSize, out version);
+                                if (this.GetVersionInfo(baseAddress + (ulong)dataOffset, (ulong)dataSize, out Version? version))
+                                    return version;
                             }
                         }
 
@@ -218,8 +218,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 baseAddress += (uint)(commandSize - sizeof(MachOCommand));
             }
 
-            version = default;
-            return false;
+            return null;
         }
 
         public override unsafe int Read(ulong address, Span<byte> buffer)
