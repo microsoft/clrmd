@@ -375,7 +375,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                         // We should never reach the 'end' here, as we always check if we found the target
                         // value when adding refs below.
-                        Debug.Assert(next.Address != target);
+                        DebugOnly.Assert(next.Address != target);
 
                         PathEntry nextPathEntry = new PathEntry
                         {
