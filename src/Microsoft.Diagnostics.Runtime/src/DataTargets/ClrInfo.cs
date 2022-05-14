@@ -221,9 +221,12 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsSupportedRuntime(module, out ClrFlavor flavor))
                 return new ClrInfo(dataTarget, flavor, module, 0);
 
-            ulong singleFileRuntimeInfo = module.GetSymbolAddress(ClrRuntimeInfo.SymbolValue);
-            if (singleFileRuntimeInfo != 0)
-                return new ClrInfo(dataTarget, ClrFlavor.Core, module, singleFileRuntimeInfo);
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || Path.GetExtension(module.FileName).Equals(".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                ulong singleFileRuntimeInfo = module.GetSymbolAddress(ClrRuntimeInfo.SymbolValue);
+                if (singleFileRuntimeInfo != 0)
+                    return new ClrInfo(dataTarget, ClrFlavor.Core, module, singleFileRuntimeInfo);
+            }
 
             return null;
         }
