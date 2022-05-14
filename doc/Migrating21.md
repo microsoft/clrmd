@@ -41,6 +41,7 @@ Some alternatives:
 
 ## ModuleInfo has changed slightly
 
+If you implement your own IDataTarget and need to produce ModuleInfo you will need to define an implementation here.  I will likely mark my implementations of ModuleInfo for pefiles, elf files, and mach-o files as public at some point, but I wanted to make sure they are actually ready (design-wise) to be marked public first.
 
 ## VersionInfo is removed
 
