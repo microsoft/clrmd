@@ -1,8 +1,28 @@
 #nullable enable
+Microsoft.Diagnostics.Runtime.ClrInfo.BuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
+Microsoft.Diagnostics.Runtime.ClrInfo.DebuggingLibraries.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.DebugLibraryInfo!>
+Microsoft.Diagnostics.Runtime.ClrInfo.IndexFileSize.get -> int
+Microsoft.Diagnostics.Runtime.ClrInfo.IndexTimeStamp.get -> int
+Microsoft.Diagnostics.Runtime.ClrInfo.IsSingleFile.get -> bool
 Microsoft.Diagnostics.Runtime.ClrInfo.Version.get -> System.Version!
+Microsoft.Diagnostics.Runtime.DebugLibraryInfo
+Microsoft.Diagnostics.Runtime.DebugLibraryInfo.FileName.get -> string!
+Microsoft.Diagnostics.Runtime.DebugLibraryInfo.IndexBuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
+Microsoft.Diagnostics.Runtime.DebugLibraryInfo.IndexFileSize.get -> int
+Microsoft.Diagnostics.Runtime.DebugLibraryInfo.IndexTimeStamp.get -> int
+Microsoft.Diagnostics.Runtime.DebugLibraryInfo.Kind.get -> Microsoft.Diagnostics.Runtime.DebugLibraryKind
+Microsoft.Diagnostics.Runtime.DebugLibraryInfo.Platform.get -> System.Runtime.InteropServices.OSPlatform
+Microsoft.Diagnostics.Runtime.DebugLibraryInfo.TargetArchitecture.get -> Microsoft.Diagnostics.Runtime.Architecture
+Microsoft.Diagnostics.Runtime.DebugLibraryKind
+Microsoft.Diagnostics.Runtime.DebugLibraryKind.Dac = 0 -> Microsoft.Diagnostics.Runtime.DebugLibraryKind
+Microsoft.Diagnostics.Runtime.DebugLibraryKind.Dbi = 1 -> Microsoft.Diagnostics.Runtime.DebugLibraryKind
+Microsoft.Diagnostics.Runtime.ModuleInfo
 Microsoft.Diagnostics.Runtime.ModuleInfo.FileName.get -> string!
+Microsoft.Diagnostics.Runtime.ModuleInfo.ImageBase.get -> ulong
 Microsoft.Diagnostics.Runtime.ModuleInfo.ModuleInfo(ulong imageBase, string! fileName) -> void
-static Microsoft.Diagnostics.Runtime.ClrInfoProvider.GetDacRequestFileName(Microsoft.Diagnostics.Runtime.ClrFlavor flavor, Microsoft.Diagnostics.Runtime.Architecture currentArchitecture, Microsoft.Diagnostics.Runtime.Architecture targetArchitecture, System.Version! version, System.Runtime.InteropServices.OSPlatform platform) -> string!
+override Microsoft.Diagnostics.Runtime.DebugLibraryInfo.Equals(object? obj) -> bool
+override Microsoft.Diagnostics.Runtime.DebugLibraryInfo.GetHashCode() -> int
+override Microsoft.Diagnostics.Runtime.DebugLibraryInfo.ToString() -> string!
 virtual Microsoft.Diagnostics.Runtime.ModuleInfo.BuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
 virtual Microsoft.Diagnostics.Runtime.ModuleInfo.GetSymbolAddress(string! symbol) -> ulong
 virtual Microsoft.Diagnostics.Runtime.ModuleInfo.IndexFileSize.get -> int

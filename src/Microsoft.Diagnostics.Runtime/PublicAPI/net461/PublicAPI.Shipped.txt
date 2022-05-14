@@ -292,13 +292,10 @@ Microsoft.Diagnostics.Runtime.ClrHeap.GetObject(ulong objRef) -> Microsoft.Diagn
 Microsoft.Diagnostics.Runtime.ClrInfo
 Microsoft.Diagnostics.Runtime.ClrInfo.CreateRuntime() -> Microsoft.Diagnostics.Runtime.ClrRuntime!
 Microsoft.Diagnostics.Runtime.ClrInfo.CreateRuntime(string! dacPath, bool ignoreMismatch = false) -> Microsoft.Diagnostics.Runtime.ClrRuntime!
-Microsoft.Diagnostics.Runtime.ClrInfo.DacInfo.get -> Microsoft.Diagnostics.Runtime.DacInfo!
 Microsoft.Diagnostics.Runtime.ClrInfo.DataTarget.get -> Microsoft.Diagnostics.Runtime.DataTarget!
 Microsoft.Diagnostics.Runtime.ClrInfo.Flavor.get -> Microsoft.Diagnostics.Runtime.ClrFlavor
 Microsoft.Diagnostics.Runtime.ClrInfo.ModuleInfo.get -> Microsoft.Diagnostics.Runtime.ModuleInfo!
-Microsoft.Diagnostics.Runtime.ClrInfo.SingleFileRuntimeInfo.get -> Microsoft.Diagnostics.Runtime.ClrRuntimeInfo?
 Microsoft.Diagnostics.Runtime.ClrInfo.Version.get -> System.Version
-Microsoft.Diagnostics.Runtime.ClrInfoProvider
 Microsoft.Diagnostics.Runtime.ClrInstanceField
 Microsoft.Diagnostics.Runtime.ClrInstanceField.ClrInstanceField() -> void
 Microsoft.Diagnostics.Runtime.ClrInterface
@@ -428,15 +425,6 @@ Microsoft.Diagnostics.Runtime.CustomDataTarget.DefaultSymbolPath.get -> string?
 Microsoft.Diagnostics.Runtime.CustomDataTarget.DefaultSymbolPath.set -> void
 Microsoft.Diagnostics.Runtime.CustomDataTarget.Dispose() -> void
 Microsoft.Diagnostics.Runtime.CustomDataTarget.~CustomDataTarget() -> void
-Microsoft.Diagnostics.Runtime.DacInfo
-Microsoft.Diagnostics.Runtime.DacInfo.ClrBuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
-Microsoft.Diagnostics.Runtime.DacInfo.IndexFileSize.get -> int
-Microsoft.Diagnostics.Runtime.DacInfo.IndexTimeStamp.get -> int
-Microsoft.Diagnostics.Runtime.DacInfo.LocalDacPath.get -> string?
-Microsoft.Diagnostics.Runtime.DacInfo.PlatformAgnosticFileName.get -> string!
-Microsoft.Diagnostics.Runtime.DacInfo.PlatformSpecificFileName.get -> string!
-Microsoft.Diagnostics.Runtime.DacInfo.TargetArchitecture.get -> Microsoft.Diagnostics.Runtime.Architecture
-Microsoft.Diagnostics.Runtime.DacInfo.Version.get -> System.Version!
 Microsoft.Diagnostics.Runtime.DacInterface.AppDomainData
 Microsoft.Diagnostics.Runtime.DacInterface.AppDomainData.AppDomainData() -> void
 Microsoft.Diagnostics.Runtime.DacInterface.AppDomainStoreData
@@ -1182,13 +1170,6 @@ Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.RefCount.get -> int
 Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.RuntimeCallableWrapper(Microsoft.Diagnostics.Runtime.ClrRuntime! runtime, Microsoft.Diagnostics.Runtime.Implementation.IRcwData! data) -> void
 Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.VTablePointer.get -> ulong
 Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.WinRTObject.get -> ulong
-Microsoft.Diagnostics.Runtime.ClrRuntimeInfo
-Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.DacModuleIndex -> byte*
-Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.DbiModuleIndex -> byte*
-Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.ClrRuntimeInfo() -> void
-Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.RuntimeModuleIndex -> byte*
-Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.Signature -> byte*
-Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.Version -> int
 Microsoft.Diagnostics.Runtime.StringCaching
 Microsoft.Diagnostics.Runtime.StringCaching.Cache = 1 -> Microsoft.Diagnostics.Runtime.StringCaching
 Microsoft.Diagnostics.Runtime.StringCaching.Intern = 2 -> Microsoft.Diagnostics.Runtime.StringCaching
@@ -1545,9 +1526,6 @@ const Microsoft.Diagnostics.Runtime.ArmContext.ContextControl = 2097153 -> uint
 const Microsoft.Diagnostics.Runtime.ArmContext.ContextDebugRegisters = 2097160 -> uint
 const Microsoft.Diagnostics.Runtime.ArmContext.ContextFloatingPoint = 2097156 -> uint
 const Microsoft.Diagnostics.Runtime.ArmContext.ContextInteger = 2097154 -> uint
-const Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.SignatureValue = "DotNetRuntimeInfo\0" -> string!
-const Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.SignatureValueLength = 18 -> int
-const Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.SymbolValue = "DotNetRuntimeInfo" -> string!
 const Microsoft.Diagnostics.Runtime.Utilities.HResult.E_FAIL = -2147467259 -> int
 const Microsoft.Diagnostics.Runtime.Utilities.HResult.E_INVALIDARG = -2147024809 -> int
 const Microsoft.Diagnostics.Runtime.Utilities.HResult.E_NOINTERFACE = -2147467262 -> int
@@ -2228,8 +2206,6 @@ static Microsoft.Diagnostics.Runtime.Arm64Context.Size.get -> int
 static Microsoft.Diagnostics.Runtime.ArmContext.Size.get -> int
 static Microsoft.Diagnostics.Runtime.ClrArray.operator !=(Microsoft.Diagnostics.Runtime.ClrArray left, Microsoft.Diagnostics.Runtime.ClrArray right) -> bool
 static Microsoft.Diagnostics.Runtime.ClrArray.operator ==(Microsoft.Diagnostics.Runtime.ClrArray left, Microsoft.Diagnostics.Runtime.ClrArray right) -> bool
-static Microsoft.Diagnostics.Runtime.ClrInfoProvider.GetDacFileName(Microsoft.Diagnostics.Runtime.ClrFlavor flavor, System.Runtime.InteropServices.OSPlatform platform) -> string!
-static Microsoft.Diagnostics.Runtime.ClrInfoProvider.IsSupportedRuntime(Microsoft.Diagnostics.Runtime.ModuleInfo! moduleInfo, out Microsoft.Diagnostics.Runtime.ClrFlavor flavor, out System.Runtime.InteropServices.OSPlatform platform) -> bool
 static Microsoft.Diagnostics.Runtime.ClrInterface.operator !=(Microsoft.Diagnostics.Runtime.ClrInterface? left, Microsoft.Diagnostics.Runtime.ClrInterface? right) -> bool
 static Microsoft.Diagnostics.Runtime.ClrInterface.operator ==(Microsoft.Diagnostics.Runtime.ClrInterface? left, Microsoft.Diagnostics.Runtime.ClrInterface? right) -> bool
 static Microsoft.Diagnostics.Runtime.ClrMethod.operator !=(Microsoft.Diagnostics.Runtime.ClrMethod? left, Microsoft.Diagnostics.Runtime.ClrMethod? right) -> bool

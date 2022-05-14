@@ -1,5 +1,6 @@
 ﻿using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
+using System.Linq;
 using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -139,6 +140,29 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return ImageBase + offset;
 
             return 0;
+        }
+
+        internal override T ReadResource<T>(params string[] path)
+        {
+            PEImage? img = GetPEImage();
+            if (img is not null)
+            {
+                ResourceEntry? node = img.Resources;
+                
+                foreach (string part in path)
+                {
+                    if (node is null)
+                        break;
+
+                    node = node[part];
+                }
+
+                node = node?.Children.FirstOrDefault();
+                if (node is not null)
+                    return node.GetData<T>();
+            }
+
+            return default;
         }
 
         public PEModuleInfo(IDataReader dataReader!!, ulong imageBase, string fileName!!, bool isVirtual)

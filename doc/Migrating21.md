@@ -19,8 +19,6 @@ It was a lot cleaner to replace `IBinaryLocator` than to try to hack around the 
 ## PEImage and Elf related classes are now internal
 
 
-
-
 ### Why did we make this change?
 
 We had to completely redesign and rethink the internals of PEImage.
@@ -31,3 +29,30 @@ We had to completely redesign and rethink the internals of PEImage.
 ## VersionInfo is removed
 
 Use `System.Version` instead.
+
+
+## ClrInfo.DacInfo -> ClrInfo.DebugLibraryInfo
+
+Additionally we added ClrInfo.IsSingleFile.
+
+### `ClrInfo.DacLibrary` -> `ClrInfo.DebuggingLibraries`
+
+Instead of providing a single "DacLibrary", we now enumerate all debugging libraries we know to exist for this CLR runtime.  The resulting list is stored in `DebuggingLibraries` instead.  Most folks didn't use `DacLibrary` directly, but if you did then you will need to enumerate `DebuggingLibraries` and find all libraries which match your current platform and architecture.  Additionally, we also enumerate DBI libraries even though ClrMD does not use them (this is `DebugLibraryInfo.Kind`).
+
+You will still find the original file `DacLibrary` pointed to in this list of dacs.
+
+
+### ClrRuntimeInfo has is no longer marked public
+
+This is an odd struct that probably will change over the lifetime of .Net Core.  It should not have been exposed as public to begin with.  Instead all of this information is provided by `ClrInfo.DebuggingLibraries`.
+
+### ClrInfoProvider was removed
+
+This functionality has been wrapped into `ClrInfo`, and probably shouldn't have been marked public to begin with.
+
+
+### Why did we make this change?
+
+Creating `ClrInfo` was a strange, multi class process and involved a lot of moving pieces spread over the codebase.  We now consolidated all of the relevant code into ClrInfo.cs.  We've also pulled together all of the various ways of finding the DAC and DBI libraries all in one place and provided a way for the user to locate all of the various binaries.
+
+This also lets ClrMD enumerate through all possible matching DAC libraries and query the symbol server for all of them.  This is especially helpful in case one of the dacs happens to be missing from the symbol server (which should be rare but isn't unheard of).

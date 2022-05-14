@@ -58,6 +58,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override string ToString() => FileName;
 
+        internal virtual T ReadResource<T>(params string[] path) where T : unmanaged => default;
+
         public ModuleInfo(ulong imageBase, string fileName!!)
         {
             ImageBase = imageBase;
