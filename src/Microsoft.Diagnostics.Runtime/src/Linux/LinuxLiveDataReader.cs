@@ -12,7 +12,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using Microsoft.Diagnostics.Runtime.Implementation;
-using ProcessArchitecture = System.Runtime.InteropServices.Architecture;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -56,14 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 _suspended = true;
             }
 
-            Architecture = RuntimeInformation.ProcessArchitecture switch
-            {
-                ProcessArchitecture.X86 => Architecture.X86,
-                ProcessArchitecture.X64 => Architecture.Amd64,
-                ProcessArchitecture.Arm => Architecture.Arm,
-                ProcessArchitecture.Arm64 => Architecture.Arm64,
-                _ => Architecture.Unknown,
-            };
+            Architecture = RuntimeInformation.ProcessArchitecture;
         }
 
         ~LinuxLiveDataReader() => Dispose(false);
@@ -196,7 +188,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 Architecture.Arm => sizeof(RegSetArm),
                 Architecture.Arm64 => sizeof(RegSetArm64),
-                Architecture.Amd64 => sizeof(RegSetX64),
+                Architecture.X64 => sizeof(RegSetX64),
                 _ => sizeof(RegSetX86),
             };
 
@@ -216,7 +208,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     case Architecture.Arm64:
                         Unsafe.As<byte, RegSetArm64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
                         break;
-                    case Architecture.Amd64:
+                    case Architecture.X64:
                         Unsafe.As<byte, RegSetX64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
                         break;
                     default:

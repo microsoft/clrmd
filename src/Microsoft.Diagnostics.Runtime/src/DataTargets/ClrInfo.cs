@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             OSPlatform currentPlatform = GetCurrentPlatform();
             OSPlatform targetPlatform = dt.DataReader.TargetPlatform;
-            Architecture currentArch = (Architecture)(RuntimeInformation.ProcessArchitecture + 1);
+            Architecture currentArch = RuntimeInformation.ProcessArchitecture;
             Architecture targetArch = dt.DataReader.Architecture;
 
             string? dacCurrentPlatform = GetDacFileName(flavor, currentPlatform);
@@ -388,7 +388,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new InvalidOperationException("Mismatched pointer size between this process and the dac.");
 
             OSPlatform currentPlatform = GetCurrentPlatform();
-            Architecture currentArch = (Architecture)(RuntimeInformation.ProcessArchitecture + 1);
+            Architecture currentArch = RuntimeInformation.ProcessArchitecture;
 
             string? dacPath = null;
             bool foundOne = false;

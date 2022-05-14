@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             Architecture = _minidump.Architecture switch
             {
-                MinidumpProcessorArchitecture.Amd64 => Architecture.Amd64,
+                MinidumpProcessorArchitecture.Amd64 => Architecture.X64,
                 MinidumpProcessorArchitecture.Arm => Architecture.Arm,
                 MinidumpProcessorArchitecture.Arm64 => Architecture.Arm64,
                 MinidumpProcessorArchitecture.Intel => Architecture.X86,

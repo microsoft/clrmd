@@ -134,7 +134,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
         }
 
-        public Architecture Architecture => IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64;
+        public Architecture Architecture => IntPtr.Size == 4 ? Architecture.X86 : Architecture.X64;
 
         public IEnumerable<ModuleInfo> EnumerateModules()
         {
@@ -195,7 +195,7 @@ namespace Microsoft.Diagnostics.Runtime
             // at offset 0x30. For all other platforms that field is at offset 0.  We test here whether the context
             // is large enough to write the flags and then assign the value based on the architecture's offset.
 
-            bool amd64 = Architecture == Architecture.Amd64;
+            bool amd64 = Architecture == Architecture.X64;
             if (context.Length < 4 || (amd64 && context.Length < 0x34))
                 return false;
 

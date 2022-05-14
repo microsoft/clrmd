@@ -61,12 +61,6 @@ Microsoft.Diagnostics.Runtime.AMD64Context.Rip -> ulong
 Microsoft.Diagnostics.Runtime.AMD64Context.Rsi -> ulong
 Microsoft.Diagnostics.Runtime.AMD64Context.Rsp -> ulong
 Microsoft.Diagnostics.Runtime.AMD64Context.Ss -> ushort
-Microsoft.Diagnostics.Runtime.Architecture
-Microsoft.Diagnostics.Runtime.Architecture.Amd64 = 2 -> Microsoft.Diagnostics.Runtime.Architecture
-Microsoft.Diagnostics.Runtime.Architecture.Arm = 3 -> Microsoft.Diagnostics.Runtime.Architecture
-Microsoft.Diagnostics.Runtime.Architecture.Arm64 = 4 -> Microsoft.Diagnostics.Runtime.Architecture
-Microsoft.Diagnostics.Runtime.Architecture.Unknown = 0 -> Microsoft.Diagnostics.Runtime.Architecture
-Microsoft.Diagnostics.Runtime.Architecture.X86 = 1 -> Microsoft.Diagnostics.Runtime.Architecture
 Microsoft.Diagnostics.Runtime.Arm64Context
 Microsoft.Diagnostics.Runtime.Arm64Context.Arm64Context() -> void
 Microsoft.Diagnostics.Runtime.Arm64Context.Bcr -> uint*
@@ -713,7 +707,7 @@ Microsoft.Diagnostics.Runtime.IClrRoot.RootKind.get -> Microsoft.Diagnostics.Run
 Microsoft.Diagnostics.Runtime.IClrStackRoot
 Microsoft.Diagnostics.Runtime.IClrStackRoot.StackFrame.get -> Microsoft.Diagnostics.Runtime.ClrStackFrame!
 Microsoft.Diagnostics.Runtime.IDataReader
-Microsoft.Diagnostics.Runtime.IDataReader.Architecture.get -> Microsoft.Diagnostics.Runtime.Architecture
+Microsoft.Diagnostics.Runtime.IDataReader.Architecture.get -> System.Runtime.InteropServices.Architecture
 Microsoft.Diagnostics.Runtime.IDataReader.DisplayName.get -> string!
 Microsoft.Diagnostics.Runtime.IDataReader.EnumerateModules() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ModuleInfo!>!
 Microsoft.Diagnostics.Runtime.IDataReader.FlushCachedData() -> void

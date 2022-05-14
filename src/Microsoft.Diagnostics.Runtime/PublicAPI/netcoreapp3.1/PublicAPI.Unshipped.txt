@@ -12,7 +12,7 @@ Microsoft.Diagnostics.Runtime.DebugLibraryInfo.IndexFileSize.get -> int
 Microsoft.Diagnostics.Runtime.DebugLibraryInfo.IndexTimeStamp.get -> int
 Microsoft.Diagnostics.Runtime.DebugLibraryInfo.Kind.get -> Microsoft.Diagnostics.Runtime.DebugLibraryKind
 Microsoft.Diagnostics.Runtime.DebugLibraryInfo.Platform.get -> System.Runtime.InteropServices.OSPlatform
-Microsoft.Diagnostics.Runtime.DebugLibraryInfo.TargetArchitecture.get -> Microsoft.Diagnostics.Runtime.Architecture
+Microsoft.Diagnostics.Runtime.DebugLibraryInfo.TargetArchitecture.get -> System.Runtime.InteropServices.Architecture
 Microsoft.Diagnostics.Runtime.DebugLibraryKind
 Microsoft.Diagnostics.Runtime.DebugLibraryKind.Dac = 0 -> Microsoft.Diagnostics.Runtime.DebugLibraryKind
 Microsoft.Diagnostics.Runtime.DebugLibraryKind.Dbi = 1 -> Microsoft.Diagnostics.Runtime.DebugLibraryKind

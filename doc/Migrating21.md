@@ -2,6 +2,10 @@
 
 Here is a summary of breaking changes in ClrMD 2.1:
 
+## Microsoft.Diagnostics.Runtime.Architecture -> System.Runtime.InteropServices.Architecture
+
+Use System.Runtime.InteropServices.Architecture instead.  Note that the values have shifted, since ClrMD defined an "Unknown" enum member as 0, which is not in the new architecture list.
+
 ## IBinaryLocator -> IFileLocator
 
 We have removed `IBinaryLocator` and replaced it with `IFileLocator`.  Similarly the properties on `DataTarget` and `CustomDataTarget` have changed accordingly.

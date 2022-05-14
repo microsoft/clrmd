@@ -73,7 +73,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             machineType = _dataReader.Architecture switch
             {
-                Architecture.Amd64 => IMAGE_FILE_MACHINE.AMD64,
+                Architecture.X64 => IMAGE_FILE_MACHINE.AMD64,
                 Architecture.X86 => IMAGE_FILE_MACHINE.I386,
                 Architecture.Arm => IMAGE_FILE_MACHINE.THUMB2,
                 Architecture.Arm64 => IMAGE_FILE_MACHINE.ARM64,

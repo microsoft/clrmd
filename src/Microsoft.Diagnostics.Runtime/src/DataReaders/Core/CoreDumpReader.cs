@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime
             ElfMachine architecture = _core.ElfFile.Header.Architecture;
             (PointerSize, Architecture) = architecture switch
             {
-                ElfMachine.EM_X86_64  => (8, Architecture.Amd64),
+                ElfMachine.EM_X86_64  => (8, Architecture.X64),
                 ElfMachine.EM_386     => (4, Architecture.X86),
                 ElfMachine.EM_AARCH64 => (8, Architecture.Arm64),
                 ElfMachine.EM_ARM     => (4, Architecture.Arm),
