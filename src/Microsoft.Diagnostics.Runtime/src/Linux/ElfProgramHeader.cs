@@ -7,7 +7,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// A helper class to represent ELF program headers.
     /// </summary>
-    public sealed class ElfProgramHeader
+    internal sealed class ElfProgramHeader
     {
         private readonly ElfProgramHeaderAttributes _attributes;
 

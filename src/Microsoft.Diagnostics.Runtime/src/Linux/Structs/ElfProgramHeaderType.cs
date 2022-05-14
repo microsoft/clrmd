@@ -7,7 +7,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// The type of program header.
     /// </summary>
-    public enum ElfProgramHeaderType : uint
+    internal enum ElfProgramHeaderType : uint
     {
         Null = 0,
         Load = 1,

@@ -994,106 +994,6 @@ Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetAssemblyLoadContext
 Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetLoaderAllocatorHandle(ulong mt) -> ulong
 Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetObjectData(ulong objRef) -> Microsoft.Diagnostics.Runtime.Implementation.IObjectData?
 Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetTypeName(ulong mt, out string? name) -> bool
-Microsoft.Diagnostics.Runtime.Utilities.ElfAuxvType
-Microsoft.Diagnostics.Runtime.Utilities.ElfAuxvType.Base = 7 -> Microsoft.Diagnostics.Runtime.Utilities.ElfAuxvType
-Microsoft.Diagnostics.Runtime.Utilities.ElfAuxvType.Null = 0 -> Microsoft.Diagnostics.Runtime.Utilities.ElfAuxvType
-Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile
-Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.ElfFile.get -> Microsoft.Diagnostics.Runtime.Utilities.ElfFile!
-Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.EnumeratePRStatus() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.Utilities.IElfPRStatus!>!
-Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.GetAuxvValue(Microsoft.Diagnostics.Runtime.Utilities.ElfAuxvType type) -> ulong
-Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.LoadedImages.get -> System.Collections.Immutable.ImmutableDictionary<ulong, Microsoft.Diagnostics.Runtime.Utilities.ElfLoadedImage!>!
-Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.ReadMemory(ulong address, System.Span<byte> buffer) -> int
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile
-Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.Dispose() -> void
-Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.ElfCoreFile(System.IO.Stream! stream, bool leaveOpen = false) -> void
-Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.ElfCoreFile(string! coredump) -> void
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile.Dispose() -> void
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile.ElfFile(string! filename) -> void
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile.ElfFile(System.IO.Stream! stream, bool leaveOpen = false) -> void
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile.ElfFile(System.IO.Stream! stream, ulong position, bool leaveOpen, bool isVirtual) -> void
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile.BuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile.Header.get -> Microsoft.Diagnostics.Runtime.Utilities.IElfHeader!
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile.Notes.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.Utilities.ElfNote!>
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile.ProgramHeaders.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeader!>
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile.TryGetExportSymbol(string! symbolName, out ulong offset) -> bool
-Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType.Core = 4 -> Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType.Executable = 2 -> Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType.Relocatable = 1 -> Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType.Shared = 3 -> Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfLoadedImage
-Microsoft.Diagnostics.Runtime.Utilities.ElfLoadedImage.BaseAddress.get -> ulong
-Microsoft.Diagnostics.Runtime.Utilities.ElfLoadedImage.FileName.get -> string!
-Microsoft.Diagnostics.Runtime.Utilities.ElfLoadedImage.Open() -> Microsoft.Diagnostics.Runtime.Utilities.ElfFile?
-Microsoft.Diagnostics.Runtime.Utilities.ElfLoadedImage.Size.get -> ulong
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_386 = 3 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_AARCH64 = 183 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_ARM = 40 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_AVR32 = 6317 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_BLACKFIN = 106 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_CRIS = 76 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_FRV = 21569 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_H8_300 = 46 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_IA_64 = 50 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_M32R = 88 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_MN10300 = 89 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_NONE = 0 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_PARISC = 15 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_PPC = 20 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_PPC64 = 21 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_S390 = 22 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_SH = 42 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_SPARC32PLUS = 18 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_SPARCV9 = 43 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_SPU = 23 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_V850 = 87 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_X86_64 = 62 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfNote
-Microsoft.Diagnostics.Runtime.Utilities.ElfNote.ContentSize.get -> int
-Microsoft.Diagnostics.Runtime.Utilities.ElfNote.Name.get -> string!
-Microsoft.Diagnostics.Runtime.Utilities.ElfNote.ReadContents(ulong position, System.Span<byte> buffer) -> int
-Microsoft.Diagnostics.Runtime.Utilities.ElfNote.ReadContents<T>(ulong position) -> T
-Microsoft.Diagnostics.Runtime.Utilities.ElfNote.Type.get -> Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType
-Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType
-Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType.Aux = 6 -> Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType
-Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType.File = 1179208773 -> Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType
-Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType.PrpsFpreg = 2 -> Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType
-Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType.PrpsInfo = 3 -> Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType
-Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType.PrpsStatus = 1 -> Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType
-Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType.TASKSTRUCT = 4 -> Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeader
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeader.FileOffset.get -> ulong
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeader.FileSize.get -> ulong
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeader.IsExecutable.get -> bool
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeader.IsWritable.get -> bool
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeader.Type.get -> Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeader.VirtualAddress.get -> ulong
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeader.VirtualSize.get -> ulong
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType.Dynamic = 2 -> Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType.Interp = 3 -> Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType.Load = 1 -> Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType.Note = 4 -> Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType.Null = 0 -> Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType.Phdr = 6 -> Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType.Shlib = 5 -> Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.Architecture.get -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.Is64Bit.get -> bool
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.IsValid.get -> bool
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.ProgramHeaderCount.get -> ushort
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.ProgramHeaderEntrySize.get -> ushort
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.ProgramHeaderOffset.get -> ulong
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.SectionHeaderCount.get -> ushort
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.SectionHeaderEntrySize.get -> ushort
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.SectionHeaderOffset.get -> ulong
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.SectionHeaderStringIndex.get -> ushort
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.Type.get -> Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.IElfPRStatus
-Microsoft.Diagnostics.Runtime.Utilities.IElfPRStatus.CopyRegistersAsContext(System.Span<byte> context) -> bool
-Microsoft.Diagnostics.Runtime.Utilities.IElfPRStatus.ProcessId.get -> uint
-Microsoft.Diagnostics.Runtime.Utilities.IElfPRStatus.ThreadId.get -> uint
 Microsoft.Diagnostics.Runtime.M128A
 Microsoft.Diagnostics.Runtime.M128A.Clear() -> void
 Microsoft.Diagnostics.Runtime.M128A.Equals(Microsoft.Diagnostics.Runtime.M128A other) -> bool
@@ -1921,7 +1821,6 @@ override Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.IsMonitorHel
 override Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.IsRuntimeCallWrapper.get -> bool
 override Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.RecursionCount.get -> int
 override Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.WaitingThreadCount.get -> int
-override Microsoft.Diagnostics.Runtime.Utilities.ElfLoadedImage.ToString() -> string!
 override Microsoft.Diagnostics.Runtime.M128A.Equals(object? obj) -> bool
 override Microsoft.Diagnostics.Runtime.M128A.GetHashCode() -> int
 override Microsoft.Diagnostics.Runtime.MemoryRange.ToString() -> string!

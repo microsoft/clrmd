@@ -7,7 +7,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// The kind of ELF note.
     /// </summary>
-    public enum ElfNoteType : uint
+    internal enum ElfNoteType : uint
     {
         PrpsStatus = 1,
         PrpsFpreg = 2,
