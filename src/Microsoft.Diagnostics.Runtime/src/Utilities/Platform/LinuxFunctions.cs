@@ -135,7 +135,7 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         try
                         {
-                            Version v = Version.Parse(builder.ToString());
+                            System.Version v = System.Version.Parse(builder.ToString());
                             major = v.Major;
                             minor = v.Minor;
                             revision = v.Build;

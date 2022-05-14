@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    public enum ElfAuxvType
+    internal enum ElfAuxvType
     {
         Null = 0,           // end of vector
         Base = 7,           // base address of interpreter

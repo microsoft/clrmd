@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// An abstraction of the ELF PRStatus view.
     /// </summary>
-    public interface IElfPRStatus
+    internal interface IElfPRStatus
     {
         /// <summary>
         /// The process id associated with this prstatus

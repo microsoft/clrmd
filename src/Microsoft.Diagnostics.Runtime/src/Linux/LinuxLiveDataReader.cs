@@ -11,7 +11,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
-using ProcessArchitecture = System.Runtime.InteropServices.Architecture;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -55,14 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 _suspended = true;
             }
 
-            Architecture = RuntimeInformation.ProcessArchitecture switch
-            {
-                ProcessArchitecture.X86 => Architecture.X86,
-                ProcessArchitecture.X64 => Architecture.Amd64,
-                ProcessArchitecture.Arm => Architecture.Arm,
-                ProcessArchitecture.Arm64 => Architecture.Arm64,
-                _ => Architecture.Unknown,
-            };
+            Architecture = RuntimeInformation.ProcessArchitecture;
         }
 
         ~LinuxLiveDataReader() => Dispose(false);
@@ -112,45 +105,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             let filePath = image.Key
             let containsExecutable = image.Any(entry => entry.IsExecutable)
             let beginAddress = image.Min(entry => entry.BeginAddress)
-            let props = GetPEImageProperties(filePath)
-            select new ModuleInfo(this, beginAddress, filePath, containsExecutable, props.Filesize, props.Timestamp, buildId: default);
+            select GetModuleInfo(this, beginAddress, filePath, containsExecutable);
 
-        private static (int Filesize, int Timestamp) GetPEImageProperties(string filePath)
+        private ModuleInfo GetModuleInfo(IDataReader reader, ulong baseAddress, string filePath, bool isVirtual)
         {
-            if (File.Exists(filePath))
-            {
-                try
-                {
-                    using PEImage pe = new PEImage(File.OpenRead(filePath));
-                    if (pe.IsValid)
-                        return (pe.IndexFileSize, pe.IndexTimeStamp);
-                }
-                catch
-                {
-                }
-            }
+            if (reader.Read<ushort>(baseAddress) == 0x5a4d)
+                return new PEModuleInfo(reader, baseAddress, filePath, isVirtual);
 
-            return (0, 0);
-        }
-
-        public ImmutableArray<byte> GetBuildId(ulong baseAddress)
-        {
-            using ElfFile? elfFile = GetElfFile(baseAddress);
-            return elfFile?.BuildId ?? ImmutableArray<byte>.Empty;
-        }
-
-        public unsafe bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
-        {
-            using ElfFile? file = GetElfFile(baseAddress);
-            if (file is null)
-            {
-                version = default;
-                return false;
-            }
-            else
-            {
-                return this.GetVersionInfo(baseAddress, file, out version);
-            }
+            // TODO:  Make an ElfFile out of this address
+            return new ElfModuleInfo(reader, GetElfFile(baseAddress), baseAddress, filePath);
         }
 
         private ElfFile? GetElfFile(ulong baseAddress)
@@ -225,7 +188,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 Architecture.Arm => sizeof(RegSetArm),
                 Architecture.Arm64 => sizeof(RegSetArm64),
-                Architecture.Amd64 => sizeof(RegSetX64),
+                Architecture.X64 => sizeof(RegSetX64),
                 _ => sizeof(RegSetX86),
             };
 
@@ -245,7 +208,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     case Architecture.Arm64:
                         Unsafe.As<byte, RegSetArm64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
                         break;
-                    case Architecture.Amd64:
+                    case Architecture.X64:
                         Unsafe.As<byte, RegSetX64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
                         break;
                     default:

@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// A helper class to read ELF files.
     /// </summary>
-    public sealed class ElfFile : IDisposable
+    internal sealed class ElfFile : IDisposable
     {
         private readonly ulong _position;
         private readonly bool _virtual;

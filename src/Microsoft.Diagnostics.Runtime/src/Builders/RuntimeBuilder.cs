@@ -9,6 +9,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
@@ -374,7 +375,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 contextSize = 716;
                 contextFlags = 0x1003f;
             }
-            else // Architecture.Amd64
+            else // Architecture.X64
             {
                 ipOffset = 248;
                 spOffset = 152;

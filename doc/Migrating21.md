@@ -1,6 +1,10 @@
-#Migrating to 2.1
+# Migrating to 2.1
 
 Here is a summary of breaking changes in ClrMD 2.1:
+
+## Microsoft.Diagnostics.Runtime.Architecture -> System.Runtime.InteropServices.Architecture
+
+Use System.Runtime.InteropServices.Architecture instead.  Note that the values have shifted, since ClrMD defined an "Unknown" enum member as 0, which is not in the new architecture list.
 
 ## IBinaryLocator -> IFileLocator
 
@@ -16,3 +20,55 @@ Most folks don't need to implement these interface specifically, and ClrMD provi
 
 It was a lot cleaner to replace `IBinaryLocator` than to try to hack around the original implementation.
 
+## PEImage and Elf related classes are now internal
+
+TODO:  Provide stream so this can be passed to System.Reflection.Metadata.
+
+### Why did we make this change?
+
+ClrMD was designed 10 years ago as a monolithic API that does everything for the user, such as parsing files that are unrelated to .Net diagnostics.  It was originally designed this way because there wasn't a healthy NuGet ecosystem at the time where these kinds of APIs existed.
+
+We've found some very tough to solve problems in the internals of PEImage where what ClrMD needs is a PE image reader which understands that data could be missing from a dump file, that we may need to go request the file from a symbol server mid-operation, and that requesting from a symbol server should only be done on demand and not eagerly.
+
+We cannot reasonably make those fixes changes without another breaking change to PEImage.  At this point it makes sense to have folks use a REAL PE image (and elf image) reader instead of ClrMD's half-baked one.
+
+Some alternatives:
+
+1.  System.Reflection.Metadata
+2.  https://github.com/dotnet/symstore/tree/main/src/Microsoft.FileFormats
+3.  https://www.nuget.org/packages/Marklio.Metadata/
+
+
+## ModuleInfo has changed slightly
+
+
+## VersionInfo is removed
+
+Use `System.Version` instead.
+
+
+## ClrInfo.DacInfo -> ClrInfo.DebugLibraryInfo
+
+Additionally we added ClrInfo.IsSingleFile.
+
+### `ClrInfo.DacLibrary` -> `ClrInfo.DebuggingLibraries`
+
+Instead of providing a single "DacLibrary", we now enumerate all debugging libraries we know to exist for this CLR runtime.  The resulting list is stored in `DebuggingLibraries` instead.  Most folks didn't use `DacLibrary` directly, but if you did then you will need to enumerate `DebuggingLibraries` and find all libraries which match your current platform and architecture.  Additionally, we also enumerate DBI libraries even though ClrMD does not use them (this is `DebugLibraryInfo.Kind`).
+
+You will still find the original file `DacLibrary` pointed to in this list of dacs.
+
+
+### ClrRuntimeInfo has is no longer marked public
+
+This is an odd struct that probably will change over the lifetime of .Net Core.  It should not have been exposed as public to begin with.  Instead all of this information is provided by `ClrInfo.DebuggingLibraries`.
+
+### ClrInfoProvider was removed
+
+This functionality has been wrapped into `ClrInfo`, and probably shouldn't have been marked public to begin with.
+
+
+### Why did we make this change?
+
+Creating `ClrInfo` was a strange, multi class process and involved a lot of moving pieces spread over the codebase.  We now consolidated all of the relevant code into ClrInfo.cs.  We've also pulled together all of the various ways of finding the DAC and DBI libraries all in one place and provided a way for the user to locate all of the various binaries.
+
+This also lets ClrMD enumerate through all possible matching DAC libraries and query the symbol server for all of them.  This is especially helpful in case one of the dacs happens to be missing from the symbol server (which should be rare but isn't unheard of).

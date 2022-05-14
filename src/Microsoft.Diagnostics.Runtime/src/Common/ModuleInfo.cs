@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Immutable;
+using System.Threading;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -11,201 +12,58 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Provides information about loaded modules in a <see cref="DataTarget"/>.
     /// </summary>
-    public sealed class ModuleInfo
+    public abstract class ModuleInfo
     {
-        private bool? _isManaged;
-        private ImmutableArray<byte> _buildId;
-        private VersionInfo? _version;
-        private readonly bool _isVirtual;
-        private readonly IDataReader _dataReader;
-        private DataTarget _dataTarget;
-
         /// <summary>
-        /// The DataTarget which contains this module.
-        /// </summary>
-        [Obsolete("This will be completely removed in the next minor release.  Only DataReader is supported.")]
-        public DataTarget DataTarget
-        {
-            get => _dataTarget;
-            internal set => _dataTarget = value;
-        }
-
-        public IDataReader DataReader => _dataReader ?? _dataTarget.DataReader;
-
-        /// <summary>
-        /// Gets the base address of the object.
+        /// Gets the base address of the this image.
         /// </summary>
         public ulong ImageBase { get; }
 
         /// <summary>
+        /// Retrieves the FileName of this loaded module.  May be empty if it is unknown.
+        /// </summary>
+        public string FileName { get; }
+
+        /// <summary>
         /// Gets the specific file size of the image used to index it on the symbol server.
         /// </summary>
-        public int IndexFileSize { get; }
+        public virtual int IndexFileSize => 0;
 
         /// <summary>
         /// Gets the timestamp of the image used to index it on the symbol server.
         /// </summary>
-        public int IndexTimeStamp { get; }
+        public virtual int IndexTimeStamp => 0;
 
         /// <summary>
-        /// Gets the file name of the module on disk.
+        /// The version of this module.
         /// </summary>
-        public string? FileName { get; }
+        public virtual System.Version Version => new System.Version();
 
         /// <summary>
-        /// Returns a <see cref="PEImage"/> from a stream constructed using instance fields of this object.
-        /// If the PEImage cannot be constructed, <see langword="null"/> is returned.
+        /// Gets the Linux BuildId or Mach-O UUID of this module.
         /// </summary>
-        /// <returns></returns>
-        public PEImage? GetPEImage()
-        {
-            try
-            {
-                PEImage image = new PEImage(new ReadVirtualStream(DataReader, (long)ImageBase, IndexFileSize), leaveOpen: false, isVirtual: _isVirtual);
-                if (image.PEHeader == null)
-                {
-                    PEImage otherLayout = new PEImage(new ReadVirtualStream(DataReader, (long)ImageBase, IndexFileSize), leaveOpen: false, isVirtual: !_isVirtual);
-                    if (otherLayout.PEHeader != null)
-                    {
-                        image.Dispose();
-                        image = otherLayout;
-                    }
-                    else
-                    {
-                        otherLayout.Dispose();
-                    }
-                }
-
-                if (!_isManaged.HasValue)
-                    _isManaged = image.IsManaged;
-
-                return image.IsValid ? image : null;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Gets the Linux BuildId of this module.  This will be <see langword="null"/> if the module does not have a BuildId.
-        /// </summary>
-        public ImmutableArray<byte> BuildId
-        {
-            get
-            {
-                if (_buildId.IsDefault)
-                {
-                    return _buildId = DataReader.GetBuildId(ImageBase);
-                }
-
-                return _buildId;
-            }
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether the module is managed.
-        /// </summary>
-        public bool IsManaged
-        {
-            get
-            {
-                if (!_isManaged.HasValue)
-                {
-                    // this can assign _isManaged
-                    using PEImage? image = GetPEImage();
-
-                    if (!_isManaged.HasValue)
-                        _isManaged = image?.IsManaged ?? false;
-                }
-
-                return _isManaged.Value;
-            }
-        }
-
-        public override string? ToString() => FileName;
+        public virtual ImmutableArray<byte> BuildId => ImmutableArray<byte>.Empty;
 
         /// <summary>
         /// Gets the PDB associated with this module.
         /// </summary>
-        public PdbInfo? Pdb
-        {
-            get
-            {
-                using PEImage? image = GetPEImage();
-                if (image != null)
-                {
-                    if (!_isManaged.HasValue)
-                        _isManaged = image.IsManaged;
-
-                    return image.DefaultPdb;
-                }
-
-                return null;
-            }
-        }
+        public virtual PdbInfo? Pdb => null;
 
         /// <summary>
-        /// Gets the version information for this file.
+        /// Gets a value indicating whether the module is managed.
         /// </summary>
-        public VersionInfo Version
-        {
-            get
-            {
-                if (_version.HasValue)
-                    return _version.Value;
+        public virtual bool IsManaged => false;
 
-                _version = DataReader.GetVersionInfo(ImageBase, out VersionInfo version) ? version : default;
-                return version;
-            }
-        }
+        public virtual ulong GetSymbolAddress(string symbol) => 0;
 
-        // DataTarget is one of the few "internal set" properties, and is initialized as soon as DataTarget asks
-        // IDataReader to create ModuleInfo.  So even though we don't set it here, we will immediately set the
-        // value to non-null and never change it.
+        public override string ToString() => FileName;
 
-#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
+        internal virtual T ReadResource<T>(params string[] path) where T : unmanaged => default;
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        /// <param name="imageBase">The base of the image as loaded into the virtual address space.</param>
-        /// <param name="fileName">The full path of the file as loaded from disk (if possible), otherwise only the filename.</param>
-        /// <param name="isVirtual">Whether this image is mapped into the virtual address space.  (This is as opposed to a memmap'ed file.)</param>
-        /// <param name="indexFileSize">The index file size used by the symbol server to archive and request this binary.  Only for PEImages (not Elf or Mach-O binaries).</param>
-        /// <param name="indexTimeStamp">The index timestamp used by the symbol server to archive and request this binary.  Only for PEImages (not Elf or Mach-O binaries).</param>
-        /// <param name="buildId">The ELF buildid of this image.  Not valid for PEImages.</param>
-        [Obsolete("Use the overload which specifies the DataReader")]
-        public ModuleInfo(ulong imageBase, string? fileName, bool isVirtual, int indexFileSize, int indexTimeStamp, ImmutableArray<byte> buildId)
+        public ModuleInfo(ulong imageBase, string fileName!!)
         {
             ImageBase = imageBase;
-            IndexFileSize = indexFileSize;
-            IndexTimeStamp = indexTimeStamp;
             FileName = fileName;
-            _isVirtual = isVirtual;
-            _buildId = buildId;
         }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        /// <param name="reader">The <see cref="IDataReader"/> containing this module.</param>
-        /// <param name="imageBase">The base of the image as loaded into the virtual address space.</param>
-        /// <param name="fileName">The full path of the file as loaded from disk (if possible), otherwise only the filename.</param>
-        /// <param name="isVirtual">Whether this image is mapped into the virtual address space.  (This is as opposed to a memmap'ed file.)</param>
-        /// <param name="indexFileSize">The index file size used by the symbol server to archive and request this binary.  Only for PEImages (not Elf or Mach-O binaries).</param>
-        /// <param name="indexTimeStamp">The index timestamp used by the symbol server to archive and request this binary.  Only for PEImages (not Elf or Mach-O binaries).</param>
-        /// <param name="buildId">The ELF buildid of this image.  Not valid for PEImages.</param>
-        public ModuleInfo(IDataReader reader, ulong imageBase, string? fileName, bool isVirtual, int indexFileSize, int indexTimeStamp, ImmutableArray<byte> buildId)
-        {
-            _dataReader = reader;
-            ImageBase = imageBase;
-            IndexFileSize = indexFileSize;
-            IndexTimeStamp = indexTimeStamp;
-            FileName = fileName;
-            _isVirtual = isVirtual;
-            _buildId = buildId;
-        }
-#pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
     }
 }
