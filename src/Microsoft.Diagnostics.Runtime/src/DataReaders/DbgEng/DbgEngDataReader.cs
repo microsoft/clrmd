@@ -11,13 +11,14 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using Microsoft.Diagnostics.Runtime.DbgEng;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 #pragma warning disable CA2213 // Disposable fields should be disposed
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class DbgEngDataReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader, IExportReader
+    internal sealed class DbgEngDataReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader
     {
         private static int s_totalInstanceCount;
 
@@ -126,12 +127,12 @@ namespace Microsoft.Diagnostics.Runtime
         public Architecture Architecture => _architecture ??= _control.GetEffectiveProcessorType() switch
         {
             IMAGE_FILE_MACHINE.I386 => Architecture.X86,
-            IMAGE_FILE_MACHINE.AMD64 => Architecture.Amd64,
+            IMAGE_FILE_MACHINE.AMD64 => Architecture.X64,
             IMAGE_FILE_MACHINE.ARM or
             IMAGE_FILE_MACHINE.THUMB or
             IMAGE_FILE_MACHINE.THUMB2 => Architecture.Arm,
             IMAGE_FILE_MACHINE.ARM64 => Architecture.Arm64,
-            _ => Architecture.Unknown,
+            _ => (Architecture)(-1)
         };
 
         [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
@@ -181,33 +182,15 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 for (int i = 0; i < bases.Length; ++i)
                 {
-                    string? fn = _symbols.GetModuleNameStringWide(DebugModuleName.Image, i, bases[i]);
-                    ModuleInfo info = new ModuleInfo(this, bases[i], fn, true, mods[i].Size, mods[i].TimeDateStamp, ImmutableArray<byte>.Empty);
+                    string? fn = _symbols.GetModuleNameStringWide(DebugModuleName.Image, i, bases[i]) ?? "";
+                    
+                    ModuleInfo info = new PEModuleInfo(this, bases[i], fn, true, mods[i].Size, mods[i].TimeDateStamp, GetVersionInfo(bases[i]));
                     modules.Add(info);
                 }
             }
 
             _modules = modules;
             return modules;
-        }
-
-        /// <summary>
-        /// Returns the address of a module export symbol if found
-        /// </summary>
-        /// <param name="baseAddress">module base address</param>
-        /// <param name="name">symbol name (without the module name prepended)</param>
-        /// <param name="address">address returned</param>
-        /// <returns>true if found</returns>
-        bool IExportReader.TryGetSymbolAddress(ulong baseAddress, string name, out ulong address)
-        {
-            using PEImage? image = EnumerateModules().First(mod => mod.ImageBase == baseAddress).GetPEImage();
-            if (image is not null && image.TryGetExportSymbol(name, out ulong offset))
-            {
-                address = baseAddress + offset;
-                return true;
-            }
-            address = 0;
-            return false;
         }
 
         private static IntPtr CreateIDebugClient()
@@ -244,17 +227,12 @@ namespace Microsoft.Diagnostics.Runtime
             return _spaces.ReadVirtual(address, buffer);
         }
 
-        public ImmutableArray<byte> GetBuildId(ulong baseAddress) => ImmutableArray<byte>.Empty;
-
-        public bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
+        public Version? GetVersionInfo(ulong baseAddress)
         {
-            version = default;
-
             if (!FindModuleIndex(baseAddress, out int index))
-                return false;
+                return null;
 
-            version = _symbols.GetModuleVersionInformation(index, baseAddress);
-            return true;
+            return _symbols.GetModuleVersionInformation(index, baseAddress);
         }
 
         private bool FindModuleIndex(ulong baseAddr, out int index)

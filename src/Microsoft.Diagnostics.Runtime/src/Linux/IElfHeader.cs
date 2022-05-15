@@ -7,7 +7,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// An abstract version of 32 and 64 bit ELF headers.
     /// </summary>
-    public interface IElfHeader
+    internal interface IElfHeader
     {
         /// <summary>
         /// Whether this file is 64 bit or not.

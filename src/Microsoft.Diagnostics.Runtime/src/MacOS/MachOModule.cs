@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 {
     internal sealed unsafe class MachOModule
     {
-        private readonly MachOCoreDump _parent;
+        public MachOCoreDump Parent { get; }
 
         public ulong BaseAddress { get; }
         public ulong ImageSize { get; }
@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         {
             BaseAddress = address;
             FileName = path;
-            _parent = parent;
+            Parent = parent;
             _header = header;
 
             if (header.Magic != MachHeader64.Magic64)
@@ -49,12 +49,12 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             for (int i = 0; i < _header.NumberCommands; i++)
             {
                 ulong cmdAddress = BaseAddress + offset;
-                LoadCommandHeader cmd = _parent.ReadMemory<LoadCommandHeader>(cmdAddress);
+                LoadCommandHeader cmd = Parent.ReadMemory<LoadCommandHeader>(cmdAddress);
 
                 switch (cmd.Kind)
                 {
                     case LoadCommandType.Segment64:
-                        Segment64LoadCommand seg64LoadCmd = _parent.ReadMemory<Segment64LoadCommand>(cmdAddress + (uint)sizeof(LoadCommandHeader));
+                        Segment64LoadCommand seg64LoadCmd = Parent.ReadMemory<Segment64LoadCommand>(cmdAddress + (uint)sizeof(LoadCommandHeader));
                         segments.Add(new MachOSegment(seg64LoadCmd));
                         if (seg64LoadCmd.FileOffset == 0 && seg64LoadCmd.FileSize > 0)
                         {
@@ -63,15 +63,15 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                         break;
 
                     case LoadCommandType.SymTab:
-                        _symtab = _parent.ReadMemory<SymtabLoadCommand>(cmdAddress);
+                        _symtab = Parent.ReadMemory<SymtabLoadCommand>(cmdAddress);
                         break;
 
                     case LoadCommandType.DysymTab:
-                        _dysymtab = _parent.ReadMemory<DysymtabLoadCommand>(cmdAddress);
+                        _dysymtab = Parent.ReadMemory<DysymtabLoadCommand>(cmdAddress);
                         break;
 
                     case LoadCommandType.Uuid:
-                        var uuid = _parent.ReadMemory<UuidLoadCommand>(cmdAddress);
+                        var uuid = Parent.ReadMemory<UuidLoadCommand>(cmdAddress);
                         if (uuid.Header.Kind == LoadCommandType.Uuid)
                         {
                             BuildId = uuid.BuildId.ToImmutableArray();
@@ -145,7 +145,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         private string GetSymbolName(NList64 tableEntry, int max)
         {
             ulong nameOffset = _stringTableAddress + tableEntry.n_strx;
-            return _parent.ReadAscii(nameOffset, max);
+            return Parent.ReadAscii(nameOffset, max);
         }
 
         private NList64[]? ReadSymbolTable()
@@ -161,7 +161,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             int count;
             fixed (NList64* ptr = symTable)
-                count = _parent.ReadMemory(symbolTableAddress, new Span<byte>(ptr, symTable.Length * sizeof(NList64))) / sizeof(NList64);
+                count = Parent.ReadMemory(symbolTableAddress, new Span<byte>(ptr, symTable.Length * sizeof(NList64))) / sizeof(NList64);
 
             _symTable = symTable;
             return symTable;
@@ -182,10 +182,10 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             for (int i = 0; i < _header.NumberCommands; i++)
             {
                 ulong cmdAddress = BaseAddress + offset;
-                LoadCommandHeader cmd = _parent.ReadMemory<LoadCommandHeader>(cmdAddress);
+                LoadCommandHeader cmd = Parent.ReadMemory<LoadCommandHeader>(cmdAddress);
 
                 if (cmd.Kind == LoadCommandType.Segment64)
-                    yield return _parent.ReadMemory<Segment64LoadCommand>(cmdAddress + LoadCommandHeader.HeaderSize);
+                    yield return Parent.ReadMemory<Segment64LoadCommand>(cmdAddress + LoadCommandHeader.HeaderSize);
 
                 offset += cmd.Size;
             }

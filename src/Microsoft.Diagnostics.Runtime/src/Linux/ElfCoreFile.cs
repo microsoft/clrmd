@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// A helper class to read linux coredumps.
     /// </summary>
-    public sealed class ElfCoreFile : IDisposable
+    internal sealed class ElfCoreFile : IDisposable
     {
         private readonly Stream _stream;
         private readonly bool _leaveOpen;

@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// A helper class to represent an ELF note section.
     /// </summary>
-    public sealed class ElfNote
+    internal sealed class ElfNote
     {
         private readonly Reader _reader;
         private readonly ulong _position;

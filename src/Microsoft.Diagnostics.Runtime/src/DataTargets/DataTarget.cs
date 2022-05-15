@@ -27,7 +27,6 @@ namespace Microsoft.Diagnostics.Runtime
         private bool _disposed;
         private ImmutableArray<ClrInfo> _clrs;
         private ModuleInfo[]? _modules;
-        private string? _symlink;
         private readonly Dictionary<string, PEImage?> _pefileCache = new(StringComparer.OrdinalIgnoreCase);
         private readonly object _sync = new();
 
@@ -77,17 +76,6 @@ namespace Microsoft.Diagnostics.Runtime
                         img?.Dispose();
 
                     _pefileCache.Clear();
-                }
-
-                if (_symlink != null)
-                {
-                    try
-                    {   
-                        File.Delete(_symlink);
-                    }
-                    catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
-                    {
-                    }
                 }
 
                 _target.Dispose();
@@ -157,105 +145,20 @@ namespace Microsoft.Diagnostics.Runtime
             if (_disposed)
                 throw new ObjectDisposedException(nameof(DataTarget));
 
-            if (!_clrs.IsDefault)
-                return _clrs;
-
-            Architecture arch = DataReader.Architecture;
-            ClrRuntimeInfo? singleFileRuntimeInfo = null;
-            ImmutableArray<ClrInfo>.Builder versions = ImmutableArray.CreateBuilder<ClrInfo>(2);
-            foreach (ModuleInfo module in EnumerateModules())
+            if (_clrs.IsDefault)
             {
-                string? dacAgnosticName = null;
-                ImmutableArray<byte> runtimeBuildId = ImmutableArray<byte>.Empty;
-                int runtimeTimeStamp = 0;
-                int runtimeFileSize = 0;
+                // We order this so .Net Core comes first, so if there's multiple CLRs we prefer
+                // to debug .Net Core (assuming the user is just debugging one of them)
 
-                if (ClrInfoProvider.IsSupportedRuntime(module, out ClrFlavor flavor, out OSPlatform platform))
-                {
-                    runtimeTimeStamp = module.IndexTimeStamp;
-                    runtimeFileSize = module.IndexFileSize;
-                    runtimeBuildId = module.BuildId;
-                }
-                else
-                {
-                    if (DataReader is not IExportReader exportReader || !exportReader.TryGetSymbolAddress(module.ImageBase, ClrRuntimeInfo.SymbolValue, out ulong runtimeInfoAddress))
-                        continue;
+                var clrs = from module in EnumerateModules()
+                           let clrInfo = ClrInfo.TryCreate(this, module)
+                           where clrInfo != null
+                           orderby clrInfo.Flavor descending, clrInfo.Version
+                           select clrInfo;
 
-                    if (!DataReader.Read(runtimeInfoAddress, out ClrRuntimeInfo runtimeInfo))
-                        continue;
-
-                    unsafe
-                    {
-                        string signature = Encoding.ASCII.GetString(runtimeInfo.Signature, ClrRuntimeInfo.SignatureValueLength);
-                        if (signature != ClrRuntimeInfo.SignatureValue || runtimeInfo.Version <= 0)
-                            continue;
-
-                        platform = DataReader.TargetPlatform;
-                        flavor = ClrFlavor.Core;
-                        singleFileRuntimeInfo = runtimeInfo;
-
-                        if (platform == OSPlatform.Windows)
-                        {
-                            if (runtimeInfo.RuntimeModuleIndex[0] >= sizeof(int) + sizeof(int))
-                            {
-                                runtimeTimeStamp = BitConverter.ToInt32(new ReadOnlySpan<byte>(runtimeInfo.DacModuleIndex + sizeof(byte), sizeof(int)).ToArray(), 0);
-                                runtimeFileSize = BitConverter.ToInt32(new ReadOnlySpan<byte>(runtimeInfo.DacModuleIndex + sizeof(byte) + sizeof(int), sizeof(int)).ToArray(), 0);
-                                dacAgnosticName = ClrInfoProvider.GetDacFileName(flavor, platform);
-                            }
-                        }
-                        else
-                        {
-                            // The first byte of the module indexes is the length of the build id
-                            runtimeBuildId = new ReadOnlySpan<byte>(runtimeInfo.RuntimeModuleIndex + sizeof(byte), runtimeInfo.RuntimeModuleIndex[0]).ToArray().ToImmutableArray();
-                            dacAgnosticName = ClrInfoProvider.GetDacFileName(flavor, platform);
-                        }
-                    }
-                }
-
-                string dacFileName = ClrInfoProvider.GetDacFileName(flavor, platform);
-                string? dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName)!, dacFileName);
-
-                if (platform == OSPlatform.Linux)
-                {
-                    if (File.Exists(dacLocation))
-                    {
-                        // Works around issue https://github.com/dotnet/coreclr/issues/20205
-                        lock (_sync)
-                        {
-                            _symlink = Path.GetTempFileName();
-                            if (LinuxFunctions.symlink(dacLocation, _symlink) == 0)
-                            {
-                                dacLocation = _symlink;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        dacLocation = null;
-                    }
-                }
-                else if (!File.Exists(dacLocation) || !PlatformFunctions.IsEqualFileVersion(dacLocation, module.Version))
-                {
-                    dacLocation = null;
-                }
-
-                VersionInfo version = module.Version;
-
-                string dacRegularName = ClrInfoProvider.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, arch, version, platform);
-
-                if (dacAgnosticName is null)
-                    dacAgnosticName = ClrInfoProvider.GetDacRequestFileName(flavor, arch, arch, version, platform);
-                else
-                    dacRegularName = dacAgnosticName;
-
-
-                DacInfo dacInfo = new DacInfo(dacLocation, dacRegularName, dacAgnosticName, arch, runtimeFileSize, runtimeTimeStamp, version, runtimeBuildId);
-                versions.Add(new ClrInfo(this, flavor, module, dacInfo) {
-                    SingleFileRuntimeInfo = singleFileRuntimeInfo
-                });
+                _clrs = clrs.ToImmutableArray();
             }
 
-            _clrs = versions.MoveOrCopyToImmutable();
             return _clrs;
         }
 
@@ -273,11 +176,6 @@ namespace Microsoft.Diagnostics.Runtime
             char[] invalid = Path.GetInvalidPathChars();
             ModuleInfo[] modules = DataReader.EnumerateModules().Where(m => m.FileName != null && m.FileName.IndexOfAny(invalid) < 0).ToArray();
             Array.Sort(modules, (a, b) => a.ImageBase.CompareTo(b.ImageBase));
-
-#pragma warning disable CS0618 // Type or member is obsolete
-            foreach (ModuleInfo module in modules)
-                module.DataTarget = this;
-#pragma warning restore CS0618 // Type or member is obsolete
 
             return _modules = modules;
         }

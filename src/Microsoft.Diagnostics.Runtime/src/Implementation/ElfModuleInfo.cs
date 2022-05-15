@@ -1,0 +1,59 @@
+﻿using Microsoft.Diagnostics.Runtime.Utilities;
+using System;
+using System.Collections.Immutable;
+
+namespace Microsoft.Diagnostics.Runtime.Implementation
+{
+    internal class ElfModuleInfo : ModuleInfo
+    {
+        private readonly IDataReader _reader;
+        private readonly ElfFile? _elf;
+        private object? _buildId;
+        private System.Version? _version;
+
+        /// <inheritdoc/>
+        public override ImmutableArray<byte> BuildId
+        {
+            get
+            {
+                if (_buildId is not null)
+                    return (ImmutableArray<byte>)_buildId;
+
+                ImmutableArray<byte> buildId = _elf?.BuildId ?? ImmutableArray<byte>.Empty;
+                if (buildId.IsDefault)
+                    buildId = ImmutableArray<byte>.Empty;
+
+                _buildId = buildId;
+                return buildId;
+            }
+        }
+
+        public override ulong GetSymbolAddress(string symbol)
+        {
+            return base.GetSymbolAddress(symbol);
+        }
+
+        /// <inheritdoc/>
+        public override System.Version Version
+        {
+            get
+            {
+                if (_version is not null)
+                    return _version;
+
+                if (_elf is null || !_reader.GetVersionInfo(ImageBase, _elf, out System.Version? version))
+                    version = new System.Version();
+
+                _version = version;
+                return version!;
+            }
+        }
+
+        public ElfModuleInfo(IDataReader reader, ElfFile? elf, ulong imageBase, string fileName!!)
+            : base(imageBase, fileName)
+        {
+            _reader = reader;
+            _elf = elf;
+        }
+    }
+}

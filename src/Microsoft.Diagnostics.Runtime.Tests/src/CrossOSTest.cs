@@ -1,8 +1,9 @@
-﻿using System.IO;
+﻿using Microsoft.Diagnostics.Runtime.Utilities;
+using System.IO;
 using System.Linq;
 using Xunit;
 
-namespace Microsoft.Diagnostics.Runtime.Tests.src
+namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class CrossOSTest
     {
@@ -22,6 +23,24 @@ namespace Microsoft.Diagnostics.Runtime.Tests.src
 
             Assert.Equal("clrhost", domain.Name);
             Assert.Contains("/home/leculver/clrmd/src/TestTargets/bin/x64/Arrays.dll", domain.Modules.Select(m => m.Name));
+        }
+
+        [Fact]
+        public void SingleFileTest()
+        {
+            string artifacts = TestTargets.GetTestArtifactFolder();
+            Assert.NotNull(artifacts);
+
+            string dump = Path.Combine(artifacts, "single_file_full.dmp");
+            Assert.True(File.Exists(dump));
+
+            using DataTarget dt = DataTarget.LoadDump(dump);
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrAppDomain domain = Assert.Single(runtime.AppDomains);
+
+            Assert.Equal("clrhost", domain.Name);
+            Assert.Contains("single-file.dll", domain.Modules.Select(m => m.Name));
         }
     }
 }

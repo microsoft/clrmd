@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// A representation of an ELF loaded image section.
     /// </summary>
-    public class ElfLoadedImage
+    internal class ElfLoadedImage
     {
         private readonly Reader _vaReader;
         private readonly bool _is64bit;
@@ -63,10 +63,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// Returns this ELF loaded image as a stream.
         /// </summary>
         /// <returns></returns>
-        public Stream AsStream()
+        internal ReaderStream AsStream()
         {
-            Stream stream = new ReaderStream(BaseAddress, Size, _vaReader);
-            return stream;
+            return new ReaderStream(BaseAddress, Size, _vaReader);
         }
 
         internal void AddTableEntryPointers(ElfFileTableEntryPointers64 pointers)

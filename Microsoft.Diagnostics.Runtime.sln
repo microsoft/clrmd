@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.28309.60
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32425.291
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Diagnostics.Runtime", "src\Microsoft.Diagnostics.Runtime\Microsoft.Diagnostics.Runtime.csproj", "{A82126CA-23AA-41F1-8586-A5938D44D0A7}"
 EndProject
@@ -15,6 +15,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		doc\FAQ.md = doc\FAQ.md
 		doc\GettingStarted.md = doc\GettingStarted.md
+		doc\Migrating21.md = doc\Migrating21.md
 		doc\ReleaseNotes2.0.md = doc\ReleaseNotes2.0.md
 	EndProjectSection
 EndProject

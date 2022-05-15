@@ -65,7 +65,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             }
         }
 
-        public VersionInfo GetModuleVersionInformation(int index, ulong imgBase)
+        public Version GetModuleVersionInformation(int index, ulong imgBase)
         {
             byte* item = stackalloc byte[3] { (byte)'\\', (byte)'\\', 0 };
 
@@ -79,14 +79,14 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
                     hr = VTable.GetModuleVersionInformation(Self, index, imgBase, item, pBuffer, buffer.Length, out _);
 
                 if (!hr)
-                    return default;
+                    return new Version();
 
                 int minor = Unsafe.As<byte, ushort>(ref buffer[8]);
                 int major = Unsafe.As<byte, ushort>(ref buffer[10]);
                 int patch = Unsafe.As<byte, ushort>(ref buffer[12]);
                 int revision = Unsafe.As<byte, ushort>(ref buffer[14]);
 
-                return new VersionInfo(major, minor, revision, patch, true);
+                return new Version(major, minor, revision, patch);
             }
             finally
             {

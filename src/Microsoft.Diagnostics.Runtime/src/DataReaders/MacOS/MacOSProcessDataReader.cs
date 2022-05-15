@@ -13,7 +13,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
-using ProcessArchitecture = System.Runtime.InteropServices.Architecture;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
@@ -61,13 +60,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             }
 
             _memoryRegions = LoadMemoryRegions();
-
-            Architecture = RuntimeInformation.ProcessArchitecture switch
-            {
-                ProcessArchitecture.X64 => Architecture.Amd64,
-                ProcessArchitecture.Arm64 => Architecture.Arm64,
-                _ => Architecture.Unknown
-            };
+            Architecture = RuntimeInformation.ProcessArchitecture;
         }
 
         ~MacOSProcessDataReader() => Dispose(false);
@@ -134,10 +127,14 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             Native.dyld_all_image_infos infos = Read<Native.dyld_all_image_infos>(dyldInfo.all_image_info_addr);
             for (uint i = 0; i < infos.infoArrayCount; i++)
             {
+                // TODO:  UUID?
+
                 Native.dyld_image_info info = Read<Native.dyld_image_info>(infos.infoArray, i);
                 ulong imageAddress = info.imageLoadAddress;
                 string imageFilePath = ReadNullTerminatedAscii(info.imageFilePath);
-                yield return new ModuleInfo(this, imageAddress, imageFilePath, true, 0, 0, ImmutableArray<byte>.Empty);
+
+                Version version = GetVersionInfo(info.imageLoadAddress) ?? new Version();
+                yield return new MachOModuleInfo(null, imageAddress, imageFilePath, version, 0);
             }
 
             unsafe T Read<T>(ulong address, uint index = 0)
@@ -172,15 +169,10 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             }
         }
 
-        public ImmutableArray<byte> GetBuildId(ulong baseAddress) => ImmutableArray<byte>.Empty;
-
-        public unsafe bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
+        public unsafe Version? GetVersionInfo(ulong baseAddress)
         {
             if (!Read(baseAddress, out MachOHeader64 header) || header.Magic != MachOHeader64.ExpectedMagic)
-            {
-                version = default;
-                return false;
-            }
+                return null;
 
             baseAddress += (uint)sizeof(MachOHeader64);
 
@@ -205,7 +197,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                             {
                                 long dataOffset = section.Address;
                                 long dataSize = section.Size;
-                                return this.GetVersionInfo(baseAddress + (ulong)dataOffset, (ulong)dataSize, out version);
+                                if (this.GetVersionInfo(baseAddress + (ulong)dataOffset, (ulong)dataSize, out Version? version))
+                                    return version;
                             }
                         }
 
@@ -218,8 +211,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 baseAddress += (uint)(commandSize - sizeof(MachOCommand));
             }
 
-            version = default;
-            return false;
+            return null;
         }
 
         public override unsafe int Read(ulong address, Span<byte> buffer)
@@ -269,7 +261,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             int regSize;
             (stateFlavor, stateCount, regSize) = Architecture switch
             {
-                Architecture.Amd64 => (Native.x86_THREAD_STATE64, Native.x86_THREAD_STATE64_COUNT, sizeof(x86_thread_state64_t)),
+                Architecture.X64 => (Native.x86_THREAD_STATE64, Native.x86_THREAD_STATE64_COUNT, sizeof(x86_thread_state64_t)),
                 Architecture.Arm64 => (Native.ARM_THREAD_STATE64, Native.ARM_THREAD_STATE64_COUNT, sizeof(arm_thread_state64_t)),
                 _ => throw new PlatformNotSupportedException()
             };
@@ -286,7 +278,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
                 switch (Architecture)
                 {
-                    case Architecture.Amd64:
+                    case Architecture.X64:
                         Unsafe.As<byte, x86_thread_state64_t>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
                         break;
                     case Architecture.Arm64:
