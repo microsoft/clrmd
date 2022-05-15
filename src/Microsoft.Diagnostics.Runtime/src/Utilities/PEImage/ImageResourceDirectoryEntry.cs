@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// field points to a resource data entry.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct IMAGE_RESOURCE_DIRECTORY_ENTRY
+    internal readonly struct ImageResourceDirectoryEntry
     {
         private readonly int _nameOffsetAndFlag;
         private readonly int _dataOffsetAndFlag;

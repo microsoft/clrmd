@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// decoding code point values within the resource data.  Typically for new
     /// applications the code page would be the Unicode code page.
     /// </summary>
-    internal struct IMAGE_RESOURCE_DATA_ENTRY
+    internal struct ImageResourceDataEntry
     {
         public int RvaToData;
         public int Size;

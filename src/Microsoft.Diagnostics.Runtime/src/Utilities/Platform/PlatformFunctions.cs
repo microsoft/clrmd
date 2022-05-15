@@ -28,17 +28,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="name">The name of the exported symbol.</param>
         public abstract IntPtr GetLibraryExport(IntPtr handle, string name);
 
-        public virtual bool IsEqualFileVersion(string file, VersionInfo version)
+        public virtual bool IsEqualFileVersion(string file, Version version)
         {
-            if (!GetFileVersion(file, out int major, out int minor, out int revision, out int patch))
+            if (!GetFileVersion(file, out int major, out int minor, out int build, out int revision))
             {
-                if (version == default)
+                if (version == null)
                     return true;  // the runtime module has no version info either
 
                 return false;
             }
 
-            return major == version.Major && minor == version.Minor && revision == version.Revision && patch == version.Patch;
+            return major == version.Major && minor == version.Minor && build == version.Build && revision == version.Revision;
         }
     }
 }
