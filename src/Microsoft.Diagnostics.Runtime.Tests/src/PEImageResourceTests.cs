@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using Xunit;
 
@@ -17,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void FileInfoVersionTest()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
-            ModuleInfo clrModule = dt.EnumerateModules().SingleOrDefault(m => Path.GetFileNameWithoutExtension(m.FileName).Equals("clr", StringComparison.OrdinalIgnoreCase));
+            PEModuleInfo clrModule = (PEModuleInfo)dt.EnumerateModules().SingleOrDefault(m => Path.GetFileNameWithoutExtension(m.FileName).Equals("clr", StringComparison.OrdinalIgnoreCase));
 
             using PEImage img = clrModule.GetPEImage();
             Assert.NotNull(img);
@@ -35,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
             ClrInfo clr = dt.ClrVersions.Single();
-            using PEImage image = clr.ModuleInfo.GetPEImage();
+            using PEImage image = ((PEModuleInfo)clr.ModuleInfo).GetPEImage();
             ResourceEntry entry = image.Resources;
 
             bool found = false;

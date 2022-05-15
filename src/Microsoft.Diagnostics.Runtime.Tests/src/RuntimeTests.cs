@@ -26,11 +26,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             using DataTarget dt = TestTargets.NestedException.LoadFullDump();
             ClrInfo info = dt.ClrVersions.Single();
-            string dac = info.DacInfo.LocalDacPath;
+            DebugLibraryInfo dac = Assert.Single(info.DebuggingLibraries.Where(r => Path.GetFileName(r.FileName) != r.FileName));
 
-            Assert.NotNull(dac);
-
-            using ClrRuntime runtime = info.CreateRuntime(dac);
+            using ClrRuntime runtime = info.CreateRuntime(dac.FileName);
             Assert.NotNull(runtime);
         }
 

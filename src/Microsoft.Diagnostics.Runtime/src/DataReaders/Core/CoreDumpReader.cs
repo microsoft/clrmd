@@ -4,16 +4,15 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class CoredumpReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader, IExportReader
+    internal class CoredumpReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader
     {
         private readonly ElfCoreFile _core;
         private Dictionary<uint, IElfPRStatus>? _threads;
@@ -30,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime
             ElfMachine architecture = _core.ElfFile.Header.Architecture;
             (PointerSize, Architecture) = architecture switch
             {
-                ElfMachine.EM_X86_64  => (8, Architecture.Amd64),
+                ElfMachine.EM_X86_64  => (8, Architecture.X64),
                 ElfMachine.EM_386     => (4, Architecture.X86),
                 ElfMachine.EM_AARCH64 => (8, Architecture.Arm64),
                 ElfMachine.EM_ARM     => (4, Architecture.Arm),
@@ -78,22 +77,6 @@ namespace Microsoft.Diagnostics.Runtime
         {
             using ElfFile? file = image.Open();
 
-            int filesize = 0;
-            int timestamp = 0;
-
-            if (file is null)
-            {
-                using Stream stream = image.AsStream();
-                PEImage.ReadIndexProperties(stream, out timestamp, out filesize);
-            }
-
-            // It's true that we are setting "IndexFileSize" to be the raw size on linux for Linux modules,
-            // but this unblocks some SOS scenarios.
-            if (filesize == 0)
-            {
-                filesize = unchecked((int)image.Size);
-            }
-
             // We suppress the warning because the function it wants us to use is not available on all ClrMD platforms
 #pragma warning disable CA1307 // Specify StringComparison
 
@@ -102,8 +85,22 @@ namespace Microsoft.Diagnostics.Runtime
 
 #pragma warning restore CA1307 // Specify StringComparison
 
-            // We set buildId to "default" which means we will later lazily evaluate the buildId on demand.
-            return new ModuleInfo(this, (ulong)image.BaseAddress, path, true, filesize, timestamp, buildId: default);
+            if (file is not null)
+            {
+                int filesize = 0;
+
+                // It's true that we are setting "IndexFileSize" to be the raw size on linux for Linux modules,
+                // but this unblocks some SOS scenarios.
+                if (filesize == 0)
+                {
+                    filesize = unchecked((int)image.Size);
+                }
+
+
+                return new ElfModuleInfo(this, file, image.BaseAddress, path);
+            }
+
+            return new PEModuleInfo(this, image.BaseAddress, path, false);
         }
 
         public void FlushCachedData()
@@ -132,64 +129,6 @@ namespace Microsoft.Diagnostics.Runtime
                 return status.CopyRegistersAsContext(context);
 
             return false;
-        }
-
-        public ImmutableArray<byte> GetBuildId(ulong baseAddress)
-        {
-            using ElfFile? elfFile = GetElfFile(baseAddress);
-            return elfFile?.BuildId ?? ImmutableArray<byte>.Empty;
-        }
-
-        public bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
-        {
-            using ElfFile? file = GetElfFile(baseAddress);
-            if (file is not null)
-            {
-                return this.GetVersionInfo(baseAddress, file, out version);
-            }
-
-            using PEImage? pe = GetPEImage(baseAddress);
-            if (pe is not null)
-            {
-                FileVersionInfo? fileVersionInfo = pe.GetFileVersionInfo();
-                if (fileVersionInfo is not null)
-                {
-                    version = fileVersionInfo.VersionInfo;
-                    return true;
-                }
-            }
-
-            version = default;
-            return false;
-        }
-
-        /// <summary>
-        /// Returns the address of a module export symbol if found
-        /// </summary>
-        /// <param name="baseAddress">module base address</param>
-        /// <param name="name">symbol name (without the module name prepended)</param>
-        /// <param name="address">address returned</param>
-        /// <returns>true if found</returns>
-        bool IExportReader.TryGetSymbolAddress(ulong baseAddress, string name, out ulong address)
-        {
-            using ElfFile? elfFile = GetElfFile(baseAddress);
-            if (elfFile is not null && elfFile.TryGetExportSymbol(name, out ulong offset))
-            {
-                address = baseAddress + offset;
-                return true;
-            }
-            address = 0;
-            return false;
-        }
-
-        private ElfFile? GetElfFile(ulong baseAddress)
-        {
-            return _core.LoadedImages.TryGetValue(baseAddress, out ElfLoadedImage? image) ? image?.Open() : null;
-        }
-
-        private PEImage? GetPEImage(ulong baseAddress)
-        {
-            return EnumerateModules().First(mod => mod.ImageBase == baseAddress).GetPEImage();
         }
 
         public override int Read(ulong address, Span<byte> buffer)

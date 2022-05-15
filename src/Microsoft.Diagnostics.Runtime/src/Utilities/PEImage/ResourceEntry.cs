@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// An entry in the resource table.
     /// </summary>
-    public sealed class ResourceEntry
+    internal sealed class ResourceEntry
     {
         private ImmutableArray<ResourceEntry> _children;
         private readonly int _offset;
@@ -152,12 +152,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                     for (int i = 0; i < count; i++)
                     {
-                        if (!Image.TryRead<IMAGE_RESOURCE_DIRECTORY_ENTRY>(ref offset, out IMAGE_RESOURCE_DIRECTORY_ENTRY entry))
+                        if (!Image.TryRead<ImageResourceDirectoryEntry>(ref offset, out ImageResourceDirectoryEntry entry))
                             break;
 
                         string name;
                         if (!entry.IsStringName)
-                            name = IMAGE_RESOURCE_DIRECTORY_ENTRY.GetTypeNameForTypeId(entry.Id);
+                            name = ImageResourceDirectoryEntry.GetTypeNameForTypeId(entry.Id);
                         else
                             name = GetName(entry.NameOffset, resourceStartFileOffset);
 
@@ -218,7 +218,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private void GetDataVaAndSize(out int va, out int size)
         {
-            IMAGE_RESOURCE_DATA_ENTRY dataEntry = Image.Read<IMAGE_RESOURCE_DATA_ENTRY>(_offset);
+            ImageResourceDataEntry dataEntry = Image.Read<ImageResourceDataEntry>(_offset);
             va = dataEntry.RvaToData;
             size = dataEntry.Size;
         }

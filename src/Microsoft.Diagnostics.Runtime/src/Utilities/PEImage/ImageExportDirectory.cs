@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal struct IMAGE_EXPORT_DIRECTORY
+    internal struct ImageExportDirectory
     {
         public int Characteristics;
         public int TimeDateStamp;
