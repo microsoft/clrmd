@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
@@ -30,14 +31,18 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         public Architecture Architecture => _header.CpuType switch
         {
             MachOCpuType.X86 => Architecture.X86,
-            MachOCpuType.X86_64 => Architecture.Amd64,
+            MachOCpuType.X86_64 => Architecture.X64,
             MachOCpuType.ARM => Architecture.Arm,
             MachOCpuType.ARM64 => Architecture.Arm64,
-            _ => Architecture.Unknown
+            _ => (Architecture)(-1)
         };
 
-        public MachOCoreDump(Stream stream, bool leaveOpen, string displayName)
+        public MachOCoreReader Parent { get; }
+
+        public MachOCoreDump(MachOCoreReader parent, Stream stream, bool leaveOpen, string displayName)
         {
+            Parent = parent;
+
             fixed (MachHeader64* header = &_header)
                 if (stream.Read(new Span<byte>(header, sizeof(MachHeader64))) != sizeof(MachHeader64))
                     throw new IOException($"Failed to read header from {displayName}.");

@@ -61,12 +61,6 @@ Microsoft.Diagnostics.Runtime.AMD64Context.Rip -> ulong
 Microsoft.Diagnostics.Runtime.AMD64Context.Rsi -> ulong
 Microsoft.Diagnostics.Runtime.AMD64Context.Rsp -> ulong
 Microsoft.Diagnostics.Runtime.AMD64Context.Ss -> ushort
-Microsoft.Diagnostics.Runtime.Architecture
-Microsoft.Diagnostics.Runtime.Architecture.Amd64 = 2 -> Microsoft.Diagnostics.Runtime.Architecture
-Microsoft.Diagnostics.Runtime.Architecture.Arm = 3 -> Microsoft.Diagnostics.Runtime.Architecture
-Microsoft.Diagnostics.Runtime.Architecture.Arm64 = 4 -> Microsoft.Diagnostics.Runtime.Architecture
-Microsoft.Diagnostics.Runtime.Architecture.Unknown = 0 -> Microsoft.Diagnostics.Runtime.Architecture
-Microsoft.Diagnostics.Runtime.Architecture.X86 = 1 -> Microsoft.Diagnostics.Runtime.Architecture
 Microsoft.Diagnostics.Runtime.Arm64Context
 Microsoft.Diagnostics.Runtime.Arm64Context.Arm64Context() -> void
 Microsoft.Diagnostics.Runtime.Arm64Context.Bcr -> uint*
@@ -292,13 +286,10 @@ Microsoft.Diagnostics.Runtime.ClrHeap.GetObject(ulong objRef) -> Microsoft.Diagn
 Microsoft.Diagnostics.Runtime.ClrInfo
 Microsoft.Diagnostics.Runtime.ClrInfo.CreateRuntime() -> Microsoft.Diagnostics.Runtime.ClrRuntime!
 Microsoft.Diagnostics.Runtime.ClrInfo.CreateRuntime(string! dacPath, bool ignoreMismatch = false) -> Microsoft.Diagnostics.Runtime.ClrRuntime!
-Microsoft.Diagnostics.Runtime.ClrInfo.DacInfo.get -> Microsoft.Diagnostics.Runtime.DacInfo!
 Microsoft.Diagnostics.Runtime.ClrInfo.DataTarget.get -> Microsoft.Diagnostics.Runtime.DataTarget!
 Microsoft.Diagnostics.Runtime.ClrInfo.Flavor.get -> Microsoft.Diagnostics.Runtime.ClrFlavor
 Microsoft.Diagnostics.Runtime.ClrInfo.ModuleInfo.get -> Microsoft.Diagnostics.Runtime.ModuleInfo!
-Microsoft.Diagnostics.Runtime.ClrInfo.SingleFileRuntimeInfo.get -> Microsoft.Diagnostics.Runtime.ClrRuntimeInfo?
-Microsoft.Diagnostics.Runtime.ClrInfo.Version.get -> Microsoft.Diagnostics.Runtime.VersionInfo
-Microsoft.Diagnostics.Runtime.ClrInfoProvider
+Microsoft.Diagnostics.Runtime.ClrInfo.Version.get -> System.Version
 Microsoft.Diagnostics.Runtime.ClrInstanceField
 Microsoft.Diagnostics.Runtime.ClrInstanceField.ClrInstanceField() -> void
 Microsoft.Diagnostics.Runtime.ClrInterface
@@ -428,16 +419,6 @@ Microsoft.Diagnostics.Runtime.CustomDataTarget.DefaultSymbolPath.get -> string?
 Microsoft.Diagnostics.Runtime.CustomDataTarget.DefaultSymbolPath.set -> void
 Microsoft.Diagnostics.Runtime.CustomDataTarget.Dispose() -> void
 Microsoft.Diagnostics.Runtime.CustomDataTarget.~CustomDataTarget() -> void
-Microsoft.Diagnostics.Runtime.DacInfo
-Microsoft.Diagnostics.Runtime.DacInfo.ClrBuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
-Microsoft.Diagnostics.Runtime.DacInfo.DacInfo(string? localPath, string! specificName, string! agnosticName, Microsoft.Diagnostics.Runtime.Architecture targetArch, int filesize, int timestamp, Microsoft.Diagnostics.Runtime.VersionInfo version, System.Collections.Immutable.ImmutableArray<byte> clrBuildId) -> void
-Microsoft.Diagnostics.Runtime.DacInfo.IndexFileSize.get -> int
-Microsoft.Diagnostics.Runtime.DacInfo.IndexTimeStamp.get -> int
-Microsoft.Diagnostics.Runtime.DacInfo.LocalDacPath.get -> string?
-Microsoft.Diagnostics.Runtime.DacInfo.PlatformAgnosticFileName.get -> string!
-Microsoft.Diagnostics.Runtime.DacInfo.PlatformSpecificFileName.get -> string!
-Microsoft.Diagnostics.Runtime.DacInfo.TargetArchitecture.get -> Microsoft.Diagnostics.Runtime.Architecture
-Microsoft.Diagnostics.Runtime.DacInfo.Version.get -> Microsoft.Diagnostics.Runtime.VersionInfo
 Microsoft.Diagnostics.Runtime.DacInterface.AppDomainData
 Microsoft.Diagnostics.Runtime.DacInterface.AppDomainData.AppDomainData() -> void
 Microsoft.Diagnostics.Runtime.DacInterface.AppDomainStoreData
@@ -726,13 +707,11 @@ Microsoft.Diagnostics.Runtime.IClrRoot.RootKind.get -> Microsoft.Diagnostics.Run
 Microsoft.Diagnostics.Runtime.IClrStackRoot
 Microsoft.Diagnostics.Runtime.IClrStackRoot.StackFrame.get -> Microsoft.Diagnostics.Runtime.ClrStackFrame!
 Microsoft.Diagnostics.Runtime.IDataReader
-Microsoft.Diagnostics.Runtime.IDataReader.Architecture.get -> Microsoft.Diagnostics.Runtime.Architecture
+Microsoft.Diagnostics.Runtime.IDataReader.Architecture.get -> System.Runtime.InteropServices.Architecture
 Microsoft.Diagnostics.Runtime.IDataReader.DisplayName.get -> string!
 Microsoft.Diagnostics.Runtime.IDataReader.EnumerateModules() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ModuleInfo!>!
 Microsoft.Diagnostics.Runtime.IDataReader.FlushCachedData() -> void
-Microsoft.Diagnostics.Runtime.IDataReader.GetBuildId(ulong baseAddress) -> System.Collections.Immutable.ImmutableArray<byte>
 Microsoft.Diagnostics.Runtime.IDataReader.GetThreadContext(uint threadID, uint contextFlags, System.Span<byte> context) -> bool
-Microsoft.Diagnostics.Runtime.IDataReader.GetVersionInfo(ulong baseAddress, out Microsoft.Diagnostics.Runtime.VersionInfo version) -> bool
 Microsoft.Diagnostics.Runtime.IDataReader.IsThreadSafe.get -> bool
 Microsoft.Diagnostics.Runtime.IDataReader.ProcessId.get -> int
 Microsoft.Diagnostics.Runtime.IDataReader.TargetPlatform.get -> System.Runtime.InteropServices.OSPlatform
@@ -747,8 +726,6 @@ Microsoft.Diagnostics.Runtime.ILToNativeMap.EndAddress -> ulong
 Microsoft.Diagnostics.Runtime.ILToNativeMap.ILOffset -> int
 Microsoft.Diagnostics.Runtime.ILToNativeMap.ILToNativeMap() -> void
 Microsoft.Diagnostics.Runtime.ILToNativeMap.StartAddress -> ulong
-Microsoft.Diagnostics.Runtime.IExportReader
-Microsoft.Diagnostics.Runtime.IExportReader.TryGetSymbolAddress(ulong baseAddress, string! name, out ulong address) -> bool
 Microsoft.Diagnostics.Runtime.IMemoryReader
 Microsoft.Diagnostics.Runtime.IMemoryReader.PointerSize.get -> int
 Microsoft.Diagnostics.Runtime.IMemoryReader.Read(ulong address, System.Span<byte> buffer) -> int
@@ -1011,107 +988,6 @@ Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetAssemblyLoadContext
 Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetLoaderAllocatorHandle(ulong mt) -> ulong
 Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetObjectData(ulong objRef) -> Microsoft.Diagnostics.Runtime.Implementation.IObjectData?
 Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetTypeName(ulong mt, out string? name) -> bool
-Microsoft.Diagnostics.Runtime.Utilities.ElfAuxvType
-Microsoft.Diagnostics.Runtime.Utilities.ElfAuxvType.Base = 7 -> Microsoft.Diagnostics.Runtime.Utilities.ElfAuxvType
-Microsoft.Diagnostics.Runtime.Utilities.ElfAuxvType.Null = 0 -> Microsoft.Diagnostics.Runtime.Utilities.ElfAuxvType
-Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile
-Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.ElfFile.get -> Microsoft.Diagnostics.Runtime.Utilities.ElfFile!
-Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.EnumeratePRStatus() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.Utilities.IElfPRStatus!>!
-Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.GetAuxvValue(Microsoft.Diagnostics.Runtime.Utilities.ElfAuxvType type) -> ulong
-Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.LoadedImages.get -> System.Collections.Immutable.ImmutableDictionary<ulong, Microsoft.Diagnostics.Runtime.Utilities.ElfLoadedImage!>!
-Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.ReadMemory(ulong address, System.Span<byte> buffer) -> int
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile
-Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.Dispose() -> void
-Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.ElfCoreFile(System.IO.Stream! stream, bool leaveOpen = false) -> void
-Microsoft.Diagnostics.Runtime.Utilities.ElfCoreFile.ElfCoreFile(string! coredump) -> void
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile.Dispose() -> void
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile.ElfFile(string! filename) -> void
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile.ElfFile(System.IO.Stream! stream, bool leaveOpen = false) -> void
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile.ElfFile(System.IO.Stream! stream, ulong position, bool leaveOpen, bool isVirtual) -> void
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile.BuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile.Header.get -> Microsoft.Diagnostics.Runtime.Utilities.IElfHeader!
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile.Notes.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.Utilities.ElfNote!>
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile.ProgramHeaders.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeader!>
-Microsoft.Diagnostics.Runtime.Utilities.ElfFile.TryGetExportSymbol(string! symbolName, out ulong offset) -> bool
-Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType.Core = 4 -> Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType.Executable = 2 -> Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType.Relocatable = 1 -> Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType.Shared = 3 -> Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfLoadedImage
-Microsoft.Diagnostics.Runtime.Utilities.ElfLoadedImage.AsStream() -> System.IO.Stream!
-Microsoft.Diagnostics.Runtime.Utilities.ElfLoadedImage.BaseAddress.get -> ulong
-Microsoft.Diagnostics.Runtime.Utilities.ElfLoadedImage.FileName.get -> string!
-Microsoft.Diagnostics.Runtime.Utilities.ElfLoadedImage.Open() -> Microsoft.Diagnostics.Runtime.Utilities.ElfFile?
-Microsoft.Diagnostics.Runtime.Utilities.ElfLoadedImage.Size.get -> ulong
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_386 = 3 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_AARCH64 = 183 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_ARM = 40 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_AVR32 = 6317 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_BLACKFIN = 106 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_CRIS = 76 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_FRV = 21569 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_H8_300 = 46 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_IA_64 = 50 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_M32R = 88 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_MN10300 = 89 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_NONE = 0 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_PARISC = 15 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_PPC = 20 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_PPC64 = 21 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_S390 = 22 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_SH = 42 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_SPARC32PLUS = 18 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_SPARCV9 = 43 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_SPU = 23 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_V850 = 87 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfMachine.EM_X86_64 = 62 -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.ElfNote
-Microsoft.Diagnostics.Runtime.Utilities.ElfNote.ContentSize.get -> int
-Microsoft.Diagnostics.Runtime.Utilities.ElfNote.Name.get -> string!
-Microsoft.Diagnostics.Runtime.Utilities.ElfNote.ReadContents(ulong position, System.Span<byte> buffer) -> int
-Microsoft.Diagnostics.Runtime.Utilities.ElfNote.ReadContents<T>(ulong position) -> T
-Microsoft.Diagnostics.Runtime.Utilities.ElfNote.Type.get -> Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType
-Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType
-Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType.Aux = 6 -> Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType
-Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType.File = 1179208773 -> Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType
-Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType.PrpsFpreg = 2 -> Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType
-Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType.PrpsInfo = 3 -> Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType
-Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType.PrpsStatus = 1 -> Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType
-Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType.TASKSTRUCT = 4 -> Microsoft.Diagnostics.Runtime.Utilities.ElfNoteType
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeader
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeader.FileOffset.get -> ulong
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeader.FileSize.get -> ulong
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeader.IsExecutable.get -> bool
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeader.IsWritable.get -> bool
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeader.Type.get -> Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeader.VirtualAddress.get -> ulong
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeader.VirtualSize.get -> ulong
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType.Dynamic = 2 -> Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType.Interp = 3 -> Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType.Load = 1 -> Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType.Note = 4 -> Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType.Null = 0 -> Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType.Phdr = 6 -> Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType.Shlib = 5 -> Microsoft.Diagnostics.Runtime.Utilities.ElfProgramHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.Architecture.get -> Microsoft.Diagnostics.Runtime.Utilities.ElfMachine
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.Is64Bit.get -> bool
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.IsValid.get -> bool
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.ProgramHeaderCount.get -> ushort
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.ProgramHeaderEntrySize.get -> ushort
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.ProgramHeaderOffset.get -> ulong
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.SectionHeaderCount.get -> ushort
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.SectionHeaderEntrySize.get -> ushort
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.SectionHeaderOffset.get -> ulong
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.SectionHeaderStringIndex.get -> ushort
-Microsoft.Diagnostics.Runtime.Utilities.IElfHeader.Type.get -> Microsoft.Diagnostics.Runtime.Utilities.ElfHeaderType
-Microsoft.Diagnostics.Runtime.Utilities.IElfPRStatus
-Microsoft.Diagnostics.Runtime.Utilities.IElfPRStatus.CopyRegistersAsContext(System.Span<byte> context) -> bool
-Microsoft.Diagnostics.Runtime.Utilities.IElfPRStatus.ProcessId.get -> uint
-Microsoft.Diagnostics.Runtime.Utilities.IElfPRStatus.ThreadId.get -> uint
 Microsoft.Diagnostics.Runtime.M128A
 Microsoft.Diagnostics.Runtime.M128A.Clear() -> void
 Microsoft.Diagnostics.Runtime.M128A.Equals(Microsoft.Diagnostics.Runtime.M128A other) -> bool
@@ -1131,20 +1007,6 @@ Microsoft.Diagnostics.Runtime.MethodCompilationType
 Microsoft.Diagnostics.Runtime.MethodCompilationType.Jit = 1 -> Microsoft.Diagnostics.Runtime.MethodCompilationType
 Microsoft.Diagnostics.Runtime.MethodCompilationType.Ngen = 2 -> Microsoft.Diagnostics.Runtime.MethodCompilationType
 Microsoft.Diagnostics.Runtime.MethodCompilationType.None = 0 -> Microsoft.Diagnostics.Runtime.MethodCompilationType
-Microsoft.Diagnostics.Runtime.ModuleInfo
-Microsoft.Diagnostics.Runtime.ModuleInfo.BuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
-Microsoft.Diagnostics.Runtime.ModuleInfo.DataReader.get -> Microsoft.Diagnostics.Runtime.IDataReader!
-Microsoft.Diagnostics.Runtime.ModuleInfo.DataTarget.get -> Microsoft.Diagnostics.Runtime.DataTarget!
-Microsoft.Diagnostics.Runtime.ModuleInfo.FileName.get -> string?
-Microsoft.Diagnostics.Runtime.ModuleInfo.GetPEImage() -> Microsoft.Diagnostics.Runtime.Utilities.PEImage?
-Microsoft.Diagnostics.Runtime.ModuleInfo.ImageBase.get -> ulong
-Microsoft.Diagnostics.Runtime.ModuleInfo.IndexFileSize.get -> int
-Microsoft.Diagnostics.Runtime.ModuleInfo.IndexTimeStamp.get -> int
-Microsoft.Diagnostics.Runtime.ModuleInfo.IsManaged.get -> bool
-Microsoft.Diagnostics.Runtime.ModuleInfo.ModuleInfo(Microsoft.Diagnostics.Runtime.IDataReader! reader, ulong imageBase, string? fileName, bool isVirtual, int indexFileSize, int indexTimeStamp, System.Collections.Immutable.ImmutableArray<byte> buildId) -> void
-Microsoft.Diagnostics.Runtime.ModuleInfo.ModuleInfo(ulong imageBase, string? fileName, bool isVirtual, int indexFileSize, int indexTimeStamp, System.Collections.Immutable.ImmutableArray<byte> buildId) -> void
-Microsoft.Diagnostics.Runtime.ModuleInfo.Pdb.get -> Microsoft.Diagnostics.Runtime.PdbInfo?
-Microsoft.Diagnostics.Runtime.ModuleInfo.Version.get -> Microsoft.Diagnostics.Runtime.VersionInfo
 Microsoft.Diagnostics.Runtime.ModuleLayout
 Microsoft.Diagnostics.Runtime.ModuleLayout.Flat = 2 -> Microsoft.Diagnostics.Runtime.ModuleLayout
 Microsoft.Diagnostics.Runtime.ModuleLayout.Loaded = 4 -> Microsoft.Diagnostics.Runtime.ModuleLayout
@@ -1202,13 +1064,6 @@ Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.RefCount.get -> int
 Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.RuntimeCallableWrapper(Microsoft.Diagnostics.Runtime.ClrRuntime! runtime, Microsoft.Diagnostics.Runtime.Implementation.IRcwData! data) -> void
 Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.VTablePointer.get -> ulong
 Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.WinRTObject.get -> ulong
-Microsoft.Diagnostics.Runtime.ClrRuntimeInfo
-Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.DacModuleIndex -> byte*
-Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.DbiModuleIndex -> byte*
-Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.ClrRuntimeInfo() -> void
-Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.RuntimeModuleIndex -> byte*
-Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.Signature -> byte*
-Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.Version -> int
 Microsoft.Diagnostics.Runtime.StringCaching
 Microsoft.Diagnostics.Runtime.StringCaching.Cache = 1 -> Microsoft.Diagnostics.Runtime.StringCaching
 Microsoft.Diagnostics.Runtime.StringCaching.Intern = 2 -> Microsoft.Diagnostics.Runtime.StringCaching
@@ -1245,10 +1100,6 @@ Microsoft.Diagnostics.Runtime.Utilities.CallableCOMWrapper.Self.get -> System.In
 Microsoft.Diagnostics.Runtime.Utilities.CallableCOMWrapper.SuppressRelease() -> void
 Microsoft.Diagnostics.Runtime.Utilities.CallableCOMWrapper._vtable.get -> void*
 Microsoft.Diagnostics.Runtime.Utilities.CallableCOMWrapper.~CallableCOMWrapper() -> void
-Microsoft.Diagnostics.Runtime.Utilities.FileVersionInfo
-Microsoft.Diagnostics.Runtime.Utilities.FileVersionInfo.Comments.get -> string?
-Microsoft.Diagnostics.Runtime.Utilities.FileVersionInfo.FileVersion.get -> string?
-Microsoft.Diagnostics.Runtime.Utilities.FileVersionInfo.VersionInfo.get -> Microsoft.Diagnostics.Runtime.VersionInfo
 Microsoft.Diagnostics.Runtime.Utilities.HResult
 Microsoft.Diagnostics.Runtime.Utilities.HResult.HResult(int hr) -> void
 Microsoft.Diagnostics.Runtime.Utilities.HResult.IsOK.get -> bool
@@ -1259,38 +1110,6 @@ Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.AddRef -> delegate* unman
 Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.IUnknownVTable() -> void
 Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.QueryInterface -> delegate* unmanaged[Stdcall]<System.IntPtr, in System.Guid, out System.IntPtr, Microsoft.Diagnostics.Runtime.Utilities.HResult>
 Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.Release -> delegate* unmanaged[Stdcall]<System.IntPtr, int>
-Microsoft.Diagnostics.Runtime.Utilities.PEImage
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.CoffHeader.get -> System.Reflection.PortableExecutable.CoffHeader?
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.CorHeader.get -> System.Reflection.PortableExecutable.CorHeader?
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.DefaultPdb.get -> Microsoft.Diagnostics.Runtime.PdbInfo?
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.Dispose() -> void
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.GetFileVersionInfo() -> Microsoft.Diagnostics.Runtime.Utilities.FileVersionInfo?
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.IndexFileSize.get -> int
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.IndexTimeStamp.get -> int
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.IsManaged.get -> bool
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.IsPE64.get -> bool
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.IsValid.get -> bool
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.PEHeader.get -> System.Reflection.PortableExecutable.PEHeader?
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.PEImage(System.IO.Stream! stream, bool leaveOpen = false) -> void
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.PEImage(System.IO.Stream! stream, bool leaveOpen, bool isVirtual) -> void
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.Pdbs.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.PdbInfo!>
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.Read(int virtualAddress, System.Span<byte> dest) -> int
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.Reader.get -> System.Reflection.PortableExecutable.PEReader?
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.Resources.get -> Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry!
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.RvaToOffset(int virtualAddress) -> int
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.Sections.get -> System.Collections.Immutable.ImmutableArray<System.Reflection.PortableExecutable.SectionHeader>
-Microsoft.Diagnostics.Runtime.Utilities.PEImage.TryGetExportSymbol(string! symbolName, out ulong offset) -> bool
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.ChildCount.get -> int
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.Children.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry!>
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.GetData(System.Span<byte> span) -> int
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.GetData<T>(int offset = 0) -> T
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.Image.get -> Microsoft.Diagnostics.Runtime.Utilities.PEImage!
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.IsLeaf.get -> bool
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.Name.get -> string!
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.Parent.get -> Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry?
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.Size.get -> int
-Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.this[string! name].get -> Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry?
 Microsoft.Diagnostics.Runtime.Utilities.SigParser
 Microsoft.Diagnostics.Runtime.Utilities.SigParser.GetCallingConvInfo(out int data) -> bool
 Microsoft.Diagnostics.Runtime.Utilities.SigParser.GetData(out int data) -> bool
@@ -1313,14 +1132,6 @@ Microsoft.Diagnostics.Runtime.VectorRegisterArea.Clear() -> void
 Microsoft.Diagnostics.Runtime.VectorRegisterArea.VectorControl -> ulong
 Microsoft.Diagnostics.Runtime.VectorRegisterArea.VectorRegister -> Microsoft.Diagnostics.Runtime.M128A[]?
 Microsoft.Diagnostics.Runtime.VectorRegisterArea.VectorRegisterArea(Microsoft.Diagnostics.Runtime.VectorRegisterArea other) -> void
-Microsoft.Diagnostics.Runtime.VersionInfo
-Microsoft.Diagnostics.Runtime.VersionInfo.CompareTo(Microsoft.Diagnostics.Runtime.VersionInfo other) -> int
-Microsoft.Diagnostics.Runtime.VersionInfo.Equals(Microsoft.Diagnostics.Runtime.VersionInfo other) -> bool
-Microsoft.Diagnostics.Runtime.VersionInfo.Major.get -> int
-Microsoft.Diagnostics.Runtime.VersionInfo.Minor.get -> int
-Microsoft.Diagnostics.Runtime.VersionInfo.Patch.get -> int
-Microsoft.Diagnostics.Runtime.VersionInfo.Revision.get -> int
-Microsoft.Diagnostics.Runtime.VersionInfo.VersionInfo(int major, int minor, int revision, int patch) -> void
 Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels
 Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels.AdjustDefault = 128 -> Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels
 Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels.AdjustGroups = 64 -> Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels
@@ -1609,9 +1420,6 @@ const Microsoft.Diagnostics.Runtime.ArmContext.ContextControl = 2097153 -> uint
 const Microsoft.Diagnostics.Runtime.ArmContext.ContextDebugRegisters = 2097160 -> uint
 const Microsoft.Diagnostics.Runtime.ArmContext.ContextFloatingPoint = 2097156 -> uint
 const Microsoft.Diagnostics.Runtime.ArmContext.ContextInteger = 2097154 -> uint
-const Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.SignatureValue = "DotNetRuntimeInfo\0" -> string!
-const Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.SignatureValueLength = 18 -> int
-const Microsoft.Diagnostics.Runtime.ClrRuntimeInfo.SymbolValue = "DotNetRuntimeInfo" -> string!
 const Microsoft.Diagnostics.Runtime.Utilities.HResult.E_FAIL = -2147467259 -> int
 const Microsoft.Diagnostics.Runtime.Utilities.HResult.E_INVALIDARG = -2147024809 -> int
 const Microsoft.Diagnostics.Runtime.Utilities.HResult.E_NOINTERFACE = -2147467262 -> int
@@ -2007,20 +1815,14 @@ override Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.IsMonitorHel
 override Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.IsRuntimeCallWrapper.get -> bool
 override Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.RecursionCount.get -> int
 override Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.WaitingThreadCount.get -> int
-override Microsoft.Diagnostics.Runtime.Utilities.ElfLoadedImage.ToString() -> string!
 override Microsoft.Diagnostics.Runtime.M128A.Equals(object? obj) -> bool
 override Microsoft.Diagnostics.Runtime.M128A.GetHashCode() -> int
 override Microsoft.Diagnostics.Runtime.MemoryRange.ToString() -> string!
-override Microsoft.Diagnostics.Runtime.ModuleInfo.ToString() -> string?
+override Microsoft.Diagnostics.Runtime.ModuleInfo.ToString() -> string!
 override Microsoft.Diagnostics.Runtime.PdbInfo.Equals(object? obj) -> bool
 override Microsoft.Diagnostics.Runtime.PdbInfo.GetHashCode() -> int
 override Microsoft.Diagnostics.Runtime.PdbInfo.ToString() -> string!
-override Microsoft.Diagnostics.Runtime.Utilities.FileVersionInfo.ToString() -> string?
 override Microsoft.Diagnostics.Runtime.Utilities.HResult.ToString() -> string!
-override Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.ToString() -> string!
-override Microsoft.Diagnostics.Runtime.VersionInfo.Equals(object? obj) -> bool
-override Microsoft.Diagnostics.Runtime.VersionInfo.GetHashCode() -> int
-override Microsoft.Diagnostics.Runtime.VersionInfo.ToString() -> string!
 readonly Microsoft.Diagnostics.Runtime.DacInterface.AppDomainData.Address -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
 readonly Microsoft.Diagnostics.Runtime.DacInterface.AppDomainData.AssemblyCount -> int
 readonly Microsoft.Diagnostics.Runtime.DacInterface.AppDomainData.DomainLocalBlock -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
@@ -2297,9 +2099,6 @@ static Microsoft.Diagnostics.Runtime.Arm64Context.Size.get -> int
 static Microsoft.Diagnostics.Runtime.ArmContext.Size.get -> int
 static Microsoft.Diagnostics.Runtime.ClrArray.operator !=(Microsoft.Diagnostics.Runtime.ClrArray left, Microsoft.Diagnostics.Runtime.ClrArray right) -> bool
 static Microsoft.Diagnostics.Runtime.ClrArray.operator ==(Microsoft.Diagnostics.Runtime.ClrArray left, Microsoft.Diagnostics.Runtime.ClrArray right) -> bool
-static Microsoft.Diagnostics.Runtime.ClrInfoProvider.GetDacFileName(Microsoft.Diagnostics.Runtime.ClrFlavor flavor, System.Runtime.InteropServices.OSPlatform platform) -> string!
-static Microsoft.Diagnostics.Runtime.ClrInfoProvider.GetDacRequestFileName(Microsoft.Diagnostics.Runtime.ClrFlavor flavor, Microsoft.Diagnostics.Runtime.Architecture currentArchitecture, Microsoft.Diagnostics.Runtime.Architecture targetArchitecture, Microsoft.Diagnostics.Runtime.VersionInfo version, System.Runtime.InteropServices.OSPlatform platform) -> string!
-static Microsoft.Diagnostics.Runtime.ClrInfoProvider.IsSupportedRuntime(Microsoft.Diagnostics.Runtime.ModuleInfo! moduleInfo, out Microsoft.Diagnostics.Runtime.ClrFlavor flavor, out System.Runtime.InteropServices.OSPlatform platform) -> bool
 static Microsoft.Diagnostics.Runtime.ClrInterface.operator !=(Microsoft.Diagnostics.Runtime.ClrInterface? left, Microsoft.Diagnostics.Runtime.ClrInterface? right) -> bool
 static Microsoft.Diagnostics.Runtime.ClrInterface.operator ==(Microsoft.Diagnostics.Runtime.ClrInterface? left, Microsoft.Diagnostics.Runtime.ClrInterface? right) -> bool
 static Microsoft.Diagnostics.Runtime.ClrMethod.operator !=(Microsoft.Diagnostics.Runtime.ClrMethod? left, Microsoft.Diagnostics.Runtime.ClrMethod? right) -> bool
@@ -2334,16 +2133,6 @@ static Microsoft.Diagnostics.Runtime.Utilities.COMHelper.Release(System.IntPtr p
 static Microsoft.Diagnostics.Runtime.Utilities.HResult.implicit operator Microsoft.Diagnostics.Runtime.Utilities.HResult(int hr) -> Microsoft.Diagnostics.Runtime.Utilities.HResult
 static Microsoft.Diagnostics.Runtime.Utilities.HResult.implicit operator bool(Microsoft.Diagnostics.Runtime.Utilities.HResult hr) -> bool
 static Microsoft.Diagnostics.Runtime.Utilities.HResult.implicit operator int(Microsoft.Diagnostics.Runtime.Utilities.HResult hr) -> int
-static Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.MaxChildrenCount.get -> int
-static Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.MaxChildrenCount.set -> void
-static Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.MaxNameLength.get -> int
-static Microsoft.Diagnostics.Runtime.Utilities.ResourceEntry.MaxNameLength.set -> void
-static Microsoft.Diagnostics.Runtime.VersionInfo.operator !=(Microsoft.Diagnostics.Runtime.VersionInfo left, Microsoft.Diagnostics.Runtime.VersionInfo right) -> bool
-static Microsoft.Diagnostics.Runtime.VersionInfo.operator <(Microsoft.Diagnostics.Runtime.VersionInfo left, Microsoft.Diagnostics.Runtime.VersionInfo right) -> bool
-static Microsoft.Diagnostics.Runtime.VersionInfo.operator <=(Microsoft.Diagnostics.Runtime.VersionInfo left, Microsoft.Diagnostics.Runtime.VersionInfo right) -> bool
-static Microsoft.Diagnostics.Runtime.VersionInfo.operator ==(Microsoft.Diagnostics.Runtime.VersionInfo left, Microsoft.Diagnostics.Runtime.VersionInfo right) -> bool
-static Microsoft.Diagnostics.Runtime.VersionInfo.operator >(Microsoft.Diagnostics.Runtime.VersionInfo left, Microsoft.Diagnostics.Runtime.VersionInfo right) -> bool
-static Microsoft.Diagnostics.Runtime.VersionInfo.operator >=(Microsoft.Diagnostics.Runtime.VersionInfo left, Microsoft.Diagnostics.Runtime.VersionInfo right) -> bool
 static Microsoft.Diagnostics.Runtime.X86Context.Size.get -> int
 static readonly Microsoft.Diagnostics.Runtime.DacInterface.MetadataImport.IID_IMetaDataImport -> System.Guid
 static readonly Microsoft.Diagnostics.Runtime.Utilities.COMHelper.IUnknownGuid -> System.Guid
@@ -2376,7 +2165,6 @@ virtual Microsoft.Diagnostics.Runtime.ObjectSet.Add(ulong obj) -> bool
 virtual Microsoft.Diagnostics.Runtime.ObjectSet.Clear() -> void
 virtual Microsoft.Diagnostics.Runtime.ObjectSet.Contains(ulong obj) -> bool
 virtual Microsoft.Diagnostics.Runtime.ObjectSet.Remove(ulong obj) -> bool
-virtual Microsoft.Diagnostics.Runtime.PlatformFunctions.IsEqualFileVersion(string! file, Microsoft.Diagnostics.Runtime.VersionInfo version) -> bool
 virtual Microsoft.Diagnostics.Runtime.SyncBlock.HoldingThreadAddress.get -> ulong
 virtual Microsoft.Diagnostics.Runtime.SyncBlock.IsComCallWrapper.get -> bool
 virtual Microsoft.Diagnostics.Runtime.SyncBlock.IsComClassFactory.get -> bool
@@ -2401,7 +2189,6 @@ Microsoft.Diagnostics.Runtime.MemoryRange.MemoryRange() -> void
 Microsoft.Diagnostics.Runtime.Utilities.HResult.HResult() -> void
 Microsoft.Diagnostics.Runtime.Utilities.SigParser.SigParser() -> void
 Microsoft.Diagnostics.Runtime.VectorRegisterArea.VectorRegisterArea() -> void
-Microsoft.Diagnostics.Runtime.VersionInfo.VersionInfo() -> void
 Microsoft.Diagnostics.Runtime.IFileLocator
 Microsoft.Diagnostics.Runtime.IFileLocator.FindPEImage(string! fileName, int buildTimeStamp, int imageSize, bool checkProperties) -> string?
 Microsoft.Diagnostics.Runtime.CustomDataTarget.FileLocator.get -> Microsoft.Diagnostics.Runtime.IFileLocator?

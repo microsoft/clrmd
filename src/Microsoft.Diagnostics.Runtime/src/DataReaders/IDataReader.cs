@@ -49,20 +49,6 @@ namespace Microsoft.Diagnostics.Runtime
         IEnumerable<ModuleInfo> EnumerateModules();
 
         /// <summary>
-        /// Returns the BuildId of a native Elf file.
-        /// </summary>
-        /// <param name="baseAddress"></param>
-        /// <returns></returns>
-        ImmutableArray<byte> GetBuildId(ulong baseAddress);
-
-        /// <summary>
-        /// Gets the version information for a given module (given by the base address of the module).
-        /// </summary>
-        /// <param name="baseAddress">The base address of the module to look up.</param>
-        /// <param name="version">The version info for the given module.</param>
-        bool GetVersionInfo(ulong baseAddress, out VersionInfo version);
-
-        /// <summary>
         /// Gets the thread context for the given thread.
         /// </summary>
         /// <param name="threadID">The OS thread ID to read the context from.</param>

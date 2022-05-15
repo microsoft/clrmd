@@ -6,7 +6,6 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DbgEng;
@@ -74,7 +73,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             machineType = _dataReader.Architecture switch
             {
-                Architecture.Amd64 => IMAGE_FILE_MACHINE.AMD64,
+                Architecture.X64 => IMAGE_FILE_MACHINE.AMD64,
                 Architecture.X86 => IMAGE_FILE_MACHINE.I386,
                 Architecture.Arm => IMAGE_FILE_MACHINE.THUMB2,
                 Architecture.Arm64 => IMAGE_FILE_MACHINE.ARM64,
@@ -254,32 +253,23 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (peimage is null)
                 return HResult.E_FAIL;
 
-            lock (peimage)
+            int rva = (int)mdRva;
+            int size = (int)bufferSize;
+            if (rva == 0)
             {
-                CorHeader? corHeader = peimage.CorHeader;
-                if (corHeader is null)
+                ImageDataDirectory metadata = peimage.MetadataDirectory;
+                if (metadata.VirtualAddress == 0)
                     return HResult.E_FAIL;
 
-                DebugOnly.Assert(peimage.IsValid);
+                rva = metadata.VirtualAddress;
+                size = Math.Min(size, (int)metadata.Size);
+            }
 
-                int rva = (int)mdRva;
-                int size = (int)bufferSize;
-                if (rva == 0)
-                {
-                    DirectoryEntry metadata = corHeader.MetadataDirectory;
-                    if (metadata.RelativeVirtualAddress == 0)
-                        return HResult.E_FAIL;
-
-                    rva = metadata.RelativeVirtualAddress;
-                    size = Math.Min(size, metadata.Size);
-                }
-
-                checked
-                {
-                    int read = peimage.Read(rva, new Span<byte>(buffer.ToPointer(), size));
-                    if (pDataSize != null)
-                        *pDataSize = read;
-                }
+            checked
+            {
+                int read = peimage.Read(rva, new Span<byte>(buffer.ToPointer(), size));
+                if (pDataSize != null)
+                    *pDataSize = read;
             }
 
             return HResult.S_OK;
