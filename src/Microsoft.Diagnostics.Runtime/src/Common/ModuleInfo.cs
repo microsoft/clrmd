@@ -4,8 +4,6 @@
 
 using System;
 using System.Collections.Immutable;
-using System.Threading;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -37,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The version of this module.
         /// </summary>
-        public virtual System.Version Version => new System.Version();
+        public virtual Version Version => new Version();
 
         /// <summary>
         /// Gets the Linux BuildId or Mach-O UUID of this module.
