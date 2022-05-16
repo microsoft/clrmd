@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 if (_module is not null)
                     foreach (Segment64LoadCommand segment in _module.EnumerateSegments())
                         if (((segment.InitProt & Segment64LoadCommand.VmProtWrite) != 0) && !segment.Name.Equals("__LINKEDIT"))
-                            if (_module.Parent.Parent.GetVersionInfo(_module.LoadBias + segment.VMAddr, segment.VMSize, out Version? version))
+                            if (_module.DataReader.GetVersionInfo(_module.LoadBias + segment.VMAddr, segment.VMSize, out Version? version))
                                 _version = version;
 
                 return _version ?? new Version();

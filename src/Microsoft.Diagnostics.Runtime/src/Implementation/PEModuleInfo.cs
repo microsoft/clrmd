@@ -144,11 +144,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IResourceNode? ResourceRoot => GetPEImage()?.Resources;
 
-        public PEModuleInfo(IDataReader dataReader!!, ulong imageBase, string fileName!!, bool isVirtual)
+        public PEModuleInfo(IDataReader dataReader!!, ulong imageBase, string fileName!!, bool isVirtualHint)
             : base(imageBase, fileName)
         {
             _dataReader = dataReader;
-            _isVirtual = isVirtual;
+            _isVirtual = isVirtualHint;
         }
 
         public PEModuleInfo(IDataReader dataReader, ulong imageBase, string fileName, bool isVirtual, int timestamp, int filesize, Version? version = null)

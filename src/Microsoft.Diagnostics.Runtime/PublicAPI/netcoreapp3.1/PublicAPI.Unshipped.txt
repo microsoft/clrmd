@@ -31,6 +31,7 @@ Microsoft.Diagnostics.Runtime.ModuleInfo.ModuleInfo(ulong imageBase, string! fil
 override Microsoft.Diagnostics.Runtime.DebugLibraryInfo.Equals(object? obj) -> bool
 override Microsoft.Diagnostics.Runtime.DebugLibraryInfo.GetHashCode() -> int
 override Microsoft.Diagnostics.Runtime.DebugLibraryInfo.ToString() -> string!
+static Microsoft.Diagnostics.Runtime.ModuleInfo.TryCreate(Microsoft.Diagnostics.Runtime.IDataReader! reader, ulong baseAddress, string! name) -> Microsoft.Diagnostics.Runtime.ModuleInfo?
 virtual Microsoft.Diagnostics.Runtime.ModuleInfo.BuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
 virtual Microsoft.Diagnostics.Runtime.ModuleInfo.GetExportSymbolAddress(string! symbol) -> ulong
 virtual Microsoft.Diagnostics.Runtime.ModuleInfo.IndexFileSize.get -> int
