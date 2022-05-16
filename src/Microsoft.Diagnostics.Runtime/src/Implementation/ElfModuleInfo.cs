@@ -32,7 +32,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ulong GetExportSymbolAddress(string symbol)
         {
-            return base.GetExportSymbolAddress(symbol);
+            if (_elf is null || !_elf.TryGetExportSymbol(symbol, out var address))
+                return 0;
+
+            return address;
         }
 
         /// <inheritdoc/>
