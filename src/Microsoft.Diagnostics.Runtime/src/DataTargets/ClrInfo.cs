@@ -188,14 +188,18 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             // Windows CLRDEBUGINFO resource
-            CLR_DEBUG_RESOURCE resource = module.ReadResource<CLR_DEBUG_RESOURCE>("RCData", "CLRDEBUGINFO");
-            if (resource.dwVersion == 0)
+            IResourceNode? resourceNode = module.ResourceRoot?.GetChild("RCData")?.GetChild("CLRDEBUGINFO");
+            if (resourceNode is not null)
             {
-                if (dacTargetPlatform is not null && resource.dwDacTimeStamp != 0 && resource.dwDacSizeOfImage != 0)
-                    artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, SymbolProperties.Self, resource.dwDacSizeOfImage, resource.dwDacTimeStamp));
+                CLR_DEBUG_RESOURCE resource = resourceNode.Read<CLR_DEBUG_RESOURCE>(0);
+                if (resource.dwVersion == 0)
+                {
+                    if (dacTargetPlatform is not null && resource.dwDacTimeStamp != 0 && resource.dwDacSizeOfImage != 0)
+                        artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, SymbolProperties.Self, resource.dwDacSizeOfImage, resource.dwDacTimeStamp));
 
-                if (dbiTargetPlatform is not null && resource.dwDbiTimeStamp != 0 && resource.dwDbiSizeOfImage != 0)
-                    artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, SymbolProperties.Self, resource.dwDbiSizeOfImage, resource.dwDbiTimeStamp));
+                    if (dbiTargetPlatform is not null && resource.dwDbiTimeStamp != 0 && resource.dwDbiSizeOfImage != 0)
+                        artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, SymbolProperties.Self, resource.dwDbiSizeOfImage, resource.dwDbiTimeStamp));
+                }
             }
 
             // Do NOT take a dependency on the order of enumerated libraries.  I reserve the right to change this at any time.

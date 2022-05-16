@@ -142,28 +142,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return 0;
         }
 
-        internal override T ReadResource<T>(params string[] path)
-        {
-            PEImage? img = GetPEImage();
-            if (img is not null)
-            {
-                ResourceEntry? node = img.Resources;
-                
-                foreach (string part in path)
-                {
-                    if (node is null)
-                        break;
-
-                    node = node[part];
-                }
-
-                node = node?.Children.FirstOrDefault();
-                if (node is not null)
-                    return node.GetData<T>();
-            }
-
-            return default;
-        }
+        public override IResourceNode? ResourceRoot => GetPEImage()?.Resources;
 
         public PEModuleInfo(IDataReader dataReader!!, ulong imageBase, string fileName!!, bool isVirtual)
             : base(imageBase, fileName)

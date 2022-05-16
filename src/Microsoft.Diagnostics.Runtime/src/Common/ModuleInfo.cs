@@ -54,9 +54,12 @@ namespace Microsoft.Diagnostics.Runtime
 
         public virtual ulong GetSymbolAddress(string symbol) => 0;
 
-        public override string ToString() => FileName;
+        /// <summary>
+        /// The root of the resource tree for this module if one exists, null otherwise.
+        /// </summary>
+        public virtual IResourceNode? ResourceRoot => null;
 
-        internal virtual T ReadResource<T>(params string[] path) where T : unmanaged => default;
+        public override string ToString() => FileName;
 
         public ModuleInfo(ulong imageBase, string fileName!!)
         {
