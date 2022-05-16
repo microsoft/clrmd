@@ -173,6 +173,9 @@ namespace Microsoft.Diagnostics.Runtime
                     // then we only generate one artifact (the target one).
                     if (dacTargetPlatform is not null)
                         artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp));
+
+                    if (dbiTargetPlatform is not null)
+                        artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp));
                 }
 
                 if (!BuildId.IsDefaultOrEmpty)
@@ -184,6 +187,9 @@ namespace Microsoft.Diagnostics.Runtime
                     // currentArch in this scenario.  We do not build cross-os, cross-architecture debug libraries.
                     if (currentPlatform == OSPlatform.Windows && dacCurrentPlatform is not null)
                         artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, currentPlatform, SymbolProperties.Coreclr, BuildId));
+
+                    if (dbiTargetPlatform is not null)
+                        artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, BuildId));
                 }
             }
 
