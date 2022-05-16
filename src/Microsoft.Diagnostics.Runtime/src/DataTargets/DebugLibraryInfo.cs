@@ -31,6 +31,11 @@ namespace Microsoft.Diagnostics.Runtime
         public Architecture TargetArchitecture { get; }
 
         /// <summary>
+        /// Returns what properties that this dac library is archived under.
+        /// </summary>
+        public SymbolProperties ArchivedUnder { get; }
+
+        /// <summary>
         /// Gets the specific file size of the image used to index it on the symbol server.
         /// </summary>
         public int IndexFileSize { get; }
@@ -96,20 +101,22 @@ namespace Microsoft.Diagnostics.Runtime
             return $"{FileName} {string.Join("", IndexBuildId.Select(x => x.ToString("x")))}";
         }
 
-        internal DebugLibraryInfo(DebugLibraryKind kind, string fileName, Architecture targetArch, OSPlatform platform, ImmutableArray<byte> clrBuildId)
+        internal DebugLibraryInfo(DebugLibraryKind kind, string fileName, Architecture targetArch, OSPlatform platform, SymbolProperties archivedUnder, ImmutableArray<byte> clrBuildId)
         {
             Kind = kind;
             FileName = fileName;
             TargetArchitecture = targetArch;
+            ArchivedUnder = archivedUnder;
             IndexBuildId = clrBuildId;
             Platform = platform;
         }
 
-        internal DebugLibraryInfo(DebugLibraryKind kind, string fileName, Architecture targetArch, int filesize, int timestamp)
+        internal DebugLibraryInfo(DebugLibraryKind kind, string fileName, Architecture targetArch, SymbolProperties archivedUnder, int filesize, int timestamp)
         {
             Kind = kind;
             FileName = fileName;
             TargetArchitecture = targetArch;
+            ArchivedUnder = archivedUnder;
             IndexFileSize = filesize;
             IndexTimeStamp = timestamp;
             IndexBuildId = ImmutableArray<byte>.Empty;

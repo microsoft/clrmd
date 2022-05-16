@@ -66,14 +66,14 @@ namespace Microsoft.Diagnostics.Runtime
                         {
                             var dacProp = info.DacPEProperties;
                             if (dacProp.TimeStamp != 0 && dacProp.FileSize != 0)
-                                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, dacProp.FileSize, dacProp.TimeStamp));
+                                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, SymbolProperties.Self, dacProp.FileSize, dacProp.TimeStamp));
                         }
 
                         if (dbiTargetPlatform is not null)
                         {
                             var dbiProp = info.DbiPEProperties;
                             if (dbiProp.TimeStamp != 0 && dbiProp.FileSize != 0)
-                                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, dbiProp.FileSize, dbiProp.TimeStamp));
+                                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, SymbolProperties.Self, dbiProp.FileSize, dbiProp.TimeStamp));
                         }
                     }
                     else
@@ -84,14 +84,14 @@ namespace Microsoft.Diagnostics.Runtime
                         {
                             var dacBuild = info.DacBuildId;
                             if (!dacBuild.IsDefaultOrEmpty)
-                                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, targetPlatform, dacBuild));
+                                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, targetPlatform, SymbolProperties.Self, dacBuild));
                         }
 
                         if (dbiTargetPlatform is not null)
                         {
                             var dbiBuild = info.DbiBuildId;
                             if (!dbiBuild.IsDefaultOrEmpty)
-                                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, targetPlatform, dbiBuild));
+                                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, targetPlatform, SymbolProperties.Self, dbiBuild));
                         }
                     }
                 }
@@ -111,7 +111,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             // Long-name dac
             if (dt.DataReader.TargetPlatform == OSPlatform.Windows && Version.Major != 0)
-                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, GetWindowsLongNameDac(flavor, currentArch, dt.DataReader.Architecture, Version), currentArch, IndexFileSize, IndexTimeStamp));
+                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, GetWindowsLongNameDac(flavor, currentArch, dt.DataReader.Architecture, Version), currentArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp));
 
 
             // Short-name dac under CLR's properties
@@ -119,7 +119,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 // We are debugging the process on the same operating system.
                 bool foundLocalDac = false;
-                if (dacTargetPlatform is not null)
+                if (dacCurrentPlatform is not null)
                 {
                     // Check if the user has the same CLR installed locally, and if so 
                     string? directory = Path.GetDirectoryName(module.FileName);
@@ -133,7 +133,7 @@ namespace Microsoft.Diagnostics.Runtime
                                 using PEImage peimage = new PEImage(File.OpenRead(potentialClr));
                                 if (peimage.IndexFileSize == IndexFileSize && peimage.IndexTimeStamp == IndexTimeStamp)
                                 {
-                                    string dacFound = Path.Combine(directory, dacTargetPlatform);
+                                    string dacFound = Path.Combine(directory, dacCurrentPlatform);
                                     if (File.Exists(dacFound))
                                     {
                                         dacCurrentPlatform = dacFound;
@@ -150,17 +150,17 @@ namespace Microsoft.Diagnostics.Runtime
                     if (IndexFileSize != 0 && IndexTimeStamp != 0)
                     {
                         if (foundLocalDac)
-                            artifacts.Insert(0, new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, IndexFileSize, IndexTimeStamp));
+                            artifacts.Insert(0, new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp));
                         else
-                            artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, IndexFileSize, IndexTimeStamp));
+                            artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp));
                     }
 
                     if (!BuildId.IsDefaultOrEmpty)
                     {
                         if (foundLocalDac)
-                            artifacts.Insert(0, new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, targetPlatform, BuildId));
+                            artifacts.Insert(0, new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, BuildId));
                         else
-                            artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, targetPlatform, BuildId));
+                            artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, BuildId));
                     }
                 }
             }
@@ -172,18 +172,18 @@ namespace Microsoft.Diagnostics.Runtime
                     // We currently only support cross-os debugging on windows targeting linux or os x runtimes.  So if we have windows properties,
                     // then we only generate one artifact (the target one).
                     if (dacTargetPlatform is not null)
-                        artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, IndexFileSize, IndexTimeStamp));
+                        artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp));
                 }
 
                 if (!BuildId.IsDefaultOrEmpty)
                 {
                     if (dacTargetPlatform is not null)
-                        artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, targetPlatform, BuildId));
+                        artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, BuildId));
 
                     // If we are running from Windows, we can target Linux and OS X dumps.  Note that we still maintain targetArch and not
                     // currentArch in this scenario.  We do not build cross-os, cross-architecture debug libraries.
                     if (currentPlatform == OSPlatform.Windows && dacCurrentPlatform is not null)
-                        artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, currentPlatform, BuildId));
+                        artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, currentPlatform, SymbolProperties.Coreclr, BuildId));
                 }
             }
 
@@ -192,13 +192,19 @@ namespace Microsoft.Diagnostics.Runtime
             if (resource.dwVersion == 0)
             {
                 if (dacTargetPlatform is not null && resource.dwDacTimeStamp != 0 && resource.dwDacSizeOfImage != 0)
-                    artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, resource.dwDacSizeOfImage, resource.dwDacTimeStamp));
+                    artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, SymbolProperties.Self, resource.dwDacSizeOfImage, resource.dwDacTimeStamp));
 
                 if (dbiTargetPlatform is not null && resource.dwDbiTimeStamp != 0 && resource.dwDbiSizeOfImage != 0)
-                    artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, resource.dwDbiSizeOfImage, resource.dwDbiTimeStamp));
+                    artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, SymbolProperties.Self, resource.dwDbiSizeOfImage, resource.dwDbiTimeStamp));
             }
 
-            DebuggingLibraries = EnumerateUnique(artifacts).ToImmutableArray();
+            // Do NOT take a dependency on the order of enumerated libraries.  I reserve the right to change this at any time.
+            var ordered = from artifact in EnumerateUnique(artifacts)
+                          orderby Path.GetFileName(artifact.FileName) == artifact.FileName, // if we have a full local path, put it first
+                                  artifact.Kind, artifact.ArchivedUnder
+                          select artifact;
+
+            DebuggingLibraries = ordered.ToImmutableArray();
         }
 
         private IEnumerable<DebugLibraryInfo> EnumerateUnique(List<DebugLibraryInfo> artifacts)

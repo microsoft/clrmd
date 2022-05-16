@@ -6,6 +6,7 @@ Microsoft.Diagnostics.Runtime.ClrInfo.IndexTimeStamp.get -> int
 Microsoft.Diagnostics.Runtime.ClrInfo.IsSingleFile.get -> bool
 Microsoft.Diagnostics.Runtime.ClrInfo.Version.get -> System.Version!
 Microsoft.Diagnostics.Runtime.DebugLibraryInfo
+Microsoft.Diagnostics.Runtime.DebugLibraryInfo.ArchivedUnder.get -> Microsoft.Diagnostics.Runtime.SymbolProperties
 Microsoft.Diagnostics.Runtime.DebugLibraryInfo.FileName.get -> string!
 Microsoft.Diagnostics.Runtime.DebugLibraryInfo.IndexBuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
 Microsoft.Diagnostics.Runtime.DebugLibraryInfo.IndexFileSize.get -> int
