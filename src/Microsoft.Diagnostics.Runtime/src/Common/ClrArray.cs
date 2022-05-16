@@ -181,19 +181,6 @@ namespace Microsoft.Diagnostics.Runtime
             return new ClrValueType(address, Type.ComponentType, interior: true);
         }
 
-        [Obsolete("Use GetStructValue(int) instead.")]
-        public ClrValueType GetStructValue(int index, bool interior)
-        {
-            if (Type.ComponentType is null)
-                return default;
-
-            if (Type.ComponentType.IsObjectReference)
-                throw new InvalidOperationException($"{Type} does not contain value type instances.");
-
-            ulong address = GetElementAddress(Type.ComponentSize, index);
-            return new ClrValueType(address, Type.ComponentType, interior);
-        }
-
         public ClrValueType GetStructValue(params int[] indices)
         {
             if (Type.ComponentType is null)
