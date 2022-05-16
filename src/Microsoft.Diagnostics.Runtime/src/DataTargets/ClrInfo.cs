@@ -213,7 +213,16 @@ namespace Microsoft.Diagnostics.Runtime
         private static string GetWindowsLongNameDac(ClrFlavor flavor, Architecture currentArchitecture, Architecture targetArchitecture, Version version)
         {
             var dacNameBase = flavor == ClrFlavor.Core ? c_coreDacFileNameBase : c_desktopDacFileNameBase;
-            return $"{dacNameBase}_{currentArchitecture}_{targetArchitecture}_{version.Major}.{version.Minor}.{version.Build}.{version.Revision:D2}.dll".ToLower();
+            return $"{dacNameBase}_{ArchitectureToName(currentArchitecture)}_{ArchitectureToName(targetArchitecture)}_{version.Major}.{version.Minor}.{version.Build}.{version.Revision:D2}.dll".ToLower();
+        }
+
+        private static string ArchitectureToName(Architecture arch)
+        {
+            return arch switch
+            {
+                Architecture.X64 => "amd64",
+                _ => arch.ToString()
+            };
         }
 
         internal static ClrInfo? TryCreate(DataTarget dataTarget!!, ModuleInfo module!!)
