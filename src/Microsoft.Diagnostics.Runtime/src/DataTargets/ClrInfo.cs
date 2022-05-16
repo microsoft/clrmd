@@ -194,7 +194,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             // Windows CLRDEBUGINFO resource
-            IResourceNode? resourceNode = module.ResourceRoot?.GetChild("RCData")?.GetChild("CLRDEBUGINFO");
+            IResourceNode? resourceNode = module.ResourceRoot?.GetChild("RCData")?.GetChild("CLRDEBUGINFO")?.Children.FirstOrDefault();
             if (resourceNode is not null)
             {
                 CLR_DEBUG_RESOURCE resource = resourceNode.Read<CLR_DEBUG_RESOURCE>(0);
