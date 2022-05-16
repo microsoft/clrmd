@@ -87,7 +87,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (file is not null)
             {
-                long size = image.Size > long.MaxValue ? long.MaxValue : unchecked((int)image.Size);
+                long size = image.Size > long.MaxValue ? long.MaxValue : unchecked((long)image.Size);
                 return new ElfModuleInfo(this, file, image.BaseAddress, size, path);
             }
 
