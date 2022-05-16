@@ -9,7 +9,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly IDataReader _reader;
         private readonly ElfFile? _elf;
         private object? _buildId;
-        private System.Version? _version;
+        private Version? _version;
+
+        public override long Size { get; }
 
         /// <inheritdoc/>
         public override ImmutableArray<byte> BuildId
@@ -49,11 +51,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public ElfModuleInfo(IDataReader reader, ElfFile? elf, ulong imageBase, string fileName!!)
+        public ElfModuleInfo(IDataReader reader, ElfFile? elf, ulong imageBase, long size, string fileName!!)
             : base(imageBase, fileName)
         {
             _reader = reader;
             _elf = elf;
+            Size = size;
         }
     }
 }

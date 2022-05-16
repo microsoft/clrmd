@@ -112,8 +112,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (reader.Read<ushort>(baseAddress) == 0x5a4d)
                 return new PEModuleInfo(reader, baseAddress, filePath, isVirtual);
 
-            // TODO:  Make an ElfFile out of this address
-            return new ElfModuleInfo(reader, GetElfFile(baseAddress), baseAddress, filePath);
+            long size = 0;
+            FileInfo fileInfo = new(filePath);
+            if (fileInfo.Exists)
+                size = fileInfo.Length;
+
+            return new ElfModuleInfo(reader, GetElfFile(baseAddress), baseAddress, size, filePath);
         }
 
         private ElfFile? GetElfFile(ulong baseAddress)

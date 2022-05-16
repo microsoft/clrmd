@@ -38,5 +38,6 @@ virtual Microsoft.Diagnostics.Runtime.ModuleInfo.IndexTimeStamp.get -> int
 virtual Microsoft.Diagnostics.Runtime.ModuleInfo.IsManaged.get -> bool
 virtual Microsoft.Diagnostics.Runtime.ModuleInfo.Pdb.get -> Microsoft.Diagnostics.Runtime.PdbInfo?
 virtual Microsoft.Diagnostics.Runtime.ModuleInfo.ResourceRoot.get -> Microsoft.Diagnostics.Runtime.IResourceNode?
+virtual Microsoft.Diagnostics.Runtime.ModuleInfo.Size.get -> long
 virtual Microsoft.Diagnostics.Runtime.ModuleInfo.Version.get -> System.Version!
 virtual Microsoft.Diagnostics.Runtime.PlatformFunctions.IsEqualFileVersion(string! file, System.Version! version) -> bool
