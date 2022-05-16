@@ -30,9 +30,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override ulong GetSymbolAddress(string symbol)
+        public override ulong GetExportSymbolAddress(string symbol)
         {
-            return base.GetSymbolAddress(symbol);
+            return base.GetExportSymbolAddress(symbol);
         }
 
         /// <inheritdoc/>

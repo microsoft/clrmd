@@ -32,7 +32,7 @@ override Microsoft.Diagnostics.Runtime.DebugLibraryInfo.Equals(object? obj) -> b
 override Microsoft.Diagnostics.Runtime.DebugLibraryInfo.GetHashCode() -> int
 override Microsoft.Diagnostics.Runtime.DebugLibraryInfo.ToString() -> string!
 virtual Microsoft.Diagnostics.Runtime.ModuleInfo.BuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
-virtual Microsoft.Diagnostics.Runtime.ModuleInfo.GetSymbolAddress(string! symbol) -> ulong
+virtual Microsoft.Diagnostics.Runtime.ModuleInfo.GetExportSymbolAddress(string! symbol) -> ulong
 virtual Microsoft.Diagnostics.Runtime.ModuleInfo.IndexFileSize.get -> int
 virtual Microsoft.Diagnostics.Runtime.ModuleInfo.IndexTimeStamp.get -> int
 virtual Microsoft.Diagnostics.Runtime.ModuleInfo.IsManaged.get -> bool

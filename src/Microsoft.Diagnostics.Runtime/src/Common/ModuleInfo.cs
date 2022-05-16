@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public virtual bool IsManaged => false;
 
-        public virtual ulong GetSymbolAddress(string symbol) => 0;
+        public virtual ulong GetExportSymbolAddress(string symbol) => 0;
 
         /// <summary>
         /// The root of the resource tree for this module if one exists, null otherwise.

@@ -133,7 +133,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override ulong GetSymbolAddress(string symbol)
+        public override ulong GetExportSymbolAddress(string symbol)
         {
             PEImage? img = GetPEImage();
             if (img is not null && img.TryGetExportSymbol(symbol, out ulong offset) && offset != 0)

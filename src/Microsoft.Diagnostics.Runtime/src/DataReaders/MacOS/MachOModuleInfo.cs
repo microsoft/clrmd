@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         }
 
 
-        public override ulong GetSymbolAddress(string symbol)
+        public override ulong GetExportSymbolAddress(string symbol)
         {
             if (_module is null)
                 return 0;

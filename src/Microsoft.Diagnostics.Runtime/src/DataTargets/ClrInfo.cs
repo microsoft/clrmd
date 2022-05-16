@@ -242,7 +242,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || Path.GetExtension(module.FileName).Equals(".exe", StringComparison.OrdinalIgnoreCase))
             {
-                ulong singleFileRuntimeInfo = module.GetSymbolAddress(ClrRuntimeInfo.SymbolValue);
+                ulong singleFileRuntimeInfo = module.GetExportSymbolAddress(ClrRuntimeInfo.SymbolValue);
                 if (singleFileRuntimeInfo != 0)
                     return new ClrInfo(dataTarget, ClrFlavor.Core, module, singleFileRuntimeInfo);
             }
