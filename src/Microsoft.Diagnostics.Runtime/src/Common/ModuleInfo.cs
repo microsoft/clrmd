@@ -73,7 +73,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The size of this image (may be different from <see cref="IndexFileSize"/>).
         /// </summary>
-        public virtual long Size => IndexFileSize;
+        public virtual long ImageSize => IndexFileSize;
 
         /// <summary>
         /// Gets the specific file size of the image used to index it on the symbol server.

@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         private Version? _version;
         private readonly ulong _imageSize;
 
-        public override long Size => _imageSize > long.MaxValue ? long.MaxValue : unchecked((long)_imageSize);
+        public override long ImageSize => _imageSize > long.MaxValue ? long.MaxValue : unchecked((long)_imageSize);
 
         public override Version Version
         {

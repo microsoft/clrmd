@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private object? _buildId;
         private Version? _version;
 
-        public override long Size { get; }
+        public override long ImageSize { get; }
 
         /// <inheritdoc/>
         public override ImmutableArray<byte> BuildId
@@ -59,7 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             _reader = reader;
             _elf = elf;
-            Size = size;
+            ImageSize = size;
         }
     }
 }
