@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         private Version? _version;
         private readonly ulong _imageSize;
 
-        public override int IndexFileSize => unchecked((int)_imageSize);
+        public override long ImageSize => _imageSize > long.MaxValue ? long.MaxValue : unchecked((long)_imageSize);
 
         public override Version Version
         {
@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 if (_module is not null)
                     foreach (Segment64LoadCommand segment in _module.EnumerateSegments())
                         if (((segment.InitProt & Segment64LoadCommand.VmProtWrite) != 0) && !segment.Name.Equals("__LINKEDIT"))
-                            if (_module.Parent.Parent.GetVersionInfo(_module.LoadBias + segment.VMAddr, segment.VMSize, out Version? version))
+                            if (_module.DataReader.GetVersionInfo(_module.LoadBias + segment.VMAddr, segment.VMSize, out Version? version))
                                 _version = version;
 
                 return _version ?? new Version();
@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         }
 
 
-        public override ulong GetSymbolAddress(string symbol)
+        public override ulong GetExportSymbolAddress(string symbol)
         {
             if (_module is null)
                 return 0;

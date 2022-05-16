@@ -2,21 +2,22 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
+using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
     internal sealed unsafe class MachOModule
     {
-        public MachOCoreDump Parent { get; }
+        public MachOCoreDump? Parent { get; }
 
         public ulong BaseAddress { get; }
         public ulong ImageSize { get; }
         public string FileName { get; }
         public ulong LoadBias { get; }
         public ImmutableArray<byte> BuildId { get; }
+
+        public IDataReader DataReader { get; }
 
         private readonly MachHeader64 _header;
         private readonly SymtabLoadCommand _symtab;
@@ -25,17 +26,23 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         private readonly ulong _stringTableAddress;
         private volatile NList64[]? _symTable;
 
-        internal MachOModule(MachOCoreDump parent, ulong address, string path)
-            :this(parent, parent.ReadMemory<MachHeader64>(address), address, path)
+        public MachOModule(IDataReader reader, ulong address, string path)
+            : this(null, reader, reader.Read<MachHeader64>(address), address, path)
         {
         }
 
-        internal MachOModule(MachOCoreDump parent, in MachHeader64 header, ulong address, string path)
+        public MachOModule(MachOCoreDump parent, ulong address, string path)
+            :this(parent, parent.Parent, parent.ReadMemory<MachHeader64>(address), address, path)
+        {
+        }
+
+        private MachOModule(MachOCoreDump? parent, IDataReader reader, in MachHeader64 header, ulong address, string path)
         {
             BaseAddress = address;
             FileName = path;
             Parent = parent;
             _header = header;
+            DataReader = reader;
 
             if (header.Magic != MachHeader64.Magic64)
                 throw new InvalidDataException($"Module at {address:x} does not contain the expected Mach-O header.");
@@ -49,12 +56,12 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             for (int i = 0; i < _header.NumberCommands; i++)
             {
                 ulong cmdAddress = BaseAddress + offset;
-                LoadCommandHeader cmd = Parent.ReadMemory<LoadCommandHeader>(cmdAddress);
+                LoadCommandHeader cmd = DataReader.Read<LoadCommandHeader>(cmdAddress);
 
                 switch (cmd.Kind)
                 {
                     case LoadCommandType.Segment64:
-                        Segment64LoadCommand seg64LoadCmd = Parent.ReadMemory<Segment64LoadCommand>(cmdAddress + (uint)sizeof(LoadCommandHeader));
+                        Segment64LoadCommand seg64LoadCmd = DataReader.Read<Segment64LoadCommand>(cmdAddress + (uint)sizeof(LoadCommandHeader));
                         segments.Add(new MachOSegment(seg64LoadCmd));
                         if (seg64LoadCmd.FileOffset == 0 && seg64LoadCmd.FileSize > 0)
                         {
@@ -63,15 +70,15 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                         break;
 
                     case LoadCommandType.SymTab:
-                        _symtab = Parent.ReadMemory<SymtabLoadCommand>(cmdAddress);
+                        _symtab = DataReader.Read<SymtabLoadCommand>(cmdAddress);
                         break;
 
                     case LoadCommandType.DysymTab:
-                        _dysymtab = Parent.ReadMemory<DysymtabLoadCommand>(cmdAddress);
+                        _dysymtab = DataReader.Read<DysymtabLoadCommand>(cmdAddress);
                         break;
 
                     case LoadCommandType.Uuid:
-                        var uuid = Parent.ReadMemory<UuidLoadCommand>(cmdAddress);
+                        var uuid = DataReader.Read<UuidLoadCommand>(cmdAddress);
                         if (uuid.Header.Kind == LoadCommandType.Uuid)
                         {
                             BuildId = uuid.BuildId.ToImmutableArray();
@@ -145,7 +152,21 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         private string GetSymbolName(NList64 tableEntry, int max)
         {
             ulong nameOffset = _stringTableAddress + tableEntry.n_strx;
-            return Parent.ReadAscii(nameOffset, max);
+            return ReadAscii(nameOffset, max);
+        }
+
+        internal string ReadAscii(ulong address, int max)
+        {
+            Span<byte> buffer = new byte[max];
+            int count = DataReader.Read(address, buffer);
+            if (count == 0)
+                return "";
+
+            buffer = buffer.Slice(0, count);
+            if (buffer[buffer.Length - 1] == 0)
+                buffer = buffer.Slice(0, buffer.Length - 1);
+            string result = Encoding.ASCII.GetString(buffer);
+            return result;
         }
 
         private NList64[]? ReadSymbolTable()
@@ -161,7 +182,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             int count;
             fixed (NList64* ptr = symTable)
-                count = Parent.ReadMemory(symbolTableAddress, new Span<byte>(ptr, symTable.Length * sizeof(NList64))) / sizeof(NList64);
+                count = DataReader.Read(symbolTableAddress, new Span<byte>(ptr, symTable.Length * sizeof(NList64))) / sizeof(NList64);
 
             _symTable = symTable;
             return symTable;
@@ -182,10 +203,10 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             for (int i = 0; i < _header.NumberCommands; i++)
             {
                 ulong cmdAddress = BaseAddress + offset;
-                LoadCommandHeader cmd = Parent.ReadMemory<LoadCommandHeader>(cmdAddress);
+                LoadCommandHeader cmd = DataReader.Read<LoadCommandHeader>(cmdAddress);
 
                 if (cmd.Kind == LoadCommandType.Segment64)
-                    yield return Parent.ReadMemory<Segment64LoadCommand>(cmdAddress + LoadCommandHeader.HeaderSize);
+                    yield return DataReader.Read<Segment64LoadCommand>(cmdAddress + LoadCommandHeader.HeaderSize);
 
                 offset += cmd.Size;
             }
