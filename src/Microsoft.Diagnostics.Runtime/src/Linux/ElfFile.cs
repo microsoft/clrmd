@@ -178,6 +178,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _leaveOpen = leaveOpen;
         }
 
+        public ElfFile(IDataReader reader, ulong position)
+            : this(new Reader(new MemoryVirtualAddressSpace(reader)), position)
+        {
+        }
+
         internal ElfFile(Reader reader, ulong position = 0, bool isVirtual = false)
         {
             Reader = reader;

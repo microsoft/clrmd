@@ -224,20 +224,6 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             return read;
         }
 
-        internal string ReadAscii(ulong address, int max)
-        {
-            Span<byte> buffer = new byte[max];
-            int count = ReadMemory(address, buffer);
-            if (count == 0)
-                return "";
-
-            buffer = buffer.Slice(0, count);
-            if (buffer[buffer.Length - 1] == 0)
-                buffer = buffer.Slice(0, buffer.Length - 1);
-            string result = Encoding.ASCII.GetString(buffer);
-            return result;
-        }
-
         internal string ReadAscii(ulong address)
         {
             StringBuilder sb = new StringBuilder();
