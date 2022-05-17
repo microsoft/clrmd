@@ -87,17 +87,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (file is not null)
             {
-                int filesize = 0;
-
-                // It's true that we are setting "IndexFileSize" to be the raw size on linux for Linux modules,
-                // but this unblocks some SOS scenarios.
-                if (filesize == 0)
-                {
-                    filesize = unchecked((int)image.Size);
-                }
-
-
-                return new ElfModuleInfo(this, file, image.BaseAddress, path);
+                long size = image.Size > long.MaxValue ? long.MaxValue : unchecked((long)image.Size);
+                return new ElfModuleInfo(this, file, image.BaseAddress, size, path);
             }
 
             return new PEModuleInfo(this, image.BaseAddress, path, false);

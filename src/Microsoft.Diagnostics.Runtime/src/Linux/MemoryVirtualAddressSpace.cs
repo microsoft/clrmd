@@ -8,9 +8,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal class MemoryVirtualAddressSpace : IAddressSpace
     {
-        private readonly LinuxLiveDataReader _dataReader;
+        private readonly IDataReader _dataReader;
 
-        public MemoryVirtualAddressSpace(LinuxLiveDataReader dataReader)
+        public MemoryVirtualAddressSpace(IDataReader dataReader)
         {
             _dataReader = dataReader;
         }
