@@ -179,7 +179,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         public ElfFile(IDataReader reader, ulong position)
-            : this(new Reader(new MemoryVirtualAddressSpace(reader)), position)
+            : this(new Reader(new MemoryVirtualAddressSpace(reader)), position, isVirtual: true)
         {
         }
 

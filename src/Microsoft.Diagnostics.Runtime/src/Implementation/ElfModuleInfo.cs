@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (_elf is null || !_elf.TryGetExportSymbol(symbol, out var address))
                 return 0;
 
-            return address;
+            return ImageBase + address;
         }
 
         /// <inheritdoc/>

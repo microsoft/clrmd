@@ -122,10 +122,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private ElfFile? GetElfFile(ulong baseAddress)
         {
-            MemoryVirtualAddressSpace memoryAddressSpace = new MemoryVirtualAddressSpace(this);
             try
             {
-                return new ElfFile(new Reader(memoryAddressSpace), baseAddress);
+                return new ElfFile(this, baseAddress);
             }
             catch (InvalidDataException)
             {
