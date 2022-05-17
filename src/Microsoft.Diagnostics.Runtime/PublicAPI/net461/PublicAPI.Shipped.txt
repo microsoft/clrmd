@@ -177,7 +177,6 @@ Microsoft.Diagnostics.Runtime.ClrArray.GetLowerBound(int dimension) -> int
 Microsoft.Diagnostics.Runtime.ClrArray.GetObjectValue(int index) -> Microsoft.Diagnostics.Runtime.ClrObject
 Microsoft.Diagnostics.Runtime.ClrArray.GetObjectValue(params int[]! indices) -> Microsoft.Diagnostics.Runtime.ClrObject
 Microsoft.Diagnostics.Runtime.ClrArray.GetStructValue(int index) -> Microsoft.Diagnostics.Runtime.ClrValueType
-Microsoft.Diagnostics.Runtime.ClrArray.GetStructValue(int index, bool interior) -> Microsoft.Diagnostics.Runtime.ClrValueType
 Microsoft.Diagnostics.Runtime.ClrArray.GetStructValue(params int[]! indices) -> Microsoft.Diagnostics.Runtime.ClrValueType
 Microsoft.Diagnostics.Runtime.ClrArray.GetUpperBound(int dimension) -> int
 Microsoft.Diagnostics.Runtime.ClrArray.GetValue<T>(int index) -> T
@@ -192,15 +191,6 @@ Microsoft.Diagnostics.Runtime.ClrDiagnosticsException.ClrDiagnosticsException(Sy
 Microsoft.Diagnostics.Runtime.ClrDiagnosticsException.ClrDiagnosticsException(string! message) -> void
 Microsoft.Diagnostics.Runtime.ClrDiagnosticsException.ClrDiagnosticsException(string! message, System.Exception! innerException) -> void
 Microsoft.Diagnostics.Runtime.ClrDiagnosticsException.ClrDiagnosticsException(string! message, int hr) -> void
-Microsoft.Diagnostics.Runtime.ClrDiagnosticsExceptionKind
-Microsoft.Diagnostics.Runtime.ClrDiagnosticsExceptionKind.CorruptedFileOrUnknownFormat = 1 -> Microsoft.Diagnostics.Runtime.ClrDiagnosticsExceptionKind
-Microsoft.Diagnostics.Runtime.ClrDiagnosticsExceptionKind.CrashDumpError = 4 -> Microsoft.Diagnostics.Runtime.ClrDiagnosticsExceptionKind
-Microsoft.Diagnostics.Runtime.ClrDiagnosticsExceptionKind.DacError = 6 -> Microsoft.Diagnostics.Runtime.ClrDiagnosticsExceptionKind
-Microsoft.Diagnostics.Runtime.ClrDiagnosticsExceptionKind.DataRequestError = 5 -> Microsoft.Diagnostics.Runtime.ClrDiagnosticsExceptionKind
-Microsoft.Diagnostics.Runtime.ClrDiagnosticsExceptionKind.DebuggerError = 3 -> Microsoft.Diagnostics.Runtime.ClrDiagnosticsExceptionKind
-Microsoft.Diagnostics.Runtime.ClrDiagnosticsExceptionKind.RevisionMismatch = 2 -> Microsoft.Diagnostics.Runtime.ClrDiagnosticsExceptionKind
-Microsoft.Diagnostics.Runtime.ClrDiagnosticsExceptionKind.RuntimeUninitialized = 7 -> Microsoft.Diagnostics.Runtime.ClrDiagnosticsExceptionKind
-Microsoft.Diagnostics.Runtime.ClrDiagnosticsExceptionKind.Unknown = 0 -> Microsoft.Diagnostics.Runtime.ClrDiagnosticsExceptionKind
 Microsoft.Diagnostics.Runtime.ClrElementType
 Microsoft.Diagnostics.Runtime.ClrElementType.Array = 20 -> Microsoft.Diagnostics.Runtime.ClrElementType
 Microsoft.Diagnostics.Runtime.ClrElementType.Boolean = 2 -> Microsoft.Diagnostics.Runtime.ClrElementType
@@ -2148,7 +2138,6 @@ virtual Microsoft.Diagnostics.Runtime.ClrSegment.GetGeneration(ulong obj) -> int
 virtual Microsoft.Diagnostics.Runtime.ClrSegment.Length.get -> ulong
 virtual Microsoft.Diagnostics.Runtime.ClrSegment.Start.get -> ulong
 virtual Microsoft.Diagnostics.Runtime.ClrType.AssemblyLoadContextAddress.get -> ulong
-virtual Microsoft.Diagnostics.Runtime.ClrType.AssemblyLoadContextHandle.get -> ulong
 virtual Microsoft.Diagnostics.Runtime.ClrType.ContainsPointers.get -> bool
 virtual Microsoft.Diagnostics.Runtime.ClrType.EnumerateGenericParameters() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrGenericParameter>!
 virtual Microsoft.Diagnostics.Runtime.ClrType.IsCollectible.get -> bool
