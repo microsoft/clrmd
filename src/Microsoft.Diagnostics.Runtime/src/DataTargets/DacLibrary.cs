@@ -46,6 +46,7 @@ namespace Microsoft.Diagnostics.Runtime
         public SOSDac6? SOSDacInterface6 => InternalDacPrivateInterface.GetSOSDacInterface6();
 
         public SOSDac8? SOSDacInterface8 => InternalDacPrivateInterface.GetSOSDacInterface8();
+        public SOSDac12? SOSDacInterface12 => InternalDacPrivateInterface.GetSOSDacInterface12();
 
         public T? GetInterface<T>(in Guid riid)
             where T : CallableCOMWrapper
