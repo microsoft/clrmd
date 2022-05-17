@@ -261,12 +261,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public FileVersionInfo? GetFileVersionInfo()
         {
-            ResourceEntry? versionNode = Resources.Children.FirstOrDefault(r => r.Name == "Version");
-            if (versionNode is null || versionNode.ChildCount != 1)
+            IResourceNode? versionNode = Resources.GetChild("Version");
+            if (versionNode is null || versionNode.Children.Length != 1)
                 return null;
 
             versionNode = versionNode.Children[0];
-            if (!versionNode.IsLeaf && versionNode.ChildCount == 1)
+            if (versionNode.Children.Length == 1)
                 versionNode = versionNode.Children[0];
 
             int size = versionNode.Size;
@@ -276,7 +276,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             byte[] buffer = ArrayPool<byte>.Shared.Rent(size);
             try
             {
-                int count = versionNode.GetData(buffer);
+                int count = versionNode.Read(buffer, 0);
                 return new FileVersionInfo(buffer.AsSpan(0, count));
             }
             finally

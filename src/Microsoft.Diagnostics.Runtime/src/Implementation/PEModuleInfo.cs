@@ -133,7 +133,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override ulong GetSymbolAddress(string symbol)
+        public override ulong GetExportSymbolAddress(string symbol)
         {
             PEImage? img = GetPEImage();
             if (img is not null && img.TryGetExportSymbol(symbol, out ulong offset) && offset != 0)
@@ -142,34 +142,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return 0;
         }
 
-        internal override T ReadResource<T>(params string[] path)
-        {
-            PEImage? img = GetPEImage();
-            if (img is not null)
-            {
-                ResourceEntry? node = img.Resources;
-                
-                foreach (string part in path)
-                {
-                    if (node is null)
-                        break;
+        public override IResourceNode? ResourceRoot => GetPEImage()?.Resources;
 
-                    node = node[part];
-                }
-
-                node = node?.Children.FirstOrDefault();
-                if (node is not null)
-                    return node.GetData<T>();
-            }
-
-            return default;
-        }
-
-        public PEModuleInfo(IDataReader dataReader!!, ulong imageBase, string fileName!!, bool isVirtual)
+        public PEModuleInfo(IDataReader dataReader!!, ulong imageBase, string fileName!!, bool isVirtualHint)
             : base(imageBase, fileName)
         {
             _dataReader = dataReader;
-            _isVirtual = isVirtual;
+            _isVirtual = isVirtualHint;
         }
 
         public PEModuleInfo(IDataReader dataReader, ulong imageBase, string fileName, bool isVirtual, int timestamp, int filesize, Version? version = null)

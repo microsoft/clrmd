@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.True(found);
         }
 
-        private static void WalkEntry(ResourceEntry entry, ref bool found, int depth = 0)
+        private static void WalkEntry(IResourceNode entry, ref bool found, int depth = 0)
         {
             foreach (var child in entry.Children)
             {
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 if (child.Name == "CLRDEBUGINFO")
                 {
-                    var dbg = child.Children.First().GetData<ClrDebugResource>();
+                    var dbg = child.Children.First().Read<ClrDebugResource>(0);
 
                     Assert.NotEqual(0, dbg.dwDacSizeOfImage);
                     Assert.NotEqual(0, dbg.dwDacTimeStamp);

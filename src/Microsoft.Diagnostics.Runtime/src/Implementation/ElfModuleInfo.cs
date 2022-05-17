@@ -9,7 +9,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly IDataReader _reader;
         private readonly ElfFile? _elf;
         private object? _buildId;
-        private System.Version? _version;
+        private Version? _version;
+
+        public override long ImageSize { get; }
 
         /// <inheritdoc/>
         public override ImmutableArray<byte> BuildId
@@ -28,9 +30,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override ulong GetSymbolAddress(string symbol)
+        public override ulong GetExportSymbolAddress(string symbol)
         {
-            return base.GetSymbolAddress(symbol);
+            if (_elf is null || !_elf.TryGetExportSymbol(symbol, out var address))
+                return 0;
+
+            return address;
         }
 
         /// <inheritdoc/>
@@ -49,11 +54,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public ElfModuleInfo(IDataReader reader, ElfFile? elf, ulong imageBase, string fileName!!)
+        public ElfModuleInfo(IDataReader reader, ElfFile? elf, ulong imageBase, long size, string fileName!!)
             : base(imageBase, fileName)
         {
             _reader = reader;
             _elf = elf;
+            ImageSize = size;
         }
     }
 }
