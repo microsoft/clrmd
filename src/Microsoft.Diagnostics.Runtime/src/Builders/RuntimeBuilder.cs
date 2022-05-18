@@ -28,6 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private readonly CacheOptions _options;
         private readonly SOSDac6? _sos6;
         private readonly SOSDac8? _sos8;
+        private readonly SOSDac12? _sos12;
         private readonly int _threads;
         private readonly ulong _finalizer;
         private readonly ulong _firstThread;
@@ -64,6 +65,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             _dac = _library.DacPrivateInterface;
             _sos6 = _library.SOSDacInterface6;
             _sos8 = _library.SOSDacInterface8;
+            _sos12 = library.SOSDacInterface12;
+
             DataReader = _clrInfo.DataTarget.DataReader;
 
             int version = 0;
@@ -166,6 +169,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 if (next == 0 || !seen.Add(next))
                     break;
             }
+
+            if (_sos12 is not null && _sos12.GetGlobalAllocationContext(out ulong globalAllocPtr, out ulong globalAllocLimit))
+                if (globalAllocPtr != 0 && globalAllocPtr < globalAllocLimit)
+                    allocContexts.Add(new MemoryRange(globalAllocPtr, globalAllocLimit));
 
             bool result = false;
             SegmentBuilder segBuilder = new SegmentBuilder(_sos, DataReader.PointerSize);
