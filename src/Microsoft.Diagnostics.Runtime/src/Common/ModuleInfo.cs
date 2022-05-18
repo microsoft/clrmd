@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Immutable;
 using System.Linq;
@@ -38,11 +39,10 @@ namespace Microsoft.Diagnostics.Runtime
                     return new PEModuleInfo(reader, baseAddress, name, isVirtualHint: true);
 
                 uint header = Unsafe.As<byte, uint>(ref buffer[0]);
-                if (header == 0x464c457f)
+                if (header == ElfHeaderCommon.Magic)
                 {
-                    Utilities.ElfFile elf = new Utilities.ElfFile(reader, baseAddress);
+                    ElfFile elf = new ElfFile(reader, baseAddress);
                     long size = elf.ProgramHeaders.Max(r => (long)r.VirtualAddress + (long)r.VirtualSize);
-
                     return new ElfModuleInfo(reader, elf, baseAddress, size, name);
                 }
 

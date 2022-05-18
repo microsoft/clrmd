@@ -51,6 +51,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             string? dacCurrentPlatform = GetDacFileName(flavor, currentPlatform);
             string? dacTargetPlatform = GetDacFileName(flavor, targetPlatform);
+            string? dbiCurrentPlatform = GetDbiFileName(flavor, currentPlatform);
             string? dbiTargetPlatform = GetDbiFileName(flavor, targetPlatform);
             if (IsSingleFile)
             {
@@ -101,8 +102,6 @@ namespace Microsoft.Diagnostics.Runtime
             }
             else
             {
-                artifacts = new List<DebugLibraryInfo>();
-
                 IndexTimeStamp = module.IndexTimeStamp;
                 IndexFileSize = module.IndexFileSize;
                 BuildId = module.BuildId;
@@ -111,16 +110,17 @@ namespace Microsoft.Diagnostics.Runtime
 
             // Long-name dac
             if (dt.DataReader.TargetPlatform == OSPlatform.Windows && Version.Major != 0)
-                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, GetWindowsLongNameDac(flavor, currentArch, dt.DataReader.Architecture, Version), currentArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp));
+                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, GetWindowsLongNameDac(flavor, currentArch, targetArch, Version), currentArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp));
 
 
             // Short-name dac under CLR's properties
             if (targetPlatform == currentPlatform)
             {
                 // We are debugging the process on the same operating system.
-                bool foundLocalDac = false;
                 if (dacCurrentPlatform is not null)
                 {
+                    bool foundLocalDac = false;
+
                     // Check if the user has the same CLR installed locally, and if so 
                     string? directory = Path.GetDirectoryName(module.FileName);
                     if (!string.IsNullOrWhiteSpace(directory))
@@ -149,18 +149,33 @@ namespace Microsoft.Diagnostics.Runtime
 
                     if (IndexFileSize != 0 && IndexTimeStamp != 0)
                     {
+                        var dacLibraryInfo = new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp);
                         if (foundLocalDac)
-                            artifacts.Insert(0, new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp));
+                            artifacts.Insert(0, dacLibraryInfo);
                         else
-                            artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp));
+                            artifacts.Add(dacLibraryInfo);
                     }
 
                     if (!BuildId.IsDefaultOrEmpty)
                     {
+                        var dacLibraryInfo = new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, BuildId);
                         if (foundLocalDac)
-                            artifacts.Insert(0, new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, BuildId));
+                            artifacts.Insert(0, dacLibraryInfo);
                         else
-                            artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, BuildId));
+                            artifacts.Add(dacLibraryInfo);
+                    }
+                }
+
+                if (dbiCurrentPlatform is not null)
+                {
+                    if (IndexFileSize != 0 && IndexTimeStamp != 0)
+                    {
+                        artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiCurrentPlatform, targetArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp));
+                    }
+
+                    if (!BuildId.IsDefaultOrEmpty)
+                    {
+                        artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiCurrentPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, BuildId));
                     }
                 }
             }
@@ -183,13 +198,18 @@ namespace Microsoft.Diagnostics.Runtime
                     if (dacTargetPlatform is not null)
                         artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, BuildId));
 
-                    // If we are running from Windows, we can target Linux and OS X dumps.  Note that we still maintain targetArch and not
-                    // currentArch in this scenario.  We do not build cross-os, cross-architecture debug libraries.
-                    if (currentPlatform == OSPlatform.Windows && dacCurrentPlatform is not null)
-                        artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, currentPlatform, SymbolProperties.Coreclr, BuildId));
-
                     if (dbiTargetPlatform is not null)
                         artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, BuildId));
+
+                    if (currentPlatform == OSPlatform.Windows)
+                    {
+                        // If we are running from Windows, we can target Linux and OS X dumps. We do build cross-os, cross-architecture debug libraries to run on Windows x64 or x86
+                        if (dacCurrentPlatform is not null)
+                            artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, currentArch, currentPlatform, SymbolProperties.Coreclr, BuildId));
+
+                        if (dbiCurrentPlatform is not null)
+                            artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiCurrentPlatform, currentArch, currentPlatform, SymbolProperties.Coreclr, BuildId));
+                    }
                 }
             }
 

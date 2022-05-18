@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     {
         private const int EI_NIDENT = 16;
 
-        private const uint Magic = 0x464c457f;
+        internal const uint Magic = 0x464c457f;
 
         private readonly uint _magic;
         private readonly byte _class;
