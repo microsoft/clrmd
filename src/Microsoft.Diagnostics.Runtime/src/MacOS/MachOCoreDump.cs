@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         private readonly MachHeader64 _header;
         private readonly MachOSegment[] _segments;
-        private readonly MachOModule? _dylinker;
+        private MachOModule? _dylinker;
 
         private volatile Dictionary<ulong, MachOModule>? _modules;
 
@@ -125,16 +125,6 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             segments.Sort((x, y) => x.Address.CompareTo(y.Address));
             _segments = segments.ToArray();
-
-            foreach (MachOSegment seg in _segments)
-            {
-                MachHeader64 header = ReadMemory<MachHeader64>(seg.Address);
-                if (header.Magic == MachHeader64.Magic64 && header.FileType == MachOFileType.Dylinker)
-                {
-                    _dylinker = new MachOModule(this, seg.Address, "dylinker");
-                    break;
-                }
-            }
 
             Dictionary<uint, thread_state_t> threadContexts = new();
             for (int i = 0; i < contexts.Count; i++)
@@ -251,6 +241,19 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         {
             if (_modules != null)
                 return _modules;
+
+            if (_dylinker == null)
+            {
+                foreach (MachOSegment seg in _segments)
+                {
+                    MachHeader64 header = ReadMemory<MachHeader64>(seg.Address);
+                    if (header.Magic == MachHeader64.Magic64 && header.FileType == MachOFileType.Dylinker)
+                    {
+                        _dylinker = new MachOModule(this, seg.Address, "dylinker");
+                        break;
+                    }
+                }
+            }
 
             if (_dylinker != null && _dylinker.TryLookupSymbol("dyld_all_image_infos", out ulong dyld_allImage_address))
             {

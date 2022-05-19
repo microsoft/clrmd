@@ -5,6 +5,11 @@ Microsoft.Diagnostics.Runtime.ClrInfo.IndexFileSize.get -> int
 Microsoft.Diagnostics.Runtime.ClrInfo.IndexTimeStamp.get -> int
 Microsoft.Diagnostics.Runtime.ClrInfo.IsSingleFile.get -> bool
 Microsoft.Diagnostics.Runtime.ClrInfo.Version.get -> System.Version!
+Microsoft.Diagnostics.Runtime.DacInterface.ClrDataProcess.GetSOSDacInterface12() -> Microsoft.Diagnostics.Runtime.DacInterface.SOSDac12?
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac12
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac12.GetGlobalAllocationContext(out ulong allocPtr, out ulong allocLimit) -> Microsoft.Diagnostics.Runtime.Utilities.HResult
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac12.SOSDac12(Microsoft.Diagnostics.Runtime.DacLibrary! library, System.IntPtr ptr) -> void
+Microsoft.Diagnostics.Runtime.DacLibrary.SOSDacInterface12.get -> Microsoft.Diagnostics.Runtime.DacInterface.SOSDac12?
 Microsoft.Diagnostics.Runtime.DebugLibraryInfo
 Microsoft.Diagnostics.Runtime.DebugLibraryInfo.ArchivedUnder.get -> Microsoft.Diagnostics.Runtime.SymbolProperties
 Microsoft.Diagnostics.Runtime.DebugLibraryInfo.FileName.get -> string!
