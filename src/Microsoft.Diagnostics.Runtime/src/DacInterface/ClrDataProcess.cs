@@ -82,6 +82,22 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
+        public SOSDac12? GetSOSDacInterface12()
+        {
+            IntPtr result = QueryInterface(SOSDac12.IID_ISOSDac12);
+            if (result == IntPtr.Zero)
+                return null;
+
+            try
+            {
+                return new SOSDac12(_library, result);
+            }
+            catch (InvalidOperationException)
+            {
+                return null;
+            }
+        }
+
         public void Flush()
         {
             VTable.Flush(Self);
