@@ -756,7 +756,6 @@ Microsoft.Diagnostics.Runtime.ObjectSet.HeapHashSegment.EndAddress -> ulong
 Microsoft.Diagnostics.Runtime.ObjectSet.HeapHashSegment.HeapHashSegment() -> void
 Microsoft.Diagnostics.Runtime.ObjectSet.HeapHashSegment.Objects -> System.Collections.BitArray!
 Microsoft.Diagnostics.Runtime.ObjectSet.HeapHashSegment.StartAddress -> ulong
-Microsoft.Diagnostics.Runtime.ObjectSet.MinObjSize.get -> int
 Microsoft.Diagnostics.Runtime.ObjectSet.ObjectSet(Microsoft.Diagnostics.Runtime.ClrHeap! heap) -> void
 Microsoft.Diagnostics.Runtime.ObjectSet.Segments.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ObjectSet.HeapHashSegment>
 Microsoft.Diagnostics.Runtime.PdbInfo
