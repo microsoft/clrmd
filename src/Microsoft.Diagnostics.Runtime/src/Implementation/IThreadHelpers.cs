@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IThreadHelpers
+    internal interface IThreadHelpers
     {
         IDataReader DataReader { get; }
         ITypeFactory Factory { get; }

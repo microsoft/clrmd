@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class ClrmdSegment : ClrSegment
+    internal sealed class ClrmdSegment : ClrSegment
     {
         const int MarkerCount = 16;
 

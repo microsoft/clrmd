@@ -6,7 +6,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class FullSyncBlock : SyncBlock
+    internal sealed class FullSyncBlock : SyncBlock
     {
         public SyncBlockComFlags ComFlags { get; }
 
