@@ -6,7 +6,7 @@ using System;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class ClrmdHandle : ClrHandle
+    internal sealed class ClrmdHandle : ClrHandle
     {
         public override ulong Address { get; }
 

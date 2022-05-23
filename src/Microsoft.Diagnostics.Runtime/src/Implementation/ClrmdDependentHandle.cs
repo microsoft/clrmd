@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class ClrmdDependentHandle : ClrHandle
+    internal sealed class ClrmdDependentHandle : ClrHandle
     {
         public override ulong Address { get; }
 

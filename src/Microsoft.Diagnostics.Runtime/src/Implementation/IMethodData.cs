@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IMethodData
+    internal interface IMethodData
     {
         IMethodHelpers Helpers { get; }
 

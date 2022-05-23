@@ -14,19 +14,13 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public class ObjectSet
     {
+        private static int MinObjSize => IntPtr.Size * 3;
         private readonly HeapHashSegment[] _segments;
 
         /// <summary>
         /// The ClrHeap this is an object set over.
         /// </summary>
         public ClrHeap Heap { get; }
-
-        /// <summary>
-        /// The minimum object size for this particular heap.
-        /// </summary>
-#pragma warning disable CA1822 // CA1822: Mark members as static
-        public int MinObjSize => IntPtr.Size * 3;
-#pragma warning restore CA1822 // CA1822: Mark members as static
 
         /// <summary>
         /// The collection of segments and associated objects.

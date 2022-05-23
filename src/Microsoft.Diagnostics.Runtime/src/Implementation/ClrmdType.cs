@@ -13,7 +13,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public class ClrmdType : ClrType
+    internal class ClrmdType : ClrType
     {
         protected ITypeHelpers Helpers { get; }
         protected IDataReader DataReader => Helpers.DataReader;
@@ -80,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ClrElementType ElementType => GetElementType();
         public bool Shared { get; }
-        public override IClrObjectHelpers ClrObjectHelpers => Helpers.ClrObjectHelpers;
+        internal override IClrObjectHelpers ClrObjectHelpers => Helpers.ClrObjectHelpers;
 
         public override ulong MethodTable { get; }
         public override ClrHeap Heap { get; }

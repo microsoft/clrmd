@@ -123,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsString => true;
 
-        public override IClrObjectHelpers ClrObjectHelpers => Helpers.ClrObjectHelpers;
+        internal override IClrObjectHelpers ClrObjectHelpers => Helpers.ClrObjectHelpers;
 
         public override ClrEnum AsEnum() => throw new InvalidOperationException($"{Name ?? nameof(ClrType)} is not an enum.  You must call {nameof(ClrType.IsEnum)} before using {nameof(AsEnum)}.");
 

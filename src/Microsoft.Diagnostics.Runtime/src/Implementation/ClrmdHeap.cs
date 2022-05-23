@@ -13,7 +13,7 @@ using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class ClrmdHeap : ClrHeap
+    internal sealed class ClrmdHeap : ClrHeap
     {
         private const int MaxGen2ObjectSize = 85000;
         private readonly IHeapHelpers _helpers;

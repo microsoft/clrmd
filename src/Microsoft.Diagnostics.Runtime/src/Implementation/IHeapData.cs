@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IHeapData
+    internal interface IHeapData
     {
         IHeapHelpers HeapHelpers { get; }
         bool IsServer { get; }
