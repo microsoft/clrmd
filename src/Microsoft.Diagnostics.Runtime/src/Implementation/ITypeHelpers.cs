@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface ITypeHelpers
+    internal interface ITypeHelpers
     {
         IDataReader DataReader { get; }
         ITypeFactory Factory { get; }

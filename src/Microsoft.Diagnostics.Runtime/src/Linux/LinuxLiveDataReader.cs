@@ -41,17 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             if (suspend)
             {
-                status = (int)ptrace(PTRACE_ATTACH, processId, IntPtr.Zero, IntPtr.Zero);
-
-                if (status >= 0)
-                    status = waitpid(processId, IntPtr.Zero, 0);
-
-                if (status < 0)
-                {
-                    int errno = Marshal.GetLastWin32Error();
-                    throw new ClrDiagnosticsException($"Could not attach to process {processId}, errno: {errno}", errno);
-                }
-
+                LoadThreadsAndAttach();
                 _suspended = true;
             }
 
@@ -77,13 +67,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             if (_suspended)
             {
-                int status = (int)ptrace(PTRACE_DETACH, ProcessId, IntPtr.Zero, IntPtr.Zero);
-                if (status < 0)
+                foreach (var tid in _threadIDs)
                 {
-                    int errno = Marshal.GetLastWin32Error();
-                    throw new ClrDiagnosticsException($"Could not detach from process {ProcessId}, errno: {errno}", errno);
+                    // no point in handling errors here as the user can do nothing with them
+                    // also if Dispose is called from the finalizer we could crash the process
+                    var status = (int)ptrace(PTRACE_DETACH, (int) tid, IntPtr.Zero, IntPtr.Zero);
                 }
-
                 _suspended = false;
             }
 
@@ -227,18 +216,72 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return true;
         }
 
+        private void LoadThreadsAndAttach()
+        {
+            const int maxPasses = 100;
+            var tracees = new HashSet<uint>();
+            var makesProgress = true;
+            // Make up to maxPasses to be sure to attach to the threads that could have been created in the meantime
+            for (var i = 0; makesProgress && i < maxPasses; i++)
+            {
+                makesProgress = false;
+                // GetThreads could throw during enumeration. It means the process was killed so no cleanup is needed.
+                var threads = GetThreads(ProcessId);
+                foreach (var tid in threads)
+                {
+                    if (tracees.Contains(tid))
+                    {
+                        // We have already attached successfully to this thread
+                        continue;
+                    }
+
+                    var status = (int)ptrace(PTRACE_ATTACH, (int)tid, IntPtr.Zero, IntPtr.Zero);
+                    if (status >= 0)
+                    {
+                        status = waitpid((int)tid, IntPtr.Zero, 0);
+                    }
+                    if (status >= 0)
+                    {
+                        tracees.Add(tid);
+                        makesProgress = true;
+                    }
+
+                    if (status < 0)
+                    {
+                        // We failed to attach. It could mean multiple things:
+                        // 1. The tid exited: it's ok we won't see it at the next iteration.
+                        // 2. We don't have permissions: attach to other threads will likely fail, too, and we won't make progress
+                        // 3. Something is weird with this particular thread. We'll keep it as is and try to attach to everything else
+                        continue;
+                    }
+                }
+            }
+
+            if (tracees.Count == 0)
+            {
+                throw new ClrDiagnosticsException($"Could not PTRACE_ATTACH to any thread of the process {ProcessId}. Either the process has exited or you don't have permission.");
+            }
+
+            _threadIDs.AddRange(tracees);
+        }
+
         private void LoadThreads()
         {
             if (_threadIDs.Count == 0)
             {
-                string taskDirPath = $"/proc/{ProcessId}/task";
-                foreach (string taskDir in Directory.EnumerateDirectories(taskDirPath))
+                _threadIDs.AddRange(GetThreads(ProcessId));
+            }
+        }
+
+        private static IEnumerable<uint> GetThreads(int pid)
+        {
+            string taskDirPath = $"/proc/{pid}/task";
+            foreach (string taskDir in Directory.EnumerateDirectories(taskDirPath))
+            {
+                string dirName = Path.GetFileName(taskDir);
+                if (uint.TryParse(dirName, out uint taskId))
                 {
-                    string dirName = Path.GetFileName(taskDir);
-                    if (uint.TryParse(dirName, out uint taskId))
-                    {
-                        _threadIDs.Add(taskId);
-                    }
+                    yield return taskId;
                 }
             }
         }

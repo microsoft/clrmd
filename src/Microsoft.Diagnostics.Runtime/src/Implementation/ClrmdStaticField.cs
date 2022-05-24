@@ -8,7 +8,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class ClrmdStaticField : ClrStaticField
+    internal sealed class ClrmdStaticField : ClrStaticField
     {
         private readonly IFieldHelpers _helpers;
         private string? _name;

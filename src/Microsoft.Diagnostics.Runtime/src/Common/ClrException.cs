@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ClrThread? Thread { get; }
 
-        public ClrException(IExceptionHelpers helpers, ClrThread? thread, ClrObject obj)
+        internal ClrException(IExceptionHelpers helpers, ClrThread? thread, ClrObject obj)
         {
             if (obj.IsNull)
                 throw new InvalidOperationException($"Cannot construct a ClrException from a null object.");

@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     /// type, but in practice there are fields which do not report a type.  This allows us to provide a non-null, semi
     /// meaningful type even though it's not as accurate or specific as we wish it would be.
     /// </summary>
-    public sealed class ClrmdGenericType : ClrType
+    internal sealed class ClrmdGenericType : ClrType
     {
         public ClrGenericParameter GenericParameter { get; }
 
@@ -75,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsShared => false;
 
-        public override IClrObjectHelpers ClrObjectHelpers { get; }
+        internal override IClrObjectHelpers ClrObjectHelpers { get; }
 
         public override ClrEnum AsEnum() => throw new InvalidOperationException();
 

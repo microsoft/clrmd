@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class ClrmdThread : ClrThread
+    internal sealed class ClrmdThread : ClrThread
     {
         private readonly IThreadHelpers _helpers;
         private readonly int _threadState;
