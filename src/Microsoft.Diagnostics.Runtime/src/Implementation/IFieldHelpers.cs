@@ -6,7 +6,7 @@ using System.Reflection;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IFieldHelpers
+    internal interface IFieldHelpers
     {
         ITypeFactory Factory { get; }
         IDataReader DataReader { get; }

@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface ISegmentData
+    internal interface ISegmentData
     {
         int LogicalHeap { get; }
         ulong BaseAddress { get; }

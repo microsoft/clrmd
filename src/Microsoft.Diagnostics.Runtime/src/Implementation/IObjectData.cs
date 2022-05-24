@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IObjectData
+    internal interface IObjectData
     {
         ulong DataPointer { get; }
         ulong ElementTypeHandle { get; }

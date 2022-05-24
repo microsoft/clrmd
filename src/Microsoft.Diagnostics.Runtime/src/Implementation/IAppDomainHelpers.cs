@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IAppDomainHelpers
+    internal interface IAppDomainHelpers
     {
         string? GetConfigFile(ClrAppDomain domain);
         string? GetApplicationBase(ClrAppDomain domain);

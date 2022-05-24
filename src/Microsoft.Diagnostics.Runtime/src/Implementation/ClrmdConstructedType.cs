@@ -10,7 +10,7 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class ClrmdConstructedType : ClrType
+    internal sealed class ClrmdConstructedType : ClrType
     {
         private readonly int _ranks;
         public override ClrHeap Heap => ComponentType.Heap;
@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 throw new ArgumentException($"{nameof(ranks)} must be 1 or greater.");
         }
 
-        public override IClrObjectHelpers ClrObjectHelpers => ComponentType.ClrObjectHelpers;
+        internal override IClrObjectHelpers ClrObjectHelpers => ComponentType.ClrObjectHelpers;
 
         public override bool IsEnum => false;
         public override ClrEnum AsEnum() => throw new InvalidOperationException();

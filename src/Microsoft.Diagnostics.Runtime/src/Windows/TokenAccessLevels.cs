@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
     // Summary:
     //     Defines the privileges of the user account associated with the access token.
     [Flags]
-    public enum TokenAccessLevels
+    internal enum TokenAccessLevels
     {
         //
         // Summary:
