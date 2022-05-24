@@ -8,7 +8,7 @@ using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IRuntimeHelpers : IDisposable
+    internal interface IRuntimeHelpers : IDisposable
     {
         ITypeFactory Factory { get; }
         IDataReader DataReader { get; }

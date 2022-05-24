@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class ClrmdArrayType : ClrmdType
+    internal sealed class ClrmdArrayType : ClrmdType
     {
         private int _baseArrayOffset;
         private ClrType? _componentType;

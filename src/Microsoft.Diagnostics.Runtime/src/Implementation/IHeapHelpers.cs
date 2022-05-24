@@ -7,7 +7,7 @@ using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IHeapHelpers
+    internal interface IHeapHelpers
     {
         IDataReader DataReader { get; }
         ITypeFactory Factory { get; }

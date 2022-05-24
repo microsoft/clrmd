@@ -6,7 +6,7 @@ using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface ICcwData
+    internal interface ICcwData
     {
         ulong Address { get; }
         ulong IUnknown { get; }

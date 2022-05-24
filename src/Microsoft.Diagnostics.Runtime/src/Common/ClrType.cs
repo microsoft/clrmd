@@ -261,7 +261,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Used to provide functionality to ClrObject.
         /// </summary>
-        public abstract IClrObjectHelpers ClrObjectHelpers { get; }
+        internal abstract IClrObjectHelpers ClrObjectHelpers { get; }
 
         public override bool Equals(object? obj) => Equals(obj as ClrType);
 

@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IModuleData
+    internal interface IModuleData
     {
         IModuleHelpers Helpers { get; }
 

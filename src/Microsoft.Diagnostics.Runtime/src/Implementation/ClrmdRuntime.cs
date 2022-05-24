@@ -8,7 +8,7 @@ using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class ClrmdRuntime : ClrRuntime
+    internal sealed class ClrmdRuntime : ClrRuntime
     {
         private readonly IRuntimeHelpers _helpers;
         private ClrHeap? _heap;

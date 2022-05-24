@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IThreadData
+    internal interface IThreadData
     {
         IThreadHelpers Helpers { get; }
         ulong Address { get; }
