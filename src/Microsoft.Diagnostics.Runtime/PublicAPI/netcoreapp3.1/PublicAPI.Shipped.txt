@@ -229,7 +229,6 @@ Microsoft.Diagnostics.Runtime.ClrEnum.Type.get -> Microsoft.Diagnostics.Runtime.
 Microsoft.Diagnostics.Runtime.ClrException
 Microsoft.Diagnostics.Runtime.ClrException.Address.get -> ulong
 Microsoft.Diagnostics.Runtime.ClrException.AsObject() -> Microsoft.Diagnostics.Runtime.ClrObject
-Microsoft.Diagnostics.Runtime.ClrException.ClrException(Microsoft.Diagnostics.Runtime.Implementation.IExceptionHelpers! helpers, Microsoft.Diagnostics.Runtime.ClrThread? thread, Microsoft.Diagnostics.Runtime.ClrObject obj) -> void
 Microsoft.Diagnostics.Runtime.ClrException.HResult.get -> int
 Microsoft.Diagnostics.Runtime.ClrException.Inner.get -> Microsoft.Diagnostics.Runtime.ClrException?
 Microsoft.Diagnostics.Runtime.ClrException.Message.get -> string?
@@ -389,7 +388,6 @@ Microsoft.Diagnostics.Runtime.ClrValueType.ReadValueTypeField(string! fieldName)
 Microsoft.Diagnostics.Runtime.ClrValueType.Type.get -> Microsoft.Diagnostics.Runtime.ClrType?
 Microsoft.Diagnostics.Runtime.ComCallableWrapper
 Microsoft.Diagnostics.Runtime.ComCallableWrapper.Address.get -> ulong
-Microsoft.Diagnostics.Runtime.ComCallableWrapper.ComCallableWrapper(Microsoft.Diagnostics.Runtime.Implementation.ICcwData! data) -> void
 Microsoft.Diagnostics.Runtime.ComCallableWrapper.Handle.get -> ulong
 Microsoft.Diagnostics.Runtime.ComCallableWrapper.IUnknown.get -> ulong
 Microsoft.Diagnostics.Runtime.ComCallableWrapper.Interfaces.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ComInterfaceData>
@@ -723,261 +721,6 @@ Microsoft.Diagnostics.Runtime.IMemoryReader.Read<T>(ulong address) -> T
 Microsoft.Diagnostics.Runtime.IMemoryReader.Read<T>(ulong address, out T value) -> bool
 Microsoft.Diagnostics.Runtime.IMemoryReader.ReadPointer(ulong address) -> ulong
 Microsoft.Diagnostics.Runtime.IMemoryReader.ReadPointer(ulong address, out ulong value) -> bool
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdAppDomain
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdAppDomain.ClrmdAppDomain(Microsoft.Diagnostics.Runtime.ClrRuntime! runtime, Microsoft.Diagnostics.Runtime.Implementation.IAppDomainData! data) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdAppDomain.ClrmdAppDomain(Microsoft.Diagnostics.Runtime.ClrRuntime! runtime, Microsoft.Diagnostics.Runtime.Implementation.IAppDomainHelpers! helpers, ulong address) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdArrayType
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdArrayType.ClrmdArrayType(Microsoft.Diagnostics.Runtime.ClrHeap! heap, Microsoft.Diagnostics.Runtime.ClrType? baseType, Microsoft.Diagnostics.Runtime.ClrModule? module, Microsoft.Diagnostics.Runtime.Implementation.ITypeData! data, string? name = null) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdArrayType.SetComponentType(Microsoft.Diagnostics.Runtime.ClrType? type) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.ClrmdConstructedType(Microsoft.Diagnostics.Runtime.ClrType! componentType, int ranks, bool pointer) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdDependentHandle
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdDependentHandle.ClrmdDependentHandle(Microsoft.Diagnostics.Runtime.ClrAppDomain! parent, ulong address, Microsoft.Diagnostics.Runtime.ClrObject obj, Microsoft.Diagnostics.Runtime.ClrObject dependent) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdField
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.ClrmdField(Microsoft.Diagnostics.Runtime.ClrType! containingType, Microsoft.Diagnostics.Runtime.Implementation.IFieldData! data) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.ClrmdGenericType(Microsoft.Diagnostics.Runtime.Implementation.IClrObjectHelpers! helpers, Microsoft.Diagnostics.Runtime.ClrHeap! heap, Microsoft.Diagnostics.Runtime.ClrModule? module, Microsoft.Diagnostics.Runtime.ClrGenericParameter clrGenericParameter) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.GenericParameter.get -> Microsoft.Diagnostics.Runtime.ClrGenericParameter
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdHandle
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdHandle.ClrmdHandle(Microsoft.Diagnostics.Runtime.ClrAppDomain! parent, ulong address, Microsoft.Diagnostics.Runtime.ClrObject obj, Microsoft.Diagnostics.Runtime.ClrHandleKind kind) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.ClearCachedData() -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.ClrmdHeap(Microsoft.Diagnostics.Runtime.ClrRuntime! runtime, Microsoft.Diagnostics.Runtime.Implementation.IHeapData! data) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.SkipAllocationContext(Microsoft.Diagnostics.Runtime.ClrSegment! seg, ulong address) -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.ClrmdMethod(Microsoft.Diagnostics.Runtime.ClrType! type, Microsoft.Diagnostics.Runtime.Implementation.IMethodData! data) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.ClrmdModule(Microsoft.Diagnostics.Runtime.ClrAppDomain! parent, Microsoft.Diagnostics.Runtime.Implementation.IModuleData! data) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.ClrmdModule(Microsoft.Diagnostics.Runtime.ClrAppDomain! parent, Microsoft.Diagnostics.Runtime.Implementation.IModuleHelpers! helpers, ulong addr) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.ClrmdPrimitiveType(Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers! helpers, Microsoft.Diagnostics.Runtime.ClrModule! module, Microsoft.Diagnostics.Runtime.ClrHeap! heap, Microsoft.Diagnostics.Runtime.ClrElementType type) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdRefCountedHandle
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdRefCountedHandle.ClrmdRefCountedHandle(Microsoft.Diagnostics.Runtime.ClrAppDomain! parent, ulong address, Microsoft.Diagnostics.Runtime.ClrObject obj, uint refCount) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.ClrmdRuntime(Microsoft.Diagnostics.Runtime.ClrInfo! info, Microsoft.Diagnostics.Runtime.DacLibrary! dac, Microsoft.Diagnostics.Runtime.Implementation.IRuntimeHelpers! helpers) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.Initialize() -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdSegment
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdSegment.ClrmdSegment(Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap! heap, Microsoft.Diagnostics.Runtime.Implementation.IHeapHelpers! helpers, Microsoft.Diagnostics.Runtime.Implementation.ISegmentData! data) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.ClrmdStaticField(Microsoft.Diagnostics.Runtime.ClrType! containingType, Microsoft.Diagnostics.Runtime.Implementation.IFieldData! data) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.ClrmdThread(Microsoft.Diagnostics.Runtime.Implementation.IThreadData! data, Microsoft.Diagnostics.Runtime.ClrRuntime! runtime, Microsoft.Diagnostics.Runtime.ClrAppDomain! currentDomain) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdType
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.ClrmdType(Microsoft.Diagnostics.Runtime.ClrHeap! heap, Microsoft.Diagnostics.Runtime.ClrType? baseType, Microsoft.Diagnostics.Runtime.ClrModule? module, Microsoft.Diagnostics.Runtime.Implementation.ITypeData! data, string? name = null) -> void
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.DataReader.get -> Microsoft.Diagnostics.Runtime.IDataReader!
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.Helpers.get -> Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers!
-Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.Shared.get -> bool
-Microsoft.Diagnostics.Runtime.Implementation.ComSyncBlock
-Microsoft.Diagnostics.Runtime.Implementation.ComSyncBlock.ComFlags.get -> Microsoft.Diagnostics.Runtime.SyncBlockComFlags
-Microsoft.Diagnostics.Runtime.Implementation.ComSyncBlock.ComSyncBlock(ulong obj, uint comFlags) -> void
-Microsoft.Diagnostics.Runtime.Implementation.FinalizerQueueSegment
-Microsoft.Diagnostics.Runtime.Implementation.FinalizerQueueSegment.End.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.FinalizerQueueSegment.FinalizerQueueSegment(ulong start, ulong end) -> void
-Microsoft.Diagnostics.Runtime.Implementation.FinalizerQueueSegment.Start.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock
-Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.ComFlags.get -> Microsoft.Diagnostics.Runtime.SyncBlockComFlags
-Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.FullSyncBlock(in Microsoft.Diagnostics.Runtime.DacInterface.SyncBlockData syncBlk) -> void
-Microsoft.Diagnostics.Runtime.Implementation.HeapWalkStep
-Microsoft.Diagnostics.Runtime.Implementation.HeapWalkStep.Address.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.HeapWalkStep.Address.set -> void
-Microsoft.Diagnostics.Runtime.Implementation.HeapWalkStep.BaseSize.get -> int
-Microsoft.Diagnostics.Runtime.Implementation.HeapWalkStep.BaseSize.set -> void
-Microsoft.Diagnostics.Runtime.Implementation.HeapWalkStep.ComponentSize.get -> int
-Microsoft.Diagnostics.Runtime.Implementation.HeapWalkStep.ComponentSize.set -> void
-Microsoft.Diagnostics.Runtime.Implementation.HeapWalkStep.Count.get -> uint
-Microsoft.Diagnostics.Runtime.Implementation.HeapWalkStep.Count.set -> void
-Microsoft.Diagnostics.Runtime.Implementation.HeapWalkStep.HeapWalkStep() -> void
-Microsoft.Diagnostics.Runtime.Implementation.HeapWalkStep.MethodTable.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.HeapWalkStep.MethodTable.set -> void
-Microsoft.Diagnostics.Runtime.Implementation.IAppDomainData
-Microsoft.Diagnostics.Runtime.Implementation.IAppDomainData.Address.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IAppDomainData.Helpers.get -> Microsoft.Diagnostics.Runtime.Implementation.IAppDomainHelpers!
-Microsoft.Diagnostics.Runtime.Implementation.IAppDomainData.Id.get -> int
-Microsoft.Diagnostics.Runtime.Implementation.IAppDomainData.Name.get -> string?
-Microsoft.Diagnostics.Runtime.Implementation.IAppDomainHelpers
-Microsoft.Diagnostics.Runtime.Implementation.IAppDomainHelpers.EnumerateModules(Microsoft.Diagnostics.Runtime.ClrAppDomain! domain) -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrModule!>!
-Microsoft.Diagnostics.Runtime.Implementation.IAppDomainHelpers.GetApplicationBase(Microsoft.Diagnostics.Runtime.ClrAppDomain! domain) -> string?
-Microsoft.Diagnostics.Runtime.Implementation.IAppDomainHelpers.GetConfigFile(Microsoft.Diagnostics.Runtime.ClrAppDomain! domain) -> string?
-Microsoft.Diagnostics.Runtime.Implementation.ICcwData
-Microsoft.Diagnostics.Runtime.Implementation.ICcwData.Address.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ICcwData.GetInterfaces() -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ComInterfaceData>
-Microsoft.Diagnostics.Runtime.Implementation.ICcwData.Handle.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ICcwData.IUnknown.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ICcwData.JupiterRefCount.get -> int
-Microsoft.Diagnostics.Runtime.Implementation.ICcwData.Object.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ICcwData.RefCount.get -> int
-Microsoft.Diagnostics.Runtime.Implementation.IClrObjectHelpers
-Microsoft.Diagnostics.Runtime.Implementation.IClrObjectHelpers.DataReader.get -> Microsoft.Diagnostics.Runtime.IDataReader!
-Microsoft.Diagnostics.Runtime.Implementation.IClrObjectHelpers.ExceptionHelpers.get -> Microsoft.Diagnostics.Runtime.Implementation.IExceptionHelpers!
-Microsoft.Diagnostics.Runtime.Implementation.IClrObjectHelpers.Factory.get -> Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory!
-Microsoft.Diagnostics.Runtime.Implementation.IClrObjectHelpers.ReadString(ulong addr, int maxLength) -> string?
-Microsoft.Diagnostics.Runtime.Implementation.IExceptionHelpers
-Microsoft.Diagnostics.Runtime.Implementation.IExceptionHelpers.DataReader.get -> Microsoft.Diagnostics.Runtime.IDataReader!
-Microsoft.Diagnostics.Runtime.Implementation.IExceptionHelpers.GetExceptionStackTrace(Microsoft.Diagnostics.Runtime.ClrThread? thread, Microsoft.Diagnostics.Runtime.ClrObject obj) -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrStackFrame!>
-Microsoft.Diagnostics.Runtime.Implementation.IExceptionHelpers.GetHResultOffset(Microsoft.Diagnostics.Runtime.ClrType! type) -> uint
-Microsoft.Diagnostics.Runtime.Implementation.IExceptionHelpers.GetInnerExceptionOffset(Microsoft.Diagnostics.Runtime.ClrType! type) -> uint
-Microsoft.Diagnostics.Runtime.Implementation.IExceptionHelpers.GetMessageOffset(Microsoft.Diagnostics.Runtime.ClrType! type) -> uint
-Microsoft.Diagnostics.Runtime.Implementation.IFieldData
-Microsoft.Diagnostics.Runtime.Implementation.IFieldData.ElementType.get -> Microsoft.Diagnostics.Runtime.ClrElementType
-Microsoft.Diagnostics.Runtime.Implementation.IFieldData.Helpers.get -> Microsoft.Diagnostics.Runtime.Implementation.IFieldHelpers!
-Microsoft.Diagnostics.Runtime.Implementation.IFieldData.Offset.get -> int
-Microsoft.Diagnostics.Runtime.Implementation.IFieldData.Token.get -> int
-Microsoft.Diagnostics.Runtime.Implementation.IFieldData.TypeMethodTable.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IFieldHelpers
-Microsoft.Diagnostics.Runtime.Implementation.IFieldHelpers.DataReader.get -> Microsoft.Diagnostics.Runtime.IDataReader!
-Microsoft.Diagnostics.Runtime.Implementation.IFieldHelpers.Factory.get -> Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory!
-Microsoft.Diagnostics.Runtime.Implementation.IFieldHelpers.GetStaticFieldAddress(Microsoft.Diagnostics.Runtime.ClrStaticField! field, Microsoft.Diagnostics.Runtime.ClrAppDomain? appDomain) -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IFieldHelpers.ReadProperties(Microsoft.Diagnostics.Runtime.ClrType! parentType, int token, out string? name, out System.Reflection.FieldAttributes attributes, out Microsoft.Diagnostics.Runtime.Utilities.SigParser sigParser) -> bool
-Microsoft.Diagnostics.Runtime.Implementation.IHeapData
-Microsoft.Diagnostics.Runtime.Implementation.IHeapData.ArrayMethodTable.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IHeapData.CanWalkHeap.get -> bool
-Microsoft.Diagnostics.Runtime.Implementation.IHeapData.ExceptionMethodTable.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IHeapData.FreeMethodTable.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IHeapData.HeapHelpers.get -> Microsoft.Diagnostics.Runtime.Implementation.IHeapHelpers!
-Microsoft.Diagnostics.Runtime.Implementation.IHeapData.IsServer.get -> bool
-Microsoft.Diagnostics.Runtime.Implementation.IHeapData.LogicalHeapCount.get -> int
-Microsoft.Diagnostics.Runtime.Implementation.IHeapData.ObjectMethodTable.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IHeapData.StringMethodTable.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IHeapHelpers
-Microsoft.Diagnostics.Runtime.Implementation.IHeapHelpers.CreateSegments(Microsoft.Diagnostics.Runtime.ClrHeap! clrHeap, out System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrSegment!> segemnts, out System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.MemoryRange> allocationContexts, out System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.Implementation.FinalizerQueueSegment> fqRoots, out System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.Implementation.FinalizerQueueSegment> fqObjects) -> bool
-Microsoft.Diagnostics.Runtime.Implementation.IHeapHelpers.DataReader.get -> Microsoft.Diagnostics.Runtime.IDataReader!
-Microsoft.Diagnostics.Runtime.Implementation.IHeapHelpers.EnumerateDependentHandleLinks() -> System.Collections.Generic.IEnumerable<(ulong Source, ulong Target)>!
-Microsoft.Diagnostics.Runtime.Implementation.IHeapHelpers.Factory.get -> Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory!
-Microsoft.Diagnostics.Runtime.Implementation.IHeapHelpers.GetSyncBlocks(out System.Collections.Generic.List<Microsoft.Diagnostics.Runtime.Implementation.ComSyncBlock!>! comSyncBlocks, out System.Collections.Generic.List<Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock!>! fullSyncBlocks, out System.Collections.Generic.List<ulong>! emptySyncBlocks) -> bool
-Microsoft.Diagnostics.Runtime.Implementation.IMethodData
-Microsoft.Diagnostics.Runtime.Implementation.IMethodData.ColdSize.get -> uint
-Microsoft.Diagnostics.Runtime.Implementation.IMethodData.ColdStart.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IMethodData.CompilationType.get -> Microsoft.Diagnostics.Runtime.MethodCompilationType
-Microsoft.Diagnostics.Runtime.Implementation.IMethodData.Helpers.get -> Microsoft.Diagnostics.Runtime.Implementation.IMethodHelpers!
-Microsoft.Diagnostics.Runtime.Implementation.IMethodData.HotSize.get -> uint
-Microsoft.Diagnostics.Runtime.Implementation.IMethodData.HotStart.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IMethodData.MethodDesc.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IMethodData.Token.get -> int
-Microsoft.Diagnostics.Runtime.Implementation.IMethodHelpers
-Microsoft.Diagnostics.Runtime.Implementation.IMethodHelpers.DataReader.get -> Microsoft.Diagnostics.Runtime.IDataReader!
-Microsoft.Diagnostics.Runtime.Implementation.IMethodHelpers.GetILForModule(ulong address, uint rva) -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IMethodHelpers.GetILMap(ulong nativeCode, in Microsoft.Diagnostics.Runtime.HotColdRegions hotColdInfo) -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ILToNativeMap>
-Microsoft.Diagnostics.Runtime.Implementation.IMethodHelpers.GetSignature(ulong methodDesc, out string? signature) -> bool
-Microsoft.Diagnostics.Runtime.Implementation.IModuleData
-Microsoft.Diagnostics.Runtime.Implementation.IModuleData.Address.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IModuleData.AssemblyAddress.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IModuleData.AssemblyName.get -> string?
-Microsoft.Diagnostics.Runtime.Implementation.IModuleData.FileName.get -> string?
-Microsoft.Diagnostics.Runtime.Implementation.IModuleData.Helpers.get -> Microsoft.Diagnostics.Runtime.Implementation.IModuleHelpers!
-Microsoft.Diagnostics.Runtime.Implementation.IModuleData.ILImageBase.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IModuleData.IsDynamic.get -> bool
-Microsoft.Diagnostics.Runtime.Implementation.IModuleData.IsFlatLayout.get -> bool
-Microsoft.Diagnostics.Runtime.Implementation.IModuleData.IsPEFile.get -> bool
-Microsoft.Diagnostics.Runtime.Implementation.IModuleData.IsReflection.get -> bool
-Microsoft.Diagnostics.Runtime.Implementation.IModuleData.MetadataLength.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IModuleData.MetadataStart.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IModuleData.Name.get -> string?
-Microsoft.Diagnostics.Runtime.Implementation.IModuleData.PEImageBase.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IModuleData.SimpleName.get -> string?
-Microsoft.Diagnostics.Runtime.Implementation.IModuleData.Size.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IModuleHelpers
-Microsoft.Diagnostics.Runtime.Implementation.IModuleHelpers.DataReader.get -> Microsoft.Diagnostics.Runtime.IDataReader!
-Microsoft.Diagnostics.Runtime.Implementation.IModuleHelpers.Factory.get -> Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory!
-Microsoft.Diagnostics.Runtime.Implementation.IModuleHelpers.GetMetadataImport(Microsoft.Diagnostics.Runtime.ClrModule! module) -> Microsoft.Diagnostics.Runtime.DacInterface.MetadataImport?
-Microsoft.Diagnostics.Runtime.Implementation.IModuleHelpers.GetSortedTypeDefMap(Microsoft.Diagnostics.Runtime.ClrModule! module) -> (ulong MethodTable, int Token)[]!
-Microsoft.Diagnostics.Runtime.Implementation.IModuleHelpers.GetSortedTypeRefMap(Microsoft.Diagnostics.Runtime.ClrModule! module) -> (ulong MethodTable, int Token)[]!
-Microsoft.Diagnostics.Runtime.Implementation.IModuleHelpers.GetTypeName(ulong mt) -> string?
-Microsoft.Diagnostics.Runtime.Implementation.IModuleHelpers.TryGetType(ulong mt) -> Microsoft.Diagnostics.Runtime.ClrType?
-Microsoft.Diagnostics.Runtime.Implementation.IObjectData
-Microsoft.Diagnostics.Runtime.Implementation.IObjectData.CCW.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IObjectData.DataPointer.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IObjectData.ElementType.get -> Microsoft.Diagnostics.Runtime.ClrElementType
-Microsoft.Diagnostics.Runtime.Implementation.IObjectData.ElementTypeHandle.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IObjectData.RCW.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IRcwData
-Microsoft.Diagnostics.Runtime.Implementation.IRcwData.Address.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IRcwData.CreatorThread.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IRcwData.Disconnected.get -> bool
-Microsoft.Diagnostics.Runtime.Implementation.IRcwData.GetInterfaces() -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ComInterfaceData>
-Microsoft.Diagnostics.Runtime.Implementation.IRcwData.IUnknown.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IRcwData.ManagedObject.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IRcwData.RefCount.get -> int
-Microsoft.Diagnostics.Runtime.Implementation.IRcwData.VTablePointer.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IRuntimeHelpers
-Microsoft.Diagnostics.Runtime.Implementation.IRuntimeHelpers.DataReader.get -> Microsoft.Diagnostics.Runtime.IDataReader!
-Microsoft.Diagnostics.Runtime.Implementation.IRuntimeHelpers.EnumerateHandleTable(Microsoft.Diagnostics.Runtime.ClrRuntime! runtime) -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrHandle!>!
-Microsoft.Diagnostics.Runtime.Implementation.IRuntimeHelpers.Factory.get -> Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory!
-Microsoft.Diagnostics.Runtime.Implementation.IRuntimeHelpers.FlushCachedData() -> void
-Microsoft.Diagnostics.Runtime.Implementation.IRuntimeHelpers.GetAppDomains(Microsoft.Diagnostics.Runtime.ClrRuntime! runtime, out Microsoft.Diagnostics.Runtime.ClrAppDomain? system, out Microsoft.Diagnostics.Runtime.ClrAppDomain? shared) -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrAppDomain!>
-Microsoft.Diagnostics.Runtime.Implementation.IRuntimeHelpers.GetBaseClassLibrary(Microsoft.Diagnostics.Runtime.ClrRuntime! runtime) -> Microsoft.Diagnostics.Runtime.ClrModule?
-Microsoft.Diagnostics.Runtime.Implementation.IRuntimeHelpers.GetJitHelperFunctionName(ulong ip) -> string?
-Microsoft.Diagnostics.Runtime.Implementation.IRuntimeHelpers.GetMethodDesc(ulong ip) -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IRuntimeHelpers.GetThreads(Microsoft.Diagnostics.Runtime.ClrRuntime! runtime) -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrThread!>
-Microsoft.Diagnostics.Runtime.Implementation.ISegmentData
-Microsoft.Diagnostics.Runtime.Implementation.ISegmentData.BaseAddress.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ISegmentData.CommittedEnd.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ISegmentData.End.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ISegmentData.Gen0Length.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ISegmentData.Gen0Start.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ISegmentData.Gen1Length.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ISegmentData.Gen1Start.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ISegmentData.Gen2Length.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ISegmentData.Gen2Start.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ISegmentData.IsEphemeralSegment.get -> bool
-Microsoft.Diagnostics.Runtime.Implementation.ISegmentData.IsLargeObjectSegment.get -> bool
-Microsoft.Diagnostics.Runtime.Implementation.ISegmentData.IsPinnedObjectSegment.get -> bool
-Microsoft.Diagnostics.Runtime.Implementation.ISegmentData.LogicalHeap.get -> int
-Microsoft.Diagnostics.Runtime.Implementation.ISegmentData.ReservedEnd.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ISegmentData.Start.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IThreadData
-Microsoft.Diagnostics.Runtime.Implementation.IThreadData.Address.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IThreadData.ExceptionHandle.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IThreadData.Helpers.get -> Microsoft.Diagnostics.Runtime.Implementation.IThreadHelpers!
-Microsoft.Diagnostics.Runtime.Implementation.IThreadData.IsFinalizer.get -> bool
-Microsoft.Diagnostics.Runtime.Implementation.IThreadData.LockCount.get -> uint
-Microsoft.Diagnostics.Runtime.Implementation.IThreadData.ManagedThreadID.get -> int
-Microsoft.Diagnostics.Runtime.Implementation.IThreadData.OSThreadID.get -> uint
-Microsoft.Diagnostics.Runtime.Implementation.IThreadData.Preemptive.get -> bool
-Microsoft.Diagnostics.Runtime.Implementation.IThreadData.StackBase.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IThreadData.StackLimit.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.IThreadData.State.get -> int
-Microsoft.Diagnostics.Runtime.Implementation.IThreadHelpers
-Microsoft.Diagnostics.Runtime.Implementation.IThreadHelpers.DataReader.get -> Microsoft.Diagnostics.Runtime.IDataReader!
-Microsoft.Diagnostics.Runtime.Implementation.IThreadHelpers.EnumerateStackRoots(Microsoft.Diagnostics.Runtime.ClrThread! thread) -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.IClrStackRoot!>!
-Microsoft.Diagnostics.Runtime.Implementation.IThreadHelpers.EnumerateStackTrace(Microsoft.Diagnostics.Runtime.ClrThread! thread, bool includeContext) -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrStackFrame!>!
-Microsoft.Diagnostics.Runtime.Implementation.IThreadHelpers.ExceptionHelpers.get -> Microsoft.Diagnostics.Runtime.Implementation.IExceptionHelpers!
-Microsoft.Diagnostics.Runtime.Implementation.IThreadHelpers.Factory.get -> Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory!
-Microsoft.Diagnostics.Runtime.Implementation.ITypeData
-Microsoft.Diagnostics.Runtime.Implementation.ITypeData.BaseSize.get -> int
-Microsoft.Diagnostics.Runtime.Implementation.ITypeData.ComponentMethodTable.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ITypeData.ComponentSize.get -> int
-Microsoft.Diagnostics.Runtime.Implementation.ITypeData.ContainsPointers.get -> bool
-Microsoft.Diagnostics.Runtime.Implementation.ITypeData.Helpers.get -> Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers!
-Microsoft.Diagnostics.Runtime.Implementation.ITypeData.IsShared.get -> bool
-Microsoft.Diagnostics.Runtime.Implementation.ITypeData.MethodCount.get -> int
-Microsoft.Diagnostics.Runtime.Implementation.ITypeData.MethodTable.get -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ITypeData.Token.get -> int
-Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory
-Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory.CreateCCWForObject(ulong obj) -> Microsoft.Diagnostics.Runtime.ComCallableWrapper?
-Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory.CreateFieldsForType(Microsoft.Diagnostics.Runtime.ClrType! type, out System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrInstanceField!> fields, out System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrStaticField!> staticFields) -> bool
-Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory.CreateMethodFromHandle(ulong methodHandle) -> Microsoft.Diagnostics.Runtime.ClrMethod?
-Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory.CreateMethodsForType(Microsoft.Diagnostics.Runtime.ClrType! type, out System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrMethod!> methods) -> bool
-Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory.CreateRCWForObject(ulong obj) -> Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper?
-Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory.CreateSystemType(Microsoft.Diagnostics.Runtime.ClrHeap! heap, ulong mt, string! kind) -> Microsoft.Diagnostics.Runtime.ClrType!
-Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory.GetOrCreateArrayType(Microsoft.Diagnostics.Runtime.ClrType! inner, int ranks) -> Microsoft.Diagnostics.Runtime.ClrType?
-Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory.GetOrCreateBasicType(Microsoft.Diagnostics.Runtime.ClrElementType basicType) -> Microsoft.Diagnostics.Runtime.ClrType!
-Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory.GetOrCreateHeap() -> Microsoft.Diagnostics.Runtime.ClrHeap!
-Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory.GetOrCreateModule(Microsoft.Diagnostics.Runtime.ClrAppDomain! domain, ulong address) -> Microsoft.Diagnostics.Runtime.ClrModule!
-Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory.GetOrCreatePointerType(Microsoft.Diagnostics.Runtime.ClrType! innerType, int depth) -> Microsoft.Diagnostics.Runtime.ClrType?
-Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory.GetOrCreateRuntime() -> Microsoft.Diagnostics.Runtime.ClrRuntime!
-Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory.GetOrCreateType(Microsoft.Diagnostics.Runtime.ClrHeap! heap, ulong mt, ulong obj) -> Microsoft.Diagnostics.Runtime.ClrType?
-Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory.GetOrCreateType(ulong mt, ulong obj) -> Microsoft.Diagnostics.Runtime.ClrType?
-Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory.GetOrCreateTypeFromSignature(Microsoft.Diagnostics.Runtime.ClrModule? module, Microsoft.Diagnostics.Runtime.Utilities.SigParser parser, System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrGenericParameter>! typeParameters, System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrGenericParameter>! methodParameters) -> Microsoft.Diagnostics.Runtime.ClrType?
-Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory.GetOrCreateTypeFromToken(Microsoft.Diagnostics.Runtime.ClrModule! module, int token) -> Microsoft.Diagnostics.Runtime.ClrType?
-Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory.IsThreadSafe.get -> bool
-Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers
-Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.ClrObjectHelpers.get -> Microsoft.Diagnostics.Runtime.Implementation.IClrObjectHelpers!
-Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.DataReader.get -> Microsoft.Diagnostics.Runtime.IDataReader!
-Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.Factory.get -> Microsoft.Diagnostics.Runtime.Implementation.ITypeFactory!
-Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetAssemblyLoadContextAddress(ulong mt) -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetLoaderAllocatorHandle(ulong mt) -> ulong
-Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetObjectData(ulong objRef) -> Microsoft.Diagnostics.Runtime.Implementation.IObjectData?
-Microsoft.Diagnostics.Runtime.Implementation.ITypeHelpers.GetTypeName(ulong mt, out string? name) -> bool
 Microsoft.Diagnostics.Runtime.M128A
 Microsoft.Diagnostics.Runtime.M128A.Clear() -> void
 Microsoft.Diagnostics.Runtime.M128A.Equals(Microsoft.Diagnostics.Runtime.M128A other) -> bool
@@ -1013,7 +756,6 @@ Microsoft.Diagnostics.Runtime.ObjectSet.HeapHashSegment.EndAddress -> ulong
 Microsoft.Diagnostics.Runtime.ObjectSet.HeapHashSegment.HeapHashSegment() -> void
 Microsoft.Diagnostics.Runtime.ObjectSet.HeapHashSegment.Objects -> System.Collections.BitArray!
 Microsoft.Diagnostics.Runtime.ObjectSet.HeapHashSegment.StartAddress -> ulong
-Microsoft.Diagnostics.Runtime.ObjectSet.MinObjSize.get -> int
 Microsoft.Diagnostics.Runtime.ObjectSet.ObjectSet(Microsoft.Diagnostics.Runtime.ClrHeap! heap) -> void
 Microsoft.Diagnostics.Runtime.ObjectSet.Segments.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ObjectSet.HeapHashSegment>
 Microsoft.Diagnostics.Runtime.PdbInfo
@@ -1051,7 +793,6 @@ Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.Interfaces.get -> System.Co
 Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.IsDisconnected.get -> bool
 Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.Object.get -> ulong
 Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.RefCount.get -> int
-Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.RuntimeCallableWrapper(Microsoft.Diagnostics.Runtime.ClrRuntime! runtime, Microsoft.Diagnostics.Runtime.Implementation.IRcwData! data) -> void
 Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.VTablePointer.get -> ulong
 Microsoft.Diagnostics.Runtime.RuntimeCallableWrapper.WinRTObject.get -> ulong
 Microsoft.Diagnostics.Runtime.StringCaching
@@ -1122,20 +863,6 @@ Microsoft.Diagnostics.Runtime.VectorRegisterArea.Clear() -> void
 Microsoft.Diagnostics.Runtime.VectorRegisterArea.VectorControl -> ulong
 Microsoft.Diagnostics.Runtime.VectorRegisterArea.VectorRegister -> Microsoft.Diagnostics.Runtime.M128A[]?
 Microsoft.Diagnostics.Runtime.VectorRegisterArea.VectorRegisterArea(Microsoft.Diagnostics.Runtime.VectorRegisterArea other) -> void
-Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels
-Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels.AdjustDefault = 128 -> Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels
-Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels.AdjustGroups = 64 -> Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels
-Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels.AdjustPrivileges = 32 -> Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels
-Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels.AdjustSessionId = 256 -> Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels
-Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels.AllAccess = 983551 -> Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels
-Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels.AssignPrimary = 1 -> Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels
-Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels.Duplicate = 2 -> Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels
-Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels.Impersonate = 4 -> Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels
-Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels.MaximumAllowed = 33554432 -> Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels
-Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels.Query = 8 -> Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels
-Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels.QuerySource = 16 -> Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels
-Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels.Read = 131080 -> Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels
-Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels.Write = 131296 -> Microsoft.Diagnostics.Runtime.Windows.TokenAccessLevels
 Microsoft.Diagnostics.Runtime.X86Context
 Microsoft.Diagnostics.Runtime.X86Context.ContextFlags -> uint
 Microsoft.Diagnostics.Runtime.X86Context.ControlWord -> uint
@@ -1359,7 +1086,6 @@ abstract Microsoft.Diagnostics.Runtime.ClrThread.StackBase.get -> ulong
 abstract Microsoft.Diagnostics.Runtime.ClrThread.StackLimit.get -> ulong
 abstract Microsoft.Diagnostics.Runtime.ClrType.AsEnum() -> Microsoft.Diagnostics.Runtime.ClrEnum!
 abstract Microsoft.Diagnostics.Runtime.ClrType.BaseType.get -> Microsoft.Diagnostics.Runtime.ClrType?
-abstract Microsoft.Diagnostics.Runtime.ClrType.ClrObjectHelpers.get -> Microsoft.Diagnostics.Runtime.Implementation.IClrObjectHelpers!
 abstract Microsoft.Diagnostics.Runtime.ClrType.ComponentSize.get -> int
 abstract Microsoft.Diagnostics.Runtime.ClrType.ComponentType.get -> Microsoft.Diagnostics.Runtime.ClrType?
 abstract Microsoft.Diagnostics.Runtime.ClrType.ElementType.get -> Microsoft.Diagnostics.Runtime.ClrElementType
@@ -1468,343 +1194,6 @@ override Microsoft.Diagnostics.Runtime.ClrType.ToString() -> string?
 override Microsoft.Diagnostics.Runtime.CustomDataTarget.ToString() -> string!
 override Microsoft.Diagnostics.Runtime.GCRootPath.ToString() -> string!
 override Microsoft.Diagnostics.Runtime.ILToNativeMap.ToString() -> string!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdAppDomain.Address.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdAppDomain.ApplicationBase.get -> string?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdAppDomain.ConfigurationFile.get -> string?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdAppDomain.Id.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdAppDomain.Modules.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrModule!>
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdAppDomain.Name.get -> string?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdAppDomain.Runtime.get -> Microsoft.Diagnostics.Runtime.ClrRuntime!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdArrayType.ComponentSize.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdArrayType.ComponentType.get -> Microsoft.Diagnostics.Runtime.ClrType?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdArrayType.GetArrayElementAddress(ulong objRef, int index) -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdArrayType.ReadArrayElements<T>(ulong objRef, int start, int count) -> T[]?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.AsEnum() -> Microsoft.Diagnostics.Runtime.ClrEnum!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.BaseType.get -> Microsoft.Diagnostics.Runtime.ClrType?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.ClrObjectHelpers.get -> Microsoft.Diagnostics.Runtime.Implementation.IClrObjectHelpers!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.ComponentSize.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.ComponentType.get -> Microsoft.Diagnostics.Runtime.ClrType!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.ElementType.get -> Microsoft.Diagnostics.Runtime.ClrElementType
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.EnumerateInterfaces() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrInterface!>!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.Fields.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrInstanceField!>
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.GCDesc.get -> Microsoft.Diagnostics.Runtime.GCDesc
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.GetArrayElementAddress(ulong objRef, int index) -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.GetFieldByName(string! name) -> Microsoft.Diagnostics.Runtime.ClrInstanceField?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.GetStaticFieldByName(string! name) -> Microsoft.Diagnostics.Runtime.ClrStaticField?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.Heap.get -> Microsoft.Diagnostics.Runtime.ClrHeap!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.IsAbstract.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.IsArray.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.IsEnum.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.IsFinalizable.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.IsFinalizeSuppressed(ulong obj) -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.IsInterface.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.IsInternal.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.IsPointer.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.IsPrivate.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.IsProtected.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.IsPublic.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.IsSealed.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.IsShared.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.MetadataToken.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.MethodTable.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.Methods.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrMethod!>
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.Module.get -> Microsoft.Diagnostics.Runtime.ClrModule!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.Name.get -> string!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.ReadArrayElements<T>(ulong objRef, int start, int count) -> T[]?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.StaticFields.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrStaticField!>
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdConstructedType.StaticSize.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdDependentHandle.Address.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdDependentHandle.AppDomain.get -> Microsoft.Diagnostics.Runtime.ClrAppDomain!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdDependentHandle.Dependent.get -> Microsoft.Diagnostics.Runtime.ClrObject
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdDependentHandle.HandleKind.get -> Microsoft.Diagnostics.Runtime.ClrHandleKind
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdDependentHandle.Object.get -> Microsoft.Diagnostics.Runtime.ClrObject
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdDependentHandle.ReferenceCount.get -> uint
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.ContainingType.get -> Microsoft.Diagnostics.Runtime.ClrType!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.ElementType.get -> Microsoft.Diagnostics.Runtime.ClrElementType
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.GetAddress(ulong objRef, bool interior = false) -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.IsInternal.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.IsObjectReference.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.IsPrimitive.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.IsPrivate.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.IsProtected.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.IsPublic.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.IsValueType.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.Name.get -> string?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.Offset.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.Read<T>(ulong objRef, bool interior) -> T
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.ReadObject(ulong objRef, bool interior) -> Microsoft.Diagnostics.Runtime.ClrObject
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.ReadString(ulong objRef, bool interior) -> string?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.ReadStruct(ulong objRef, bool interior) -> Microsoft.Diagnostics.Runtime.ClrValueType
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.Size.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.Token.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdField.Type.get -> Microsoft.Diagnostics.Runtime.ClrType?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.AsEnum() -> Microsoft.Diagnostics.Runtime.ClrEnum!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.BaseType.get -> Microsoft.Diagnostics.Runtime.ClrType?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.ClrObjectHelpers.get -> Microsoft.Diagnostics.Runtime.Implementation.IClrObjectHelpers!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.ComponentSize.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.ComponentType.get -> Microsoft.Diagnostics.Runtime.ClrType?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.ElementType.get -> Microsoft.Diagnostics.Runtime.ClrElementType
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.EnumerateInterfaces() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrInterface!>!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.Fields.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrInstanceField!>
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.GCDesc.get -> Microsoft.Diagnostics.Runtime.GCDesc
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.GetArrayElementAddress(ulong objRef, int index) -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.GetFieldByName(string! name) -> Microsoft.Diagnostics.Runtime.ClrInstanceField?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.GetStaticFieldByName(string! name) -> Microsoft.Diagnostics.Runtime.ClrStaticField?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.Heap.get -> Microsoft.Diagnostics.Runtime.ClrHeap!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.IsAbstract.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.IsArray.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.IsEnum.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.IsFinalizable.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.IsFinalizeSuppressed(ulong obj) -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.IsInterface.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.IsInternal.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.IsPrivate.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.IsProtected.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.IsPublic.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.IsSealed.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.IsShared.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.MetadataToken.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.MethodTable.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.Methods.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrMethod!>
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.Module.get -> Microsoft.Diagnostics.Runtime.ClrModule?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.Name.get -> string?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.ReadArrayElements<T>(ulong objRef, int start, int count) -> T[]?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.StaticFields.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrStaticField!>
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdGenericType.StaticSize.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHandle.Address.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHandle.AppDomain.get -> Microsoft.Diagnostics.Runtime.ClrAppDomain!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHandle.Dependent.get -> Microsoft.Diagnostics.Runtime.ClrObject
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHandle.HandleKind.get -> Microsoft.Diagnostics.Runtime.ClrHandleKind
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHandle.Object.get -> Microsoft.Diagnostics.Runtime.ClrObject
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHandle.ReferenceCount.get -> uint
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.CanWalkHeap.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.EnumerateAllocationContexts() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.MemoryRange>!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.EnumerateFinalizableObjects() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrObject>!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.EnumerateFinalizerRoots() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrFinalizerRoot!>!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.EnumerateObjectReferences(ulong obj, Microsoft.Diagnostics.Runtime.ClrType! type, bool carefully, bool considerDependantHandles) -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrObject>!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.EnumerateObjects() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrObject>!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.EnumerateReferencesWithFields(ulong obj, Microsoft.Diagnostics.Runtime.ClrType! type, bool carefully, bool considerDependantHandles) -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrReference>!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.EnumerateRoots() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.IClrRoot!>!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.ExceptionType.get -> Microsoft.Diagnostics.Runtime.ClrType!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.FreeType.get -> Microsoft.Diagnostics.Runtime.ClrType!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.GetComFlags(ulong obj) -> Microsoft.Diagnostics.Runtime.SyncBlockComFlags
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.GetObjectSize(ulong objRef, Microsoft.Diagnostics.Runtime.ClrType! type) -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.GetObjectType(ulong objRef) -> Microsoft.Diagnostics.Runtime.ClrType?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.GetSegmentByAddress(ulong address) -> Microsoft.Diagnostics.Runtime.ClrSegment?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.GetSyncBlock(ulong obj) -> Microsoft.Diagnostics.Runtime.SyncBlock?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.IsServer.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.LogicalHeapCount.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.ObjectType.get -> Microsoft.Diagnostics.Runtime.ClrType!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.Runtime.get -> Microsoft.Diagnostics.Runtime.ClrRuntime!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.Segments.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrSegment!>
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdHeap.StringType.get -> Microsoft.Diagnostics.Runtime.ClrType!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.CompilationType.get -> Microsoft.Diagnostics.Runtime.MethodCompilationType
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.GetILOffset(ulong addr) -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.HotColdInfo.get -> Microsoft.Diagnostics.Runtime.HotColdRegions
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.IL.get -> Microsoft.Diagnostics.Runtime.ILInfo?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.ILOffsetMap.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ILToNativeMap>
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.IsAbstract.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.IsFinal.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.IsInternal.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.IsPInvoke.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.IsPrivate.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.IsProtected.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.IsPublic.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.IsRTSpecialName.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.IsSpecialName.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.IsStatic.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.IsVirtual.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.MetadataToken.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.MethodDesc.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.Name.get -> string?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.NativeCode.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.Signature.get -> string?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.ToString() -> string?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdMethod.Type.get -> Microsoft.Diagnostics.Runtime.ClrType!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.Address.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.AppDomain.get -> Microsoft.Diagnostics.Runtime.ClrAppDomain!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.AssemblyAddress.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.AssemblyName.get -> string?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.DebuggingMode.get -> System.Diagnostics.DebuggableAttribute.DebuggingModes
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.EnumerateTypeDefToMethodTableMap() -> System.Collections.Generic.IEnumerable<(ulong MethodTable, int Token)>!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.GetTypeByName(string! name) -> Microsoft.Diagnostics.Runtime.ClrType?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.ImageBase.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.IsDynamic.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.IsPEFile.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.Layout.get -> Microsoft.Diagnostics.Runtime.ModuleLayout
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.MetadataAddress.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.MetadataImport.get -> Microsoft.Diagnostics.Runtime.DacInterface.MetadataImport?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.MetadataLength.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.Name.get -> string?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.Pdb.get -> Microsoft.Diagnostics.Runtime.PdbInfo?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.ResolveToken(int typeDefOrRefToken) -> Microsoft.Diagnostics.Runtime.ClrType?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdModule.Size.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.AsEnum() -> Microsoft.Diagnostics.Runtime.ClrEnum!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.BaseType.get -> Microsoft.Diagnostics.Runtime.ClrType?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.ClrObjectHelpers.get -> Microsoft.Diagnostics.Runtime.Implementation.IClrObjectHelpers!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.ComponentSize.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.ComponentType.get -> Microsoft.Diagnostics.Runtime.ClrType?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.ElementType.get -> Microsoft.Diagnostics.Runtime.ClrElementType
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.EnumerateInterfaces() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrInterface!>!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.Fields.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrInstanceField!>
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.GCDesc.get -> Microsoft.Diagnostics.Runtime.GCDesc
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.GetArrayElementAddress(ulong objRef, int index) -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.GetFieldByName(string! name) -> Microsoft.Diagnostics.Runtime.ClrInstanceField?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.GetStaticFieldByName(string! name) -> Microsoft.Diagnostics.Runtime.ClrStaticField?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.Heap.get -> Microsoft.Diagnostics.Runtime.ClrHeap!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.IsAbstract.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.IsArray.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.IsEnum.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.IsFinalizable.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.IsFinalizeSuppressed(ulong obj) -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.IsInterface.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.IsInternal.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.IsPrivate.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.IsProtected.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.IsPublic.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.IsSealed.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.IsShared.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.MetadataToken.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.MethodTable.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.Methods.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrMethod!>
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.Module.get -> Microsoft.Diagnostics.Runtime.ClrModule!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.Name.get -> string!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.ReadArrayElements<T>(ulong objRef, int start, int count) -> T[]?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.StaticFields.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrStaticField!>
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdPrimitiveType.StaticSize.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRefCountedHandle.Address.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRefCountedHandle.AppDomain.get -> Microsoft.Diagnostics.Runtime.ClrAppDomain!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRefCountedHandle.Dependent.get -> Microsoft.Diagnostics.Runtime.ClrObject
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRefCountedHandle.HandleKind.get -> Microsoft.Diagnostics.Runtime.ClrHandleKind
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRefCountedHandle.Object.get -> Microsoft.Diagnostics.Runtime.ClrObject
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRefCountedHandle.ReferenceCount.get -> uint
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.AppDomains.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrAppDomain!>
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.BaseClassLibrary.get -> Microsoft.Diagnostics.Runtime.ClrModule!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.ClrInfo.get -> Microsoft.Diagnostics.Runtime.ClrInfo!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.DacLibrary.get -> Microsoft.Diagnostics.Runtime.DacLibrary!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.DataTarget.get -> Microsoft.Diagnostics.Runtime.DataTarget!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.EnumerateHandles() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrHandle!>!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.EnumerateModules() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrModule!>!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.FlushCachedData() -> void
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.GetJitHelperFunctionName(ulong ip) -> string?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.GetMethodByHandle(ulong methodHandle) -> Microsoft.Diagnostics.Runtime.ClrMethod?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.GetMethodByInstructionPointer(ulong ip) -> Microsoft.Diagnostics.Runtime.ClrMethod?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.GetTypeByMethodTable(ulong methodTable) -> Microsoft.Diagnostics.Runtime.ClrType?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.Heap.get -> Microsoft.Diagnostics.Runtime.ClrHeap!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.IsThreadSafe.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.SharedDomain.get -> Microsoft.Diagnostics.Runtime.ClrAppDomain?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.SystemDomain.get -> Microsoft.Diagnostics.Runtime.ClrAppDomain?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdRuntime.Threads.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrThread!>
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdSegment.CommittedMemory.get -> Microsoft.Diagnostics.Runtime.MemoryRange
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdSegment.EnumerateObjects() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrObject>!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdSegment.FirstObjectAddress.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdSegment.Generation0.get -> Microsoft.Diagnostics.Runtime.MemoryRange
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdSegment.Generation1.get -> Microsoft.Diagnostics.Runtime.MemoryRange
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdSegment.Generation2.get -> Microsoft.Diagnostics.Runtime.MemoryRange
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdSegment.GetNextObjectAddress(ulong addr) -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdSegment.GetPreviousObjectAddress(ulong addr) -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdSegment.Heap.get -> Microsoft.Diagnostics.Runtime.ClrHeap!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdSegment.IsEphemeralSegment.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdSegment.IsLargeObjectSegment.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdSegment.IsPinnedObjectSegment.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdSegment.LogicalHeap.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdSegment.ObjectRange.get -> Microsoft.Diagnostics.Runtime.MemoryRange
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdSegment.ReservedMemory.get -> Microsoft.Diagnostics.Runtime.MemoryRange
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.ContainingType.get -> Microsoft.Diagnostics.Runtime.ClrType!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.ElementType.get -> Microsoft.Diagnostics.Runtime.ClrElementType
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.GetAddress(Microsoft.Diagnostics.Runtime.ClrAppDomain! domain) -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.IsInitialized(Microsoft.Diagnostics.Runtime.ClrAppDomain! appDomain) -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.IsInternal.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.IsObjectReference.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.IsPrimitive.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.IsPrivate.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.IsProtected.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.IsPublic.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.IsValueType.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.Name.get -> string?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.Offset.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.Read<T>(Microsoft.Diagnostics.Runtime.ClrAppDomain! appDomain) -> T
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.ReadObject(Microsoft.Diagnostics.Runtime.ClrAppDomain! appDomain) -> Microsoft.Diagnostics.Runtime.ClrObject
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.ReadString(Microsoft.Diagnostics.Runtime.ClrAppDomain! appDomain) -> string?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.ReadStruct(Microsoft.Diagnostics.Runtime.ClrAppDomain! appDomain) -> Microsoft.Diagnostics.Runtime.ClrValueType
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.Size.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.Token.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdStaticField.Type.get -> Microsoft.Diagnostics.Runtime.ClrType!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.Address.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.CurrentAppDomain.get -> Microsoft.Diagnostics.Runtime.ClrAppDomain!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.CurrentException.get -> Microsoft.Diagnostics.Runtime.ClrException?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.EnumerateStackRoots() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.IClrStackRoot!>!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.EnumerateStackTrace(bool includeContext) -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrStackFrame!>!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.GCMode.get -> Microsoft.Diagnostics.Runtime.GCMode
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.IsAbortRequested.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.IsAborted.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.IsAlive.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.IsBackground.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.IsCoInitialized.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.IsDebugSuspended.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.IsFinalizer.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.IsGCSuspendPending.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.IsMTA.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.IsSTA.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.IsUnstarted.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.IsUserSuspended.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.LockCount.get -> uint
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.ManagedThreadId.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.OSThreadId.get -> uint
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.Runtime.get -> Microsoft.Diagnostics.Runtime.ClrRuntime!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.StackBase.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdThread.StackLimit.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.AsEnum() -> Microsoft.Diagnostics.Runtime.ClrEnum!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.AssemblyLoadContextAddress.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.BaseType.get -> Microsoft.Diagnostics.Runtime.ClrType?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.ClrObjectHelpers.get -> Microsoft.Diagnostics.Runtime.Implementation.IClrObjectHelpers!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.ComponentSize.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.ComponentType.get -> Microsoft.Diagnostics.Runtime.ClrType?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.ContainsPointers.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.ElementType.get -> Microsoft.Diagnostics.Runtime.ClrElementType
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.EnumerateGenericParameters() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrGenericParameter>!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.EnumerateInterfaces() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrInterface!>!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.Fields.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrInstanceField!>
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.GCDesc.get -> Microsoft.Diagnostics.Runtime.GCDesc
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.GetArrayElementAddress(ulong objRef, int index) -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.GetFieldByName(string! name) -> Microsoft.Diagnostics.Runtime.ClrInstanceField?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.GetStaticFieldByName(string! name) -> Microsoft.Diagnostics.Runtime.ClrStaticField?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.Heap.get -> Microsoft.Diagnostics.Runtime.ClrHeap!
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.IsAbstract.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.IsArray.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.IsCollectible.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.IsEnum.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.IsException.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.IsFinalizable.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.IsFinalizeSuppressed(ulong obj) -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.IsFree.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.IsInterface.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.IsInternal.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.IsPrivate.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.IsProtected.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.IsPublic.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.IsSealed.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.IsShared.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.IsString.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.LoaderAllocatorHandle.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.MetadataToken.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.MethodTable.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.Methods.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrMethod!>
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.Module.get -> Microsoft.Diagnostics.Runtime.ClrModule?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.Name.get -> string?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.ReadArrayElements<T>(ulong objRef, int start, int count) -> T[]?
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.StaticFields.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.ClrStaticField!>
-override Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.StaticSize.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.ComSyncBlock.IsComCallWrapper.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ComSyncBlock.IsComClassFactory.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.ComSyncBlock.IsRuntimeCallWrapper.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.HoldingThreadAddress.get -> ulong
-override Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.IsComCallWrapper.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.IsComClassFactory.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.IsMonitorHeld.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.IsRuntimeCallWrapper.get -> bool
-override Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.RecursionCount.get -> int
-override Microsoft.Diagnostics.Runtime.Implementation.FullSyncBlock.WaitingThreadCount.get -> int
 override Microsoft.Diagnostics.Runtime.M128A.Equals(object? obj) -> bool
 override Microsoft.Diagnostics.Runtime.M128A.GetHashCode() -> int
 override Microsoft.Diagnostics.Runtime.MemoryRange.ToString() -> string!
@@ -2112,7 +1501,6 @@ static Microsoft.Diagnostics.Runtime.DataTarget.LoadDump(string! displayName, Sy
 static Microsoft.Diagnostics.Runtime.DataTarget.LoadDump(string! filePath, Microsoft.Diagnostics.Runtime.CacheOptions? cacheOptions = null) -> Microsoft.Diagnostics.Runtime.DataTarget!
 static Microsoft.Diagnostics.Runtime.DataTarget.PlatformFunctions.get -> Microsoft.Diagnostics.Runtime.PlatformFunctions!
 static Microsoft.Diagnostics.Runtime.IAddressableTypedEntityExtensions.GetFieldFrom(this Microsoft.Diagnostics.Runtime.IAddressableTypedEntity! entity, string! fieldName) -> Microsoft.Diagnostics.Runtime.IAddressableTypedEntity!
-static Microsoft.Diagnostics.Runtime.Implementation.ClrmdType.FixGenerics(string? name) -> string?
 static Microsoft.Diagnostics.Runtime.M128A.operator !=(Microsoft.Diagnostics.Runtime.M128A left, Microsoft.Diagnostics.Runtime.M128A right) -> bool
 static Microsoft.Diagnostics.Runtime.M128A.operator ==(Microsoft.Diagnostics.Runtime.M128A left, Microsoft.Diagnostics.Runtime.M128A right) -> bool
 static Microsoft.Diagnostics.Runtime.MemoryRange.CreateFromLength(ulong start, ulong length) -> Microsoft.Diagnostics.Runtime.MemoryRange
@@ -2173,7 +1561,6 @@ Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress.ClrDataAddress() -> vo
 Microsoft.Diagnostics.Runtime.GCDesc.GCDesc() -> void
 Microsoft.Diagnostics.Runtime.GCRootPath.GCRootPath() -> void
 Microsoft.Diagnostics.Runtime.HotColdRegions.HotColdRegions() -> void
-Microsoft.Diagnostics.Runtime.Implementation.FinalizerQueueSegment.FinalizerQueueSegment() -> void
 Microsoft.Diagnostics.Runtime.MemoryRange.MemoryRange() -> void
 Microsoft.Diagnostics.Runtime.Utilities.HResult.HResult() -> void
 Microsoft.Diagnostics.Runtime.Utilities.SigParser.SigParser() -> void

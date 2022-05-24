@@ -12,7 +12,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class ClrmdModule : ClrModule
+    internal sealed class ClrmdModule : ClrModule
     {
         private const int mdtTypeDef = 0x02000000;
         private const int mdtTypeRef = 0x01000000;

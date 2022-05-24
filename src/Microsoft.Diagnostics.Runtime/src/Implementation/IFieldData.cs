@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IFieldData
+    internal interface IFieldData
     {
         IFieldHelpers Helpers { get; }
 

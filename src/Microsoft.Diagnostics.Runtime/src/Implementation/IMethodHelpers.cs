@@ -6,7 +6,7 @@ using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IMethodHelpers
+    internal interface IMethodHelpers
     {
         IDataReader DataReader { get; }
 
