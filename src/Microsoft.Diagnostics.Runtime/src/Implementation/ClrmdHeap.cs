@@ -310,6 +310,68 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
+        public override IEnumerable<ulong> EnumerateReferenceAddresses(ulong obj, ClrType type, bool carefully, bool considerDependantHandles)
+        {
+            if (type is null)
+                throw new ArgumentNullException(nameof(type));
+
+            if (considerDependantHandles)
+            {
+                ImmutableArray<(ulong Source, ulong Target)> dependent = GetHeapData().GetDependentHandles(_helpers);
+
+                if (dependent.Length > 0)
+                {
+                    int index = dependent.Search(obj, (x, y) => x.Source.CompareTo(y));
+                    if (index != -1)
+                    {
+                        while (index >= 1 && dependent[index - 1].Source == obj)
+                            index--;
+
+                        while (index < dependent.Length && dependent[index].Source == obj)
+                            yield return dependent[index++].Target;
+                    }
+                }
+            }
+
+            if (type.ContainsPointers)
+            {
+                GCDesc gcdesc = type.GCDesc;
+                if (!gcdesc.IsEmpty)
+                {
+                    ulong size = GetObjectSize(obj, type);
+                    if (carefully)
+                    {
+                        ClrSegment? seg = GetSegmentByAddress(obj);
+                        if (seg is null)
+                            yield break;
+
+                        bool large = seg.IsLargeObjectSegment || seg.IsPinnedObjectSegment;
+                        if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
+                            yield break;
+                    }
+
+                    int intSize = (int)size;
+                    byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
+                    try
+                    {
+                        int read = _helpers.DataReader.Read(obj, new Span<byte>(buffer, 0, intSize));
+                        if (read > IntPtr.Size)
+                        {
+                            foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
+                            {
+                                yield return reference;
+                                DebugOnly.Assert(offset >= IntPtr.Size);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        ArrayPool<byte>.Shared.Return(buffer);
+                    }
+                }
+            }
+        }
+
         public override IEnumerable<ClrReference> EnumerateReferencesWithFields(ulong obj, ClrType type, bool carefully, bool considerDependantHandles)
         {
             if (type is null)

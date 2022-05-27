@@ -1,10 +1,12 @@
 #nullable enable
+abstract Microsoft.Diagnostics.Runtime.ClrHeap.EnumerateReferenceAddresses(ulong obj, Microsoft.Diagnostics.Runtime.ClrType! type, bool carefully, bool considerDependantHandles) -> System.Collections.Generic.IEnumerable<ulong>!
 Microsoft.Diagnostics.Runtime.ClrInfo.BuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
 Microsoft.Diagnostics.Runtime.ClrInfo.DebuggingLibraries.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.DebugLibraryInfo!>
 Microsoft.Diagnostics.Runtime.ClrInfo.IndexFileSize.get -> int
 Microsoft.Diagnostics.Runtime.ClrInfo.IndexTimeStamp.get -> int
 Microsoft.Diagnostics.Runtime.ClrInfo.IsSingleFile.get -> bool
 Microsoft.Diagnostics.Runtime.ClrInfo.Version.get -> System.Version!
+Microsoft.Diagnostics.Runtime.ClrObject.EnumerateReferenceAddresses(bool carefully = false, bool considerDependantHandles = true) -> System.Collections.Generic.IEnumerable<ulong>!
 Microsoft.Diagnostics.Runtime.DacInterface.ClrDataProcess.GetSOSDacInterface12() -> Microsoft.Diagnostics.Runtime.DacInterface.SOSDac12?
 Microsoft.Diagnostics.Runtime.DacInterface.SOSDac12
 Microsoft.Diagnostics.Runtime.DacInterface.SOSDac12.GetGlobalAllocationContext(out ulong allocPtr, out ulong allocLimit) -> Microsoft.Diagnostics.Runtime.Utilities.HResult
