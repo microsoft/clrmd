@@ -143,6 +143,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             RefCountedFreeLibrary library = new RefCountedFreeLibrary(IntPtr.Zero);
 
+            Marshal.AddRef(pDebugClient);
+            Marshal.AddRef(pDebugClient);
             DebugSystemObjects sys = new DebugSystemObjects(library, pDebugClient);
             DebugClient client = new DebugClient(library, pDebugClient, sys);
             DebugControl control = new DebugControl(library, pDebugClient, sys);
