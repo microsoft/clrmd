@@ -30,18 +30,7 @@
   <ItemGroup>
     <PackageReference Include="AutoFixture" Version="4.15.0" />
     <PackageReference Include="AutoFixture.Xunit2" Version="4.15.0" />
+    <PackageReference Include="NETStandard.Library" Version="2.0.3" />
   </ItemGroup>
-
-<!--
-  <Target Condition="'$(OS)' == 'Windows_NT'" Name="BuildTargetsWindows" BeforeTargets="AfterBuild">
-    <Exec Command="dotnet.exe build -c $(Configuration) ..\TestTasks\TestTasks.csproj" />
-    <Exec Command="dotnet.exe build -c $(Configuration) ..\TestTargets\TestTargets.proj" />
-  </Target>
-
-  <Target Condition="'$(OS)' == 'Unix'" Name="BuildTargetsLinux" BeforeTargets="AfterBuild">
-    <MSBuild Projects="..\TestTargets\TestTargets.proj" />
-  </Target>
-
-!-->
 
 </Project>
