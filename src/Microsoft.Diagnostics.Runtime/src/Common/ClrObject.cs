@@ -72,6 +72,25 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Enumerates all objects that this object references.
+        /// </summary>
+        /// <param name="carefully">Only returns pointers which lie on the managed heap.  In very rare cases it's possible to
+        /// create a crash dump where the GC was in the middle of updating data structures, or to create a crash dump of a process
+        /// with heap corruption.  In those cases, setting carefully=true would ensure we would not enumerate those bad references.
+        /// Note that setting carefully=true will cause a small performance penalty.</param>
+        /// <param name="considerDependantHandles">Setting this to true will have ClrMD check for dependent handle references.
+        /// Checking dependent handles does come at a performance penalty but will give you the true reference chain as the
+        /// GC sees it.</param>
+        /// <returns>An enumeration of object references.</returns>
+        public IEnumerable<ulong> EnumerateReferenceAddresses(bool carefully = false, bool considerDependantHandles = true)
+        {
+            if (Type is null)
+                return Enumerable.Empty<ulong>();
+
+            return Type.Heap.EnumerateReferenceAddresses(Address, Type, carefully, considerDependantHandles);
+        }
+
+        /// <summary>
         /// Returns true if this object is a boxed struct or primitive type that 
         /// </summary>
         public bool IsBoxedValue => Type != null && (Type.IsPrimitive || Type.IsValueType);
