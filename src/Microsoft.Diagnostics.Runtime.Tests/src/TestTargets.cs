@@ -5,8 +5,8 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.DbgEng;
 using Microsoft.Diagnostics.Runtime.Implementation;
-using Microsoft.Diagnostics.Runtime.Interop;
 using Xunit;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
@@ -136,20 +136,25 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public DataTarget LoadFullDumpWithDbgEng(GCMode gc = GCMode.Workstation)
         {
-            Guid guid = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
+            Guid guid = DebugClient.IID_IDebugClient;
             int hr = DebugCreate(guid, out IntPtr pDebugClient);
             if (hr != 0)
                 throw new Exception($"Failed to create DebugClient, hr={hr:x}.");
 
-            IDebugClient client = (IDebugClient)Marshal.GetTypedObjectForIUnknown(pDebugClient, typeof(IDebugClient));
-            IDebugControl control = (IDebugControl)client;
+            RefCountedFreeLibrary library = new RefCountedFreeLibrary(IntPtr.Zero);
+
+            Marshal.AddRef(pDebugClient);
+            Marshal.AddRef(pDebugClient);
+            DebugSystemObjects sys = new DebugSystemObjects(library, pDebugClient);
+            DebugClient client = new DebugClient(library, pDebugClient, sys);
+            DebugControl control = new DebugControl(library, pDebugClient, sys);
 
             string dumpPath = BuildDumpName(gc, true);
             hr = client.OpenDumpFile(dumpPath);
             if (hr != 0)
                 throw new Exception($"Failed to OpenDumpFile, hr={hr:x}.");
 
-            hr = control.WaitForEvent(DEBUG_WAIT.DEFAULT, 10000);
+            hr = control.WaitForEvent(10000);
 
             if (hr != 0)
                 throw new Exception($"Failed to attach to dump file, hr={hr:x}.");
