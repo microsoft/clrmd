@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net6.0</TargetFrameworks>
     <NoWarn>1701;1702;1705;1591;436</NoWarn>
 
     <!-- This _IS_ a Unit Test Project, but because of build_test_assets.cmd, we don't want to run as part of CI right now -->	
@@ -18,7 +18,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Microsoft.Diagnostics.Runtime.Utilities\Microsoft.Diagnostics.Runtime.Utilities.csproj" />
     <ProjectReference Include="..\Microsoft.Diagnostics.Runtime\Microsoft.Diagnostics.Runtime.csproj" />
   </ItemGroup>
 
@@ -31,18 +30,7 @@
   <ItemGroup>
     <PackageReference Include="AutoFixture" Version="4.15.0" />
     <PackageReference Include="AutoFixture.Xunit2" Version="4.15.0" />
+    <PackageReference Include="NETStandard.Library" Version="2.0.3" />
   </ItemGroup>
-
-<!--
-  <Target Condition="'$(OS)' == 'Windows_NT'" Name="BuildTargetsWindows" BeforeTargets="AfterBuild">
-    <Exec Command="dotnet.exe build -c $(Configuration) ..\TestTasks\TestTasks.csproj" />
-    <Exec Command="dotnet.exe build -c $(Configuration) ..\TestTargets\TestTargets.proj" />
-  </Target>
-
-  <Target Condition="'$(OS)' == 'Unix'" Name="BuildTargetsLinux" BeforeTargets="AfterBuild">
-    <MSBuild Projects="..\TestTargets\TestTargets.proj" />
-  </Target>
-
-!-->
 
 </Project>
