@@ -144,9 +144,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IResourceNode? ResourceRoot => GetPEImage()?.Resources;
 
-        public PEModuleInfo(IDataReader dataReader!!, ulong imageBase, string fileName!!, bool isVirtualHint)
+        public PEModuleInfo(IDataReader dataReader, ulong imageBase, string fileName, bool isVirtualHint)
             : base(imageBase, fileName)
         {
+            if (dataReader is null)
+                throw new ArgumentNullException(nameof(dataReader));
+
+            if (fileName is null)
+                throw new ArgumentNullException(nameof(fileName));
+
             _dataReader = dataReader;
             _isVirtual = isVirtualHint;
         }
