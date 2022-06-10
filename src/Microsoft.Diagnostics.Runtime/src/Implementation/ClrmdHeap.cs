@@ -62,7 +62,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // Prepopulate a few important method tables.  This should never fail.
             FreeType = _helpers.Factory.CreateSystemType(this, data.FreeMethodTable, "Free");
             ObjectType = _helpers.Factory.CreateSystemType(this, data.ObjectMethodTable, "System.Object");
-            ExceptionType = _helpers.Factory.CreateSystemType(this, data.ExceptionMethodTable, "System.Exception");
+            try
+            {
+                ExceptionType = _helpers.Factory.CreateSystemType(this, data.ExceptionMethodTable, "System.Exception");
+            }
+            catch
+            {
+                ExceptionType = ObjectType;
+            }
 
             // Triage dumps may not place System.String data into the dump.  In these cases we'll create a "fake"
             // System.String type for the library to use.
