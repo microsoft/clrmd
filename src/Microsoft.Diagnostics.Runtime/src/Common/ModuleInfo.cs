@@ -25,8 +25,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="baseAddress">The base address of this module.</param>
         /// <param name="name">The name of the module.</param>
         /// <returns>A constructed ModuleInfo, or null.</returns>
-        public static ModuleInfo? TryCreate(IDataReader reader!!, ulong baseAddress, string name)
+        public static ModuleInfo? TryCreate(IDataReader reader, ulong baseAddress, string name)
         {
+            if (reader is null)
+                throw new ArgumentNullException(nameof(reader));
+
             name ??= "";
 
             try
@@ -114,8 +117,11 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override string ToString() => FileName;
 
-        public ModuleInfo(ulong imageBase, string fileName!!)
+        public ModuleInfo(ulong imageBase, string fileName)
         {
+            if (fileName is null)
+                throw new ArgumentNullException(nameof(fileName));
+
             ImageBase = imageBase;
             FileName = fileName;
         }

@@ -54,9 +54,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public ElfModuleInfo(IDataReader reader, ElfFile? elf, ulong imageBase, long size, string fileName!!)
+        public ElfModuleInfo(IDataReader reader, ElfFile? elf, ulong imageBase, long size, string fileName)
             : base(imageBase, fileName)
         {
+            if (reader is null)
+                throw new ArgumentNullException(nameof(reader));
+
+            if (fileName is null)
+                throw new ArgumentNullException(nameof(fileName));
+
             _reader = reader;
             _elf = elf;
             ImageSize = size;
