@@ -262,8 +262,14 @@ namespace Microsoft.Diagnostics.Runtime
             };
         }
 
-        internal static ClrInfo? TryCreate(DataTarget dataTarget!!, ModuleInfo module!!)
+        internal static ClrInfo? TryCreate(DataTarget dataTarget, ModuleInfo module)
         {
+            if (dataTarget is null)
+                throw new ArgumentNullException(nameof(dataTarget));
+
+            if (module is null)
+                throw new ArgumentNullException(nameof(module));
+
             if (IsSupportedRuntime(module, out ClrFlavor flavor))
                 return new ClrInfo(dataTarget, flavor, module, 0);
 
