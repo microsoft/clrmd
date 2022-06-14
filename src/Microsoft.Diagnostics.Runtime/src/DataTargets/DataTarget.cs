@@ -66,6 +66,14 @@ namespace Microsoft.Diagnostics.Runtime
             FileLocator = locator;
         }
 
+        public void SetSymbolPath(string symbolPath)
+        {
+            if (symbolPath is null)
+                throw new ArgumentNullException(nameof(symbolPath));
+
+            FileLocator = SymbolGroup.CreateFromSymbolPath(symbolPath);
+        }
+
         public void Dispose()
         {
             if (!_disposed)
