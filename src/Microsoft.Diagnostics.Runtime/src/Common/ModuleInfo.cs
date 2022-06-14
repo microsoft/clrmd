@@ -64,6 +64,11 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Returns the kind of module this is.
+        /// </summary>
+        public abstract ModuleKind Kind { get; }
+
+        /// <summary>
         /// Gets the base address of the this image.
         /// </summary>
         public ulong ImageBase { get; }
