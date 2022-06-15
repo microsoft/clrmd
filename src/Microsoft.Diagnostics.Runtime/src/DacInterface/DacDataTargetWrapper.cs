@@ -69,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public void SetMagicCallback(Action flushCallback) => _callback = flushCallback;
 
-        public HResult GetMachineType(IntPtr self, out IMAGE_FILE_MACHINE machineType)
+        public int GetMachineType(IntPtr self, out IMAGE_FILE_MACHINE machineType)
         {
             machineType = _dataReader.Architecture switch
             {
@@ -124,13 +124,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return null;
         }
 
-        public HResult GetPointerSize(IntPtr self, out int pointerSize)
+        public int GetPointerSize(IntPtr self, out int pointerSize)
         {
             pointerSize = _dataReader.PointerSize;
             return HResult.S_OK;
         }
 
-        public HResult GetImageBase(IntPtr self, string imagePath, out ulong baseAddress)
+        public int GetImageBase(IntPtr self, string imagePath, out ulong baseAddress)
         {
             imagePath = Path.GetFileNameWithoutExtension(imagePath);
 
@@ -148,7 +148,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return HResult.E_FAIL;
         }
 
-        public HResult ReadVirtual(IntPtr _, ClrDataAddress cda, IntPtr buffer, int bytesRequested, out int bytesRead)
+        public int ReadVirtual(IntPtr _, ClrDataAddress cda, IntPtr buffer, int bytesRequested, out int bytesRead)
         {
             ulong address = cda;
             Span<byte> span = new Span<byte>(buffer.ToPointer(), bytesRequested);
@@ -192,31 +192,31 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return HResult.E_FAIL;
         }
 
-        public HResult WriteVirtual(IntPtr self, ClrDataAddress address, IntPtr buffer, uint bytesRequested, out uint bytesWritten)
+        public int WriteVirtual(IntPtr self, ClrDataAddress address, IntPtr buffer, uint bytesRequested, out uint bytesWritten)
         {
             // This gets used by MemoryBarrier() calls in the dac, which really shouldn't matter what we do here.
             bytesWritten = bytesRequested;
             return HResult.S_OK;
         }
 
-        public HResult GetTLSValue(IntPtr self, uint threadID, uint index, out ulong value)
+        public int GetTLSValue(IntPtr self, uint threadID, uint index, out ulong value)
         {
             value = 0;
             return HResult.E_FAIL;
         }
 
-        public HResult SetTLSValue(IntPtr self, uint threadID, uint index, ClrDataAddress value)
+        public int SetTLSValue(IntPtr self, uint threadID, uint index, ClrDataAddress value)
         {
             return HResult.E_FAIL;
         }
 
-        public HResult GetCurrentThreadID(IntPtr self, out uint threadID)
+        public int GetCurrentThreadID(IntPtr self, out uint threadID)
         {
             threadID = 0;
             return HResult.E_FAIL;
         }
 
-        public HResult GetThreadContext(IntPtr self, uint threadID, uint contextFlags, int contextSize, IntPtr context)
+        public int GetThreadContext(IntPtr self, uint threadID, uint contextFlags, int contextSize, IntPtr context)
         {
             Span<byte> span = new Span<byte>(context.ToPointer(), contextSize);
             if (_dataReader.GetThreadContext(threadID, contextFlags, span))
@@ -225,15 +225,15 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return HResult.E_FAIL;
         }
 
-        private HResult SetThreadContext(IntPtr self, uint threadID, uint contextSize, IntPtr context) => HResult.S_OK;
+        private int SetThreadContext(IntPtr self, uint threadID, uint contextSize, IntPtr context) => HResult.S_OK;
 
-        public HResult Request(IntPtr self, uint reqCode, uint inBufferSize, IntPtr inBuffer, IntPtr outBufferSize, out IntPtr outBuffer)
+        public int Request(IntPtr self, uint reqCode, uint inBufferSize, IntPtr inBuffer, IntPtr outBufferSize, out IntPtr outBuffer)
         {
             outBuffer = IntPtr.Zero;
             return HResult.E_NOTIMPL;
         }
 
-        public unsafe HResult GetMetadata(
+        public unsafe int GetMetadata(
             IntPtr self,
             string fileName,
             int imageTimestamp,
@@ -275,7 +275,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return HResult.S_OK;
         }
 
-        private HResult GetRuntimeBase(
+        private int GetRuntimeBase(
             IntPtr self,
             out ulong address)
         {
@@ -284,20 +284,20 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return HResult.S_OK;
         }
 
-        private delegate HResult GetMetadataDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPWStr)] string fileName, int imageTimestamp, int imageSize,
+        private delegate int GetMetadataDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPWStr)] string fileName, int imageTimestamp, int imageSize,
                                                      IntPtr mvid, uint mdRva, uint flags, uint bufferSize, IntPtr buffer, int* dataSize);
-        private delegate HResult GetMachineTypeDelegate(IntPtr self, out IMAGE_FILE_MACHINE machineType);
-        private delegate HResult GetPointerSizeDelegate(IntPtr self, out int pointerSize);
-        private delegate HResult GetImageBaseDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPWStr)] string imagePath, out ulong baseAddress);
-        private delegate HResult ReadVirtualDelegate(IntPtr self, ClrDataAddress address, IntPtr buffer, int bytesRequested, out int bytesRead);
-        private delegate HResult WriteVirtualDelegate(IntPtr self, ClrDataAddress address, IntPtr buffer, uint bytesRequested, out uint bytesWritten);
-        private delegate HResult GetTLSValueDelegate(IntPtr self, uint threadID, uint index, out ulong value);
-        private delegate HResult SetTLSValueDelegate(IntPtr self, uint threadID, uint index, ClrDataAddress value);
-        private delegate HResult GetCurrentThreadIDDelegate(IntPtr self, out uint threadID);
-        private delegate HResult GetThreadContextDelegate(IntPtr self, uint threadID, uint contextFlags, int contextSize, IntPtr context);
-        private delegate HResult SetThreadContextDelegate(IntPtr self, uint threadID, uint contextSize, IntPtr context);
-        private delegate HResult RequestDelegate(IntPtr self, uint reqCode, uint inBufferSize, IntPtr inBuffer, IntPtr outBufferSize, out IntPtr outBuffer);
+        private delegate int GetMachineTypeDelegate(IntPtr self, out IMAGE_FILE_MACHINE machineType);
+        private delegate int GetPointerSizeDelegate(IntPtr self, out int pointerSize);
+        private delegate int GetImageBaseDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPWStr)] string imagePath, out ulong baseAddress);
+        private delegate int ReadVirtualDelegate(IntPtr self, ClrDataAddress address, IntPtr buffer, int bytesRequested, out int bytesRead);
+        private delegate int WriteVirtualDelegate(IntPtr self, ClrDataAddress address, IntPtr buffer, uint bytesRequested, out uint bytesWritten);
+        private delegate int GetTLSValueDelegate(IntPtr self, uint threadID, uint index, out ulong value);
+        private delegate int SetTLSValueDelegate(IntPtr self, uint threadID, uint index, ClrDataAddress value);
+        private delegate int GetCurrentThreadIDDelegate(IntPtr self, out uint threadID);
+        private delegate int GetThreadContextDelegate(IntPtr self, uint threadID, uint contextFlags, int contextSize, IntPtr context);
+        private delegate int SetThreadContextDelegate(IntPtr self, uint threadID, uint contextSize, IntPtr context);
+        private delegate int RequestDelegate(IntPtr self, uint reqCode, uint inBufferSize, IntPtr inBuffer, IntPtr outBufferSize, out IntPtr outBuffer);
 
-        private delegate HResult GetRuntimeBaseDelegate([In] IntPtr self, [Out] out ulong address);
+        private delegate int GetRuntimeBaseDelegate([In] IntPtr self, [Out] out ulong address);
     }
 }

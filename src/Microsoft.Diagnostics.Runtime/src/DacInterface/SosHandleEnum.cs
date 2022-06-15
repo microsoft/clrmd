@@ -39,6 +39,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr Skip;
         private readonly IntPtr Reset;
         private readonly IntPtr GetCount;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, HandleData*, out int, HResult> Next;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, HandleData*, out int, int> Next;
     }
 }
