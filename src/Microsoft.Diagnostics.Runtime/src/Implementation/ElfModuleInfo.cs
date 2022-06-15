@@ -11,6 +11,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private object? _buildId;
         private Version? _version;
 
+        public override ModuleKind Kind => ModuleKind.Elf;
+
         public override long ImageSize { get; }
 
         /// <inheritdoc/>
