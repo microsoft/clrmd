@@ -1,6 +1,5 @@
 ﻿using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
-using System.Linq;
 using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -20,7 +19,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private PdbInfo? _pdb;
         private bool? _isManaged;
         private PEImage? _peImage;
-        private System.Version? _version;
+        private Version? _version;
+
+        public override ModuleKind Kind => ModuleKind.PortableExecutable;
 
         internal PEImage? GetPEImage()
         {
