@@ -25,10 +25,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult GetModuleData(out ExtendedModuleData data)
         {
-            HResult hr;
             fixed (void* dataPtr = &data)
             {
-                hr = VTable.Request(Self, DACDATAMODULEPRIV_REQUEST_GET_MODULEDATA, 0, null, sizeof(ExtendedModuleData), dataPtr);
+                HResult hr = VTable.Request(Self, DACDATAMODULEPRIV_REQUEST_GET_MODULEDATA, 0, null, sizeof(ExtendedModuleData), dataPtr);
                 if (!hr)
                     data = default;
 
@@ -96,14 +95,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             private readonly IntPtr StartEnumDataByName;
             private readonly IntPtr EnumDataByName;
             private readonly IntPtr EndEnumDataByName;
-            public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, char*, HResult> GetName;
-            public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, char*, HResult> GetFileName;
+            public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, char*, int> GetName;
+            public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, char*, int> GetFileName;
             private readonly IntPtr GetFlags;
             private readonly IntPtr IsSameObject;
             private readonly IntPtr StartEnumExtents;
             private readonly IntPtr EnumExtent;
             private readonly IntPtr EndEnumExtents;
-            public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, int, void*, int, void*, HResult> Request;
+            public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, int, void*, int, void*, int> Request;
             private readonly IntPtr StartEnumAppDomains;
             private readonly IntPtr EnumAppDomain;
             private readonly IntPtr EndEnumAppDomains;

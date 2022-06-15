@@ -43,13 +43,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     [StructLayout(LayoutKind.Sequential)]
     internal readonly unsafe struct IXCLRDataStackWalkVTable
     {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, int, out int, byte*, HResult> GetContext;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, int, out int, byte*, int> GetContext;
         private readonly IntPtr GetContext2;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, HResult> Next;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int> Next;
         private readonly IntPtr GetStackSizeSkipped;
         private readonly IntPtr GetFrameType;
         public readonly IntPtr GetFrame;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, uint, byte*, uint, byte*, HResult> Request;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, uint, byte*, uint, byte*, int> Request;
         private readonly IntPtr SetContext2;
     }
 }

@@ -114,12 +114,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr GetNearNameByOffset;
         public readonly IntPtr GetLineByOffset;
         public readonly IntPtr GetOffsetByLine;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out int, out int, HResult> GetNumberModules;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out ulong, HResult> GetModuleByIndex;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out int, out int, int> GetNumberModules;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out ulong, int> GetModuleByIndex;
         public readonly IntPtr GetModuleByModuleName;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, int, out int, out ulong, HResult> GetModuleByOffset;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, int, out int, out ulong, int> GetModuleByOffset;
         public readonly IntPtr GetModuleNames;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, ulong*, int, DEBUG_MODULE_PARAMETERS*, HResult> GetModuleParameters;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, ulong*, int, DEBUG_MODULE_PARAMETERS*, int> GetModuleParameters;
         public readonly IntPtr GetSymbolModule;
         public readonly IntPtr GetTypeName;
         public readonly IntPtr GetTypeId;
@@ -154,7 +154,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr AppendSourcePath;
         public readonly IntPtr FindSourceFile;
         public readonly IntPtr GetSourceFileLineOffsets;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, ulong, byte*, byte*, int, out int, HResult> GetModuleVersionInformation;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, ulong, byte*, byte*, int, out int, int> GetModuleVersionInformation;
         public readonly IntPtr GetModuleNameString;
         public readonly IntPtr GetConstantName;
         public readonly IntPtr GetFieldName;
@@ -191,7 +191,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr FindSourceFileWide;
         public readonly IntPtr GetSourceFileLineOffsetsWide;
         public readonly IntPtr GetModuleVersionInformationWide;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, DebugModuleName, int, ulong, char*, int, out int, HResult> GetModuleNameStringWide;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, DebugModuleName, int, ulong, char*, int, out int, int> GetModuleNameStringWide;
         public readonly IntPtr GetConstantNameWide;
         public readonly IntPtr GetFieldNameWide;
         public readonly IntPtr IsManagedModule;

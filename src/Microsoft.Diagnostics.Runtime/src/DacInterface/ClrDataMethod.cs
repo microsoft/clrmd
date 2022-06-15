@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr GetTypeArgumentByIndex;
         private readonly IntPtr GetILOffsetsByAddress; // (ulong address, uint offsetsLen, out uint offsetsNeeded, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] uint[] ilOffsets);
         private readonly IntPtr GetAddressRangesByILOffset; // (uint ilOffset, uint rangesLen, out uint rangesNeeded, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] uint[] addressRanges);
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, out uint, ILToNativeMap*, HResult> GetILAddressMap;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, out uint, ILToNativeMap*, int> GetILAddressMap;
         private readonly IntPtr StartEnumExtents;
         private readonly IntPtr EnumExtent;
         private readonly IntPtr EndEnumExtents;
