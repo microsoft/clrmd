@@ -73,9 +73,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
             uint debuggerThreadId = GetThreadIdBySystemId(osThreadId);
             HResult hr = SetCurrentThread(debuggerThreadId);
-
-            if (hr && !VTable.GetCurrentThreadTeb(Self, out teb))
-                teb = 0;
+            if (hr)
+            {
+                hr = VTable.GetCurrentThreadTeb(Self, out teb);
+                if (!hr)
+                    teb = 0;
+            }
 
             SetCurrentThread(currId);
             return teb;
@@ -99,7 +102,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             uint[] result = new uint[count];
             fixed (uint* pResult = result)
             {
-                if (VTable.GetThreadIdsByIndex(Self, 0, count, null, pResult))
+                HResult hr = VTable.GetThreadIdsByIndex(Self, 0, count, null, pResult);
+                if (hr)
                     return result;
 
                 return Array.Empty<uint>();
