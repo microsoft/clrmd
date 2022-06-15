@@ -1,51 +1,9 @@
 #nullable enable
-abstract Microsoft.Diagnostics.Runtime.ClrHeap.EnumerateReferenceAddresses(ulong obj, Microsoft.Diagnostics.Runtime.ClrType! type, bool carefully, bool considerDependantHandles) -> System.Collections.Generic.IEnumerable<ulong>!
-Microsoft.Diagnostics.Runtime.ClrInfo.BuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
-Microsoft.Diagnostics.Runtime.ClrInfo.DebuggingLibraries.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.DebugLibraryInfo!>
-Microsoft.Diagnostics.Runtime.ClrInfo.IndexFileSize.get -> int
-Microsoft.Diagnostics.Runtime.ClrInfo.IndexTimeStamp.get -> int
-Microsoft.Diagnostics.Runtime.ClrInfo.IsSingleFile.get -> bool
-Microsoft.Diagnostics.Runtime.ClrInfo.Version.get -> System.Version!
-Microsoft.Diagnostics.Runtime.ClrObject.EnumerateReferenceAddresses(bool carefully = false, bool considerDependantHandles = true) -> System.Collections.Generic.IEnumerable<ulong>!
-Microsoft.Diagnostics.Runtime.DacInterface.ClrDataProcess.GetSOSDacInterface12() -> Microsoft.Diagnostics.Runtime.DacInterface.SOSDac12?
-Microsoft.Diagnostics.Runtime.DacInterface.SOSDac12
-Microsoft.Diagnostics.Runtime.DacInterface.SOSDac12.GetGlobalAllocationContext(out ulong allocPtr, out ulong allocLimit) -> Microsoft.Diagnostics.Runtime.Utilities.HResult
-Microsoft.Diagnostics.Runtime.DacInterface.SOSDac12.SOSDac12(Microsoft.Diagnostics.Runtime.DacLibrary! library, System.IntPtr ptr) -> void
-Microsoft.Diagnostics.Runtime.DacLibrary.SOSDacInterface12.get -> Microsoft.Diagnostics.Runtime.DacInterface.SOSDac12?
-Microsoft.Diagnostics.Runtime.DebugLibraryInfo
-Microsoft.Diagnostics.Runtime.DebugLibraryInfo.ArchivedUnder.get -> Microsoft.Diagnostics.Runtime.SymbolProperties
-Microsoft.Diagnostics.Runtime.DebugLibraryInfo.FileName.get -> string!
-Microsoft.Diagnostics.Runtime.DebugLibraryInfo.IndexBuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
-Microsoft.Diagnostics.Runtime.DebugLibraryInfo.IndexFileSize.get -> int
-Microsoft.Diagnostics.Runtime.DebugLibraryInfo.IndexTimeStamp.get -> int
-Microsoft.Diagnostics.Runtime.DebugLibraryInfo.Kind.get -> Microsoft.Diagnostics.Runtime.DebugLibraryKind
-Microsoft.Diagnostics.Runtime.DebugLibraryInfo.Platform.get -> System.Runtime.InteropServices.OSPlatform
-Microsoft.Diagnostics.Runtime.DebugLibraryInfo.TargetArchitecture.get -> System.Runtime.InteropServices.Architecture
-Microsoft.Diagnostics.Runtime.DebugLibraryKind
-Microsoft.Diagnostics.Runtime.DebugLibraryKind.Dac = 0 -> Microsoft.Diagnostics.Runtime.DebugLibraryKind
-Microsoft.Diagnostics.Runtime.DebugLibraryKind.Dbi = 1 -> Microsoft.Diagnostics.Runtime.DebugLibraryKind
-Microsoft.Diagnostics.Runtime.IResourceNode
-Microsoft.Diagnostics.Runtime.IResourceNode.Children.get -> System.Collections.Immutable.ImmutableArray<Microsoft.Diagnostics.Runtime.IResourceNode!>
-Microsoft.Diagnostics.Runtime.IResourceNode.Name.get -> string?
-Microsoft.Diagnostics.Runtime.IResourceNode.Read(System.Span<byte> buffer, int offset) -> int
-Microsoft.Diagnostics.Runtime.IResourceNode.Read<T>(int offset) -> T
-Microsoft.Diagnostics.Runtime.IResourceNode.Size.get -> int
-Microsoft.Diagnostics.Runtime.IResourceNode.GetChild(string! name) -> Microsoft.Diagnostics.Runtime.IResourceNode?
-Microsoft.Diagnostics.Runtime.ModuleInfo
-Microsoft.Diagnostics.Runtime.ModuleInfo.FileName.get -> string!
-Microsoft.Diagnostics.Runtime.ModuleInfo.ImageBase.get -> ulong
-Microsoft.Diagnostics.Runtime.ModuleInfo.ModuleInfo(ulong imageBase, string! fileName) -> void
-override Microsoft.Diagnostics.Runtime.DebugLibraryInfo.Equals(object? obj) -> bool
-override Microsoft.Diagnostics.Runtime.DebugLibraryInfo.GetHashCode() -> int
-override Microsoft.Diagnostics.Runtime.DebugLibraryInfo.ToString() -> string!
-static Microsoft.Diagnostics.Runtime.ModuleInfo.TryCreate(Microsoft.Diagnostics.Runtime.IDataReader! reader, ulong baseAddress, string! name) -> Microsoft.Diagnostics.Runtime.ModuleInfo?
-virtual Microsoft.Diagnostics.Runtime.ModuleInfo.BuildId.get -> System.Collections.Immutable.ImmutableArray<byte>
-virtual Microsoft.Diagnostics.Runtime.ModuleInfo.GetExportSymbolAddress(string! symbol) -> ulong
-virtual Microsoft.Diagnostics.Runtime.ModuleInfo.IndexFileSize.get -> int
-virtual Microsoft.Diagnostics.Runtime.ModuleInfo.IndexTimeStamp.get -> int
-virtual Microsoft.Diagnostics.Runtime.ModuleInfo.IsManaged.get -> bool
-virtual Microsoft.Diagnostics.Runtime.ModuleInfo.Pdb.get -> Microsoft.Diagnostics.Runtime.PdbInfo?
-virtual Microsoft.Diagnostics.Runtime.ModuleInfo.ResourceRoot.get -> Microsoft.Diagnostics.Runtime.IResourceNode?
-virtual Microsoft.Diagnostics.Runtime.ModuleInfo.ImageSize.get -> long
-virtual Microsoft.Diagnostics.Runtime.ModuleInfo.Version.get -> System.Version!
-virtual Microsoft.Diagnostics.Runtime.PlatformFunctions.IsEqualFileVersion(string! file, System.Version! version) -> bool
+abstract Microsoft.Diagnostics.Runtime.ModuleInfo.Kind.get -> Microsoft.Diagnostics.Runtime.ModuleKind
+Microsoft.Diagnostics.Runtime.DataTarget.SetSymbolPath(string! symbolPath) -> void
+Microsoft.Diagnostics.Runtime.ModuleKind
+Microsoft.Diagnostics.Runtime.ModuleKind.Elf = 3 -> Microsoft.Diagnostics.Runtime.ModuleKind
+Microsoft.Diagnostics.Runtime.ModuleKind.MachO = 4 -> Microsoft.Diagnostics.Runtime.ModuleKind
+Microsoft.Diagnostics.Runtime.ModuleKind.Other = 1 -> Microsoft.Diagnostics.Runtime.ModuleKind
+Microsoft.Diagnostics.Runtime.ModuleKind.PortableExecutable = 2 -> Microsoft.Diagnostics.Runtime.ModuleKind
+Microsoft.Diagnostics.Runtime.ModuleKind.Unknown = 0 -> Microsoft.Diagnostics.Runtime.ModuleKind
