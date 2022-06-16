@@ -6,6 +6,7 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
@@ -119,6 +120,24 @@ namespace Microsoft.Diagnostics.Runtime
         /// The root of the resource tree for this module if one exists, null otherwise.
         /// </summary>
         public virtual IResourceNode? ResourceRoot => null;
+
+        /// <summary>
+        /// Attempts to open this module as a Stream.  Note that this is not the same as
+        /// reading an image on disk as most images will be laid out in virtual memory.
+        /// Unfortunately, some managed code will be in on-disk layout.  There's not a great
+        /// way to find out which is correct for this module.
+        /// </summary>
+        /// <returns>A <see cref="Stream"/> or null.</returns>
+        public virtual Stream? TryOpen(IDataReader dataReader)
+        {
+            if (ImageBase > long.MaxValue)
+                return null;
+
+            if (ImageSize == 0)
+                return null;
+
+            return new ReadVirtualStream(dataReader, (long)ImageBase, ImageSize);
+        }
 
         public override string ToString() => FileName;
 

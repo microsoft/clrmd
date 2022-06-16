@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
     [StructLayout(LayoutKind.Sequential)]
     internal readonly unsafe struct IDebugAdvancedVTable
     {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, byte*, int, HResult> GetThreadContext;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, byte*, int, int> GetThreadContext;
         public readonly IntPtr SetThreadContext;
     }
 }
