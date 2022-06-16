@@ -7,3 +7,4 @@ Microsoft.Diagnostics.Runtime.ModuleKind.MachO = 4 -> Microsoft.Diagnostics.Runt
 Microsoft.Diagnostics.Runtime.ModuleKind.Other = 1 -> Microsoft.Diagnostics.Runtime.ModuleKind
 Microsoft.Diagnostics.Runtime.ModuleKind.PortableExecutable = 2 -> Microsoft.Diagnostics.Runtime.ModuleKind
 Microsoft.Diagnostics.Runtime.ModuleKind.Unknown = 0 -> Microsoft.Diagnostics.Runtime.ModuleKind
+virtual Microsoft.Diagnostics.Runtime.ModuleInfo.TryOpen(Microsoft.Diagnostics.Runtime.IDataReader! dataReader) -> System.IO.Stream?

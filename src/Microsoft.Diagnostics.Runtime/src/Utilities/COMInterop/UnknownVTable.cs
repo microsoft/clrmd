@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public unsafe struct IUnknownVTable
     {
-        public delegate* unmanaged[Stdcall]<IntPtr, in Guid, out IntPtr, HResult> QueryInterface;
+        public delegate* unmanaged[Stdcall]<IntPtr, in Guid, out IntPtr, int> QueryInterface;
         public delegate* unmanaged[Stdcall]<IntPtr, int> AddRef;
         public delegate* unmanaged[Stdcall]<IntPtr, int> Release;
     }

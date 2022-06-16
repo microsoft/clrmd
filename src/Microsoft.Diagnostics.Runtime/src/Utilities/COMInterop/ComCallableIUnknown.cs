@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             IUnknownVTable* vtable = (IUnknownVTable*)Marshal.AllocHGlobal(sizeof(IUnknownVTable)).ToPointer();
             QueryInterfaceDelegate qi = QueryInterfaceImpl;
-            vtable->QueryInterface = (delegate* unmanaged[Stdcall]<IntPtr, in Guid, out IntPtr, HResult>)Marshal.GetFunctionPointerForDelegate(qi);
+            vtable->QueryInterface = (delegate* unmanaged[Stdcall]<IntPtr, in Guid, out IntPtr, int>)Marshal.GetFunctionPointerForDelegate(qi);
             _delegates.Add(qi);
 
             AddRefDelegate addRef = new AddRefDelegate(AddRefImpl);
@@ -94,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _delegates.AddRange(keepAlive);
         }
 
-        private HResult QueryInterfaceImpl(IntPtr _, in Guid guid, out IntPtr ptr)
+        private int QueryInterfaceImpl(IntPtr _, in Guid guid, out IntPtr ptr)
         {
             if (_interfaces.TryGetValue(guid, out IntPtr value))
             {

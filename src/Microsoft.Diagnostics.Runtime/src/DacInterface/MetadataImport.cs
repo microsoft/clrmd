@@ -38,7 +38,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count)
                 {
                     fixed (int* ptr = tokens)
-                        return VTable.EnumInterfaceImpls(Self, ref handle, token, ptr, length, out count);
+                    {
+                        HResult hr = VTable.EnumInterfaceImpls(Self, ref handle, token, ptr, length, out count);
+                        return hr;
+                    }
                 }
             }
             finally
@@ -117,7 +120,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count)
                 {
                     fixed (int* ptr = tokens)
-                        return VTable.EnumFields(Self, ref handle, token, ptr, length, out count);
+                    {
+                        HResult hr = VTable.EnumFields(Self, ref handle, token, ptr, length, out count);
+                        return hr;
+                    }
                 }
             }
             finally
@@ -136,13 +142,17 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public string? GetTypeRefName(int token)
         {
-            if (!VTable.GetTypeRefProps(Self, token, out int scope, null, 0, out int needed).IsOK)
+            HResult hr = VTable.GetTypeRefProps(Self, token, out int scope, null, 0, out int needed);
+            if (!hr.IsOK)
                 return null;
 
             string nameResult = new string('\0', needed - 1);
             fixed (char* nameResultPtr = nameResult)
-                if (VTable.GetTypeRefProps(Self, token, out scope, nameResultPtr, needed, out needed))
+            {
+                hr = VTable.GetTypeRefProps(Self, token, out scope, nameResultPtr, needed, out needed);
+                if (hr)
                     return nameResult;
+            }
 
             return null;
         }
@@ -178,7 +188,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count)
                 {
                     fixed (int *ptr = tokens)
-                        return VTable.EnumGenericParams(Self, ref handle, token, ptr, length, out count);
+                    {
+                        HResult hr = VTable.EnumGenericParams(Self, ref handle, token, ptr, length, out count);
+                        return hr;
+                    }
                 }
             }
             finally
@@ -224,24 +237,24 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     [StructLayout(LayoutKind.Sequential)]
     internal readonly unsafe struct IMetaDataImportVTable
     {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr, HResult> CloseEnum;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, IntPtr, int> CloseEnum;
         private readonly IntPtr CountEnum;
         private readonly IntPtr ResetEnum;
         private readonly IntPtr EnumTypeDefs;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref IntPtr, int, int*, int, out int, HResult> EnumInterfaceImpls;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref IntPtr, int, int*, int, out int, int> EnumInterfaceImpls;
         private readonly IntPtr EnumTypeRefs;
         private readonly IntPtr FindTypeDefByName;
         private readonly IntPtr GetScopeProps;
         private readonly IntPtr GetModuleFromScope;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, char*, int, out int, out TypeAttributes, out int, HResult> GetTypeDefProps;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, out int, HResult> GetInterfaceImplProps;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, char*, int, out int, HResult> GetTypeRefProps;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, char*, int, out int, out TypeAttributes, out int, int> GetTypeDefProps;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, out int, int> GetInterfaceImplProps;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, char*, int, out int, int> GetTypeRefProps;
         private readonly IntPtr ResolveTypeRef;
         private readonly IntPtr EnumMembers;
         private readonly IntPtr EnumMembersWithName;
         private readonly IntPtr EnumMethods;
         private readonly IntPtr EnumMethodsWithName;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref IntPtr, int, int*, int, out int, HResult> EnumFields;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref IntPtr, int, int*, int, out int, int> EnumFields;
         private readonly IntPtr EnumFieldsWithName;
         private readonly IntPtr EnumParams;
         private readonly IntPtr EnumMemberRefs;
@@ -251,7 +264,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr FindMethod;
         private readonly IntPtr FindField;
         private readonly IntPtr FindMemberRef;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, StringBuilder?, int, out int, out MethodAttributes, out IntPtr, out uint, out uint, out uint, HResult> GetMethodProps;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, StringBuilder?, int, out int, out MethodAttributes, out IntPtr, out uint, out uint, out uint, int> GetMethodProps;
         private readonly IntPtr GetMemberRefProps;
         private readonly IntPtr EnumProperties;
         private readonly IntPtr EnumEvents;
@@ -260,9 +273,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr GetMethodSemantics;
         private readonly IntPtr GetClassLayout;
         private readonly IntPtr GetFieldMarshal;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out uint, out uint, HResult> GetRVA;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out uint, out uint, int> GetRVA;
         private readonly IntPtr GetPermissionSetProps;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out IntPtr, out int, HResult> GetSigFromToken;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out IntPtr, out int, int> GetSigFromToken;
         private readonly IntPtr GetModuleRefProps;
         private readonly IntPtr EnumModuleRefs;
         private readonly IntPtr GetTypeSpecFromToken;
@@ -278,18 +291,18 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr GetCustomAttributeProps;
         private readonly IntPtr FindTypeRef;
         private readonly IntPtr GetMemberProps;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, char*, int, out int, out FieldAttributes, out IntPtr, out int, out int, out IntPtr, out int, HResult> GetFieldProps;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, char*, int, out int, out FieldAttributes, out IntPtr, out int, out int, out IntPtr, out int, int> GetFieldProps;
         private readonly IntPtr GetPropertyProps;
         private readonly IntPtr GetParamProps;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, char*, out IntPtr, out uint, HResult> GetCustomAttributeByName;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, char*, out IntPtr, out uint, int> GetCustomAttributeByName;
         private readonly IntPtr IsValidToken;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, HResult> GetNestedClassProps;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, int> GetNestedClassProps;
         private readonly IntPtr GetNativeCallConvFromSig;
         private readonly IntPtr IsGlobal;
 
         // IMetaDataImport2
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref IntPtr, int, int*, int, out int, HResult> EnumGenericParams;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, out GenericParameterAttributes, out int, out int, char*, int, out int, HResult> GetGenericParamProps;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref IntPtr, int, int*, int, out int, int> EnumGenericParams;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, out GenericParameterAttributes, out int, out int, char*, int, out int, int> GetGenericParamProps;
         private readonly IntPtr GetMethodSpecProps;
         private readonly IntPtr EnumGenericParamConstraints;
         private readonly IntPtr GetGenericParamConstraintProps;
