@@ -112,7 +112,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrStackWalk? CreateStackWalk(uint id, uint flags)
         {
-            if (!VTable.GetTaskByOSThreadID(Self, id, out IntPtr pUnkTask))
+            HResult hr = VTable.GetTaskByOSThreadID(Self, id, out IntPtr pUnkTask);
+            if (!hr)
                 return null;
 
             using ClrDataTask dataTask = new ClrDataTask(_library, pUnkTask);
@@ -132,7 +133,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             List<ClrDataMethod> result = new List<ClrDataMethod>(1);
 
-            if (!VTable.StartEnumMethodInstancesByAddress(Self, addr, IntPtr.Zero, out ClrDataAddress handle))
+            HResult hr = VTable.StartEnumMethodInstancesByAddress(Self, addr, IntPtr.Zero, out ClrDataAddress handle);
+            if (!hr)
                 return result;
 
             try
@@ -152,13 +154,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     [StructLayout(LayoutKind.Sequential)]
     internal readonly unsafe struct IXCLRDataProcessVTable
     {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, HResult> Flush;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int> Flush;
         private readonly IntPtr Unused_StartEnumTasks;
         private readonly IntPtr EnumTask;
         private readonly IntPtr EndEnumTasks;
 
         // (uint id, [Out, MarshalAs(UnmanagedType.IUnknown)] out object task);
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, out IntPtr, HResult> GetTaskByOSThreadID;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, out IntPtr, int> GetTaskByOSThreadID;
 
         private readonly IntPtr GetTaskByUniqueID;
         private readonly IntPtr GetFlags;
@@ -181,90 +183,18 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr GetModuleByAddress;
 
         // (ulong address, [In, MarshalAs(UnmanagedType.Interface)] object appDomain, out ulong handle);
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, IntPtr, out ClrDataAddress, HResult> StartEnumMethodInstancesByAddress;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, IntPtr, out ClrDataAddress, int> StartEnumMethodInstancesByAddress;
 
         // (ref ulong handle, [Out, MarshalAs(UnmanagedType.Interface)] out object method);
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref ClrDataAddress, out IntPtr, HResult> EnumMethodInstanceByAddress;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref ClrDataAddress, out IntPtr, int> EnumMethodInstanceByAddress;
 
         // (ulong handle);
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, HResult> EndEnumMethodInstancesByAddress;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int> EndEnumMethodInstancesByAddress;
         private readonly IntPtr GetDataByAddress;
         private readonly IntPtr GetExceptionStateByExceptionRecord;
         private readonly IntPtr TranslateExceptionRecordToNotification;
 
         // (uint reqCode, uint inBufferSize, [In, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] byte[] inBuffer, uint outBufferSize, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)] byte[] outBuffer);
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, int, byte*, int, byte*, HResult> Request;
-    }
-
-    internal interface IXCLRDataProcess_
-    {
-        void Flush();
-
-        void StartEnumTasks_do_not_use();
-        void EnumTask_do_not_use();
-        void EndEnumTasks_do_not_use();
-
-        [PreserveSig]
-        int GetTaskByOSThreadID(
-            uint id,
-            [Out][MarshalAs(UnmanagedType.IUnknown)]
-            out object task);
-
-        void GetTaskByUniqueID_do_not_use(/*[in] ULONG64 taskID, [out] IXCLRDataTask** task*/);
-        void GetFlags_do_not_use(/*[out] ULONG32* flags*/);
-        void IsSameObject_do_not_use(/*[in] IXCLRDataProcess* process*/);
-        void GetManagedObject_do_not_use(/*[out] IXCLRDataValue** value*/);
-        void GetDesiredExecutionState_do_not_use(/*[out] ULONG32* state*/);
-        void SetDesiredExecutionState_do_not_use(/*[in] ULONG32 state*/);
-        void GetAddressType_do_not_use(/*[in] CLRDATA_ADDRESS address, [out] CLRDataAddressType* type*/);
-
-        void GetRuntimeNameByAddress_do_not_use(
-
-            /*[in] CLRDATA_ADDRESS address, [in] ULONG32 flags, [in] ULONG32 bufLen, [out] ULONG32 *nameLen, [out, size_is(bufLen)] WCHAR nameBuf[], [out] CLRDATA_ADDRESS* displacement*/);
-
-        void StartEnumAppDomains_do_not_use(/*[out] CLRDATA_ENUM* handle*/);
-        void EnumAppDomain_do_not_use(/*[in, out] CLRDATA_ENUM* handle, [out] IXCLRDataAppDomain** appDomain*/);
-        void EndEnumAppDomains_do_not_use(/*[in] CLRDATA_ENUM handle*/);
-        void GetAppDomainByUniqueID_do_not_use(/*[in] ULONG64 id, [out] IXCLRDataAppDomain** appDomain*/);
-        void StartEnumAssemblie_do_not_uses(/*[out] CLRDATA_ENUM* handle*/);
-        void EnumAssembly_do_not_use(/*[in, out] CLRDATA_ENUM* handle, [out] IXCLRDataAssembly **assembly*/);
-        void EndEnumAssemblies_do_not_use(/*[in] CLRDATA_ENUM handle*/);
-        void StartEnumModules_do_not_use(/*[out] CLRDATA_ENUM* handle*/);
-        void EnumModule_do_not_use(/*[in, out] CLRDATA_ENUM* handle, [out] IXCLRDataModule **mod*/);
-        void EndEnumModules_do_not_use(/*[in] CLRDATA_ENUM handle*/);
-        void GetModuleByAddress_do_not_use(/*[in] CLRDATA_ADDRESS address, [out] IXCLRDataModule** mod*/);
-
-        [PreserveSig]
-        int StartEnumMethodInstancesByAddress(
-            ulong address,
-            [In][MarshalAs(UnmanagedType.Interface)]
-            object appDomain,
-            out ulong handle);
-
-        [PreserveSig]
-        int EnumMethodInstanceByAddress(
-            ref ulong handle,
-            [Out][MarshalAs(UnmanagedType.Interface)]
-            out object method);
-
-        [PreserveSig]
-        int EndEnumMethodInstancesByAddress(ulong handle);
-
-        void GetDataByAddress_do_not_use(
-
-            /*[in] CLRDATA_ADDRESS address, [in] ULONG32 flags, [in] IXCLRDataAppDomain* appDomain, [in] IXCLRDataTask* tlsTask, [in] ULONG32 bufLen, [out] ULONG32 *nameLen, [out, size_is(bufLen)] WCHAR nameBuf[], [out] IXCLRDataValue** value, [out] CLRDATA_ADDRESS* displacement*/);
-
-        void GetExceptionStateByExceptionRecord_do_not_use(/*[in] EXCEPTION_RECORD64* record, [out] IXCLRDataExceptionState **exState*/);
-        void TranslateExceptionRecordToNotification_do_not_use();
-
-        [PreserveSig]
-        int Request(
-            uint reqCode,
-            uint inBufferSize,
-            [In][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)]
-            byte[] inBuffer,
-            uint outBufferSize,
-            [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 3)]
-            byte[] outBuffer);
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, int, byte*, int, byte*, int> Request;
     }
 }

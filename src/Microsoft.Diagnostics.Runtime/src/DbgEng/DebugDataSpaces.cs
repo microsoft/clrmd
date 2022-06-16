@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
     [StructLayout(LayoutKind.Sequential)]
     internal readonly unsafe struct IDebugDataSpacesVTable
     {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, byte*, int, out int, HResult> ReadVirtual;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, byte*, int, out int, int> ReadVirtual;
         public readonly IntPtr WriteVirtual;
         public readonly IntPtr SearchVirtual;
         public readonly IntPtr ReadVirtualUncached;
@@ -68,6 +68,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr ReadHandleData;
         public readonly IntPtr FillVirtual;
         public readonly IntPtr FillPhysical;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, out MEMORY_BASIC_INFORMATION64, HResult> QueryVirtual;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, out MEMORY_BASIC_INFORMATION64, int> QueryVirtual;
     }
 }

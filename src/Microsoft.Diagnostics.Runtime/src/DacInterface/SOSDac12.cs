@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         [StructLayout(LayoutKind.Sequential)]
         private readonly unsafe struct ISOSDac12VTable
         {
-            public readonly delegate* unmanaged[Stdcall]<IntPtr, out ulong, out ulong, HResult> GetGlobalAllocationContext;
+            public readonly delegate* unmanaged[Stdcall]<IntPtr, out ulong, out ulong, int> GetGlobalAllocationContext;
         }
     }
 }

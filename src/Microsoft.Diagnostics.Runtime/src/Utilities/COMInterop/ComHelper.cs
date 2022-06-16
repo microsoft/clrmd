@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         protected delegate int ReleaseDelegate(IntPtr self);
 
         [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        protected delegate HResult QueryInterfaceDelegate(IntPtr self, in Guid guid, out IntPtr ptr);
+        protected delegate int QueryInterfaceDelegate(IntPtr self, in Guid guid, out IntPtr ptr);
 
         /// <summary>
         /// Release an IUnknown pointer.
@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             IUnknownVTable* vtable = *(IUnknownVTable**)pUnk;
 
-            return vtable->QueryInterface(pUnk, riid, out result);
+            return (HResult) vtable->QueryInterface(pUnk, riid, out result);
         }
     }
 }

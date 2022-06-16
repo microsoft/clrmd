@@ -73,9 +73,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
             uint debuggerThreadId = GetThreadIdBySystemId(osThreadId);
             HResult hr = SetCurrentThread(debuggerThreadId);
-
-            if (hr && !VTable.GetCurrentThreadTeb(Self, out teb))
-                teb = 0;
+            if (hr)
+            {
+                hr = VTable.GetCurrentThreadTeb(Self, out teb);
+                if (!hr)
+                    teb = 0;
+            }
 
             SetCurrentThread(currId);
             return teb;
@@ -99,7 +102,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             uint[] result = new uint[count];
             fixed (uint* pResult = result)
             {
-                if (VTable.GetThreadIdsByIndex(Self, 0, count, null, pResult))
+                HResult hr = VTable.GetThreadIdsByIndex(Self, 0, count, null, pResult);
+                if (hr)
                     return result;
 
                 return Array.Empty<uint>();
@@ -137,20 +141,20 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
     {
         public readonly IntPtr GetEventThread;
         public readonly IntPtr GetEventProcess;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out uint, HResult> GetCurrentThreadId;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, HResult> SetCurrentThreadId;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out uint, int> GetCurrentThreadId;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, int> SetCurrentThreadId;
         public readonly IntPtr GetCurrentProcessId;
         public readonly IntPtr SetCurrentProcessId;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out int, HResult> GetNumberThreads;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out int, int> GetNumberThreads;
         public readonly IntPtr GetTotalNumberThreads;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, int, int*, uint*, HResult> GetThreadIdsByIndex;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, int, int*, uint*, int> GetThreadIdsByIndex;
         public readonly IntPtr GetThreadIdByProcessor;
         public readonly IntPtr GetCurrentThreadDataOffset;
         public readonly IntPtr GetThreadIdByDataOffset;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out ulong, HResult> GetCurrentThreadTeb;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out ulong, int> GetCurrentThreadTeb;
         public readonly IntPtr GetThreadIdByTeb;
         public readonly IntPtr GetCurrentThreadSystemId;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, out uint, HResult> GetThreadIdBySystemId;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, out uint, int> GetThreadIdBySystemId;
         public readonly IntPtr GetCurrentThreadHandle;
         public readonly IntPtr GetThreadIdByHandle;
         public readonly IntPtr GetNumberProcesses;
@@ -159,7 +163,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr GetProcessIdByDataOffset;
         public readonly IntPtr GetCurrentProcessPeb;
         public readonly IntPtr GetProcessIdByPeb;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out uint, HResult> GetCurrentProcessSystemId;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out uint, int> GetCurrentProcessSystemId;
         public readonly IntPtr GetProcessIdBySystemId;
         public readonly IntPtr GetCurrentProcessHandle;
         public readonly IntPtr GetProcessIdByHandle;
@@ -170,8 +174,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr GetImplicitProcessDataOffset;
         public readonly IntPtr SetImplicitProcessDataOffset;
         public readonly IntPtr GetEventSystem;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out int, HResult> GetCurrentSystemId;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, HResult> SetCurrentSystemId;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out int, int> GetCurrentSystemId;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, int> SetCurrentSystemId;
         public readonly IntPtr GetNumberSystems;
         public readonly IntPtr GetSystemIdsByIndex;
         public readonly IntPtr GetTotalNumberThreadsAndProcesses;

@@ -839,7 +839,7 @@ Microsoft.Diagnostics.Runtime.Utilities.HResult.Value.set -> void
 Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable
 Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.AddRef -> delegate* unmanaged[Stdcall]<System.IntPtr, int>
 Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.IUnknownVTable() -> void
-Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.QueryInterface -> delegate* unmanaged[Stdcall]<System.IntPtr, in System.Guid, out System.IntPtr, Microsoft.Diagnostics.Runtime.Utilities.HResult>
+Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.QueryInterface -> delegate* unmanaged[Stdcall]<System.IntPtr, in System.Guid, out System.IntPtr, int>
 Microsoft.Diagnostics.Runtime.Utilities.IUnknownVTable.Release -> delegate* unmanaged[Stdcall]<System.IntPtr, int>
 Microsoft.Diagnostics.Runtime.Utilities.SigParser
 Microsoft.Diagnostics.Runtime.Utilities.SigParser.GetCallingConvInfo(out int data) -> bool
