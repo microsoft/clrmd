@@ -108,7 +108,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr GetStackTrace;
         public readonly IntPtr GetReturnOffset;
         public readonly IntPtr OutputStackTrace;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out uint, out DEBUG_CLASS_QUALIFIER, HResult> GetDebuggeeType;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out uint, out DEBUG_CLASS_QUALIFIER, int> GetDebuggeeType;
         public readonly IntPtr GetActualProcessorType;
         public readonly IntPtr GetExecutingProcessorType;
         public readonly IntPtr GetNumberPossibleExecutingProcessorTypes;
@@ -116,19 +116,19 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr GetNumberProcessors;
         public readonly IntPtr GetSystemVersion;
         public readonly IntPtr GetPageSize;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, HResult> IsPointer64Bit;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int> IsPointer64Bit;
         public readonly IntPtr ReadBugCheckData;
         public readonly IntPtr GetNumberSupportedProcessorTypes;
         public readonly IntPtr GetSupportedProcessorTypes;
         public readonly IntPtr GetProcessorTypeNames;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IMAGE_FILE_MACHINE, HResult> GetEffectiveProcessorType;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IMAGE_FILE_MACHINE, int> GetEffectiveProcessorType;
         public readonly IntPtr SetEffectiveProcessorType;
         public readonly IntPtr GetExecutionStatus;
         public readonly IntPtr SetExecutionStatus;
         public readonly IntPtr GetCodeLevel;
         public readonly IntPtr SetCodeLevel;
         public readonly IntPtr GetEngineOptions;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, HResult> AddEngineOptions;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, int> AddEngineOptions;
         public readonly IntPtr RemoveEngineOptions;
         public readonly IntPtr SetEngineOptions;
         public readonly IntPtr GetSystemErrorControl;
@@ -167,12 +167,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr SetExceptionFilterParameters;
         public readonly IntPtr GetExceptionFilterSecondCommand;
         public readonly IntPtr SetExceptionFilterSecondCommand;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, uint, HResult> WaitForEvent;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, uint, int> WaitForEvent;
         public readonly IntPtr GetLastEventInformation;
 
         public readonly IntPtr GetCurrentTimeDate;
         public readonly IntPtr GetCurrentSystemUpTime;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out DEBUG_FORMAT, HResult> GetDumpFormatFlags;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out DEBUG_FORMAT, int> GetDumpFormatFlags;
         public readonly IntPtr GetNumberTextReplacements;
         public readonly IntPtr GetTextReplacement;
         public readonly IntPtr SetTextReplacement;

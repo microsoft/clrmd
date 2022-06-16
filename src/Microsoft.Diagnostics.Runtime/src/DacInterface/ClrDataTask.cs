@@ -22,7 +22,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrStackWalk? CreateStackWalk(DacLibrary library, uint flags)
         {
-            if (!VTable.CreateStackWalk(Self, flags, out IntPtr pUnk))
+            HResult hr = VTable.CreateStackWalk(Self, flags, out IntPtr pUnk);
+            if (!hr)
                 return null;
 
             return new ClrStackWalk(library, pUnk);
@@ -40,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr GetManagedObject;
         private readonly IntPtr GetDesiredExecutionState;
         private readonly IntPtr SetDesiredExecutionState;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, out IntPtr, HResult> CreateStackWalk;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, out IntPtr, int> CreateStackWalk;
         private readonly IntPtr GetOSThreadID;
         private readonly IntPtr GetContext;
         private readonly IntPtr SetContext;

@@ -32,7 +32,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             get
             {
-                if (VTable.GetNumberGenerations(Self, out int generations))
+                HResult hr = VTable.GetNumberGenerations(Self, out int generations);
+                if (hr)
                     return generations;
 
                 return 0;
@@ -41,52 +42,68 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public GenerationData[]? GetGenerationTable()
         {
-            if (!VTable.GetGenerationTable(Self, 0, null, out int needed))
+            HResult hr = VTable.GetGenerationTable(Self, 0, null, out int needed);
+            if (!hr)
                 return null;
 
             GenerationData[] data = new GenerationData[needed];
             fixed (GenerationData* ptr = data)
-                if (!VTable.GetGenerationTable(Self, needed, ptr, out _))
+            {
+                hr = VTable.GetGenerationTable(Self, needed, ptr, out _);
+                if (!hr)
                     return null;
+            }
 
             return data;
         }
 
         public GenerationData[]? GetGenerationTable(ulong heap)
         {
-            if (!VTable.GetGenerationTableSvr(Self, heap, 0, null, out int needed))
+            HResult hr = VTable.GetGenerationTableSvr(Self, heap, 0, null, out int needed);
+            if (!hr)
                 return null;
 
             GenerationData[] data = new GenerationData[needed];
             fixed (GenerationData* ptr = data)
-                if (!VTable.GetGenerationTableSvr(Self, heap, needed, ptr, out _))
+            {
+                hr = VTable.GetGenerationTableSvr(Self, heap, needed, ptr, out _);
+                if (!hr)
                     return null;
+            }
 
             return data;
         }
 
         public ClrDataAddress[]? GetFinalizationFillPointers()
         {
-            if (!VTable.GetFinalizationFillPointers(Self, 0, null, out int needed))
+            HResult hr = VTable.GetFinalizationFillPointers(Self, 0, null, out int needed);
+            if (!hr)
                 return null;
 
             ClrDataAddress[] pointers = new ClrDataAddress[needed];
             fixed (ClrDataAddress* ptr = pointers)
-                if (!VTable.GetFinalizationFillPointers(Self, needed, ptr, out _))
+            {
+                hr = VTable.GetFinalizationFillPointers(Self, needed, ptr, out _);
+                if (!hr)
                     return null;
+            }
 
             return pointers;
         }
 
         public ClrDataAddress[]? GetFinalizationFillPointers(ulong heap)
         {
-            if (!VTable.GetFinalizationFillPointersSvr(Self, heap, 0, null, out int needed))
+            HResult hr = VTable.GetFinalizationFillPointersSvr(Self, heap, 0, null, out int needed);
+            if (!hr)
                 return null;
 
             ClrDataAddress[] pointers = new ClrDataAddress[needed];
             fixed (ClrDataAddress* ptr = pointers)
-                if (!VTable.GetFinalizationFillPointersSvr(Self, heap, needed, ptr, out _))
+            {
+                hr = VTable.GetFinalizationFillPointersSvr(Self, heap, needed, ptr, out _);
+                if (!hr)
                     return null;
+            }
 
             return pointers;
         }
@@ -94,12 +111,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         [StructLayout(LayoutKind.Sequential)]
         private readonly unsafe struct ISOSDac8VTable
         {
-            public readonly delegate* unmanaged[Stdcall]<IntPtr, out int, HResult> GetNumberGenerations;
-            public readonly delegate* unmanaged[Stdcall]<IntPtr, int, GenerationData*, out int, HResult> GetGenerationTable;
-            public readonly delegate* unmanaged[Stdcall]<IntPtr, int, ClrDataAddress*, out int, HResult> GetFinalizationFillPointers;
-            public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, int, GenerationData*, out int, HResult> GetGenerationTableSvr;
-            public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, int, ClrDataAddress*, out int, HResult> GetFinalizationFillPointersSvr;
-            public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out ClrDataAddress, HResult> GetAssemblyLoadContext;
+            public readonly delegate* unmanaged[Stdcall]<IntPtr, out int, int> GetNumberGenerations;
+            public readonly delegate* unmanaged[Stdcall]<IntPtr, int, GenerationData*, out int, int> GetGenerationTable;
+            public readonly delegate* unmanaged[Stdcall]<IntPtr, int, ClrDataAddress*, out int, int> GetFinalizationFillPointers;
+            public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, int, GenerationData*, out int, int> GetGenerationTableSvr;
+            public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, int, ClrDataAddress*, out int, int> GetFinalizationFillPointersSvr;
+            public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out ClrDataAddress, int> GetAssemblyLoadContext;
         }
     }
 }
