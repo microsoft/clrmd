@@ -22,7 +22,7 @@ It was a lot cleaner to replace `IBinaryLocator` than to try to hack around the 
 
 ## PEImage and Elf related classes are now internal
 
-TODO:  Provide stream so this can be passed to System.Reflection.Metadata.
+TODO:  Provide stream so this can be passed to other libraries.
 
 ### Why did we make this change?
 
