@@ -22,7 +22,7 @@ It was a lot cleaner to replace `IBinaryLocator` than to try to hack around the 
 
 ## PEImage and Elf related classes are now internal
 
-TODO:  Provide stream so this can be passed to System.Reflection.Metadata.
+TODO:  Provide stream so this can be passed to other libraries.
 
 ### Why did we make this change?
 
@@ -34,9 +34,9 @@ We cannot reasonably make those fixes changes without another breaking change to
 
 Some alternatives:
 
-1.  System.Reflection.Metadata
-2.  https://github.com/dotnet/symstore/tree/main/src/Microsoft.FileFormats
-3.  https://www.nuget.org/packages/Marklio.Metadata/
+1.  https://www.nuget.org/packages/Marklio.Metadata/
+2.  System.Reflection.Metadata
+3.  https://github.com/dotnet/symstore/tree/main/src/Microsoft.FileFormats
 
 
 ## ModuleInfo has changed slightly
