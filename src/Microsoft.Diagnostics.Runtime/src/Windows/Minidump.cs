@@ -18,6 +18,10 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal sealed class Minidump : IDisposable
     {
+        private const int MiniDumpWithFullMemory = 0x2;
+        private const int MiniDumpWithPrivateReadWriteMemory = 0x200;
+        private const int MiniDumpWithPrivateWriteCopyMemory = 0x10000;
+
         private readonly string _displayName;
         private readonly MinidumpDirectory[] _directories;
         private readonly Task<ThreadReadResult> _threadTask;
@@ -54,6 +58,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             _ => throw new NotImplementedException($"Not implemented for architecture {Architecture}."),
         };
 
+        public bool IsMiniDump { get; }
+
         public Minidump(string displayName, Stream stream, CacheOptions cacheOptions, bool leaveOpen)
         {
             _displayName = displayName;
@@ -62,6 +68,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             MinidumpHeader header = Read<MinidumpHeader>(stream);
             if (!header.IsValid)
                 throw new InvalidDataException($"File '{displayName}' is not a Minidump.");
+
+            IsMiniDump = (header.Flags & (MiniDumpWithFullMemory | MiniDumpWithPrivateReadWriteMemory | MiniDumpWithPrivateWriteCopyMemory)) == 0;
 
             _directories = new MinidumpDirectory[header.NumberOfStreams];
 
