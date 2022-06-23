@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Security.Principal;
 using System.Text;
 
@@ -9,9 +10,10 @@ namespace Benchmarks
 {
     internal static class AweHelpers
     {
+        [SupportedOSPlatform("windows")]
         public static bool IsAweEnabled => EnableDisablePrivilege("SeLockMemoryPrivilege", enable: true);
 
-
+        [SupportedOSPlatform("windows")]
         private static bool EnableDisablePrivilege(string PrivilegeName, bool enable)
         {
             if (!OpenProcessToken(Process.GetCurrentProcess().Handle, TokenAccessLevels.AdjustPrivileges | TokenAccessLevels.Query, out IntPtr processToken))
