@@ -15,7 +15,7 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class MinidumpReader : IDataReader, IDisposable, IThreadReader
+    internal sealed class MinidumpReader : IDataReader, IDisposable, IThreadReader, IDumpInfoProvider
     {
         private readonly Minidump _minidump;
         private IMemoryReader? _readerCached;
@@ -57,6 +57,8 @@ namespace Microsoft.Diagnostics.Runtime
         public int ProcessId => _minidump.ProcessId;
 
         public int PointerSize { get; }
+
+        public bool IsMiniOrTriage => _minidump.IsMiniDump;
 
         public void Dispose()
         {

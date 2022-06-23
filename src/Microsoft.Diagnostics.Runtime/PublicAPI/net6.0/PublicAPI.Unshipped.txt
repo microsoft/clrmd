@@ -1,1 +1,3 @@
 #nullable enable
+Microsoft.Diagnostics.Runtime.IDumpInfoProvider
+Microsoft.Diagnostics.Runtime.IDumpInfoProvider.IsMiniOrTriage.get -> bool
