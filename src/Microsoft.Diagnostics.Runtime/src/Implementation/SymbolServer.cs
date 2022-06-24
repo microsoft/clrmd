@@ -127,7 +127,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Task<string?> redirectedFile = Task.FromResult<string?>(null);
             if (SupportsRedirection)
             {
-                string filePtrPath = Path.Combine(Path.GetDirectoryName(fullPath)!, "file.ptr").Replace('\\', '/');
+                int last = fullPath.LastIndexOfAny(new char[] { '/', '\\' }) + 1;
+
+                string filePtrPath = fullPath.Substring(0, last) + "file.ptr";
                 redirectedFile = GetStringOrNull(filePtrPath);
             }
 
