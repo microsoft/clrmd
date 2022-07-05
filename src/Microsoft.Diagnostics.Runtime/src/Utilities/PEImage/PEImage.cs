@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private ImmutableArray<PdbInfo> _pdbs;
         private ResourceEntry? _resources;
-        
+
         private readonly ImageDataDirectory[] _directories = new ImageDataDirectory[ImageDataDirectoryCount];
         private readonly int _sectionCount;
         private ImageSectionHeader[]? _sections;
@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         public PEImage(ReadVirtualStream stream, bool leaveOpen, bool isVirtual)
-            :this((Stream)stream, leaveOpen, isVirtual)
+            : this((Stream)stream, leaveOpen, isVirtual)
         {
         }
 
@@ -219,6 +219,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>The position in the stream of the data, -1 if the virtual address doesn't map to any location of the PE image.</returns>
         public int RvaToOffset(int virtualAddress)
         {
+            if (virtualAddress < 4096)
+                return virtualAddress;
+
             if (_isVirtual)
                 return virtualAddress;
 
@@ -284,7 +287,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 ArrayPool<byte>.Shared.Return(buffer);
             }
         }
-        
+
         /// <summary>
         /// Returns the address of a module export symbol if found
         /// </summary>
@@ -565,7 +568,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
         }
 
-        private static T Read<T>(Stream stream) where T: unmanaged
+        private static T Read<T>(Stream stream) where T : unmanaged
         {
             Span<byte> buffer = stackalloc byte[sizeof(T)];
             int read = stream.Read(buffer);
