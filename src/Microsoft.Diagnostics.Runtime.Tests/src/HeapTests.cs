@@ -214,6 +214,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 if (seg.Generation2.Length > 0)
                     Assert.True(seg.ObjectRange.Contains(seg.Generation2));
 
+                Assert.True(seg.Generation2.Start == seg.Start);
+                Assert.True(seg.Generation2.Start + seg.Generation2.Length == seg.Generation1.Start);
+                Assert.True(seg.Generation1.Start + seg.Generation1.Length == seg.Generation0.Start);
+                Assert.True(seg.Generation0.Start + seg.Generation0.Length == seg.End);
+
                 if (seg.Length == 0)
                 {
                     continue;

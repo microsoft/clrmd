@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             {
                 if (_regions)
                 {
-                    return (_generation == 1) ? Start : End;
+                    return (_generation <= 1) ? Start : End;
                 }
                 else
                 {
@@ -99,7 +99,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             {
                 if (_regions)
                 {
-                    return End - Gen1Start;
+                    return (_generation == 1) ? End - Start : 0;
                 }
                 else
                 {
@@ -112,14 +112,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         {
             get
             {
-                if (_regions)
-                {
-                    return (_generation >= 2) ? Start : End;
-                }
-                else
-                {
-                    return Start;
-                }
+                return Start;
             }
         }
 
@@ -129,7 +122,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             {
                 if (_regions)
                 {
-                    return End - Gen2Start;
+                    return (_generation >= 2) ? End - Start : 0;
                 }
                 else
                 {
