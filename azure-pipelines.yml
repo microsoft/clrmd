@@ -13,7 +13,6 @@ pr:
     - LICENSE
 
 variables:
-  - Codeql.Enabled: true
   - name: _TeamName
     value: DotNetCore
   - name: _SignType
