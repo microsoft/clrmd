@@ -29,7 +29,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private int DataDirectoryOffset => SpecificHeaderOffset + (IsPE64 ? 5 * 8 : 6 * 4);
         private int ImageDataDirectoryOffset => DataDirectoryOffset + ImageDataDirectoryCount * sizeof(ImageDataDirectory);
 
+        private readonly ulong _imageBase;
+
         private readonly Stream _stream;
+        private readonly MemoryStream _memoryStream;
         private int _offset;
         private readonly bool _leaveOpen;
         private readonly bool _isVirtual;
@@ -76,6 +79,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!stream.CanSeek)
                 throw new ArgumentException($"{nameof(stream)} is not seekable.");
 
+            _memoryStream = new MemoryStream();
+            stream.CopyTo(_memoryStream);
+            _memoryStream.Seek(0, SeekOrigin.Begin);
+
             ushort dosHeaderMagic = Read<ushort>(0);
             if (dosHeaderMagic != ExpectedDosHeaderMagic)
             {
@@ -105,6 +112,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (TryRead(OptionalHeaderOffset, out ImageOptionalHeader optional))
             {
                 IsPE64 = optional.Magic != OptionalMagic32;
+                _imageBase = IsPE64 ? optional.ImageBase64 : optional.ImageBase;
                 IndexFileSize = optional.SizeOfImage;
 
                 // Read directories.  In order for us to read directories, we need to know if
@@ -113,6 +121,56 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 for (int i = 0; i < _directories.Length; i++)
                     if (!TryRead(out _directories[i]))
                         break;
+
+            }
+        }
+
+        public void Relocate(ulong loadedImageBase)
+        {
+            if (loadedImageBase == 0)
+                return;
+
+            int readingCursor = RvaToOffset(RelocationDataDirectory.VirtualAddress);
+            int readingLimit = readingCursor + RelocationDataDirectory.Size;
+
+            while (readingCursor < readingLimit)
+            {
+                ImageRelocation relocation = Read<ImageRelocation>(ref readingCursor);
+
+                int numRelocationsInBlock = (relocation.blockSize - Unsafe.SizeOf<ImageRelocation>()) / Unsafe.SizeOf<ushort>();
+
+                for (int i = 0; i < numRelocationsInBlock; i++)
+                {
+                    ushort reloc = Read<ushort>(ref readingCursor);
+                    int withinPageOffset = (reloc & (ushort)0x0fff);
+                    int type = reloc >> 12;
+
+                    const int IMAGE_REL_BASED_ABSOLUTE = 0;
+                    const int IMAGE_REL_BASED_DIR64 = 10;
+
+                    if (type == IMAGE_REL_BASED_ABSOLUTE)
+                    {
+                        // This base relocation is skipped 
+                    }
+                    else if (type == IMAGE_REL_BASED_DIR64)
+                    {
+                        int rva = relocation.pageRVA + withinPageOffset;
+                        int fileOffset = RvaToOffset(rva);
+                        ulong data = Read<ulong>(fileOffset);
+                        ulong relocated = data - _imageBase + loadedImageBase;
+                        _memoryStream.Seek(fileOffset, SeekOrigin.Begin);
+                        Write(relocated);
+                    }
+                    else
+                    {
+                        // TODO: Implementation
+                    }
+                }
+
+                if (readingCursor % 4 != 0)
+                {
+                    readingCursor += 4 - (readingCursor % 4);
+                }
             }
         }
 
@@ -139,6 +197,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public bool IsManaged => ComDescriptorDirectory.VirtualAddress != 0;
 
         private ImageDataDirectory ExportDirectory => _directories[0];
+        private ImageDataDirectory RelocationDataDirectory => _directories[5];
         private ImageDataDirectory DebugDataDirectory => _directories[6];
         private ImageDataDirectory ComDescriptorDirectory => _directories[14];
         internal ImageDataDirectory MetadataDirectory
@@ -249,13 +308,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return 0;
 
             SeekTo(offset);
-            return _stream.Read(dest);
+            return _memoryStream.Read(dest);
         }
 
         internal int ReadFromOffset(int offset, Span<byte> dest)
         {
             SeekTo(offset);
-            return _stream.Read(dest);
+            return _memoryStream.Read(dest);
         }
 
         /// <summary>
@@ -373,7 +432,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             T t = default;
 
             SeekTo(offset);
-            int read = _stream.Read(new Span<byte>(&t, size));
+            int read = _memoryStream.Read(new Span<byte>(&t, size));
             offset += read;
             _offset = offset;
 
@@ -383,13 +442,25 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return t;
         }
 
+        private unsafe void Write<T>(T data) where T : unmanaged
+        {
+            int size = Unsafe.SizeOf<T>();
+            byte[] buffer = new byte[size];
+            Span<byte> span = new Span<byte>(&data, size);
+            for (int i = 0; i < size; i++)
+            {
+                buffer[i] = span[i];
+            }
+            _memoryStream.Write(buffer, 0, size);
+        }
+
         internal unsafe bool TryRead<T>(ref int offset, out T result) where T : unmanaged
         {
             int size = Unsafe.SizeOf<T>();
             T t = default;
 
             SeekTo(offset);
-            int read = _stream.Read(new Span<byte>(&t, size));
+            int read = _memoryStream.Read(new Span<byte>(&t, size));
             offset += read;
             _offset = offset;
 
@@ -409,7 +480,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             T t = default;
 
             SeekTo(offset);
-            int read = _stream.Read(new Span<byte>(&t, size));
+            int read = _memoryStream.Read(new Span<byte>(&t, size));
             offset += read;
             _offset = offset;
 
@@ -428,7 +499,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             int size = Unsafe.SizeOf<T>();
             T t = default;
 
-            int read = _stream.Read(new Span<byte>(&t, size));
+            int read = _memoryStream.Read(new Span<byte>(&t, size));
             _offset += read;
 
             if (read != size)
@@ -445,11 +516,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private void SeekTo(int offset)
         {
-            if (offset != _offset)
-            {
-                _stream.Seek(offset, SeekOrigin.Begin);
-                _offset = offset;
-            }
+            _memoryStream.Seek(offset, SeekOrigin.Begin);
+            _offset = offset;
         }
 
         private ImageSectionHeader[] ReadSections()
@@ -553,7 +621,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             byte[] buffer = ArrayPool<byte>.Shared.Rent(len);
             try
             {
-                if (_stream.Read(buffer, 0, len) != len)
+                if (_memoryStream.Read(buffer, 0, len) != len)
                     return null;
 
                 int index = Array.IndexOf(buffer, (byte)'\0', 0, len);
