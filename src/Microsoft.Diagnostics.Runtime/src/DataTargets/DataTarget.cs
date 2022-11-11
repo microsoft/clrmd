@@ -91,7 +91,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        internal PEImage? LoadPEImage(string fileName, int timeStamp, int fileSize, bool checkProperties)
+        internal PEImage? LoadPEImage(string fileName, int timeStamp, int fileSize, bool checkProperties, ulong imageBase)
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(DataTarget));
@@ -113,7 +113,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
             {
-                result = new PEImage(File.OpenRead(fileName));
+                result = new PEImage(File.OpenRead(fileName), false, imageBase);
                 if (!result.IsValid)
                     result = null;
             }

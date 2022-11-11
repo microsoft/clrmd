@@ -173,7 +173,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (info != null && info.FileName != null)
             {
                 // We do not put a using statement here to prevent needing to load/unload the binary over and over.
-                PEImage? peimage = _dataTarget.LoadPEImage(info.FileName, info.IndexTimeStamp, info.IndexFileSize, checkProperties: true);
+                PEImage? peimage = _dataTarget.LoadPEImage(info.FileName, info.IndexTimeStamp, info.IndexFileSize, checkProperties: true, info.ImageBase);
                 if (peimage != null)
                 {
                     lock (peimage)
@@ -249,7 +249,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return HResult.E_INVALIDARG;
 
             // We do not put a using statement here to prevent needing to load/unload the binary over and over.
-            PEImage? peimage = _dataTarget.LoadPEImage(fileName, imageTimestamp, imageSize, checkProperties: true);
+            PEImage? peimage = _dataTarget.LoadPEImage(fileName, imageTimestamp, imageSize, checkProperties: true, imageBase: 0);
             if (peimage is null)
                 return HResult.E_FAIL;
 
