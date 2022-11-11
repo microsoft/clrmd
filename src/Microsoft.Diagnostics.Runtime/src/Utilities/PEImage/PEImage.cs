@@ -4,7 +4,9 @@
 
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -30,9 +32,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private int ImageDataDirectoryOffset => DataDirectoryOffset + ImageDataDirectoryCount * sizeof(ImageDataDirectory);
 
         private readonly ulong _imageBase;
+        private readonly ulong _loadedImageBase;
+        private readonly int[]? _relocations;
 
         private readonly Stream _stream;
-        private readonly MemoryStream _memoryStream;
         private int _offset;
         private readonly bool _leaveOpen;
         private readonly bool _isVirtual;
@@ -48,18 +51,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private object? _metadata;
         private bool _disposed;
 
-        public PEImage(FileStream stream, bool leaveOpen = false)
-            : this(stream, leaveOpen, isVirtual: false)
+        public PEImage(FileStream stream, bool leaveOpen = false, ulong loadedImageBase = 0)
+            : this(stream, leaveOpen, isVirtual: false, loadedImageBase)
         {
         }
 
         public PEImage(ReadVirtualStream stream, bool leaveOpen, bool isVirtual)
-            : this((Stream)stream, leaveOpen, isVirtual)
+            : this((Stream)stream, leaveOpen, isVirtual, 0)
         {
         }
 
         public PEImage(ReaderStream stream, bool leaveOpen, bool isVirtual)
-            : this((Stream)stream, leaveOpen, isVirtual)
+            : this((Stream)stream, leaveOpen, isVirtual, 0)
         {
         }
 
@@ -70,7 +73,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <param name="leaveOpen">Whether or not to leave the stream open, if this is set to false stream will be
         /// disposed when this object is.</param>
         /// <param name="isVirtual">Whether stream points to a PE image mapped into an address space (such as in a live process or crash dump).</param>
-        private PEImage(Stream stream, bool leaveOpen, bool isVirtual)
+        /// <param name="loadedImageBase">Provide a loaded image base so that the read API based on virtual addresses can be relocated</param>
+        private PEImage(Stream stream, bool leaveOpen, bool isVirtual, ulong loadedImageBase)
         {
             _isVirtual = isVirtual;
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));
@@ -78,10 +82,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             if (!stream.CanSeek)
                 throw new ArgumentException($"{nameof(stream)} is not seekable.");
-
-            _memoryStream = new MemoryStream();
-            stream.CopyTo(_memoryStream);
-            _memoryStream.Seek(0, SeekOrigin.Begin);
 
             ushort dosHeaderMagic = Read<ushort>(0);
             if (dosHeaderMagic != ExpectedDosHeaderMagic)
@@ -123,16 +123,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         break;
 
             }
-        }
 
-        public void Relocate(ulong loadedImageBase)
-        {
             if (loadedImageBase == 0)
                 return;
+
+            _loadedImageBase = loadedImageBase;
+
 
             int readingCursor = RvaToOffset(RelocationDataDirectory.VirtualAddress);
             int readingLimit = readingCursor + RelocationDataDirectory.Size;
 
+            List<int> relocations = new List<int>();
             while (readingCursor < readingLimit)
             {
                 ImageRelocation relocation = Read<ImageRelocation>(ref readingCursor);
@@ -144,26 +145,31 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     ushort reloc = Read<ushort>(ref readingCursor);
                     int withinPageOffset = (reloc & (ushort)0x0fff);
                     int type = reloc >> 12;
+                    int rva = relocation.pageRVA + withinPageOffset;
+                    int fileOffset = RvaToOffset(rva);
 
                     const int IMAGE_REL_BASED_ABSOLUTE = 0;
+                    const int IMAGE_REL_BASED_HIGHLOW = 3;
                     const int IMAGE_REL_BASED_DIR64 = 10;
 
                     if (type == IMAGE_REL_BASED_ABSOLUTE)
                     {
-                        // This base relocation is skipped 
+                        continue;
+                    }
+
+                    relocations.Add(fileOffset);
+
+                    if (type == IMAGE_REL_BASED_HIGHLOW)
+                    {
+                        relocations.Add(fileOffset + 3);
                     }
                     else if (type == IMAGE_REL_BASED_DIR64)
                     {
-                        int rva = relocation.pageRVA + withinPageOffset;
-                        int fileOffset = RvaToOffset(rva);
-                        ulong data = Read<ulong>(fileOffset);
-                        ulong relocated = data - _imageBase + loadedImageBase;
-                        _memoryStream.Seek(fileOffset, SeekOrigin.Begin);
-                        Write(relocated);
+                        relocations.Add(fileOffset + 7);
                     }
                     else
                     {
-                        // TODO: Implementation
+                        // TODO: Implementation if this happens.
                     }
                 }
 
@@ -172,6 +178,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     readingCursor += 4 - (readingCursor % 4);
                 }
             }
+            _relocations = relocations.ToArray();
+            Array.Sort(_relocations);
         }
 
         internal int ResourceVirtualAddress => ResourceDirectory.VirtualAddress;
@@ -259,7 +267,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public PdbInfo? DefaultPdb => Pdbs.LastOrDefault();
 
-
         public void Dispose()
         {
             if (!_disposed)
@@ -295,6 +302,213 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return -1;
         }
 
+        private int DoRead(ref int offset, Span<byte> dest)
+        {
+            int beginRead = offset;
+            int endRead = offset + dest.Length - 1;
+            int beginRelocation = -1;
+            int endRelocation = -1;
+
+            if (_relocations != null)
+            {
+                //
+                // The _relocations array is an array of offsets that begin and end (both inclusively) 
+                // relocations.
+                //
+                // For example:
+                // 32, 35, 36, 39 means [32, 36) and [36, 40) contains data that needs to be relocated.
+                //
+                // It is assumed that these never overlaps, so the array contain no duplicates, and it
+                // is sorted, the array is prepared in the constructor by parsing the .reloc entries.
+                // 
+                // The even/odd index always correspond to an open/close of the relocation interval.
+                //
+                // There is a possibility that the requested range partially contains a relocation, so
+                // we need to make sure the reading range is extended in those cases. The code below
+                // uses binary search to find the containing relocation records and deciding on 
+                // exactly how much we wanted to extend the read.
+                //
+                // The code also keeps track of which relocation to start and stop to apply so that
+                // we can apply them after reading.
+                //
+                int beginSearch = Array.BinarySearch(_relocations, offset);
+                if (beginSearch < 0)
+                {
+                    int beginSearchComplement = ~beginSearch;
+                    if (beginSearchComplement == _relocations.Length)
+                    {
+                        // Case 1: ] 
+                        //           ^
+                        // The read range starts after all relocations finishes, no need to extend the read
+                        beginRelocation = _relocations.Length;
+                    }
+                    else if ((beginSearchComplement & 1) == 0)
+                    {
+                        // Case 2: ]   [
+                        //           ^
+                        // The read range starts between relocations, no need to extend the read
+                        beginRelocation = beginSearchComplement;
+                    }
+                    else
+                    {
+                        // Case 3: [   ]
+                        //           ^
+                        // The read range starts within a relocation, extend the read 
+                        Debug.Assert((beginSearchComplement & 1) == 1);
+                        Debug.Assert(beginSearch > 0);
+                        beginRelocation = beginSearch - 1;
+                        beginRead = _relocations[beginRelocation];
+                    }
+                }
+                else
+                {
+                    if ((beginSearch & 1) == 0)
+                    {
+                        // Case 4: [
+                        //         ^
+                        // The read range starts exactly where a relocation start, no need to extend the read
+                        beginRelocation = beginSearch;
+                    }
+                    else
+                    {
+                        // Case 5: ]
+                        //         ^
+                        // The read range starts exactly where a relocation end, extend the read
+                        Debug.Assert(beginSearch > 0);
+                        Debug.Assert((beginSearch & 1) == 1);
+                        beginRelocation = beginSearch - 1;
+                        beginRead = _relocations[beginRelocation];
+                    }
+                }
+                int endSearch = Array.BinarySearch(_relocations, offset + dest.Length - 1);
+                if (endSearch < 0)
+                {
+                    int endSearchComplement = ~endSearch;
+                    if (endSearchComplement == _relocations.Length)
+                    {
+                        // Case 1: ] 
+                        //           ^
+                        // The read range ends after all relocations finishes, no need to extend the read
+                        endRelocation = _relocations.Length - 1;
+                    }
+                    else if ((endSearchComplement & 1) == 0)
+                    {
+                        // Case 2: ]   [
+                        //           ^
+                        // The read range ends between relocations, no need to extend the read
+                        endRelocation = endSearchComplement - 1;
+                    }
+                    else
+                    {
+                        // Case 3: [   ]
+                        //           ^
+                        // The read range ends within a relocation, extend the read 
+                        Debug.Assert((endSearchComplement & 1) == 1);
+                        Debug.Assert(endSearch > 0);
+                        endRelocation = endSearch;
+                        endRead = _relocations[endRelocation];
+                    }
+                }
+                else
+                {
+                    if ((endSearch & 1) == 0)
+                    {
+                        // Case 4: [
+                        //         ^
+                        // The read range ends exactly where a relocation start, extend the read
+                        endRelocation = endSearch + 1;
+                        endRead = _relocations[endRelocation];
+                    }
+                    else
+                    {
+                        // Case 5: ]
+                        //         ^
+                        // The read range ends exactly where a relocation end, no need to extend the read
+                        Debug.Assert(endSearch > 0);
+                        Debug.Assert((endSearch & 1) == 1);
+                        endRelocation = endSearch;
+                    }
+                }
+
+                Debug.Assert((beginRelocation & 1) == 0);
+                Debug.Assert((endRelocation & 1) == 1);
+                Debug.Assert(beginRead <= offset);
+                Debug.Assert(offset + dest.Length - 1 <= endRead);
+            }
+
+            int readSize = endRead - beginRead + 1;
+            int headShift = offset - beginRead;
+
+            Span<byte> buffer = stackalloc byte[readSize];
+
+            SeekTo(beginRead);
+
+            int read = _stream.Read(buffer);
+            if (read < headShift)
+            {
+                // This is unexpected, we failed to read something that is supposed to be a reloc.
+                SeekTo(_offset);
+                offset = _offset;
+                return 0;
+            }
+
+            read -= headShift;
+
+            if (read > dest.Length)
+            {
+                read = dest.Length;
+            }
+
+            SeekTo(offset + read);
+            offset += read;
+            _offset = offset;
+
+            if ((_relocations != null) && (beginRelocation < endRelocation))
+            {
+                for (int r = beginRelocation; r < endRelocation; r += 2)
+                {
+                    int relocationStartOffset = _relocations[r];
+                    int relocationEndOffset = _relocations[r + 1];
+                    int relocationSize = relocationEndOffset - relocationStartOffset + 1;
+
+                    Debug.Assert(relocationStartOffset >= beginRead);
+                    Debug.Assert(relocationEndOffset <= endRead);
+
+                    byte[] beforeBytes = new byte[relocationSize];
+                    byte[]? afterBytes = null;
+                    for (int i = 0; i < relocationSize; i++)
+                    {
+                        beforeBytes[i] = buffer[relocationStartOffset - beginRead + i];
+                    }
+                    if (relocationSize == 4)
+                    {
+                        uint beforeValue = BitConverter.ToUInt32(beforeBytes, 0);
+                        uint afterValue = beforeValue + (uint)(_loadedImageBase - _imageBase);
+                        afterBytes = BitConverter.GetBytes(afterValue);
+                    }
+                    else
+                    {
+                        Debug.Assert(relocationSize == 8);
+                        ulong beforeValue = BitConverter.ToUInt64(beforeBytes, 0);
+                        ulong afterValue = beforeValue - _imageBase + _loadedImageBase;
+                        afterBytes = BitConverter.GetBytes(afterValue);
+                    }
+                    Debug.Assert(afterBytes.Length == relocationSize);
+                    for (int i = 0; i < relocationSize; i++)
+                    {
+                        buffer[relocationStartOffset - beginRead + i] = afterBytes[i];
+                    }
+                }
+            }
+
+            for (int i = 0; i < read; i++)
+            {
+                dest[i] = buffer[i + headShift];
+            }
+
+            return read;
+        }
+
         /// <summary>
         /// Reads data out of PE image into a native buffer.
         /// </summary>
@@ -307,15 +521,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (offset == -1)
                 return 0;
 
-            SeekTo(offset);
-            return _memoryStream.Read(dest);
+            return DoRead(ref offset, dest);
         }
 
-        internal int ReadFromOffset(int offset, Span<byte> dest)
-        {
-            SeekTo(offset);
-            return _memoryStream.Read(dest);
-        }
+        internal int ReadFromOffset(int offset, Span<byte> dest) => DoRead(ref offset, dest);
 
         /// <summary>
         /// Gets the File Version Information that is stored as a resource in the PE file.  (This is what the
@@ -418,7 +627,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return builder.ToString();
         }
 
-
         private ResourceEntry CreateResourceRoot()
         {
             return new ResourceEntry(this, null, "root", false, RvaToOffset((int)ResourceVirtualAddress));
@@ -428,30 +636,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         internal unsafe T Read<T>(ref int offset) where T : unmanaged
         {
-            int size = Unsafe.SizeOf<T>();
             T t = default;
-
-            SeekTo(offset);
-            int read = _memoryStream.Read(new Span<byte>(&t, size));
-            offset += read;
-            _offset = offset;
-
-            if (read != size)
-                return default;
-
+            TryRead(ref offset, out t);
             return t;
-        }
-
-        private unsafe void Write<T>(T data) where T : unmanaged
-        {
-            int size = Unsafe.SizeOf<T>();
-            byte[] buffer = new byte[size];
-            Span<byte> span = new Span<byte>(&data, size);
-            for (int i = 0; i < size; i++)
-            {
-                buffer[i] = span[i];
-            }
-            _memoryStream.Write(buffer, 0, size);
         }
 
         internal unsafe bool TryRead<T>(ref int offset, out T result) where T : unmanaged
@@ -459,10 +646,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             int size = Unsafe.SizeOf<T>();
             T t = default;
 
-            SeekTo(offset);
-            int read = _memoryStream.Read(new Span<byte>(&t, size));
-            offset += read;
-            _offset = offset;
+            int read = DoRead(ref offset, new Span<byte>(&t, size));
 
             if (read != size)
             {
@@ -474,50 +658,23 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return true;
         }
 
-        internal unsafe bool TryRead<T>(int offset, out T result) where T : unmanaged
-        {
-            int size = Unsafe.SizeOf<T>();
-            T t = default;
-
-            SeekTo(offset);
-            int read = _memoryStream.Read(new Span<byte>(&t, size));
-            offset += read;
-            _offset = offset;
-
-            if (read != size)
-            {
-                result = default;
-                return false;
-            }
-
-            result = t;
-            return true;
-        }
+        internal unsafe bool TryRead<T>(int offset, out T result) where T : unmanaged => TryRead(ref offset, out result);
 
         internal unsafe bool TryRead<T>(out T result) where T : unmanaged
         {
-            int size = Unsafe.SizeOf<T>();
-            T t = default;
-
-            int read = _memoryStream.Read(new Span<byte>(&t, size));
-            _offset += read;
-
-            if (read != size)
-            {
-                result = default;
-                return false;
-            }
-
-            result = t;
-            return true;
+            int offset = _offset;
+            return TryRead(ref offset, out result);
         }
 
         internal T Read<T>() where T : unmanaged => Read<T>(_offset);
 
         private void SeekTo(int offset)
         {
-            _memoryStream.Seek(offset, SeekOrigin.Begin);
-            _offset = offset;
+            if (offset != _offset)
+            {
+                _stream.Seek(offset, SeekOrigin.Begin);
+                _offset = offset;
+            }
         }
 
         private ImageSectionHeader[] ReadSections()
@@ -545,7 +702,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return sections;
         }
 
-
         private bool Read64Bit()
         {
             if (!IsValid)
@@ -557,7 +713,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             return magic != OptionalMagic32;
         }
-
 
         private ImmutableArray<PdbInfo> ReadPdbs()
         {
@@ -621,7 +776,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             byte[] buffer = ArrayPool<byte>.Shared.Rent(len);
             try
             {
-                if (_memoryStream.Read(buffer, 0, len) != len)
+                int offset = _offset;
+                if (DoRead(ref offset, buffer) != len)
                     return null;
 
                 int index = Array.IndexOf(buffer, (byte)'\0', 0, len);
@@ -634,25 +790,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 ArrayPool<byte>.Shared.Return(buffer);
             }
-        }
-
-        private static T Read<T>(Stream stream) where T : unmanaged
-        {
-            Span<byte> buffer = stackalloc byte[sizeof(T)];
-            int read = stream.Read(buffer);
-            if (read == 0)
-                return default;
-
-            if (read < buffer.Length)
-                buffer = buffer.Slice(0, read);
-
-            return Unsafe.As<byte, T>(ref buffer[0]);
-        }
-
-        private static T Read<T>(Stream stream, int offset) where T : unmanaged
-        {
-            stream.Seek(offset, SeekOrigin.Begin);
-            return Read<T>(stream);
         }
     }
 }
