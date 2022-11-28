@@ -104,7 +104,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return null;
 
             string fullPath = Path.Combine(Location, key);
-            return File.Exists(fullPath) ? fullPath : null;
+            if (File.Exists(fullPath))
+            {
+                return fullPath;
+            }
+            else
+            {
+                string fileName = Path.GetFileName(fullPath);
+                fullPath = Path.Combine(Location, fileName);
+                return File.Exists(fullPath) ? fullPath : null;
+            }
         }
 
         internal string Store(Stream stream, string key)
