@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
         public const uint ContextFloatingPoint = Context | 0x8;
         public const uint ContextDebugRegisters = Context | 0x10;
 
-        public static int Size => Marshal.SizeOf(typeof(X86Context));
+        public static int Size => 0x2cc;
 
         // Control flags
 

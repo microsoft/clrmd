@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
 
@@ -12,6 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// Builds an individual VTable for a COM object.
     /// </summary>
+    [RequiresDynamicCode("This class uses reflection over delegates to generate code.  If used for NativeAOT, consider building a VTable with [UnmanagedCallersOnly] and native delegates instead.")]
     public sealed unsafe class VTableBuilder
     {
         private readonly Guid _guid;

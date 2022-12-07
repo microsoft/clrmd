@@ -25,26 +25,5 @@ namespace Microsoft.Diagnostics.Runtime
                 || cet == ClrElementType.Array || cet == ClrElementType.SZArray
                 || cet == ClrElementType.Object;
         }
-
-        public static Type? GetTypeForElementType(this ClrElementType type) => type switch
-        {
-            ClrElementType.Boolean => typeof(bool),
-            ClrElementType.Char => typeof(char),
-            ClrElementType.Double => typeof(double),
-            ClrElementType.Float => typeof(float),
-            ClrElementType.Pointer or
-            ClrElementType.NativeInt or
-            ClrElementType.FunctionPointer => typeof(IntPtr),
-            ClrElementType.NativeUInt => typeof(UIntPtr),
-            ClrElementType.Int16 => typeof(short),
-            ClrElementType.Int32 => typeof(int),
-            ClrElementType.Int64 => typeof(long),
-            ClrElementType.Int8 => typeof(sbyte),
-            ClrElementType.UInt16 => typeof(ushort),
-            ClrElementType.UInt32 => typeof(uint),
-            ClrElementType.UInt64 => typeof(ulong),
-            ClrElementType.UInt8 => typeof(byte),
-            _ => null,
-        };
     }
 }
