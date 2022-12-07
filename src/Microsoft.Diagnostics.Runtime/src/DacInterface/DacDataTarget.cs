@@ -14,6 +14,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     internal unsafe class DacDataTarget
     {
+        internal static readonly Guid IID_IDacDataTarget = new("3E11CCEE-D08B-43e5-AF01-32717A64DA03");
+        internal static readonly Guid IID_IMetadataLocator = new("aa8fa804-bc05-4642-b2c5-c353ed22fc63");
+        internal static readonly Guid IID_ICLRRuntimeLocator = new("b760bf44-9377-4597-8be7-58083bdc5146");
+
         public const ulong MagicCallbackConstant = 0x43;
 
         private readonly DataTarget _dataTarget;

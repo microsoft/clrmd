@@ -13,9 +13,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     [RequiresDynamicCode("Requires dynamic code generation to build interfaces.")]
     internal unsafe class LegacyDacDataTargetWrapper : COMCallableIUnknown
     {
-        private static readonly Guid IID_IDacDataTarget = new("3E11CCEE-D08B-43e5-AF01-32717A64DA03");
-        private static readonly Guid IID_IMetadataLocator = new("aa8fa804-bc05-4642-b2c5-c353ed22fc63");
-        private static readonly Guid IID_ICLRRuntimeLocator = new new("b760bf44-9377-4597-8be7-58083bdc5146");
         private readonly DacDataTarget _dacDataTarget;
 
         public IntPtr IDacDataTarget { get; }
@@ -24,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             _dacDataTarget = dacDataTarget;
 
-            VTableBuilder builder = AddInterface(IID_IDacDataTarget, false);
+            VTableBuilder builder = AddInterface(DacDataTarget.IID_IDacDataTarget, false);
             builder.AddMethod(new GetMachineTypeDelegate(GetMachineType));
             builder.AddMethod(new GetPointerSizeDelegate(GetPointerSize));
             builder.AddMethod(new GetImageBaseDelegate(GetImageBase));
@@ -38,13 +35,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             builder.AddMethod(new RequestDelegate(Request));
             IDacDataTarget = builder.Complete();
 
-            builder = AddInterface(IID_IMetadataLocator, false);
+            builder = AddInterface(DacDataTarget.IID_IMetadataLocator, false);
             builder.AddMethod(new GetMetadataDelegate(GetMetadata));
             builder.Complete();
 
             if (implementRuntimeLocator)
             {
-                builder = AddInterface(IID_ICLRRuntimeLocator, false);
+                builder = AddInterface(DacDataTarget.IID_ICLRRuntimeLocator, false);
                 builder.AddMethod(new GetRuntimeBaseDelegate(GetRuntimeBase));
                 builder.Complete();
             }

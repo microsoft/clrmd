@@ -3,7 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -43,21 +43,8 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         public SOSDac6? SOSDacInterface6 => InternalDacPrivateInterface.GetSOSDacInterface6();
-
         public SOSDac8? SOSDacInterface8 => InternalDacPrivateInterface.GetSOSDacInterface8();
         public SOSDac12? SOSDacInterface12 => InternalDacPrivateInterface.GetSOSDacInterface12();
-
-        private bool UseDynamicCode
-        {
-            get
-            {
-#if NET6_0_OR_GREATER
-                return RuntimeFeature.IsDynamicCodeSupported;
-#else
-                return true;
-#endif
-            }
-        }
 
         public DacLibrary(DataTarget dataTarget, IntPtr pClrDataProcess)
         {
@@ -119,31 +106,20 @@ namespace Microsoft.Diagnostics.Runtime
             var func = (delegate* unmanaged[Stdcall]<in Guid, IntPtr, out IntPtr, int>)addr;
             Guid guid = new Guid("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
 
-            int res = 0;
-            nint iUnk = 0;
-
-            if (UseDynamicCode)
-            {
-                res = CreateDacWrapperLegacy(func, guid, out iUnk);
-            }
-            else
-            {
-                throw new PlatformNotSupportedException($"This platform does not support dynamic code, which is required for ClrMD.  Use .Net 6+ to avoid this exception.");
-            }
+#if NET6_0_OR_GREATER
+            IntPtr iDacDataTarget = DacDataTargetCOM.CreateIDacDataTarget(DacDataTarget);
+            int res = func(guid, iDacDataTarget, out nint iUnk);
+            Marshal.Release(iDacDataTarget);
+#else
+            LegacyDacDataTargetWrapper wrapper = new LegacyDacDataTargetWrapper(DacDataTarget, DacDataTarget.RuntimeBaseAddress != 0);
+            int res = func(guid, wrapper.IDacDataTarget, out nint iUnk);
+            GC.KeepAlive(wrapper);
+#endif
 
             if (res != 0)
                 throw new ClrDiagnosticsException($"Failure loading DAC: CreateDacInstance failed 0x{res:x}", res);
 
             InternalDacPrivateInterface = new ClrDataProcess(this, iUnk);
-        }
-
-        private unsafe int CreateDacWrapperLegacy(delegate* unmanaged[Stdcall]<in Guid, nint, out nint, int> func, Guid guid, out nint iUnk)
-        {
-            LegacyDacDataTargetWrapper wrapper = new LegacyDacDataTargetWrapper(DacDataTarget, DacDataTarget.RuntimeBaseAddress != 0);
-            int res = func(guid, wrapper.IDacDataTarget, out iUnk);
-            GC.KeepAlive(wrapper);
-
-            return res;
         }
 
         internal void Flush() => DacDataTarget.Flush();
