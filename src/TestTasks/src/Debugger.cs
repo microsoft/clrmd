@@ -6,7 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
-using Microsoft.Diagnostics.Runtime.Interop;
+using Microsoft.Diagnostics.DbgEng;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
 {
@@ -109,25 +110,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
         #endregion
 
         #region Events
-        public delegate void ModuleEventHandler(Debugger debugger, ModuleEventArgs args);
-        public event ModuleEventHandler ModuleLoadEvent;
-        public event ModuleEventHandler ModuleUnloadEvent;
-
-        public delegate void CreateThreadEventHandler(Debugger debugger, CreateThreadArgs args);
-        public event CreateThreadEventHandler ThreadCreateEvent;
-
-        public delegate void ExitThreadEventHandler(Debugger debugger, int exitCode);
-        public event ExitThreadEventHandler ExitThreadEvent;
-
-        public delegate void ExceptionEventHandler(Debugger debugger, EXCEPTION_RECORD64 ex);
-        public event ExceptionEventHandler FirstChanceExceptionEvent;
-        public event ExceptionEventHandler SecondChanceExceptionEvent;
-
-        public delegate void CreateProcessEventHandler(Debugger debugger, CreateProcessArgs args);
-        public event CreateProcessEventHandler CreateProcessEvent;
-
-        public delegate void ExitProcessEventHandler(Debugger debugger, int exitCode);
-        public event ExitProcessEventHandler ExitProcessEvent;
+        public delegate void ExceptionEventHandler(Debugger debugger, EXCEPTION_RECORD64 ex, bool firstChance);
+        public event ExceptionEventHandler OnException;
         #endregion
 
         public IDebugClient5 Client => _client;
@@ -247,6 +231,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
             return _control.Execute(DEBUG_OUTCTL.NOT_LOGGED, $".dump /m {dump}", DEBUG_EXECUTE.DEFAULT);
         }
 
+        public void Dispose()
+        {
+            _client.SetEventCallbacks(null);
+            _client.SetOutputCallbacks(null);
+        }
+
         #region Helpers
         private void SetDebugStatus(DEBUG_STATUS status)
         {
@@ -273,155 +263,28 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
         #endregion
 
         #region IDebugOutputCallbacks
-        public int Output(DEBUG_OUTPUT Mask, string Text)
+        void IDebugOutputCallbacks.OnText(DEBUG_OUTPUT flags, string text, ulong args)
         {
-            if (_output != null && (_outputMask & Mask) != 0)
-                _output.Append(Text);
-
-            return 0;
+            if (_output != null && (_outputMask & flags) != 0)
+                _output.Append(text);
         }
         #endregion
 
         #region IDebugEventCallbacks
-        public int GetInterestMask(out DEBUG_EVENT Mask)
+
+        public DEBUG_EVENT EventInterestMask => DEBUG_EVENT.BREAKPOINT | DEBUG_EVENT.EXCEPTION;
+
+        DEBUG_STATUS IDebugEventCallbacks.OnBreakpoint(nint bp)
         {
-            Mask = DEBUG_EVENT.BREAKPOINT | DEBUG_EVENT.CREATE_PROCESS
-                | DEBUG_EVENT.EXCEPTION | DEBUG_EVENT.EXIT_PROCESS
-                | DEBUG_EVENT.CREATE_THREAD | DEBUG_EVENT.EXIT_THREAD
-                | DEBUG_EVENT.LOAD_MODULE | DEBUG_EVENT.UNLOAD_MODULE;
-            return 0;
+            return DEBUG_STATUS.GO;
         }
 
-
-        public int Breakpoint(IDebugBreakpoint Bp)
+        DEBUG_STATUS IDebugEventCallbacks.OnException(in EXCEPTION_RECORD64 exception, bool firstChance)
         {
-            return (int)DEBUG_STATUS.GO;
-        }
-
-        public int CreateProcess(ulong ImageFileHandle, ulong Handle, ulong BaseOffset, uint ModuleSize, string ModuleName, string ImageName,
-                                 uint CheckSum, uint TimeDateStamp, ulong InitialThreadHandle, ulong ThreadDataOffset, ulong StartOffset)
-        {
-            CreateProcessEvent?.Invoke(this, new CreateProcessArgs(ImageFileHandle, Handle, BaseOffset, ModuleSize, ModuleName, ImageName, CheckSum, TimeDateStamp, InitialThreadHandle, ThreadDataOffset, StartOffset));
-
-            return 0;
-        }
-
-        public int ExitProcess(uint ExitCode)
-        {
-            ExitProcessEvent?.Invoke(this, (int)ExitCode);
-
-            _exited = true;
-            return (int)DEBUG_STATUS.BREAK;
-        }
-
-        public int CreateThread(ulong Handle, ulong DataOffset, ulong StartOffset)
-        {
-            ThreadCreateEvent?.Invoke(this, new CreateThreadArgs(Handle, DataOffset, StartOffset));
-
-            return 0;
-        }
-
-        public int ExitThread(uint ExitCode)
-        {
-            ExitThreadEvent?.Invoke(this, (int)ExitCode);
-
-            return 0;
-        }
-
-        public int Exception(in EXCEPTION_RECORD64 Exception, uint FirstChance)
-        {
-            ((FirstChance == 1) ? FirstChanceExceptionEvent : SecondChanceExceptionEvent)?.Invoke(this, Exception);
-
-            return (int)DEBUG_STATUS.BREAK;
-        }
-
-        public int LoadModule(ulong ImageFileHandle, ulong BaseOffset, uint ModuleSize, string ModuleName, string ImageName, uint CheckSum, uint TimeDateStamp)
-        {
-            ModuleLoadEvent?.Invoke(this, new ModuleEventArgs(ImageFileHandle, BaseOffset, ModuleSize, ModuleName, ImageName, CheckSum, TimeDateStamp));
-
-            return 0;
-        }
-
-        public int UnloadModule(string ImageBaseName, ulong BaseOffset)
-        {
-            ModuleUnloadEvent?.Invoke(this, new ModuleEventArgs(ImageBaseName, BaseOffset));
-
-            return 0;
-        }
-
-        public int SessionStatus(DEBUG_SESSION Status)
-        {
-            throw new NotImplementedException();
-        }
-
-        public int SystemError(uint Error, uint Level)
-        {
-            throw new NotImplementedException();
-        }
-
-        public int ChangeDebuggeeState(DEBUG_CDS Flags, ulong Argument)
-        {
-            throw new NotImplementedException();
-        }
-
-        public int ChangeEngineState(DEBUG_CES Flags, ulong Argument)
-        {
-            throw new NotImplementedException();
-        }
-
-        public int ChangeSymbolState(DEBUG_CSS Flags, ulong Argument)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Dispose()
-        {
-            _client.SetEventCallbacks(null);
-            _client.SetOutputCallbacks(null);
+            OnException?.Invoke(this, exception, firstChance);
+            return DEBUG_STATUS.BREAK;
         }
         #endregion
-    }
-
-    internal class ModuleEventArgs
-    {
-        public ulong ImageFileHandle;
-        public ulong BaseOffset;
-        public uint ModuleSize;
-        public string ModuleName;
-        public string ImageName;
-        public uint CheckSum;
-        public uint TimeDateStamp;
-
-        public ModuleEventArgs(string imageBaseName, ulong baseOffset)
-        {
-            ImageName = imageBaseName;
-            BaseOffset = baseOffset;
-        }
-
-        public ModuleEventArgs(ulong ImageFileHandle, ulong BaseOffset, uint ModuleSize, string ModuleName, string ImageName, uint CheckSum, uint TimeDateStamp)
-        {
-            this.ImageFileHandle = ImageFileHandle;
-            this.BaseOffset = BaseOffset;
-            this.ModuleSize = ModuleSize;
-            this.ModuleName = ModuleName;
-            this.ImageName = ImageName;
-            this.CheckSum = CheckSum;
-            this.TimeDateStamp = TimeDateStamp;
-        }
-    }
-
-    internal class CreateThreadArgs
-    {
-        public ulong Handle;
-        public ulong DataOffset;
-        public ulong StartOffset;
-
-        public CreateThreadArgs(ulong handle, ulong data, ulong start)
-        {
-            Handle = handle;
-            DataOffset = data;
-            StartOffset = start;
-        }
     }
 
     internal class CreateProcessArgs
