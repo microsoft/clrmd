@@ -11,16 +11,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private static Guid IID_IDebugControl5 = new("b2ffe162-2412-429f-8d1d-5bf6dd824696");
         private static Guid IID_IDebugDataSpaces2 = new("7a5e852f-96e9-468f-ac1b-0b3addc4a049");
         private static Guid IID_IDebugSymbols3 = new("f02fbecc-50ac-4f36-9ad9-c975e8f32ff8");
+        private static Guid IID_DebugSystemObjects3 = new("e9676e2f-e286-4ea3-b0f9-dfe5d9fc330e");
 
         private readonly nint _client;
         private readonly nint _control;
         private readonly nint _spaces;
         private readonly nint _symbols;
+        private readonly nint _systemObjects;
 
         nint IDbgInterfaceProvider.DebugClient => _client;
         nint IDbgInterfaceProvider.DebugControl => _control;
         nint IDbgInterfaceProvider.DebugDataSpaces => _spaces;
         nint IDbgInterfaceProvider.DebugSymbols => _symbols;
+        nint IDbgInterfaceProvider.DebugSystemObjects => _systemObjects;
 
         private bool _disposed;
         private static int _alive;
@@ -45,6 +48,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             hr = Marshal.QueryInterface(pUnknown, ref IID_IDebugSymbols3, out _symbols);
             if (hr != 0)
                 _symbols = 0;
+
+            hr = Marshal.QueryInterface(pUnknown, ref IID_DebugSystemObjects3, out _systemObjects);
+            if (hr != 0)
+                _systemObjects = 0;
         }
 
         ~DbgEngWrapper()
@@ -82,6 +89,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             else if (interfaceType.Equals(typeof(IDebugSymbols).TypeHandle))
                 return typeof(IDebugSymbolsWrapper).TypeHandle;
 
+            else if (interfaceType.Equals(typeof(IDebugSystemObjects).TypeHandle))
+                return typeof(IDebugSystemObjectsWrapper).TypeHandle;
+
             return default;
         }
 
@@ -97,6 +107,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                 return true;
 
             else if (_symbols != 0 && interfaceType.Equals(typeof(IDebugSymbols).TypeHandle))
+                return true;
+
+            else if (_systemObjects != 0 && interfaceType.Equals(typeof(IDebugSystemObjects).TypeHandle))
                 return true;
 
             return false;

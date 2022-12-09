@@ -6,5 +6,6 @@
         nint DebugControl { get; }
         nint DebugDataSpaces { get; }
         nint DebugSymbols { get; }
+        nint DebugSystemObjects { get; }
     }
 }

@@ -1,8 +1,9 @@
 ﻿using System.Runtime.InteropServices;
 
+#pragma warning disable CS0169 // field is never used
+#pragma warning disable CS0649 // field is never assigned
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
-
     [StructLayout(LayoutKind.Sequential)]
     internal readonly unsafe struct IDebugSymbolsVtable
     {
