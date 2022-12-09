@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
+#pragma warning disable CS0169 // field is never used
+#pragma warning disable CS0649 // field is never assigned
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "This is required for vtable layout")]

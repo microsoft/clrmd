@@ -6,6 +6,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
     [StructLayout(LayoutKind.Sequential)]
     internal readonly unsafe struct IDebugSymbolsVtable
     {
+        private readonly nint QueryInterface;
+        private readonly nint AddRef;
+        private readonly nint Release;
+
         private readonly nint GetSymbolOptions;
         private readonly nint AddSymbolOptions;
         private readonly nint RemoveSymbolOptions;

@@ -10,14 +10,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         internal static Guid IID_IDebugClient5 = new("e3acb9d7-7ec2-4f0c-a0da-e81e0cbbe628");
         private static Guid IID_IDebugControl5 = new("b2ffe162-2412-429f-8d1d-5bf6dd824696");
         private static Guid IID_IDebugDataSpaces2 = new("7a5e852f-96e9-468f-ac1b-0b3addc4a049");
+        private static Guid IID_IDebugSymbols3 = new("f02fbecc-50ac-4f36-9ad9-c975e8f32ff8");
 
         private readonly nint _client;
         private readonly nint _control;
         private readonly nint _spaces;
+        private readonly nint _symbols;
 
         nint IDbgInterfaceProvider.DebugClient => _client;
         nint IDbgInterfaceProvider.DebugControl => _control;
         nint IDbgInterfaceProvider.DebugDataSpaces => _spaces;
+        nint IDbgInterfaceProvider.DebugSymbols => _symbols;
 
         private bool _disposed;
         private static int _alive;
@@ -38,6 +41,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             hr = Marshal.QueryInterface(pUnknown, ref IID_IDebugDataSpaces2, out _spaces);
             if (hr != 0)
                 _spaces = 0;
+
+            hr = Marshal.QueryInterface(pUnknown, ref IID_IDebugSymbols3, out _symbols);
+            if (hr != 0)
+                _symbols = 0;
         }
 
         ~DbgEngWrapper()
@@ -72,6 +79,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             else if (interfaceType.Equals(typeof(IDebugDataSpaces).TypeHandle))
                 return typeof(IDebugDataSpacesWrapper).TypeHandle;
 
+            else if (interfaceType.Equals(typeof(IDebugSymbols).TypeHandle))
+                return typeof(IDebugSymbolsWrapper).TypeHandle;
+
             return default;
         }
 
@@ -84,6 +94,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                 return true;
 
             else if (_spaces != 0 && interfaceType.Equals(typeof(IDebugDataSpaces).TypeHandle))
+                return true;
+
+            else if (_symbols != 0 && interfaceType.Equals(typeof(IDebugSymbols).TypeHandle))
                 return true;
 
             return false;

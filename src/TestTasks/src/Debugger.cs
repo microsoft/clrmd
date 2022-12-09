@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
-using Microsoft.Diagnostics.Runtime.Utilities;
+using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace Microsoft.Diagnostics.Runtime.Tests.Tasks

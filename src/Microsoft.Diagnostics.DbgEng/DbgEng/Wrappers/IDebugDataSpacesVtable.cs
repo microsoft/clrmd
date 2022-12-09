@@ -1,16 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics.CodeAnalysis;
 
+#pragma warning disable CS0169 // field is never used
+#pragma warning disable CS0649 // field is never assigned
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "This is required for vtable layout")]
     internal unsafe readonly struct IDebugDataSpacesVtable
     {
+        private readonly nint QueryInterface;
+        private readonly nint AddRef;
+        private readonly nint Release;
+
         /* IDebugDataSpaces */
         public readonly delegate* unmanaged[Stdcall]<nint, ulong, byte*, int, int*, int> ReadVirtual;
         private readonly nint WriteVirtual;
