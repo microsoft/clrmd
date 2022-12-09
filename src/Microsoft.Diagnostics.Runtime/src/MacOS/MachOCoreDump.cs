@@ -246,10 +246,17 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             {
                 foreach (MachOSegment seg in _segments)
                 {
-                    MachHeader64 header = ReadMemory<MachHeader64>(seg.Address);
-                    if (header.Magic == MachHeader64.Magic64 && header.FileType == MachOFileType.Dylinker)
+                    for (ulong offset = 0; offset < seg.FileSize; offset += 0x1000)
                     {
-                        _dylinker = new MachOModule(this, seg.Address, "dylinker");
+                        MachHeader64 header = ReadMemory<MachHeader64>(seg.Address + offset);
+                        if (header.Magic == MachHeader64.Magic64 && header.FileType == MachOFileType.Dylinker)
+                        {
+                            _dylinker = new MachOModule(this, seg.Address + offset, "dylinker");
+                            break;
+                        }
+                    }
+                    if (_dylinker != null)
+                    {
                         break;
                     }
                 }

@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                     case LoadCommandType.Segment64:
                         Segment64LoadCommand seg64LoadCmd = DataReader.Read<Segment64LoadCommand>(cmdAddress + (uint)sizeof(LoadCommandHeader));
                         segments.Add(new MachOSegment(seg64LoadCmd));
-                        if (seg64LoadCmd.FileOffset == 0 && seg64LoadCmd.FileSize > 0)
+                        if (seg64LoadCmd.Name.Equals("__TEXT"))
                         {
                             LoadBias = BaseAddress - seg64LoadCmd.VMAddr;
                         }
@@ -140,7 +140,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                     }
                     if (name == symbol)
                     {
-                        address = BaseAddress + symTable[start + i].n_value;
+                        address = LoadBias + symTable[start + i].n_value;
                         return true;
                     }
                 }
