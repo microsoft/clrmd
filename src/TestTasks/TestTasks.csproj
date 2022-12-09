@@ -9,7 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Microsoft.Diagnostics.DbgEng\Microsoft.Diagnostics.DbgEng.csproj" />
+    <ProjectReference Include="..\Microsoft.Diagnostics.Runtime.Utilities\Microsoft.Diagnostics.Runtime.Utilities.csproj" />
   </ItemGroup>
 
 </Project>
