@@ -5,6 +5,7 @@
 using System;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
+using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
 
 namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
 {
@@ -51,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
             DEBUG_STATUS status;
             do
             {
-                status = debugger.ProcessEvents(0xffffffff);
+                status = debugger.ProcessEvents(TimeSpan.MaxValue);
             } while (status != DEBUG_STATUS.NO_DEBUGGEE);
 
             return true;
