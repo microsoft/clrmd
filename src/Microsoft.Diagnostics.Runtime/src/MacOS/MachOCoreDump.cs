@@ -244,15 +244,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             if (_dylinker == null)
             {
-                foreach (MachOSegment seg in _segments)
-                {
-                    MachHeader64 header = ReadMemory<MachHeader64>(seg.Address);
-                    if (header.Magic == MachHeader64.Magic64 && header.FileType == MachOFileType.Dylinker)
-                    {
-                        _dylinker = new MachOModule(this, seg.Address, "dylinker");
-                        break;
-                    }
-                }
+                _dylinker = FindDylinker(firstPass: true) ?? FindDylinker(firstPass: false);
             }
 
             if (_dylinker != null && _dylinker.TryLookupSymbol("dyld_all_image_infos", out ulong dyld_allImage_address))
@@ -280,6 +272,32 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             }
 
             return _modules = new Dictionary<ulong, MachOModule>();
+        }
+
+        private MachOModule? FindDylinker(bool firstPass)
+        {
+            const uint skip = 0x1000;
+            const uint firstPassAttemptCount = 8;
+            foreach (MachOSegment seg in _segments)
+            {
+                ulong start = 0;
+                ulong end = seg.FileSize;
+
+                if (firstPass)
+                    end = skip * firstPassAttemptCount;
+                else
+                    start = skip * firstPassAttemptCount;
+
+                for (ulong offset = start; offset < end; offset += skip)
+                {
+                    MachHeader64 header = ReadMemory<MachHeader64>(seg.Address + offset);
+                    if (header.Magic == MachHeader64.Magic64 && header.FileType == MachOFileType.Dylinker)
+                    {
+                        return new MachOModule(this, seg.Address + offset, "dylinker");
+                    }
+                }
+            }
+            return null;
         }
 
         private bool FindSegmentContaining(ulong address, out MachOSegment seg)
