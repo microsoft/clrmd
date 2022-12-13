@@ -439,7 +439,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             int readSize = endRead - beginRead + 1;
             int headShift = offset - beginRead;
 
-            Span<byte> buffer = stackalloc byte[readSize];
+            byte[] rawBuffer = ArrayPool<byte>.Shared.Rent(readSize);
+            Span<byte> buffer = new Span<byte>(rawBuffer, 0, readSize);
 
             SeekTo(beginRead);
 
@@ -475,11 +476,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     Debug.Assert(relocationEndOffset <= endRead);
 
                     byte[] beforeBytes = new byte[relocationSize];
-                    byte[]? afterBytes = null;
                     for (int i = 0; i < relocationSize; i++)
-                    {
                         beforeBytes[i] = buffer[relocationStartOffset - beginRead + i];
-                    }
+
+                    byte[]? afterBytes;
                     if (relocationSize == 4)
                     {
                         uint beforeValue = BitConverter.ToUInt32(beforeBytes, 0);
@@ -506,6 +506,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 dest[i] = buffer[i + headShift];
             }
 
+            ArrayPool<byte>.Shared.Return(rawBuffer);
             return read;
         }
 
