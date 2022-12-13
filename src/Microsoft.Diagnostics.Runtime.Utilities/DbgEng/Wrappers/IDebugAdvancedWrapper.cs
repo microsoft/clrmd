@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
         private static void GetVTable(object ths, out nint self, out IDebugAdvancedVtable* vtable)
         {
-            self = ((IDbgInterfaceProvider)ths).DebugSymbols;
+            self = ((IDbgInterfaceProvider)ths).DebugAdvanced;
             vtable = *(IDebugAdvancedVtable**)self;
         }
     }

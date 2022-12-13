@@ -1,6 +1,6 @@
 ﻿namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
-    internal interface IDebugSystemObjects
+    public interface IDebugSystemObjects
     {
         public int ProcessSystemId { get; }
         public int CurrentThreadId { get; set; }

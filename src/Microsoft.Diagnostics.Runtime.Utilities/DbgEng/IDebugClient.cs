@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             return (IDisposable)obj;
         }
 
-        public static object Create(nint pDebugClient) => DbgEngComWrappers.GetOrCreateObjectForComInstance(pDebugClient, CreateObjectFlags.UniqueInstance);
+        public static IDisposable Create(nint pDebugClient) => (IDisposable)DbgEngComWrappers.GetOrCreateObjectForComInstance(pDebugClient, CreateObjectFlags.UniqueInstance);
 
         int CreateProcessAndAttach(string commandLine, string? directory, DEBUG_ATTACH flags, in DEBUG_CREATE_PROCESS_OPTIONS options);
         int CreateProcessAndAttach(string commandLine, string? directory, IEnumerable<KeyValuePair<string, string>> environment, DEBUG_ATTACH flags, in DEBUG_CREATE_PROCESS_OPTIONS options);

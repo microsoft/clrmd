@@ -8,13 +8,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     public sealed class DbgEngDataReader : IDataReader, IDisposable, IThreadReader
     {
-        private IDebugClient _client;
-        private IDebugControl _control;
-        private IDebugDataSpaces _spaces;
-        private IDebugAdvanced _advanced;
-        private IDebugSymbols _symbols;
-        private IDisposable _dbgeng;
-        private IDebugSystemObjects _systemObjects = null!;
+        private readonly IDisposable _dbgeng;
+        public IDebugClient DebugClient { get; }
+        public IDebugControl DebugControl { get; }
+        public IDebugDataSpaces DebugDataSpaces { get; }
+        public IDebugAdvanced DebugAdvanced { get; }
+        public IDebugSymbols DebugSymbols { get; }
+        public IDebugSystemObjects DebugSystemObjects { get; }
 
         private bool _disposed;
 
@@ -25,28 +25,33 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         public string DisplayName { get; }
         public OSPlatform TargetPlatform => OSPlatform.Windows;
 
+        public static DataTarget CreateDataTarget(nint pDebugClient)
+        {
+            return new DataTarget(new CustomDataTarget(new DbgEngDataReader(pDebugClient)));
+        }
+
         public DbgEngDataReader(string displayName, Stream stream, bool leaveOpen)
-            : this((stream as FileStream)?.Name ?? throw new NotSupportedException($"{nameof(DbgEngDataReader)} can only be used with real files. Try to use {nameof(FileStream)}."))
+            : this((stream as FileStream)?.Name ?? throw new NotSupportedException($"{nameof(DbgEngDataReader)} can only be used with real files. Try using {nameof(FileStream)}."))
         {
             DisplayName = displayName;
             if (!leaveOpen)
                 stream?.Dispose();
         }
 
-        public DbgEngDataReader(IntPtr pDebugClient)
+        public DbgEngDataReader(nint pDebugClient)
         {
-            if (pDebugClient == IntPtr.Zero)
+            if (pDebugClient == 0)
                 throw new ArgumentNullException(nameof(pDebugClient));
 
-            DisplayName = $"DbgEng, IDebugClient={pDebugClient.ToInt64():x}";
+            DisplayName = $"DbgEng, IDebugClient={pDebugClient:x}";
 
-            _dbgeng = IDebugClient.Create();
-            _systemObjects = (IDebugSystemObjects)_dbgeng;
-            _client = (IDebugClient)_dbgeng;
-            _control = (IDebugControl)_dbgeng;
-            _spaces = (IDebugDataSpaces)_dbgeng;
-            _advanced = (IDebugAdvanced)_dbgeng;
-            _symbols = (IDebugSymbols)_dbgeng;
+            _dbgeng = IDebugClient.Create(pDebugClient);
+            DebugClient = (IDebugClient)_dbgeng;
+            DebugControl = (IDebugControl)_dbgeng;
+            DebugDataSpaces = (IDebugDataSpaces)_dbgeng;
+            DebugAdvanced = (IDebugAdvanced)_dbgeng;
+            DebugSymbols = (IDebugSymbols)_dbgeng;
+            DebugSystemObjects = (IDebugSystemObjects)_dbgeng;
         }
 
         public DbgEngDataReader(string dumpFile)
@@ -57,14 +62,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             DisplayName = dumpFile;
 
             _dbgeng = IDebugClient.Create();
-            _systemObjects = (IDebugSystemObjects)_dbgeng;
-            _client = (IDebugClient)_dbgeng;
-            _control = (IDebugControl)_dbgeng;
-            _spaces = (IDebugDataSpaces)_dbgeng;
-            _advanced = (IDebugAdvanced)_dbgeng;
-            _symbols = (IDebugSymbols)_dbgeng;
+            DebugSystemObjects = (IDebugSystemObjects)_dbgeng;
+            DebugClient = (IDebugClient)_dbgeng;
+            DebugControl = (IDebugControl)_dbgeng;
+            DebugDataSpaces = (IDebugDataSpaces)_dbgeng;
+            DebugAdvanced = (IDebugAdvanced)_dbgeng;
+            DebugSymbols = (IDebugSymbols)_dbgeng;
 
-            HResult hr = _client.OpenDumpFile(dumpFile);
+            HResult hr = DebugClient.OpenDumpFile(dumpFile);
             if (hr != 0)
             {
                 const int STATUS_MAPPED_FILE_SIZE_ZERO = unchecked((int)0xC000011E);
@@ -76,7 +81,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             }
 
             // This actually "attaches" to the crash dump.
-            HResult result = _control.WaitForEvent(TimeSpan.MaxValue);
+            HResult result = DebugControl.WaitForEvent(TimeSpan.MaxValue);
             if (!result)
                 throw CreateExceptionFromDumpFile(dumpFile, hr);
         }
@@ -93,20 +98,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             DisplayName = $"{processId:x}";
 
             _dbgeng = (IDisposable)IDebugClient.Create();
-            _systemObjects = (IDebugSystemObjects)_dbgeng;
-            _client = (IDebugClient)_dbgeng;
-            _control = (IDebugControl)_dbgeng;
-            _spaces = (IDebugDataSpaces)_dbgeng;
-            _advanced = (IDebugAdvanced)_dbgeng;
-            _symbols = (IDebugSymbols)_dbgeng;
+            DebugSystemObjects = (IDebugSystemObjects)_dbgeng;
+            DebugClient = (IDebugClient)_dbgeng;
+            DebugControl = (IDebugControl)_dbgeng;
+            DebugDataSpaces = (IDebugDataSpaces)_dbgeng;
+            DebugAdvanced = (IDebugAdvanced)_dbgeng;
+            DebugSymbols = (IDebugSymbols)_dbgeng;
 
-            HResult hr = _control.AddEngineOptions(DEBUG_ENGOPT.INITIAL_BREAK);
+            HResult hr = DebugControl.AddEngineOptions(DEBUG_ENGOPT.INITIAL_BREAK);
 
             DEBUG_ATTACH attach = invasive ? DEBUG_ATTACH.DEFAULT : DEBUG_ATTACH.NONINVASIVE;
-            hr = _client.AttachProcess(processId, attach);
+            hr = DebugClient.AttachProcess(processId, attach);
 
             if (hr)
-                hr = _control.WaitForEvent(timeout);
+                hr = DebugControl.WaitForEvent(timeout);
 
             if (hr == HResult.S_FALSE)
             {
@@ -142,17 +147,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
             if (disposing)
             {
-                _client.EndSession(DEBUG_END.ACTIVE_DETACH);
-                _client.DetachProcesses();
+                DebugClient.EndSession(DEBUG_END.ACTIVE_DETACH);
+                DebugClient.DetachProcesses();
                 _dbgeng.Dispose();
             }
         }
 
         public bool IsThreadSafe => false;
 
-        public int ProcessId => _systemObjects.ProcessSystemId;
+        public int ProcessId => DebugSystemObjects.ProcessSystemId;
 
-        public Architecture Architecture => _architecture ??= _control.CpuType switch
+        public Architecture Architecture => _architecture ??= DebugControl.CpuType switch
         {
             ImageFileMachine.I386 => Architecture.X86,
             ImageFileMachine.AMD64 => Architecture.X64,
@@ -163,7 +168,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             _ => (Architecture)(-1)
         };
 
-        public int PointerSize => _pointerSize ??= _control.PointerSize;
+        public int PointerSize => _pointerSize ??= DebugControl.PointerSize;
 
         public void FlushCachedData()
         {
@@ -172,24 +177,24 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
         public bool GetThreadContext(uint systemId, uint contextFlags, Span<byte> context)
         {
-            int curr = _systemObjects.CurrentThreadId;
+            int curr = DebugSystemObjects.CurrentThreadId;
             try
             {
-                if (_systemObjects.GetThreadIdBySystemId((int)systemId, out int id) < 0)
+                if (DebugSystemObjects.GetThreadIdBySystemId((int)systemId, out int id) < 0)
                     return false;
 
-                _systemObjects.CurrentThreadId = id;
-                return _advanced.GetThreadContext(context) >= 0;
+                DebugSystemObjects.CurrentThreadId = id;
+                return DebugAdvanced.GetThreadContext(context) >= 0;
             }
             finally
             {
-                _systemObjects.CurrentThreadId = curr;
+                DebugSystemObjects.CurrentThreadId = curr;
             }
         }
 
         private ulong[] GetImageBases()
         {
-            HResult hr = _symbols.GetNumberModules(out int count, out _);
+            HResult hr = DebugSymbols.GetNumberModules(out int count, out _);
 
             if (!hr)
                 return Array.Empty<ulong>();
@@ -198,7 +203,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             ulong[] bases = new ulong[count];
             for (int i = 0; i < count; ++i)
             {
-                hr = _symbols.GetImageBase(i, out ulong baseAddress);
+                hr = DebugSymbols.GetImageBase(i, out ulong baseAddress);
                 if (hr)
                     bases[index++] = baseAddress;
             }
@@ -221,12 +226,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             DEBUG_MODULE_PARAMETERS[] moduleParams = new DEBUG_MODULE_PARAMETERS[bases.Length];
 
             List<ModuleInfo> modules = new List<ModuleInfo>();
-            HResult hr = _symbols.GetModuleParameters(bases, moduleParams);
+            HResult hr = DebugSymbols.GetModuleParameters(bases, moduleParams);
             if (hr)
             {
                 for (int i = 0; i < bases.Length; ++i)
                 {
-                    _symbols.GetModuleName(DEBUG_MODNAME.IMAGE, bases[i], out string moduleName);
+                    DebugSymbols.GetModuleName(DEBUG_MODNAME.IMAGE, bases[i], out string moduleName);
 
                     unchecked
                     {
@@ -243,7 +248,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
         public int Read(ulong address, Span<byte> buffer)
         {
-            if (!_spaces.ReadVirtual(address, buffer, out int read))
+            if (!DebugDataSpaces.ReadVirtual(address, buffer, out int read))
                 return 0;
 
             return read;
@@ -257,7 +262,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             byte[] buffer = ArrayPool<byte>.Shared.Rent(256);
             try
             {
-                HResult hr = _symbols.GetModuleVersionInformation(index, baseAddress, "\\\\\0", buffer);
+                HResult hr = DebugSymbols.GetModuleVersionInformation(index, baseAddress, "\\\\\0", buffer);
                 if (!hr)
                     return new Version();
 
@@ -286,7 +291,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             int nextIndex = 0;
             while (true)
             {
-                if (_symbols.GetModuleByOffset(baseAddr, nextIndex, out index, out ulong claimedBaseAddr) < 0)
+                if (DebugSymbols.GetModuleByOffset(baseAddr, nextIndex, out index, out ulong claimedBaseAddr) < 0)
                 {
                     index = 0;
                     return false;
@@ -301,12 +306,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
         public IEnumerable<uint> EnumerateOSThreadIds()
         {
-            _systemObjects.GetNumberThreads(out int count);
+            DebugSystemObjects.GetNumberThreads(out int count);
             if (count == 0)
                 return Array.Empty<uint>();
 
             uint[] result = new uint[count];
-            HResult hr = _systemObjects.GetThreadSystemIDs(result);
+            HResult hr = DebugSystemObjects.GetThreadSystemIDs(result);
             if (hr)
                 return result;
 
@@ -315,20 +320,21 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
         public ulong GetThreadTeb(uint osThreadId)
         {
-            int curr = _systemObjects.CurrentThreadId;
+            int curr = DebugSystemObjects.CurrentThreadId;
             try
             {
-                HResult hr = _systemObjects.GetThreadIdBySystemId((int)osThreadId, out int id);
+                HResult hr = DebugSystemObjects.GetThreadIdBySystemId((int)osThreadId, out int id);
                 if (hr)
                 {
-                    hr = _systemObjects.GetCurrentThreadTeb(out ulong teb);
+                    DebugSystemObjects.CurrentThreadId = id;
+                    hr = DebugSystemObjects.GetCurrentThreadTeb(out ulong teb);
                     if (hr)
                         return teb;
                 }
             }
             finally
             {
-                _systemObjects.CurrentThreadId = curr;
+                DebugSystemObjects.CurrentThreadId = curr;
             }
 
             return 0;

@@ -7,5 +7,6 @@
         nint DebugDataSpaces { get; }
         nint DebugSymbols { get; }
         nint DebugSystemObjects { get; }
+        nint DebugAdvanced { get; }
     }
 }
