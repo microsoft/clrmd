@@ -52,6 +52,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                 vtable->OutputWide(self, mask, textPtr);
         }
 
+        int IDebugControl.GetExecutionStatus(out DEBUG_STATUS status)
+        {
+            GetVTable(this, out nint self, out IDebugControlVtable* vtable);
+            return vtable->GetExecutionStatus(self, out status);
+        }
+
+        int IDebugControl.Execute(DEBUG_OUTCTL outputControl, string command, DEBUG_EXECUTE flags)
+        {
+            GetVTable(this, out nint self, out IDebugControlVtable* vtable);
+            fixed (char* commandPtr = command)
+                return vtable->ExecuteWide(self, outputControl, commandPtr, flags);
+        }
+
         private static void GetVTable(object ths, out nint self, out IDebugControlVtable* vtable)
         {
             self = ((IDbgInterfaceProvider)ths).DebugControl;

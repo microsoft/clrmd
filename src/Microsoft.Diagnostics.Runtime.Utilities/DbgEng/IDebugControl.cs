@@ -11,5 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         int WaitForEvent(TimeSpan timeout);
         void Write(DEBUG_OUTPUT mask, string text);
         void WriteLine(DEBUG_OUTPUT mask, string text) => Write(mask, text + '\n');
+        int GetExecutionStatus(out DEBUG_STATUS status);
+        int Execute(DEBUG_OUTCTL outputControl, string command, DEBUG_EXECUTE flags);
     }
 }

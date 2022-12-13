@@ -16,9 +16,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
     internal unsafe class DebugOutputCallbacksCOM : ComWrappers
     {
-        static readonly Guid IID_IOutputCallbacks2 = new Guid("0690e046-9c23-45ac-a04f-987ac29ad0d3");
+        static internal Guid IID_IOutputCallbacks2 = new("67721fe9-56d2-4a44-a325-2b65513ce6eb");
         private static readonly ComInterfaceEntry* s_wrapperEntry = InitializeComInterfaceEntry();
-        public static DebugEventCallbacksCOM Instance { get; } = new();
+        public static DebugOutputCallbacksCOM Instance { get; } = new();
 
         private static ComInterfaceEntry* InitializeComInterfaceEntry()
         {
@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         {
             public static nint Create(nint qi, nint addref, nint release)
             {
-                const int total = 17;
+                const int total = 6;
                 int i = 0;
 
                 nint* vtable = (nint*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(IDebugOutputCallbacksVtbl), sizeof(nint) * total);

@@ -39,18 +39,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         public static object Create(nint pDebugClient) => DbgEngComWrappers.GetOrCreateObjectForComInstance(pDebugClient, CreateObjectFlags.UniqueInstance);
 
         int CreateProcessAndAttach(string commandLine, string? directory, DEBUG_ATTACH flags, in DEBUG_CREATE_PROCESS_OPTIONS options);
+        int CreateProcessAndAttach(string commandLine, string? directory, IEnumerable<KeyValuePair<string, string>> environment, DEBUG_ATTACH flags, in DEBUG_CREATE_PROCESS_OPTIONS options);
         int AttachProcess(int processId, DEBUG_ATTACH flags);
-        void DetachProcesses();
+        int DetachProcesses();
 
-        void EndSession(DEBUG_END flags);
+        int EndSession(DEBUG_END flags);
 
         int OpenDumpFile(string filename);
         void WriteDumpFile(string filename, DEBUG_DUMP qualifier, DEBUG_FORMAT format, string? comment);
 
-        IDebugOutputCallbacks GetOutputCallbacks();
-        void SetOutputCallbacks(IDebugOutputCallbacks callbacks);
+        IDebugOutputCallbacks? GetOutputCallbacks();
+        void SetOutputCallbacks(IDebugOutputCallbacks? callbacks);
 
-        IDebugEventCallbacks GetEventCallbacks();
-        void SetEventCallbacks(IDebugEventCallbacks callbacks);
+        IDebugEventCallbacks? GetEventCallbacks();
+        void SetEventCallbacks(IDebugEventCallbacks? callbacks);
     }
 }

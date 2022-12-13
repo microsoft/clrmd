@@ -59,7 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint GetProcessorTypeNames;
         public readonly delegate* unmanaged[Stdcall]<nint, ImageFileMachine*, int> GetEffectiveProcessorType;
         private readonly nint SetEffectiveProcessorType;
-        private readonly nint GetExecutionStatus;
+        public readonly delegate* unmanaged[Stdcall]<nint, out DEBUG_STATUS, int> GetExecutionStatus;
         private readonly nint SetExecutionStatus;
         private readonly nint GetCodeLevel;
         private readonly nint SetCodeLevel;
@@ -149,7 +149,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint GetTextMacroWide;
         private readonly nint SetTextMacroWide;
         private readonly nint EvaluateWide;
-        private readonly nint ExecuteWide;
+        public readonly delegate* unmanaged[Stdcall]<nint, DEBUG_OUTCTL, char*, DEBUG_EXECUTE, int> ExecuteWide;
         private readonly nint ExecuteCommandFileWide;
         private readonly nint GetBreakpointByIndex2;
         private readonly nint GetBreakpointById2;
