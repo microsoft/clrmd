@@ -64,6 +64,28 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Attempts to create a <see cref="ModuleInfo"/> object from a data reader and a base address.
+        /// This function returns <see langword="null"/> if an image was not found at that address or if
+        /// we could not determine the format of that image.  This overload allows manually setting the
+        /// file size and timestamp.
+        /// </summary>
+        /// <param name="reader">The data reader to create this module from.</param>
+        /// <param name="baseAddress">The base address of this module.</param>
+        /// <param name="name">The name of the module.</param>
+        /// <param name="indexFileSize">The file size of this module.</param>
+        /// <param name="indexTimeStamp">The timestamp of this module (for PE Images).</param>
+        /// <param name="version">The version of the module.</param>
+        /// <returns>A constructed ModuleInfo, or null.</returns>
+        public static ModuleInfo? TryCreate(IDataReader reader, ulong baseAddress, string name, int indexFileSize, int indexTimeStamp, Version? version)
+        {
+            ModuleInfo? result = TryCreate(reader, baseAddress, name);
+            result?.TrySetProperties(indexFileSize, indexTimeStamp, version);
+            return result;
+        }
+
+        protected virtual void TrySetProperties(int indexFileSize, int indexTimeStamp, Version? version) { }
+
+        /// <summary>
         /// Returns the kind of module this is.
         /// </summary>
         public abstract ModuleKind Kind { get; }

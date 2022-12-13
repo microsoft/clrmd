@@ -49,6 +49,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             return vtable->GetNumberThreads(self, out threadCount);
         }
 
+        int IDebugSystemObjects.GetThreadIdBySystemId(int systemId, out int threadId)
+        {
+            GetVTable(this, out nint self, out IDebugSystemObjectsVtable* vtable);
+            return vtable->GetThreadIdBySystemId(self, systemId, out threadId);
+        }
+
+        int IDebugSystemObjects.GetThreadSystemIDs(Span<uint> sysIds)
+        {
+            GetVTable(this, out nint self, out IDebugSystemObjectsVtable* vtable);
+
+            fixed (uint *sysPtr = sysIds)
+                return vtable->GetThreadIdsByIndex(self, 0, sysIds.Length, null, sysPtr);
+        }
 
         private static void GetVTable(object ths, out nint self, out IDebugSystemObjectsVtable* vtable)
         {

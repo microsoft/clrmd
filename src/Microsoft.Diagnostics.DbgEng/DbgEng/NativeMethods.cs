@@ -4,6 +4,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     internal static class NativeMethods
     {
+        [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
         [DllImport("dbgeng.dll")]
         internal static extern int DebugCreate(in Guid riid, out nint pDebugClient);
 

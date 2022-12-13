@@ -30,6 +30,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             }
         }
 
+        int IDebugControl.AddEngineOptions(DEBUG_ENGOPT options)
+        {
+            GetVTable(this, out nint self, out IDebugControlVtable* vtable);
+            return vtable->AddEngineOptions(self, options);
+        }
+
         int IDebugControl.WaitForEvent(TimeSpan timeout)
         {
             GetVTable(this, out nint self, out IDebugControlVtable* vtable);

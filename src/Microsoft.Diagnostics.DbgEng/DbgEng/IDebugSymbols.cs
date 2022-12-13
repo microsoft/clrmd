@@ -8,5 +8,7 @@
         int GetImageBase(int index, out ulong baseAddress);
         int GetModuleParameters(ReadOnlySpan<ulong> baseAddresses, Span<DEBUG_MODULE_PARAMETERS> parameters);
         int GetModuleVersionInformation(int index, ulong address, string item, Span<byte> buffer);
+        int GetModuleName(DEBUG_MODNAME which, ulong baseAddress, out string name);
+        int GetModuleByOffset(ulong baseAddr, int nextIndex, out int index, out ulong claimedBaseAddr);
     }
 }

@@ -92,6 +92,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             else if (interfaceType.Equals(typeof(IDebugSystemObjects).TypeHandle))
                 return typeof(IDebugSystemObjectsWrapper).TypeHandle;
 
+            else if (interfaceType.Equals(typeof(IDebugAdvanced).TypeHandle))
+                return typeof(IDebugAdvancedWrapper).TypeHandle;
+
             return default;
         }
 
@@ -110,6 +113,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                 return true;
 
             else if (_systemObjects != 0 && interfaceType.Equals(typeof(IDebugSystemObjects).TypeHandle))
+                return true;
+
+            else if (_systemObjects != 0 && interfaceType.Equals(typeof(IDebugAdvanced).TypeHandle))
                 return true;
 
             return false;

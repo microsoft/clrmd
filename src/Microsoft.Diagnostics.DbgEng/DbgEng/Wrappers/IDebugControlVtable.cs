@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint GetCodeLevel;
         private readonly nint SetCodeLevel;
         private readonly nint GetEngineOptions;
-        private readonly nint AddEngineOptions;
+        public readonly delegate* unmanaged[Stdcall]<nint, DEBUG_ENGOPT, int> AddEngineOptions;
         private readonly nint RemoveEngineOptions;
         private readonly nint SetEngineOptions;
         private readonly nint GetSystemErrorControl;

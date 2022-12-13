@@ -143,6 +143,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return 0;
         }
 
+        protected override void TrySetProperties(int indexFileSize, int indexTimeStamp, Version? version)
+        {
+            _filesize = indexFileSize;
+            _timestamp = indexTimeStamp;
+            if (_version is null && version is not null)
+                _version = version;
+        }
+
         public override IResourceNode? ResourceRoot => GetPEImage()?.Resources;
 
         public PEModuleInfo(IDataReader dataReader, ulong imageBase, string fileName, bool isVirtualHint)

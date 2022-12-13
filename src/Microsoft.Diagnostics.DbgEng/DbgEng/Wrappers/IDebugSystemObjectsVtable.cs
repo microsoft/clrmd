@@ -19,14 +19,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint SetCurrentProcessId;
         public readonly delegate* unmanaged[Stdcall]<nint, out int, int> GetNumberThreads;
         private readonly nint GetTotalNumberThreads;
-        public readonly delegate* unmanaged[Stdcall]<nint, int, int, int*, uint*, int> GetThreadIdsByIndex;
+        public readonly delegate* unmanaged[Stdcall]<nint, int, int, uint*, uint*, int> GetThreadIdsByIndex;
         private readonly nint GetThreadIdByProcessor;
         private readonly nint GetCurrentThreadDataOffset;
         private readonly nint GetThreadIdByDataOffset;
         public readonly delegate* unmanaged[Stdcall]<nint, out ulong, int> GetCurrentThreadTeb;
         private readonly nint GetThreadIdByTeb;
         private readonly nint GetCurrentThreadSystemId;
-        public readonly delegate* unmanaged[Stdcall]<nint, uint, out uint, int> GetThreadIdBySystemId;
+        public readonly delegate* unmanaged[Stdcall]<nint, int, out int, int> GetThreadIdBySystemId;
         private readonly nint GetCurrentThreadHandle;
         private readonly nint GetThreadIdByHandle;
         private readonly nint GetNumberProcesses;

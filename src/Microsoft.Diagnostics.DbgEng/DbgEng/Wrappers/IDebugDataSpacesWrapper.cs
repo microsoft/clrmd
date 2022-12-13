@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             {
                 int hr = vtable->ReadVirtual(self, address, ptr, buffer.Length, &bytesRead);
                 read = bytesRead;
-                return hr > 0;
+                return hr >= 0;
             }
         }
 

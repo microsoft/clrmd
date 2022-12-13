@@ -6,18 +6,22 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
     {
         public static ComWrappers DbgEngComWrappers { get; } = new DbgEngCom();
 
-        static object Create(string dbgengDirectory)
+        static IDisposable Create(string? dbgengDirectory = null)
         {
-            if (!Directory.Exists(dbgengDirectory))
-                throw new DirectoryNotFoundException(dbgengDirectory);
+            string dbgengPath = DbgEngCom.DbgEngDll;
+            if (dbgengDirectory is not null)
+            {
+                if (!Directory.Exists(dbgengDirectory))
+                    throw new DirectoryNotFoundException(dbgengDirectory);
 
-            string dbgengPath = Path.Combine(dbgengDirectory, DbgEngCom.DbgEngDll);
-            if (!File.Exists(dbgengPath))
-                throw new FileNotFoundException($"Did not find {DbgEngCom.DbgEngDll} in '{dbgengPath}'.", dbgengPath);
+                dbgengPath = Path.Combine(dbgengDirectory, DbgEngCom.DbgEngDll);
+                if (!File.Exists(dbgengPath))
+                    throw new FileNotFoundException($"Did not find {DbgEngCom.DbgEngDll} in '{dbgengPath}'.", dbgengPath);
 
-            // We will opportunistically load these dlls, but it's not fatal if missing
-            NativeMethods.LoadLibrary(Path.Combine(dbgengDirectory, "dbgcore.dll"));
-            NativeMethods.LoadLibrary(Path.Combine(dbgengDirectory, "dbghelp.dll"));
+                // We will opportunistically load these dlls, but it's not fatal if missing
+                NativeMethods.LoadLibrary(Path.Combine(dbgengDirectory, "dbgcore.dll"));
+                NativeMethods.LoadLibrary(Path.Combine(dbgengDirectory, "dbghelp.dll"));
+            }
 
             nint dbgengBase = NativeMethods.LoadLibrary(dbgengPath);
             if (dbgengBase == 0)
@@ -29,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             if (hr > 0)
                 Marshal.Release(pUnknown);
 
-            return obj;
+            return (IDisposable)obj;
         }
 
         public static object Create(nint pDebugClient) => DbgEngComWrappers.GetOrCreateObjectForComInstance(pDebugClient, CreateObjectFlags.UniqueInstance);
