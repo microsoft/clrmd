@@ -777,7 +777,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             try
             {
                 int offset = _offset;
-                if (DoRead(ref offset, buffer) != len)
+                if (DoRead(ref offset, buffer) == 0)
                     return null;
 
                 int index = Array.IndexOf(buffer, (byte)'\0', 0, len);
