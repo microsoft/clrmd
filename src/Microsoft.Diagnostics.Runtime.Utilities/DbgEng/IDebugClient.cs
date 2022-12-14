@@ -48,10 +48,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         int OpenDumpFile(string filename);
         void WriteDumpFile(string filename, DEBUG_DUMP qualifier, DEBUG_FORMAT format, string? comment);
 
-        IDebugOutputCallbacks? GetOutputCallbacks();
-        void SetOutputCallbacks(IDebugOutputCallbacks? callbacks);
+        nint GetOutputCallbacks();
+        int SetOutputCallbacks(IDebugOutputCallbacks? callbacks);
+        int SetOutputCallbacks(nint pCallbacks);
 
-        IDebugEventCallbacks? GetEventCallbacks();
-        void SetEventCallbacks(IDebugEventCallbacks? callbacks);
+        nint GetEventCallbacks();
+        int SetEventCallbacks(IDebugEventCallbacks? callbacks);
+        int SetEventCallbacks(nint pCallbacks);
     }
 }

@@ -81,52 +81,81 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             throw new NotImplementedException();
         }
 
-        IDebugOutputCallbacks? IDebugClient.GetOutputCallbacks()
+        nint IDebugClient.GetOutputCallbacks()
         {
-            throw new NotImplementedException();
+            GetVTable(this, out nint self, out IDebugClientVtable* vtable);
+            nint pCallbacks = 0;
+            int hr = vtable->GetOutputCallbacksWide(self, &pCallbacks);
+            if (hr != 0)
+                return 0;
+
+            return pCallbacks;
         }
 
-        void IDebugClient.SetOutputCallbacks(IDebugOutputCallbacks? callbacks)
+        int IDebugClient.SetOutputCallbacks(IDebugOutputCallbacks? callbacks)
         {
             GetVTable(this, out nint self, out IDebugClientVtable* vtable);
             if (callbacks is null)
             {
-                vtable->SetOutputCallbacksWide(self, 0);
+                return vtable->SetOutputCallbacksWide(self, 0);
             }
             else
             {
                 nint pUnk = DebugOutputCallbacksCOM.Instance.GetOrCreateComInterfaceForObject(callbacks, CreateComInterfaceFlags.None);
                 Marshal.QueryInterface(pUnk, ref DebugOutputCallbacksCOM.IID_IOutputCallbacks2, out nint pOutputCallbacks);
 
-                vtable->SetOutputCallbacksWide(self, pOutputCallbacks);
+                int hr = vtable->SetOutputCallbacksWide(self, pOutputCallbacks);
 
                 Marshal.Release(pOutputCallbacks);
                 Marshal.Release(pUnk);
+
+                return hr;
             }
         }
 
-        IDebugEventCallbacks? IDebugClient.GetEventCallbacks()
+        int IDebugClient.SetOutputCallbacks(nint pCallbacks)
         {
-            throw new NotImplementedException();
+            GetVTable(this, out nint self, out IDebugClientVtable* vtable);
+            return vtable->SetOutputCallbacksWide(self, pCallbacks);
         }
 
-        void IDebugClient.SetEventCallbacks(IDebugEventCallbacks? callbacks)
+        nint IDebugClient.GetEventCallbacks()
+        {
+            GetVTable(this, out nint self, out IDebugClientVtable* vtable);
+            nint pCallbacks = 0;
+            int hr = vtable->GetEventCallbacksWide(self, &pCallbacks);
+            if (hr != 0)
+                return 0;
+
+            return pCallbacks;
+        }
+
+        int IDebugClient.SetEventCallbacks(IDebugEventCallbacks? callbacks)
         {
             GetVTable(this, out nint self, out IDebugClientVtable* vtable);
             if (callbacks == null)
             {
-                vtable->SetEventCallbacksWide(self, 0);
+                return vtable->SetEventCallbacksWide(self, 0);
             }
             else
             {
                 nint pUnk = DebugEventCallbacksCOM.Instance.GetOrCreateComInterfaceForObject(callbacks, CreateComInterfaceFlags.None);
                 Marshal.QueryInterface(pUnk, ref DebugEventCallbacksCOM.IID_IDebugEventCallbacksWide, out nint eventCallbacks);
 
-                vtable->SetEventCallbacksWide(self, eventCallbacks);
+                int hr = vtable->SetEventCallbacksWide(self, eventCallbacks);
 
                 Marshal.Release(eventCallbacks);
                 Marshal.Release(pUnk);
+
+                return hr;
             }
+        }
+
+
+        int IDebugClient.SetEventCallbacks(nint pCallbacks)
+        {
+            GetVTable(this, out nint self, out IDebugClientVtable* vtable);
+            return vtable->SetEventCallbacksWide(self, pCallbacks);
         }
 
         private static void GetVTable(object ths, out nint self, out IDebugClientVtable* vtable)
