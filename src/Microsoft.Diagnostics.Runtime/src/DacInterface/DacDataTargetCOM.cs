@@ -58,7 +58,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             count = dacDataTarget.RuntimeBaseAddress == 0 ? 2 : 3;
 
             ComInterfaceEntry* result = s_wrapperEntry;
-            Console.WriteLine($"{(nint)result:n0}");
             return result;
         }
 
