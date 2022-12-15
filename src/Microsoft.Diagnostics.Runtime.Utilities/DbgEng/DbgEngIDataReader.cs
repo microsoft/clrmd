@@ -6,9 +6,9 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
-    public sealed class DbgEngDataReader : IDataReader, IDisposable, IThreadReader
+    public sealed class DbgEngIDataReader : IDataReader, IDisposable, IThreadReader
     {
-        private readonly IDisposable _dbgeng;
+        private readonly IDisposable? _dbgeng;
         public IDebugClient DebugClient { get; }
         public IDebugControl DebugControl { get; }
         public IDebugDataSpaces DebugDataSpaces { get; }
@@ -27,18 +27,36 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
         public static DataTarget CreateDataTarget(nint pDebugClient)
         {
-            return new DataTarget(new CustomDataTarget(new DbgEngDataReader(pDebugClient)));
+            return new DataTarget(new CustomDataTarget(new DbgEngIDataReader(pDebugClient)));
         }
 
-        public DbgEngDataReader(string displayName, Stream stream, bool leaveOpen)
-            : this((stream as FileStream)?.Name ?? throw new NotSupportedException($"{nameof(DbgEngDataReader)} can only be used with real files. Try using {nameof(FileStream)}."))
+        public static DataTarget CreateDataTarget(object dbgeng)
         {
-            DisplayName = displayName;
-            if (!leaveOpen)
-                stream?.Dispose();
+            return new DataTarget(new CustomDataTarget(new DbgEngIDataReader(dbgeng)));
         }
 
-        public DbgEngDataReader(nint pDebugClient)
+        /// <summary>
+        /// Creates an instance of DbgEngIDataReader from the given object.  This object
+        /// must be castable to these interfaces: IDebugClient, IDebugControl, IDebugDataSpaces,
+        /// IDebugAdvanced, IDebugSymbols, IDebugSystemObjects.
+        /// 
+        /// The most common way to obtain a working version of this object is via IDebugClient.Create.
+        /// </summary>
+        /// <param name="dbgeng">An implementation of DbgEng interfaces.</param>
+        public DbgEngIDataReader(object dbgeng)
+        {
+            DisplayName = $"DbgEng, DbgEng={dbgeng}";
+
+            _dbgeng = dbgeng as IDisposable;
+            DebugClient = (IDebugClient)dbgeng;
+            DebugControl = (IDebugControl)dbgeng;
+            DebugDataSpaces = (IDebugDataSpaces)dbgeng;
+            DebugAdvanced = (IDebugAdvanced)dbgeng;
+            DebugSymbols = (IDebugSymbols)dbgeng;
+            DebugSystemObjects = (IDebugSystemObjects)dbgeng;
+        }
+
+        public DbgEngIDataReader(nint pDebugClient)
         {
             if (pDebugClient == 0)
                 throw new ArgumentNullException(nameof(pDebugClient));
@@ -54,7 +72,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             DebugSystemObjects = (IDebugSystemObjects)_dbgeng;
         }
 
-        public DbgEngDataReader(string dumpFile)
+        public DbgEngIDataReader(string dumpFile)
         {
             if (!File.Exists(dumpFile))
                 throw new FileNotFoundException(dumpFile);
@@ -93,11 +111,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             return ex;
         }
 
-        public DbgEngDataReader(int processId, bool invasive, TimeSpan timeout)
+        public DbgEngIDataReader(int processId, DEBUG_ATTACH attach, TimeSpan timeout)
         {
             DisplayName = $"{processId:x}";
 
-            _dbgeng = (IDisposable)IDebugClient.Create();
+            _dbgeng = IDebugClient.Create();
             DebugSystemObjects = (IDebugSystemObjects)_dbgeng;
             DebugClient = (IDebugClient)_dbgeng;
             DebugControl = (IDebugControl)_dbgeng;
@@ -106,9 +124,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             DebugSymbols = (IDebugSymbols)_dbgeng;
 
             HResult hr = DebugControl.AddEngineOptions(DEBUG_ENGOPT.INITIAL_BREAK);
-
-            DEBUG_ATTACH attach = invasive ? DEBUG_ATTACH.DEFAULT : DEBUG_ATTACH.NONINVASIVE;
-            hr = DebugClient.AttachProcess(processId, attach);
+            if (hr)
+                hr = DebugClient.AttachProcess(processId, attach);
 
             if (hr)
                 hr = DebugControl.WaitForEvent(timeout);
@@ -127,7 +144,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             }
         }
 
-        ~DbgEngDataReader()
+        ~DbgEngIDataReader()
         {
             Dispose(false);
         }
@@ -149,7 +166,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             {
                 DebugClient.EndSession(DEBUG_END.ACTIVE_DETACH);
                 DebugClient.DetachProcesses();
-                _dbgeng.Dispose();
+                _dbgeng?.Dispose();
             }
         }
 

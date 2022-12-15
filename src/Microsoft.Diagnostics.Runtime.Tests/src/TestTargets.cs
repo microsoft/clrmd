@@ -137,7 +137,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public DataTarget LoadFullDumpWithDbgEng(GCMode gc = GCMode.Workstation)
         {
             string dumpPath = BuildDumpName(gc, true);
-            var dbgengReader = new Utilities.DbgEng.DbgEngDataReader(dumpPath);
+            var dbgengReader = new Utilities.DbgEng.DbgEngIDataReader(dumpPath);
             return new DataTarget(new CustomDataTarget(dbgengReader));
         }
     }
