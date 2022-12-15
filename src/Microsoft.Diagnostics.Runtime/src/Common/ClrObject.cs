@@ -551,7 +551,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public override string ToString()
         {
-            return $"{Type?.Name} {Address:x}";
+            return $"{Address:x} {Type?.Name}";
         }
     }
 }
