@@ -10,7 +10,18 @@ namespace DbgEngExtension
         {
             try
             {
-                MHeap cmd = new MHeap(pUnknown);
+                // MHeap subclasses DbgEngCommand, and all DbgEngCommand are IDisposable.  The convention
+                // here is that if you have a "using" statement then we will completely clean up everything
+                // related to pUnknown (including ClrMD) when Dispose() is called.  That pattern is
+                // implemented here if that's what you intend, but it's better to *not* call Dispose() if
+                // you don't need to.  In that case, ClrMD will maintain the caches it builds between
+                // commands for FAR better performance.  We will, of course, dispose of pUnknown and
+                // ClrMD if (for any reason) you end up passing us a new pUnknown...at which point we
+                // really have to tear everything down and build it back up.  This doesn't happen
+                // in practice with DbgEng extensions...they just keep giving us the same IDebugClient
+                // over and over.
+
+                MHeap cmd = new(pUnknown);
                 string? arguments = Marshal.PtrToStringAnsi(args);
                 cmd.Run(arguments ?? "");
             }

@@ -1,4 +1,5 @@
-﻿using Microsoft.Diagnostics.Runtime;
+﻿using DbgEngExtension;
+using Microsoft.Diagnostics.Runtime;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
 using System.Runtime.InteropServices;
@@ -70,17 +71,19 @@ foreach (ClrRuntime runtime in dt.ClrVersions.Select(clr => clr.CreateRuntime())
         Console.WriteLine($"            {obj}");
 }
 
+// Let's re-use our DbgEngExtension as an example.  We don't redirect Console.WriteLine because
+// we are a standalone application and DbgEng isn't writing to console.  Note that also putting
+// a "using" statement here is optional.  By having "using" here, we fully QueryInterface from
+// scratch, build ClrMD from scratch, and tear it down in Dispose.  If we don't dispose any
+// DbgEngCommand subclass, then we cache the IDebug* interfaces and ClrMD for performance.
+using (MHeap heapExtension = new(dbgeng, redirectConsoleOutput: false))
+    heapExtension.Run(statOnly: false);
+
+// End of Demo.
 
 
 
-
-
-
-
-
-
-
-
+// Helper Methods
 static void CheckHResult(HResult hr, string msg)
 {
     if (!hr)

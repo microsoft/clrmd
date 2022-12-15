@@ -29,6 +29,13 @@ namespace DbgEngExtension
                 _redirectedOutput = new DbgEngOutputStream(DebugClient, DebugControl);
         }
 
+        protected DbgEngCommand(IDisposable dbgeng, bool redirectConsoleOutput = true)
+        {
+            _context = ExtensionContext.Create(dbgeng);
+            if (redirectConsoleOutput)
+                _redirectedOutput = new DbgEngOutputStream(DebugClient, DebugControl);
+        }
+
         public void Dispose()
         {
             DisposeImpl();

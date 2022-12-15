@@ -1,4 +1,5 @@
 ﻿using Microsoft.Diagnostics.Runtime;
+using System.Security.Cryptography.X509Certificates;
 
 namespace DbgEngExtension
 {
@@ -20,9 +21,28 @@ namespace DbgEngExtension
         {
         }
 
-        public void Run(string args)
+        /// <summary>
+        /// Constructor.  It's assumed that this is the constructor used for a standalone DbgEng app, since it
+        /// will be handing us a dbgeng object.  Therefore <paramref name="redirectConsoleOutput"/> defaults
+        /// to false (don't modify Console.WriteLine, just write to the standard console).
+        /// </summary>
+        /// <param name="pUnknown">The dbgeng instance we are interacting with.</param>
+        /// <param name="redirectConsoleOutput">Whether to override Console.WriteLine and redirect it to DbgEng's output system.</param>
+        public MHeap(IDisposable dbgeng, bool redirectConsoleOutput = false)
+            : base(dbgeng, redirectConsoleOutput)
+        {
+        }
+
+        // We don't want to expose the string parsing overload to other applications, they should call the actual
+        // method with parameters.
+        internal void Run(string args)
         {
             bool statOnly = args.Trim().Equals("-stat");
+            Run(statOnly);
+        }
+
+        public void Run(bool statOnly)
+        {
             Dictionary<string, (int Count, ulong TotalSize)> sizes = new();
 
             // DbgEngCommand has helper properties for DataTarget and all ClrRuntimes:
@@ -50,14 +70,40 @@ namespace DbgEngExtension
                         Console.WriteLine("Stats:");
                     }
 
+                    long totalObjects = 0;
+                    ulong totalBytes = 0;
                     foreach (var item in sizes.OrderBy(r => r.Value.TotalSize))
+                    {
                         Console.WriteLine($"{item.Value.Count,12:n0}\t{item.Value.TotalSize,12:n0}\t{item.Key}");
+
+                        totalObjects += item.Value.Count;
+                        totalBytes += item.Value.TotalSize;
+                    }
+
+                    Console.WriteLine();
+                    Console.WriteLine($"{totalObjects:n0} total objects consisting of {totalBytes:n0} total bytes ({ConvertToHumanReadable(totalBytes)}).");
                 }
                 else
                 {
                     Console.WriteLine("0 total objects.");
                 }
             }
+        }
+
+        private static string ConvertToHumanReadable(ulong totalBytes)
+        {
+            double updated = totalBytes;
+
+            updated /= 1024;
+            if (updated < 1024)
+                return $"{updated:0.00}kb";
+
+            updated /= 1024;
+            if (updated < 1024)
+                return $"{updated:0.00}mb";
+
+            updated /= 1024;
+            return $"{updated:0.00}gb";
         }
     }
 }

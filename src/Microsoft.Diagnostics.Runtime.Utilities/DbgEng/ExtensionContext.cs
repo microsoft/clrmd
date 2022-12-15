@@ -6,6 +6,7 @@
 
         private nint IUnknown { get; }
 
+        private bool _weOwnDbgEng;
         private IDisposable? _dbgeng;
         private IDebugClient? _client;
         private IDebugControl? _control;
@@ -17,7 +18,19 @@
         private ClrRuntime[]? _runtimes;
         private ClrRuntimeInitFailure[]? _failures;
 
-        public object DbgEng => _dbgeng ??= IDebugClient.Create(IUnknown);
+        public object DbgEng
+        {
+            get
+            {
+                if (_dbgeng is not null)
+                    return _dbgeng;
+
+                _weOwnDbgEng = true;
+                _dbgeng = IDebugClient.Create(IUnknown);
+                return _dbgeng;
+            }
+        }
+
         public IDebugClient DebugClient => _client ??= (IDebugClient)DbgEng;
         public IDebugControl DebugControl => _control ??= (IDebugControl)DbgEng;
         public IDebugAdvanced DebugAdvanced => _advanced ??= (IDebugAdvanced)DbgEng;
@@ -88,22 +101,44 @@
             return s_current = new ExtensionContext(pUnknown);
         }
 
+        public static ExtensionContext Create(IDisposable dbgeng)
+        {
+            if (s_current is null)
+                return s_current = new ExtensionContext(dbgeng);
+
+            if (s_current._dbgeng == dbgeng)
+                return s_current;
+
+            ExtensionContext current = s_current;
+            s_current = current;
+            current.Dispose();
+            return s_current = new ExtensionContext(dbgeng);
+        }
+
         private ExtensionContext(nint pUnknown)
         {
             IUnknown = pUnknown;
         }
 
+        private ExtensionContext(IDisposable dbgeng)
+        {
+            _dbgeng = dbgeng;
+        }
+
         public void Dispose()
         {
-            // If we are the current instance, clear it
+            // If we are the current instance, clear it.  We should be single threaded, so we shouldn't
+            // need an interlocked here, but I've added it for extra safety
             Interlocked.CompareExchange(ref s_current, null, this);
-            _dbgeng?.Dispose();
 
             if (_runtimes is not null)
                 foreach (ClrRuntime runtime in _runtimes)
                     runtime.Dispose();
 
             _dataTarget?.Dispose();
+
+            if (_weOwnDbgEng)
+                _dbgeng?.Dispose();
         }
     }
 }
