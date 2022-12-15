@@ -1,4 +1,6 @@
-﻿using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
+﻿using Microsoft.Diagnostics.Runtime;
+using Microsoft.Diagnostics.Runtime.Utilities;
+using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
 using System.Text;
 
 namespace DbgEngExtension
@@ -15,6 +17,10 @@ namespace DbgEngExtension
         protected IDebugSystemObjects DebugSystemObjects => _context.DebugSystemObjects;
         protected IDebugDataSpaces DebugDataSpaces => _context.DebugDataSpaces;
         protected IDebugSymbols DebugSymbols => _context.DebugSymbols;
+
+        protected DataTarget DataTarget => _context.DataTarget;
+        protected ClrRuntime[] Runtimes => _context.Runtimes; // Make a copy to not let folks modify the original
+        protected ClrRuntimeInitFailure[] RuntimeLoadErrors => _context.RuntimeLoadErrors;
 
         protected DbgEngCommand(nint pUnknown, bool redirectConsoleOutput = true)
         {
