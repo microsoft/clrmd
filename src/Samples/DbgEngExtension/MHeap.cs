@@ -81,29 +81,13 @@ namespace DbgEngExtension
                     }
 
                     Console.WriteLine();
-                    Console.WriteLine($"{totalObjects:n0} total objects consisting of {totalBytes:n0} total bytes ({ConvertToHumanReadable(totalBytes)}).");
+                    Console.WriteLine($"{totalObjects:n0} total objects consisting of {totalBytes:n0} total bytes ({totalBytes.ConvertToHumanReadable()}).");
                 }
                 else
                 {
                     Console.WriteLine("0 total objects.");
                 }
             }
-        }
-
-        private static string ConvertToHumanReadable(ulong totalBytes)
-        {
-            double updated = totalBytes;
-
-            updated /= 1024;
-            if (updated < 1024)
-                return $"{updated:0.00}kb";
-
-            updated /= 1024;
-            if (updated < 1024)
-                return $"{updated:0.00}mb";
-
-            updated /= 1024;
-            return $"{updated:0.00}gb";
         }
     }
 }

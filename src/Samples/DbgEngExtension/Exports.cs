@@ -34,6 +34,24 @@ namespace DbgEngExtension
             return 0;
         }
 
+        [UnmanagedCallersOnly(EntryPoint = MAddress.Command, CallConvs = new[] { typeof(CallConvStdcall) })]
+        public static int ManagedAddress(nint pUnknown, nint args)
+        {
+            try
+            {
+                MAddress cmd = new(pUnknown);
+                string? arguments = Marshal.PtrToStringAnsi(args);
+                cmd.Run(arguments ?? "");
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($"Failed to run {nameof(ManagedAddress)} command.");
+                Console.Error.WriteLine(e);
+            }
+
+            return 0;
+        }
+
         [UnmanagedCallersOnly(EntryPoint = "DebugExtensionInitialize")]
         public static int DebugExtensionInitialize(uint *pVersion, uint *pFlags)
         {
