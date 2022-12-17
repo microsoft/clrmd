@@ -49,7 +49,7 @@ namespace DbgEngExtension
             using (DbgEngOutputHolder outputHolder = new(DebugClient, mask))
             {
                 outputHolder.OutputReceived += (text, flags) => result.Append(text);
-                hr = DebugControl.Execute(DEBUG_OUTCTL.THIS_CLIENT, "!address", DEBUG_EXECUTE.DEFAULT);
+                hr = DebugControl.Execute(DEBUG_OUTCTL.THIS_CLIENT, command, DEBUG_EXECUTE.DEFAULT);
             }
 
             return (hr, result.ToString());
