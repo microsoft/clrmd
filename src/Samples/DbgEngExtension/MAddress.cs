@@ -1,5 +1,7 @@
 ﻿using Microsoft.Diagnostics.Runtime.DacInterface;
+using System.Buffers;
 using System.Diagnostics;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 namespace DbgEngExtension
@@ -7,10 +9,13 @@ namespace DbgEngExtension
     public class MAddress : DbgEngCommand
     {
         internal const string Command = "maddress";
+        internal const string ListCommand = "maddresslist";
+
         private const string IncludeReserveOption = "-includeReserve";
         private const string NoHeuristicOption = "-noReserveHeuristic";
         private const string ShowImageTableOption = "-showImages";
         private const string SummaryOption = "-summary";
+        private const string AnnotateOption = "-annotate";
         private const string StatOption = "-stat";
 
         public MAddress(nint pUnknown, bool redirectConsoleOutput = true)
@@ -21,6 +26,128 @@ namespace DbgEngExtension
         public MAddress(IDisposable dbgeng, bool redirectConsoleOutput = false)
             : base(dbgeng, redirectConsoleOutput)
         {
+        }
+
+        public void RunList(string args)
+        {
+            if (string.IsNullOrWhiteSpace(args))
+            {
+                Console.WriteLine("usage:  !maddresslist [TYPE]");
+            }
+            else
+            {
+                AddressMemoryRange[] ranges = EnumerateAddressSpace(tagClrMemoryRanges: true, includeReserveMemory: false, tagReserveMemoryHeuristically: false).ToArray();
+
+                foreach (string type in ParseListArgs(args, out bool annotateRefs))
+                {
+                    Dictionary<string, int> counts = new Dictionary<string, int>();
+                    IEnumerable<AddressMemoryRange> found = ranges.Where(r => r.Name == type).OrderByDescending(r => r.Length);
+                    if (found.Any())
+                    {
+                        Console.WriteLine($"{type}:");
+                        foreach (AddressMemoryRange mem in found)
+                        {
+                            Console.WriteLine($"    {mem.Start,12:x}-{mem.End,12:x} {mem.Length.ConvertToHumanReadable(),24} {mem.Kind,12} {mem.State,12} {mem.Protect}");
+                            if (annotateRefs)
+                            {
+                                IEnumerable<(ulong Pointer, AddressMemoryRange MemoryRange)> pointers = EnumerateRegionPointers(mem.Start, mem.Length > int.MaxValue ? int.MaxValue : (int)mem.Length, ranges);
+
+                                var result = from item in pointers
+                                             let name = !string.IsNullOrWhiteSpace(item.MemoryRange.Image) ? item.MemoryRange.Image : item.MemoryRange.Name
+                                             group item by name into g
+                                             let Count = g.Count()
+                                             orderby Count descending
+                                             select new
+                                             {
+                                                 Count,
+                                                 Type = g.Key
+                                             };
+
+                                foreach (var item in result)
+                                {
+                                    Console.WriteLine($"    {item.Count,12:n0} refs to: {item.Type}");
+                                    counts.TryGetValue(item.Type, out int totalCount);
+                                    counts[item.Type] = totalCount + item.Count;
+                                }
+
+                                Console.WriteLine($" ");
+                            }
+                        }
+
+                        Console.WriteLine("");
+
+                        Console.WriteLine("Pointer Stats:");
+                        foreach (var item in counts.OrderByDescending(d => d.Value))
+                            Console.WriteLine($" {item.Value,12:n0} {item.Key}");
+                    }
+                }
+            }
+        }
+
+        private IEnumerable<(ulong, AddressMemoryRange)> EnumerateRegionPointers(ulong start, int length, AddressMemoryRange[] ranges)
+        {
+            ulong[] array = ArrayPool<ulong>.Shared.Rent(4096);
+            int arrayBytes = array.Length * sizeof(ulong);
+            try
+            {
+                ulong curr = start;
+                int remaining = length;
+
+                while (remaining > 0)
+                {
+                    int size = Math.Min(remaining, arrayBytes);
+
+                    Console.Title = $"{remaining / size:n0} reads remaining";
+
+                    bool res = ReadMemory(curr, array, size, out int bytesRead);
+                    if (!res || bytesRead <= 0)
+                        break;
+
+                    for (int i = 0; i < bytesRead / sizeof(ulong); i++)
+                    {
+                        ulong ptr = array[i];
+
+                        AddressMemoryRange? found = ranges.FirstOrDefault(r => r.Start <= ptr && ptr < r.End);
+                        if (found is not null)
+                            yield return (curr + (uint)i * sizeof(ulong), found);
+                    }
+
+                    curr += (uint)bytesRead;
+                    remaining -= bytesRead;
+                }
+
+            }
+            finally
+            {
+                ArrayPool<ulong>.Shared.Return(array);
+            }
+        }
+
+        private unsafe bool ReadMemory(ulong start, ulong[] array, int size, out int bytesRead)
+        {
+            bytesRead = 0;
+            fixed (ulong* ptr = array)
+            {
+                Span<byte> buffer = new(ptr, size);
+                return DebugDataSpaces.ReadVirtual(start, buffer, out bytesRead);
+            }
+        }
+
+        private static IEnumerable<string> ParseListArgs(string args, out bool annotateRefs)
+        {
+            string[] result = args.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            if (result.Any(r => r.Equals(AnnotateOption, StringComparison.OrdinalIgnoreCase)))
+            {
+                annotateRefs = true;
+                result = result.Where(r => !r.Equals(AnnotateOption, StringComparison.OrdinalIgnoreCase)).ToArray();
+            }
+            else
+            {
+                annotateRefs = true;
+            }
+
+            return result;
         }
 
         internal void Run(string args)
@@ -143,7 +270,7 @@ namespace DbgEngExtension
             // Print summary table unconditionally
             {
                 var grouped = from mem in ranges
-                              let type = GetMemoryName(mem)
+                              let type = mem.Name
                               group mem by type into g
                               let Count = g.Count()
                               let Size = g.Sum(f => (long)(f.End - f.Start))
@@ -268,7 +395,7 @@ namespace DbgEngExtension
             {
                 foreach (AddressMemoryRange mem in ranges)
                 {
-                    string memName = GetMemoryName(mem);
+                    string memName = mem.Name;
                     if (memName == "RESERVED")
                         TagMemoryRecursive(mem, ranges);
                 }
@@ -292,7 +419,7 @@ namespace DbgEngExtension
         {
             foreach (AddressMemoryRange mem in ranges)
             {
-                string memName = GetMemoryName(mem);
+                string memName = mem.Name;
                 if (memName == "RESERVED")
                     TagMemoryRecursive(mem, ranges);
             }
@@ -303,7 +430,6 @@ namespace DbgEngExtension
         /// </summary>
         public IEnumerable<ClrMemoryPointer> EnumerateClrMemoryAddresses()
         {
-            Console.WriteLine("here");
             foreach (var runtime in Runtimes)
             {
                 SOSDac sos = runtime.DacLibrary.SOSDacInterface;
@@ -391,8 +517,6 @@ namespace DbgEngExtension
                             yield return heap;
                     }
                 }
-
-                Console.WriteLine("done");
             }
         }
 
@@ -509,8 +633,7 @@ namespace DbgEngExtension
 
         private static AddressMemoryRange? TagMemoryRecursive(AddressMemoryRange mem, AddressMemoryRange[] ranges)
         {
-            string type = GetMemoryName(mem);
-            if (type != "RESERVED")
+            if (mem.Name != "RESERVED")
                 return mem;
 
             AddressMemoryRange? found = ranges.SingleOrDefault(r => r.End == mem.Start);
@@ -521,33 +644,8 @@ namespace DbgEngExtension
             if (nonReserved is null)
                 return null;
 
-            mem.Description = GetMemoryName(nonReserved);
+            mem.Description = nonReserved.Name;
             return nonReserved;
-        }
-
-        private static string GetMemoryName(AddressMemoryRange mem)
-        {
-            if (mem.ClrMemoryKind != ClrMemoryKind.None)
-                return mem.ClrMemoryKind.ToString();
-
-            if (!string.IsNullOrWhiteSpace(mem.Description))
-                return mem.Description;
-
-            if (mem.State == MemState.MEM_RESERVE)
-                return "RESERVED";
-            else if (mem.State == MemState.MEM_FREE)
-                return "FREE";
-
-            string result = mem.Protect.ToString();
-            if (mem.Kind == MemKind.MEM_MAPPED)
-            {
-                if (string.IsNullOrWhiteSpace(result))
-                    result = mem.Kind.ToString();
-                else
-                    result = result.Replace("PAGE", "MAPPED");
-            }
-
-            return result;
         }
 
         public enum ClrMemoryKind
@@ -623,6 +721,34 @@ namespace DbgEngExtension
             public string Description { get; internal set; } = "";
             public ClrMemoryKind ClrMemoryKind { get; internal set; }
             public string? Image { get; internal set; }
+
+            public string Name
+            {
+                get
+                {
+                    if (ClrMemoryKind != ClrMemoryKind.None)
+                        return ClrMemoryKind.ToString();
+
+                    if (!string.IsNullOrWhiteSpace(Description))
+                        return Description;
+
+                    if (State == MemState.MEM_RESERVE)
+                        return "RESERVED";
+                    else if (State == MemState.MEM_FREE)
+                        return "FREE";
+
+                    string result = Protect.ToString();
+                    if (Kind == MemKind.MEM_MAPPED)
+                    {
+                        if (string.IsNullOrWhiteSpace(result))
+                            result = Kind.ToString();
+                        else
+                            result = result.Replace("PAGE", "MAPPED");
+                    }
+
+                    return result;
+                }
+            }
         }
 
         public class ClrMemoryPointer
