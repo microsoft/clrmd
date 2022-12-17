@@ -1,13 +1,17 @@
 ﻿using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
+using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     public sealed class DbgEngIDataReader : IDataReader, IDisposable, IThreadReader
     {
+        private const string VersionString = "@(#)Version ";
         private readonly IDisposable? _dbgeng;
         public IDebugClient DebugClient { get; }
         public IDebugControl DebugControl { get; }
@@ -23,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private Architecture? _architecture;
 
         public string DisplayName { get; }
-        public OSPlatform TargetPlatform => OSPlatform.Windows;
+        public OSPlatform TargetPlatform => DebugControl.OSPlatform;
 
         public static DataTarget CreateDataTarget(nint pDebugClient)
         {
@@ -106,7 +110,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
         private static ClrDiagnosticsException CreateExceptionFromDumpFile(string dumpFile, HResult hr)
         {
-            ClrDiagnosticsException ex = new ClrDiagnosticsException($"Could not load crash dump, HRESULT: {hr}", hr);
+            ClrDiagnosticsException ex = new($"Could not load crash dump, HRESULT: {hr}", hr);
             ex.Data["DumpFile"] = dumpFile;
             return ex;
         }
@@ -246,17 +250,26 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             HResult hr = DebugSymbols.GetModuleParameters(bases, moduleParams);
             if (hr)
             {
+                string title = Console.Title;
+
+                var sw = Stopwatch.StartNew();
                 for (int i = 0; i < bases.Length; ++i)
                 {
                     DebugSymbols.GetModuleName(DEBUG_MODNAME.IMAGE, bases[i], out string moduleName);
 
                     unchecked
                     {
-                        var module = ModuleInfo.TryCreate(this, bases[i], moduleName, (int)moduleParams[i].Size, (int)moduleParams[i].TimeDateStamp, GetVersionInfo(bases[i]));
+                        Console.Title = $"{i:n0} of {bases.Length:n0}";
+
+                        Version? version = GetVersionInfo(bases[i], moduleParams[i].Size);
+                        var module = ModuleInfo.TryCreate(this, bases[i], moduleName, (int)moduleParams[i].Size, (int)moduleParams[i].TimeDateStamp, version);
                         if (module is not null)
                             modules.Add(module);
                     }
                 }
+
+                Console.WriteLine(sw.Elapsed);
+                Console.Title = title;
             }
 
             _modules = modules;
@@ -271,28 +284,62 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             return read;
         }
 
-        public Version? GetVersionInfo(ulong baseAddress)
+        public Version? GetVersionInfo(ulong baseAddress, uint moduleSize)
         {
-            if (!FindModuleIndex(baseAddress, out int index))
-                return null;
-
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(256);
-            try
+            if (TargetPlatform == OSPlatform.Windows)
             {
-                HResult hr = DebugSymbols.GetModuleVersionInformation(index, baseAddress, "\\\\\0", buffer);
-                if (!hr)
-                    return new Version();
+                if (!FindModuleIndex(baseAddress, out int index))
+                    return null;
 
-                int minor = Unsafe.As<byte, ushort>(ref buffer[8]);
-                int major = Unsafe.As<byte, ushort>(ref buffer[10]);
-                int patch = Unsafe.As<byte, ushort>(ref buffer[12]);
-                int revision = Unsafe.As<byte, ushort>(ref buffer[14]);
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(256);
+                try
+                {
+                    HResult hr = DebugSymbols.GetModuleVersionInformation(index, baseAddress, "\\\\\0", buffer);
+                    if (!hr)
+                        return new Version();
 
-                return new Version(major, minor, revision, patch);
+                    int minor = Unsafe.As<byte, ushort>(ref buffer[8]);
+                    int major = Unsafe.As<byte, ushort>(ref buffer[10]);
+                    int patch = Unsafe.As<byte, ushort>(ref buffer[12]);
+                    int revision = Unsafe.As<byte, ushort>(ref buffer[14]);
+
+                    return new Version(major, minor, revision, patch);
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(buffer);
+                }
             }
-            finally
+            else
             {
-                ArrayPool<byte>.Shared.Return(buffer);
+                // GetModuleVersionInformation has a bug which we are working around here
+                byte[] versionString = Encoding.ASCII.GetBytes(VersionString);
+
+                if (DebugDataSpaces.Search(baseAddress, moduleSize, versionString, 1, out ulong offsetFound))
+                {
+                    byte[] bufferArray = ArrayPool<byte>.Shared.Rent(256);
+                    Span<byte> buffer = bufferArray;
+                    try
+                    {
+                        if (DebugDataSpaces.ReadVirtual(offsetFound + (uint)VersionString.Length, buffer, out int read))
+                        {
+                            string versionStr = Encoding.ASCII.GetString(buffer[0..read]);
+                            int space = versionStr.IndexOf(' ');
+                            if (space > 0)
+                            {
+                                versionStr = versionStr[0..space];
+                                Version version = new(versionStr);
+                                return version;
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        ArrayPool<byte>.Shared.Return(bufferArray);
+                    }
+                }
+
+                return null;
             }
         }
 

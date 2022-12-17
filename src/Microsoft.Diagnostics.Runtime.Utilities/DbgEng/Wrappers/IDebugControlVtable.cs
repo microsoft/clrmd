@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint GetNumberPossibleExecutingProcessorTypes;
         private readonly nint GetPossibleExecutingProcessorTypes;
         private readonly nint GetNumberProcessors;
-        private readonly nint GetSystemVersion;
+        public readonly delegate* unmanaged[Stdcall]<nint, uint*, uint*, uint*, char*, int, int*, int*, byte*, int, int*, int> GetSystemVersion;
         private readonly nint GetPageSize;
         public readonly delegate* unmanaged[Stdcall]<nint, int> IsPointer64Bit;
         private readonly nint ReadBugCheckData;

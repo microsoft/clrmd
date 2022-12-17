@@ -8,6 +8,25 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
     [DynamicInterfaceCastableImplementation]
     internal unsafe interface IDebugControlWrapper : IDebugControl
     {
+        OSPlatform IDebugControl.OSPlatform
+        {
+            get
+            {
+                GetVTable(this, out nint self, out IDebugControlVtable* vtable);
+                uint platformId = 0, major = 0, minor = 0;
+                int spStrCount = 0, buildStrCount = 0;
+                int servicePackNumber = 0;
+
+                int hr = vtable->GetSystemVersion(self, &platformId, &major, &minor, null, 0, &spStrCount, &servicePackNumber, null, 0, &buildStrCount);
+
+                return platformId switch
+                {
+                    0xa => OSPlatform.Linux,
+                    _ => OSPlatform.Windows,
+                };
+            }
+        }
+
         int IDebugControl.PointerSize
         {
             get

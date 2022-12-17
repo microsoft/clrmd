@@ -18,6 +18,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             }
         }
 
+        bool IDebugDataSpaces.Search(ulong offset, ulong length, Span<byte> pattern, int granularity, out ulong offsetFound)
+        {
+            GetVTable(this, out nint self, out IDebugDataSpacesVtable* vtable);
+            fixed (byte* ptr = pattern)
+            {
+                ulong found = 0;
+                int hr = vtable->SearchVirtual(self, offset, length, ptr, pattern.Length, granularity, &found);
+
+                offsetFound = found;
+                return hr == 0;
+            }
+        }
+
         private static void GetVTable(object ths, out nint self, out IDebugDataSpacesVtable* vtable)
         {
             self = ((IDbgInterfaceProvider)ths).DebugDataSpaces;

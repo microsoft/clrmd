@@ -83,7 +83,7 @@ namespace DbgEngExtension
         {
             IEnumerable<AddressMemoryRange> memoryRanges = EnumerateAddressSpace(tagClrMemoryRanges: true, includeReserveMemory, tagReserveMemoryHeuristically);
             if (!includeReserveMemory)
-                memoryRanges = memoryRanges.Where(m => m.State == MemState.MEM_COMMIT);
+                memoryRanges = memoryRanges.Where(m => m.State != MemState.MEM_RESERVE);
 
             AddressMemoryRange[] ranges = memoryRanges.ToArray();
 
@@ -93,7 +93,7 @@ namespace DbgEngExtension
 
             if (printAllMemory)
             {
-                WriteHeader(5, new int[] { 12, 12, 12, 12, 32, -1 }, "StartAddr", "EndAddr-1", "Type", "State", "Protect", "Usage");
+                WriteHeader(5, new int[] { 12, 12, 12, 12, 12, 32, -1 }, "StartAddr", "EndAddr-1", "Length", "Type", "State", "Protect", "Usage");
                 
                 foreach (var mem in ranges)
                 {
@@ -101,7 +101,7 @@ namespace DbgEngExtension
                     if (mem.ClrMemoryKind != ClrMemoryKind.None)
                         description = mem.ClrMemoryKind.ToString();
 
-                    Console.WriteLine($"{mem.Start,12:x}     {mem.End,12:x}     {mem.Kind,12}     {mem.State,12}     {mem.Protect,32}     {description}");
+                    Console.WriteLine($"{mem.Start,12:x}     {mem.End,12:x}     {mem.Length.ConvertToHumanReadable(),12:x}     {mem.Kind,12}     {mem.State,12}     {mem.Protect,32}     {description}");
                 }
 
                 WriteBreak();
@@ -109,7 +109,9 @@ namespace DbgEngExtension
 
             if (showImageTable)
             {
-                var imageGroups = from mem in ranges.Where(r => r.State == MemState.MEM_COMMIT && r.Image != null)
+                int maxModuleLen = ranges.Where(r => !string.IsNullOrWhiteSpace(r.Image)).Max(r => r.Image.Length);
+
+                var imageGroups = from mem in ranges.Where(r => r.State != MemState.MEM_RESERVE && r.Image != null)
                                   group mem by mem.Image into g
                                   let Size = g.Sum(k => (long)(k.End - k.Start))
                                   orderby Size descending
@@ -120,19 +122,20 @@ namespace DbgEngExtension
                                       Size
                                   };
 
-                WriteHeader(1, new int[] { 32, 12, 12, 24 }, "Image", "Regions", "Size", "Size (bytes)");
+                WriteHeader(1, new int[] { maxModuleLen, 12, 12, 24 }, "Image", "Regions", "Size", "Size (bytes)");
 
                 int count = 0;
                 long size = 0;
                 foreach (var item in imageGroups)
                 {
-                    Console.WriteLine($"{item.Image,32} {item.Count,12:n0} {item.Size.ConvertToHumanReadable(),12} {item.Size,24:n0}");
+                    string image = item.Image + new string(' ', maxModuleLen - item.Image.Length);
+                    Console.WriteLine($"{image} {item.Count,12:n0} {item.Size.ConvertToHumanReadable(),12} {item.Size,24:n0}");
 
                     count += item.Count;
                     size += item.Size;
                 }
 
-                WriteHeader(1, new int[] { 32, 12, 12, 24 }, "TOTAL", count.ToString("n0"), size.ConvertToHumanReadable(), size.ToString("n0"));
+                WriteHeader(1, new int[] { maxModuleLen, 12, 12, 24 }, "TOTAL", count.ToString("n0"), size.ConvertToHumanReadable(), size.ToString("n0"));
                 WriteBreak();
             }
 
@@ -234,6 +237,8 @@ namespace DbgEngExtension
         {
             IEnumerable<AddressMemoryRange> addressResult = EnumerateBangAddress().Where(m => m.State != MemState.MEM_FREE);
 
+            addressResult = addressResult.Where(m => (m.Start & 0xffffffff00000000) != 0xffffffff00000000 && (m.End & 0xffffffff00000000) != 0xffffffff00000000);
+
             if (!includeReserveMemory)
                 addressResult = addressResult.Where(m => m.State != MemState.MEM_RESERVE);
 
@@ -298,6 +303,7 @@ namespace DbgEngExtension
         /// </summary>
         public IEnumerable<ClrMemoryPointer> EnumerateClrMemoryAddresses()
         {
+            Console.WriteLine("here");
             foreach (var runtime in Runtimes)
             {
                 SOSDac sos = runtime.DacLibrary.SOSDacInterface;
@@ -385,6 +391,8 @@ namespace DbgEngExtension
                             yield return heap;
                     }
                 }
+
+                Console.WriteLine("done");
             }
         }
 
@@ -430,10 +438,19 @@ namespace DbgEngExtension
                     if (Enum.TryParse(parts[index], ignoreCase: true, out MemKind kind))
                         index++;
 
-                    MemState state = Enum.Parse<MemState>(parts[index++]);
+                    if (Enum.TryParse(parts[index], ignoreCase: true, out MemState state))
+                        index++;
 
-                    string remainder = index == 5 ? parts[5] : parts[4] + ' ' + parts[5];
+                    StringBuilder sbRemainder = new();
+                    for (int i = index; i < parts.Length; i++)
+                    {
+                        if (i != index)
+                            sbRemainder.Append(' ');
 
+                        sbRemainder.Append(parts[i]);
+                    }
+
+                    string remainder = sbRemainder.ToString();
                     parts = remainder.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                     MemProtect protect = default;
                     index = 0;
@@ -454,6 +471,17 @@ namespace DbgEngExtension
                     }
 
                     string description = parts[index++];
+
+                    // On Linux, !analyze is reporting this as MEM_PRIVATE or MEM_UNKNOWN
+                    if (description == "Image")
+                        kind = MemKind.MEM_IMAGE;
+
+                    // On Linux, !analyze is reporting this as nothing
+                    if (kind == MemKind.MEM_UNKNOWN && state == MemState.MEM_UNKNOWN && protect == MemProtect.PAGE_UNKNOWN)
+                    {
+                        state = MemState.MEM_FREE;
+                        protect = MemProtect.PAGE_NOACCESS;
+                    }
 
                     string? image = null;
                     if (kind == MemKind.MEM_IMAGE)
@@ -552,6 +580,7 @@ namespace DbgEngExtension
         [Flags]
         public enum MemProtect
         {
+            PAGE_UNKNOWN = 0,
             PAGE_EXECUTE = 0x00000010,
             PAGE_EXECUTE_READ = 0x00000020,
             PAGE_EXECUTE_READWRITE = 0x00000040,
@@ -567,6 +596,7 @@ namespace DbgEngExtension
 
         public enum MemState
         {
+            MEM_UNKNOWN = 0,
             MEM_COMMIT = 0x1000,
             MEM_FREE = 0x10000,
             MEM_RESERVE = 0x2000
@@ -574,6 +604,7 @@ namespace DbgEngExtension
 
         public enum MemKind
         {
+            MEM_UNKNOWN = 0,
             MEM_IMAGE = 0x1000000,
             MEM_MAPPED = 0x40000,
             MEM_PRIVATE = 0x20000
@@ -583,6 +614,9 @@ namespace DbgEngExtension
         {
             public ulong Start { get; internal set; }
             public ulong End { get; internal set; }
+
+            public ulong Length => End <= Start ? 0 : End - Start;
+
             public MemKind Kind { get; internal set; }
             public MemState State { get; internal set; }
             public MemProtect Protect { get; internal set; }
