@@ -1,6 +1,8 @@
 ﻿using Microsoft.Diagnostics.Runtime.DacInterface;
 using System.Buffers;
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
@@ -36,6 +38,7 @@ namespace DbgEngExtension
             }
             else
             {
+                Dictionary<string, int> allCounts = new Dictionary<string, int>();
                 AddressMemoryRange[] ranges = EnumerateAddressSpace(tagClrMemoryRanges: true, includeReserveMemory: false, tagReserveMemoryHeuristically: false).ToArray();
 
                 foreach (string type in ParseListArgs(args, out bool annotateRefs))
@@ -50,24 +53,53 @@ namespace DbgEngExtension
                             Console.WriteLine($"    {mem.Start,12:x}-{mem.End,12:x} {mem.Length.ConvertToHumanReadable(),24} {mem.Kind,12} {mem.State,12} {mem.Protect}");
                             if (annotateRefs)
                             {
-                                IEnumerable<(ulong Pointer, AddressMemoryRange MemoryRange)> pointers = EnumerateRegionPointers(mem.Start, mem.Length > int.MaxValue ? int.MaxValue : (int)mem.Length, ranges);
-
-                                var result = from item in pointers
-                                             let name = !string.IsNullOrWhiteSpace(item.MemoryRange.Image) ? item.MemoryRange.Image : item.MemoryRange.Name
-                                             group item by name into g
-                                             let Count = g.Count()
-                                             orderby Count descending
-                                             select new
-                                             {
-                                                 Count,
-                                                 Type = g.Key
-                                             };
-
-                                foreach (var item in result)
+                                Dictionary<string, List<ulong>> imagePointers = new();
+                                Dictionary<string, int> rangeCounts = new();
+                                foreach ((ulong address, ulong ptr, AddressMemoryRange memRng) in EnumerateRegionPointers(mem.Start, mem.Length > int.MaxValue ? int.MaxValue : (int)mem.Length, ranges))
                                 {
-                                    Console.WriteLine($"    {item.Count,12:n0} refs to: {item.Type}");
-                                    counts.TryGetValue(item.Type, out int totalCount);
-                                    counts[item.Type] = totalCount + item.Count;
+                                    if (memRng.Kind == MemKind.MEM_IMAGE)
+                                    {
+                                        string key = memRng.Image!;
+                                        if (!imagePointers.TryGetValue(key, out List<ulong>? imgPtrs))
+                                            imagePointers[key] = imgPtrs = new();
+
+                                        imgPtrs.Add(ptr);
+
+                                        rangeCounts.TryGetValue(key, out int count);
+                                        rangeCounts[key] = count + 1;
+                                    }
+                                    else
+                                    {
+                                        string key = memRng.Name;
+                                        rangeCounts.TryGetValue(key, out int count);
+                                        rangeCounts[key] = count + 1;
+                                    }
+                                }
+
+                                foreach (var item in rangeCounts.OrderByDescending(d => d.Value))
+                                {
+                                    Console.WriteLine($"    {item.Value,12:n0} refs to: {item.Key}");
+                                    if (imagePointers.TryGetValue(item.Key, out List<ulong>? ptrs))
+                                    {
+                                        var resolved = from ptr in ptrs
+                                                       group ptr by ptr into g
+                                                       let Count = g.Count()
+                                                       orderby Count descending
+                                                       select new
+                                                       {
+                                                           Pointer = g.Key,
+                                                           Symbol = ResolveSymbol(g.Key),
+                                                           Count
+                                                       };
+
+                                        foreach (var entry in resolved)
+                                        {
+                                            Console.WriteLine($"            {entry.Count,8:n0} ref{(entry.Count == 1 ? "" : "s")} to {entry.Pointer:x} {entry.Symbol}");
+                                        }
+                                    }
+
+                                    counts.TryGetValue(item.Key, out int totalCount);
+                                    counts[item.Key] = totalCount + item.Value;
                                 }
 
                                 Console.WriteLine($" ");
@@ -78,13 +110,51 @@ namespace DbgEngExtension
 
                         Console.WriteLine("Pointer Stats:");
                         foreach (var item in counts.OrderByDescending(d => d.Value))
+                        {
                             Console.WriteLine($" {item.Value,12:n0} {item.Key}");
+
+                            allCounts.TryGetValue(item.Key, out int total);
+                            allCounts[item.Key] = total + item.Value;
+                        }
                     }
+                }
+
+                if (allCounts.Count > 0)
+                {
+                    Console.WriteLine("All pointers:");
+                    foreach (var item in allCounts.OrderByDescending(d => d.Value))
+                        Console.WriteLine($" {item.Value,12:n0} {item.Key}");
                 }
             }
         }
 
-        private IEnumerable<(ulong, AddressMemoryRange)> EnumerateRegionPointers(ulong start, int length, AddressMemoryRange[] ranges)
+        private string ResolveSymbol(ulong pointer)
+        {
+            if (DebugSymbols.GetNameByOffset(pointer, out string? name, out ulong disp))
+                return $"{name}+{disp:x}";
+
+            foreach (var runtime in Runtimes)
+            {
+                var method = runtime.GetMethodByInstructionPointer(pointer);
+                if (method is not null)
+                {
+                    string methodName = method.Type?.Name ?? "<unknown>";
+                    if (method.NativeCode != 0 && method.NativeCode < pointer)
+                    {
+                        disp = pointer - method.NativeCode;
+                        return $"{methodName}::{method.Name}+{disp:x}";
+                    }
+                    else
+                    {
+                        return methodName;
+                    }
+                }
+            }
+
+            return pointer.ToString("x");
+        }
+
+        private IEnumerable<(ulong Address, ulong Pointer, AddressMemoryRange MemoryRange)> EnumerateRegionPointers(ulong start, int length, AddressMemoryRange[] ranges)
         {
             ulong[] array = ArrayPool<ulong>.Shared.Rent(4096);
             int arrayBytes = array.Length * sizeof(ulong);
@@ -109,7 +179,7 @@ namespace DbgEngExtension
 
                         AddressMemoryRange? found = ranges.FirstOrDefault(r => r.Start <= ptr && ptr < r.End);
                         if (found is not null)
-                            yield return (curr + (uint)i * sizeof(ulong), found);
+                            yield return (curr + (uint)i * sizeof(ulong), ptr, found);
                     }
 
                     curr += (uint)bytesRead;
