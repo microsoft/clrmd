@@ -250,26 +250,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             HResult hr = DebugSymbols.GetModuleParameters(bases, moduleParams);
             if (hr)
             {
-                string title = Console.Title;
-
-                var sw = Stopwatch.StartNew();
                 for (int i = 0; i < bases.Length; ++i)
                 {
                     DebugSymbols.GetModuleName(DEBUG_MODNAME.IMAGE, bases[i], out string moduleName);
 
                     unchecked
                     {
-                        Console.Title = $"{i:n0} of {bases.Length:n0}";
-
                         Version? version = GetVersionInfo(bases[i], moduleParams[i].Size);
                         var module = ModuleInfo.TryCreate(this, bases[i], moduleName, (int)moduleParams[i].Size, (int)moduleParams[i].TimeDateStamp, version);
                         if (module is not null)
                             modules.Add(module);
                     }
                 }
-
-                Console.WriteLine(sw.Elapsed);
-                Console.Title = title;
             }
 
             _modules = modules;
