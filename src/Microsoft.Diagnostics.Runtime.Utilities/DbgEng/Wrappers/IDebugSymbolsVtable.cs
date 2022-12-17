@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint AddTypeOptions;
         private readonly nint RemoveTypeOptions;
         private readonly nint SetTypeOptions;
-        private readonly nint GetNameByOffsetWide;
+        public readonly delegate* unmanaged[Stdcall]<nint, ulong, char*, int, out int, out ulong, int> GetNameByOffsetWide;
         private readonly nint GetOffsetByNameWide;
         private readonly nint GetNearNameByOffsetWide;
         private readonly nint GetLineByOffsetWide;
@@ -84,8 +84,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint StartSymbolMatchWide;
         private readonly nint GetNextSymbolMatchWide;
         private readonly nint ReloadWide;
-        private readonly nint GetSymbolPathWide;
-        private readonly nint SetSymbolPathWide;
+        public readonly delegate* unmanaged[Stdcall]<nint, char*, int, out int, int> GetSymbolPathWide;
+        public readonly delegate* unmanaged[Stdcall]<nint, char*, int> SetSymbolPathWide;
         private readonly nint AppendSymbolPathWide;
         private readonly nint GetImagePathWide;
         private readonly nint SetImagePathWide;

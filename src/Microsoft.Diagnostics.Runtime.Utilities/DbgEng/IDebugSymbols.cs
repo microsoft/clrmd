@@ -1,8 +1,12 @@
-﻿namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     public interface IDebugSymbols
     {
         public const int DEBUG_ANY_ID = unchecked((int)0xffffffff);
+
+        string? SymbolPath { get; set; }
 
         int GetNumberModules(out int modules, out int unloadedModules);
         int GetImageBase(int index, out ulong baseAddress);
@@ -10,5 +14,6 @@
         int GetModuleVersionInformation(int index, ulong address, string item, Span<byte> buffer);
         int GetModuleName(DEBUG_MODNAME which, ulong baseAddress, out string name);
         int GetModuleByOffset(ulong baseAddr, int nextIndex, out int index, out ulong claimedBaseAddr);
+        bool GetNameByOffset(ulong address, [NotNullWhen(true)] out string? name, out ulong displacement);
     }
 }

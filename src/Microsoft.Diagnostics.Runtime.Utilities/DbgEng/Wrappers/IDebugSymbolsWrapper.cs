@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -7,6 +8,50 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
     [DynamicInterfaceCastableImplementation]
     internal unsafe interface IDebugSymbolsWrapper : IDebugSymbols
     {
+        string? IDebugSymbols.SymbolPath
+        {
+            get
+            {
+                GetVTable(this, out nint self, out IDebugSymbolsVtable* vtable);
+                int hr = vtable->GetSymbolPathWide(self, null, 0, out int size);
+
+                if (hr < 0)
+                    return null;
+                else if (size == 0 || size == 1)
+                    return string.Empty;
+
+                char[] buffer = ArrayPool<char>.Shared.Rent(size);
+                try
+                {
+                    fixed (char* ptr = buffer)
+                        hr = vtable->GetSymbolPathWide(self, ptr, size, out size);
+
+                    if (hr < 0)
+                        return null;
+
+                    return new(buffer, 0, size - 1);
+                }
+                finally
+                {
+                    ArrayPool<char>.Shared.Return(buffer);
+                }
+            }
+            set
+            {
+                GetVTable(this, out nint self, out IDebugSymbolsVtable* vtable);
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    fixed (char* ptr = string.Empty)
+                        vtable->SetSymbolPathWide(self, ptr);
+                }
+                else
+                {
+                    fixed (char* ptr = value)
+                        vtable->SetSymbolPathWide(self, ptr);
+                }
+            }
+        }
+
         int IDebugSymbols.GetNumberModules(out int modules, out int unloadedModules)
         {
             GetVTable(this, out nint self, out IDebugSymbolsVtable* vtable);
@@ -69,6 +114,43 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         {
             GetVTable(this, out nint self, out IDebugSymbolsVtable* vtable);
             return vtable->GetModuleByOffset(self, baseAddr, nextIndex, out index, out claimedBaseAddr);
+        }
+
+        bool IDebugSymbols.GetNameByOffset(ulong address, [NotNullWhen(true)] out string? name, out ulong displacement)
+        {
+            displacement = 0;
+
+            GetVTable(this, out nint self, out IDebugSymbolsVtable* vtable);
+            int hr = vtable->GetNameByOffsetWide(self, address, null, 0, out int size, out _);
+            if (hr < 0)
+            {
+                name = null;
+                return false;
+            }
+
+            if (size == 0 || size == 1)
+            {
+                name = string.Empty;
+                return true;
+            }
+
+            char[] buffer = ArrayPool<char>.Shared.Rent(size);
+            try
+            {
+                fixed (char* ptr = buffer)
+                    hr = vtable->GetNameByOffsetWide(self, address, ptr, size, out size, out displacement);
+
+                if (hr == 0)
+                    name = new(buffer, 0, size - 1);
+                else
+                    name = null;
+
+                return hr == 0;
+            }
+            finally
+            {
+                ArrayPool<char>.Shared.Return(buffer);
+            }
         }
 
         private static void GetVTable(object ths, out nint self, out IDebugSymbolsVtable* vtable)
