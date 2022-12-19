@@ -1,7 +1,10 @@
-﻿using Microsoft.Diagnostics.Runtime.DacInterface;
+﻿using Microsoft.Diagnostics.Runtime;
+using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -78,7 +81,7 @@ namespace DbgEngExtension
 
                                 foreach (var item in rangeCounts.OrderByDescending(d => d.Value))
                                 {
-                                    Console.WriteLine($"    {item.Value,12:n0} refs to: {item.Key}");
+                                    Console.WriteLine($"    {item.Value,12:n0} ref{(item.Value == 1 ? "" : "s")} to: {item.Key}");
                                     if (imagePointers.TryGetValue(item.Key, out List<ulong>? ptrs))
                                     {
                                         var resolved = from ptr in ptrs
@@ -92,10 +95,9 @@ namespace DbgEngExtension
                                                            Count
                                                        };
 
+                                        Console.WriteLine();
                                         foreach (var entry in resolved)
-                                        {
                                             Console.WriteLine($"            {entry.Count,8:n0} ref{(entry.Count == 1 ? "" : "s")} to {entry.Pointer:x} {entry.Symbol}");
-                                        }
                                     }
 
                                     counts.TryGetValue(item.Key, out int totalCount);
@@ -130,26 +132,8 @@ namespace DbgEngExtension
 
         private string ResolveSymbol(ulong pointer)
         {
-            if (DebugSymbols.GetNameByOffset(pointer, out string? name, out ulong disp))
-                return $"{name}+{disp:x}";
-
-            foreach (var runtime in Runtimes)
-            {
-                var method = runtime.GetMethodByInstructionPointer(pointer);
-                if (method is not null)
-                {
-                    string methodName = method.Type?.Name ?? "<unknown>";
-                    if (method.NativeCode != 0 && method.NativeCode < pointer)
-                    {
-                        disp = pointer - method.NativeCode;
-                        return $"{methodName}::{method.Name}+{disp:x}";
-                    }
-                    else
-                    {
-                        return methodName;
-                    }
-                }
-            }
+            if (DebugSymbols.GetNameByOffset(pointer, out string? name, out ulong displacement))
+                return $"{name}+{displacement:x}";
 
             return pointer.ToString("x");
         }
@@ -177,7 +161,7 @@ namespace DbgEngExtension
                     {
                         ulong ptr = array[i];
 
-                        AddressMemoryRange? found = ranges.FirstOrDefault(r => r.Start <= ptr && ptr < r.End);
+                        AddressMemoryRange? found = FindMemory(ranges, ptr);
                         if (found is not null)
                             yield return (curr + (uint)i * sizeof(ulong), ptr, found);
                     }
@@ -191,6 +175,33 @@ namespace DbgEngExtension
             {
                 ArrayPool<ulong>.Shared.Return(array);
             }
+        }
+
+        private static AddressMemoryRange? FindMemory(AddressMemoryRange[] ranges, ulong ptr)
+        {
+            if (ptr < ranges[0].Start || ptr >= ranges.Last().End)
+                return null;
+
+            int low = 0;
+            int high = ranges.Length - 1;
+            while (low <= high)
+            {
+                int mid = (low + high) >> 1;
+                if (ranges[mid].End <= ptr)
+                {
+                    low = mid + 1;
+                }
+                else if (ptr < ranges[mid].Start)
+                {
+                    high = mid - 1;
+                }
+                else
+                {
+                    return ranges[mid];
+                }
+            }
+
+            return null;
         }
 
         private unsafe bool ReadMemory(ulong start, ulong[] array, int size, out int bytesRead)
@@ -471,7 +482,93 @@ namespace DbgEngExtension
                 }
             }
 
+            // On Linux, !analyze doesn't mark stack space.  Go do that.
+            if (DataTarget.DataReader.TargetPlatform == OSPlatform.Linux)
+                MarkStackSpace(ranges);
+
             return ranges;
+        }
+
+        private void MarkStackSpace(AddressMemoryRange[] ranges)
+        {
+            IThreadReader? threadReader = DataTarget.DataReader as IThreadReader;
+            Architecture arch = DataTarget.DataReader.Architecture;
+            int size = arch switch
+            {
+                Architecture.Arm => ArmContext.Size,
+                Architecture.Arm64 => Arm64Context.Size,
+                Architecture.X86 => X86Context.Size,
+                Architecture.X64 => AMD64Context.Size,
+                _ => 0
+            };
+
+            if (size > 0 && threadReader is not null)
+            {
+                byte[] rawBuffer = ArrayPool<byte>.Shared.Rent(size);
+                try
+                {
+                    Span<byte> buffer = rawBuffer.AsSpan()[0..size];
+
+                    foreach (uint thread in threadReader.EnumerateOSThreadIds())
+                    {
+                        ulong sp = GetStackPointer(arch, buffer, thread);
+
+                        AddressMemoryRange? range = FindMemory(ranges, sp);
+                        if (range is not null)
+                            range.Description = "Stack";
+                    }
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(rawBuffer);
+                }
+            }
+        }
+
+        private unsafe ulong GetStackPointer(Architecture arch, Span<byte> buffer, uint thread)
+        {
+            ulong sp = 0;
+
+            bool res = DataTarget.DataReader.GetThreadContext(thread, 0, buffer);
+            if (res)
+            {
+                switch (arch)
+                {
+                    case Architecture.X86:
+                        fixed (byte* ptrCtx = buffer)
+                        {
+                            X86Context* ctx = (X86Context*)ptrCtx;
+                            sp = ctx->Esp;
+                        }
+                        break;
+
+                    case Architecture.X64:
+                        fixed (byte* ptrCtx = buffer)
+                        {
+                            AMD64Context* ctx = (AMD64Context*)ptrCtx;
+                            sp = ctx->Rsp;
+                        }
+                        break;
+
+                    case Architecture.Arm64:
+                        fixed (byte* ptrCtx = buffer)
+                        {
+                            Arm64Context* ctx = (Arm64Context*)ptrCtx;
+                            sp = ctx->Sp;
+                        }
+                        break;
+
+                    case Architecture.Arm:
+                        fixed (byte* ptrCtx = buffer)
+                        {
+                            ArmContext* ctx = (ArmContext*)ptrCtx;
+                            sp = ctx->Sp;
+                        }
+                        break;
+                }
+            }
+
+            return sp;
         }
 
         /// <summary>
@@ -505,6 +602,9 @@ namespace DbgEngExtension
                 SOSDac sos = runtime.DacLibrary.SOSDacInterface;
                 foreach (JitManagerInfo jitMgr in sos.GetJitManagers())
                 {
+                    foreach (var handle in runtime.EnumerateHandles())
+                        yield return new ClrMemoryPointer() { Kind = ClrMemoryKind.HandleTable, Address = handle.Address };
+
                     foreach (var mem in sos.GetCodeHeapList(jitMgr.Address))
                         yield return new ClrMemoryPointer()
                         {
@@ -734,6 +834,7 @@ namespace DbgEngExtension
             ResolveHeap,
             DispatchHeap,
             CacheEntryHeap,
+            HandleTable,
         }
 
         enum VCSHeapType
