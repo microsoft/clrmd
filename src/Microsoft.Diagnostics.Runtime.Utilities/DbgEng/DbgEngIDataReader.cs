@@ -256,7 +256,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
                     unchecked
                     {
-                        Version? version = GetVersionInfo(bases[i], moduleParams[i].Size);
+                        // On Linux, getting the typical version information requires scanning through a large chunk of the memory for
+                        // a library looking for a particular string.  This can be incredibly slow when there is a large number of modules.
+                        // Since ClrMD's ModuleInfo doesn't lazily calculate its Version, this means that the startup for Linux could be
+                        // incredibly slow.  We should probably add a way to (optionally) lazily load the Version for modules to make this
+                        // more pay for play, but until then we will simply only return the version of libcoreclr.so on Linux, as that's
+                        // the bare minimum for functionality.
+                        Version? version = null;
+                        if (TargetPlatform == OSPlatform.Windows || moduleName.Contains("libcoreclr", StringComparison.OrdinalIgnoreCase))
+                            GetVersionInfo(bases[i], moduleParams[i].Size);
+
                         var module = ModuleInfo.TryCreate(this, bases[i], moduleName, (int)moduleParams[i].Size, (int)moduleParams[i].TimeDateStamp, version);
                         if (module is not null)
                             modules.Add(module);
