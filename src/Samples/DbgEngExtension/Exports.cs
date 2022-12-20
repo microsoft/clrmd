@@ -72,14 +72,14 @@ namespace DbgEngExtension
 
 
 
-        [UnmanagedCallersOnly(EntryPoint = GCNativePointers.GCPointersToNative, CallConvs = new[] { typeof(CallConvStdcall) })]
+        [UnmanagedCallersOnly(EntryPoint = FindPointers.GCRefsToCommand, CallConvs = new[] { typeof(CallConvStdcall) })]
         public static int GCPointersToNative(nint pUnknown, nint args)
         {
             try
             {
-                GCNativePointers cmd = new(pUnknown);
+                FindPointers cmd = new(pUnknown);
                 string? arguments = Marshal.PtrToStringAnsi(args);
-                cmd.RunGCPointersToNative(arguments ?? "");
+                cmd.FindGCRefsTo(arguments ?? "");
             }
             catch (Exception e)
             {

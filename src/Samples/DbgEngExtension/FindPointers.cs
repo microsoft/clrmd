@@ -5,27 +5,27 @@ using static DbgEngExtension.MAddress;
 namespace DbgEngExtension
 {
     // Commands for helping locate native memory held onto by the GC heap.
-    public class GCNativePointers : DbgEngCommand
+    public class FindPointers : DbgEngCommand
     {
-        internal const string GCPointersToNative = "gcpointersto";
-        public GCNativePointers(nint pUnknown, bool redirectConsoleOutput = true) : base(pUnknown, redirectConsoleOutput)
+        internal const string GCRefsToCommand = "findgcrefsto";
+        public FindPointers(nint pUnknown, bool redirectConsoleOutput = true) : base(pUnknown, redirectConsoleOutput)
         {
         }
 
-        public GCNativePointers(IDisposable dbgeng, bool redirectConsoleOutput = false) : base(dbgeng, redirectConsoleOutput)
+        public FindPointers(IDisposable dbgeng, bool redirectConsoleOutput = false) : base(dbgeng, redirectConsoleOutput)
         {
         }
 
-        public void RunGCPointersToNative(string args)
+        public void FindGCRefsTo(string args)
         {
             string[] types = args.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (types.Length == 0)
-                Console.WriteLine($"usage: !{GCPointersToNative} [TYPES]");
+                Console.WriteLine($"usage: !{GCRefsToCommand} [TYPES]");
             else
                 PrintGCPointersToMemory(verbose: false, types);
         }
 
-        private void PrintGCPointersToMemory(bool verbose, params string[] memoryTypes)
+        private void PrintGCPointersToMemory(bool verbose, string[] memoryTypes)
         {
             MAddress maddressHelper = new(this);
             IEnumerable<AddressMemoryRange> rangeEnum = maddressHelper.EnumerateAddressSpace(tagClrMemoryRanges: true, includeReserveMemory: false, tagReserveMemoryHeuristically: false);
@@ -237,7 +237,7 @@ namespace DbgEngExtension
             }
         }
 
-        private object GetUniqueNameString(IOrderedEnumerable<KnownClrMemoryPointer> entries)
+        private static string GetUniqueNameString(IOrderedEnumerable<KnownClrMemoryPointer> entries)
         {
             HashSet<string> typeNames = new(entries.Select(e => e.Name));
             return string.Join(", ", typeNames.Order());
