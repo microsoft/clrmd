@@ -584,7 +584,7 @@ namespace DbgEngExtension
         /// 
         /// This is a heuristic, so use it accordingly.
         /// </summary>
-        public void CollapseReserveRegions(AddressMemoryRange[] ranges)
+        public static void CollapseReserveRegions(AddressMemoryRange[] ranges)
         {
             foreach (AddressMemoryRange mem in ranges)
             {
@@ -628,67 +628,86 @@ namespace DbgEngExtension
                             yield return new ClrMemoryPointer() { Address = seg.ReservedMemory.Start, Kind = ClrMemoryKind.GCHeapReserve };
                     }
 
+                    HashSet<ulong> seen = new();
+
+                    List<ClrMemoryPointer> heaps = new();
+                    if (runtime.SystemDomain is not null)
+                        AddAppDomainHeaps(sos, runtime.SystemDomain.Address, heaps);
+
+                    if (runtime.SharedDomain is not null)
+                        AddAppDomainHeaps(sos, runtime.SharedDomain.Address, heaps);
+
+                    foreach (var heap in heaps)
+                        if (seen.Add(heap.Address))
+                            yield return heap;
+
                     foreach (ClrDataAddress address in sos.GetAppDomainList())
                     {
-                        List<ClrMemoryPointer> heaps = new List<ClrMemoryPointer>();
-                        if (sos.GetAppDomainData(address, out AppDomainData domain))
-                        {
-                            sos.TraverseLoaderHeap(domain.StubHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
-                            {
-                                Address = address,
-                                Kind = ClrMemoryKind.StubHeap
-                            }));
-
-                            sos.TraverseLoaderHeap(domain.HighFrequencyHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
-                            {
-                                Address = address,
-                                Kind = ClrMemoryKind.HighFrequencyHeap
-                            }));
-
-                            sos.TraverseLoaderHeap(domain.LowFrequencyHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
-                            {
-                                Address = address,
-                                Kind = ClrMemoryKind.LowFrequencyHeap
-                            }));
-
-                            sos.TraverseStubHeap(address, (int)VCSHeapType.IndcellHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
-                            {
-                                Address = address,
-                                Kind = ClrMemoryKind.IndcellHeap
-                            }));
-
-
-                            sos.TraverseStubHeap(address, (int)VCSHeapType.LookupHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
-                            {
-                                Address = address,
-                                Kind = ClrMemoryKind.LookupHeap
-                            }));
-
-
-                            sos.TraverseStubHeap(address, (int)VCSHeapType.ResolveHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
-                            {
-                                Address = address,
-                                Kind = ClrMemoryKind.ResolveHeap
-                            }));
-
-
-                            sos.TraverseStubHeap(address, (int)VCSHeapType.DispatchHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
-                            {
-                                Address = address,
-                                Kind = ClrMemoryKind.DispatchHeap
-                            }));
-
-                            sos.TraverseStubHeap(address, (int)VCSHeapType.CacheEntryHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
-                            {
-                                Address = address,
-                                Kind = ClrMemoryKind.CacheEntryHeap
-                            }));
-                        }
+                        heaps.Clear();
+                        AddAppDomainHeaps(sos, address, heaps);
 
                         foreach (var heap in heaps)
-                            yield return heap;
+                            if (seen.Add(heap.Address))
+                                yield return heap;
                     }
                 }
+            }
+        }
+
+        private static void AddAppDomainHeaps(SOSDac sos, ClrDataAddress address, List<ClrMemoryPointer> heaps)
+        {
+            if (sos.GetAppDomainData(address, out AppDomainData domain))
+            {
+                sos.TraverseLoaderHeap(domain.StubHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
+                {
+                    Address = address,
+                    Kind = ClrMemoryKind.StubHeap
+                }));
+
+                sos.TraverseLoaderHeap(domain.HighFrequencyHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
+                {
+                    Address = address,
+                    Kind = ClrMemoryKind.HighFrequencyHeap
+                }));
+
+                sos.TraverseLoaderHeap(domain.LowFrequencyHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
+                {
+                    Address = address,
+                    Kind = ClrMemoryKind.LowFrequencyHeap
+                }));
+
+                sos.TraverseStubHeap(address, (int)VCSHeapType.IndcellHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
+                {
+                    Address = address,
+                    Kind = ClrMemoryKind.IndcellHeap
+                }));
+
+
+                sos.TraverseStubHeap(address, (int)VCSHeapType.LookupHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
+                {
+                    Address = address,
+                    Kind = ClrMemoryKind.LookupHeap
+                }));
+
+
+                sos.TraverseStubHeap(address, (int)VCSHeapType.ResolveHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
+                {
+                    Address = address,
+                    Kind = ClrMemoryKind.ResolveHeap
+                }));
+
+
+                sos.TraverseStubHeap(address, (int)VCSHeapType.DispatchHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
+                {
+                    Address = address,
+                    Kind = ClrMemoryKind.DispatchHeap
+                }));
+
+                sos.TraverseStubHeap(address, (int)VCSHeapType.CacheEntryHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
+                {
+                    Address = address,
+                    Kind = ClrMemoryKind.CacheEntryHeap
+                }));
             }
         }
 
