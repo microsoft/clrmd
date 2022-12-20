@@ -36,6 +36,15 @@ namespace DbgEngExtension
                 _redirectedOutput = new DbgEngOutputStream(DebugClient, DebugControl);
         }
 
+        /// <summary>
+        /// Initializes a DbgEng command from another command.  This is primarily used for when one DbgEng command
+        /// needs to call into another command's helper APIs.
+        /// </summary>
+        protected DbgEngCommand(DbgEngCommand cmd)
+        {
+            _context = cmd._context;
+        }
+
         public void Dispose()
         {
             DisposeImpl();

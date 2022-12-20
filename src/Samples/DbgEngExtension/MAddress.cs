@@ -3,10 +3,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using System.Buffers;
 using System.Diagnostics;
-using System.Diagnostics.Metrics;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 namespace DbgEngExtension
@@ -30,6 +27,11 @@ namespace DbgEngExtension
 
         public MAddress(IDisposable dbgeng, bool redirectConsoleOutput = false)
             : base(dbgeng, redirectConsoleOutput)
+        {
+        }
+
+        public MAddress(DbgEngCommand cmd)
+            : base(cmd)
         {
         }
 
@@ -138,7 +140,7 @@ namespace DbgEngExtension
             return pointer.ToString("x");
         }
 
-        private IEnumerable<(ulong Address, ulong Pointer, AddressMemoryRange MemoryRange)> EnumerateRegionPointers(ulong start, int length, AddressMemoryRange[] ranges)
+        public IEnumerable<(ulong Address, ulong Pointer, AddressMemoryRange MemoryRange)> EnumerateRegionPointers(ulong start, int length, AddressMemoryRange[] ranges)
         {
             ulong[] array = ArrayPool<ulong>.Shared.Rent(4096);
             int arrayBytes = array.Length * sizeof(ulong);
@@ -919,6 +921,11 @@ namespace DbgEngExtension
 
                     return result;
                 }
+            }
+
+            public override string ToString()
+            {
+                return $"[{Start:x}-{End:x}] {Name}";
             }
         }
 
