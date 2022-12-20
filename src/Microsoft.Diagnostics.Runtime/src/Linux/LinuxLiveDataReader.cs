@@ -309,6 +309,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     path = parts[5].StartsWith("[") ? string.Empty : parts[5];
                 }
+                else if (parts.Length == 7 && parts[6] == "(deleted)")
+                {
+                    path = string.Empty;
+                }
                 else
                 {
                     DebugOnly.Fail("Unknown data format");
