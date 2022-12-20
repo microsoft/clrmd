@@ -52,34 +52,14 @@ namespace DbgEngExtension
             return 0;
         }
 
-        [UnmanagedCallersOnly(EntryPoint = MAddress.Command, CallConvs = new[] { typeof(CallConvStdcall) })]
-        public static int ManagedAddressList(nint pUnknown, nint args)
-        {
-            try
-            {
-                MAddress cmd = new(pUnknown);
-                string? arguments = Marshal.PtrToStringAnsi(args);
-                cmd.RunList(arguments ?? "");
-            }
-            catch (Exception e)
-            {
-                Console.Error.WriteLine($"Failed to run {nameof(ManagedAddress)} command.");
-                Console.Error.WriteLine(e);
-            }
-
-            return 0;
-        }
-
-
-
-        [UnmanagedCallersOnly(EntryPoint = FindPointers.GCRefsToCommand, CallConvs = new[] { typeof(CallConvStdcall) })]
+        [UnmanagedCallersOnly(EntryPoint = GCPointsTo.GCPointsToCommand, CallConvs = new[] { typeof(CallConvStdcall) })]
         public static int GCPointersToNative(nint pUnknown, nint args)
         {
             try
             {
-                FindPointers cmd = new(pUnknown);
+                GCPointsTo cmd = new(pUnknown);
                 string? arguments = Marshal.PtrToStringAnsi(args);
-                cmd.FindGCRefsTo(arguments ?? "");
+                cmd.Run(arguments ?? "");
             }
             catch (Exception e)
             {
@@ -89,6 +69,26 @@ namespace DbgEngExtension
 
             return 0;
         }
+
+
+        [UnmanagedCallersOnly(EntryPoint = MemPointsTo.MemPointsToCommand, CallConvs = new[] { typeof(CallConvStdcall) })]
+        public static int MemoryRegionPointsTo(nint pUnknown, nint args)
+        {
+            try
+            {
+                MemPointsTo cmd = new(pUnknown);
+                string? arguments = Marshal.PtrToStringAnsi(args);
+                cmd.Run(arguments ?? "");
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($"Failed to run {nameof(ManagedAddress)} command.");
+                Console.Error.WriteLine(e);
+            }
+
+            return 0;
+        }
+
 
         [UnmanagedCallersOnly(EntryPoint = "DebugExtensionInitialize")]
         public static int DebugExtensionInitialize(uint *pVersion, uint *pFlags)

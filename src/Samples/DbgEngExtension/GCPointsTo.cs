@@ -5,22 +5,26 @@ using static DbgEngExtension.MAddress;
 namespace DbgEngExtension
 {
     // Commands for helping locate native memory held onto by the GC heap.
-    public class FindPointers : DbgEngCommand
+    public class GCPointsTo : DbgEngCommand
     {
-        internal const string GCRefsToCommand = "findgcrefsto";
-        public FindPointers(nint pUnknown, bool redirectConsoleOutput = true) : base(pUnknown, redirectConsoleOutput)
+        internal const string GCPointsToCommand = "gcpointsto";
+
+        public GCPointsTo(nint pUnknown, bool redirectConsoleOutput = true) : base(pUnknown, redirectConsoleOutput)
         {
         }
 
-        public FindPointers(IDisposable dbgeng, bool redirectConsoleOutput = false) : base(dbgeng, redirectConsoleOutput)
+        public GCPointsTo(IDisposable dbgeng, bool redirectConsoleOutput = false) : base(dbgeng, redirectConsoleOutput)
         {
         }
 
-        public void FindGCRefsTo(string args)
+        /// <summary>
+        /// Find regions of memory that the GC heap points to.
+        /// </summary>
+        internal void Run(string args)
         {
             string[] types = args.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (types.Length == 0)
-                Console.WriteLine($"usage: !{GCRefsToCommand} [TYPES]");
+                Console.WriteLine($"usage: !{GCPointsToCommand} [TYPES]");
             else
                 PrintGCPointersToMemory(verbose: false, types);
         }
@@ -48,7 +52,7 @@ namespace DbgEngExtension
             var items = Runtimes
                             .SelectMany(r => r.Heap.Segments)
                             .SelectMany(Segment => maddressHelper
-                                                    .EnumerateRegionPointers(Segment.ObjectRange.Start, (int)Segment.ObjectRange.Length, ranges)
+                                                    .EnumerateRegionPointers(Segment.ObjectRange.Start, Segment.ObjectRange.End, ranges)
                                                     .Select(regionPointer => (Segment, regionPointer.Address, regionPointer.MemoryRange)));
 
             foreach (var item in items)

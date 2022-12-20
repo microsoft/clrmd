@@ -83,7 +83,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint CreateSymbolGroup2;
         private readonly nint StartSymbolMatchWide;
         private readonly nint GetNextSymbolMatchWide;
-        private readonly nint ReloadWide;
+        public readonly delegate* unmanaged[Stdcall]<nint, char*, int> ReloadWide;
         public readonly delegate* unmanaged[Stdcall]<nint, char*, int, out int, int> GetSymbolPathWide;
         public readonly delegate* unmanaged[Stdcall]<nint, char*, int> SetSymbolPathWide;
         private readonly nint AppendSymbolPathWide;

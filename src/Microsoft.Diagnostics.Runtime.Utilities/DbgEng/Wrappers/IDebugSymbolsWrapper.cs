@@ -75,6 +75,21 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                 return vtable->GetModuleParameters(self, count, basesPtr, 0, parametersPtr);
         }
 
+        int IDebugSymbols.Reload(string module)
+        {
+            GetVTable(this, out nint self, out IDebugSymbolsVtable* vtable);
+            fixed (char* ptr = module)
+                return vtable->ReloadWide(self, ptr);
+        }
+
+        int IDebugSymbols.GetModuleParameters(ulong baseAddresses, out DEBUG_MODULE_PARAMETERS parameters)
+        {
+            GetVTable(this, out nint self, out IDebugSymbolsVtable* vtable);
+
+            fixed (DEBUG_MODULE_PARAMETERS* parametersPtr = &parameters)
+                return vtable->GetModuleParameters(self, 1, &baseAddresses, 0, parametersPtr);
+        }
+
         int IDebugSymbols.GetModuleVersionInformation(int index, ulong address, string item, Span<byte> buffer)
         {
             GetVTable(this, out nint self, out IDebugSymbolsVtable* vtable);
