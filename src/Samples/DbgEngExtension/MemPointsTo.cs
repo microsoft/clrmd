@@ -1,10 +1,6 @@
 ﻿using Microsoft.Diagnostics.Runtime;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
-using System;
-using System.ComponentModel.DataAnnotations;
-using System.Reflection;
-using System.Security.Cryptography.X509Certificates;
 using static DbgEngExtension.MAddress;
 
 namespace DbgEngExtension
@@ -25,7 +21,6 @@ namespace DbgEngExtension
             : base(dbgeng, redirectConsoleOutput)
         {
         }
-
 
         internal void Run(string args)
         {
@@ -120,111 +115,6 @@ namespace DbgEngExtension
             Console.WriteLine(header.PadRight(Width, '='));
         }
 
-        private static void WriteUnresolvablePointerTable(RegionPointers result, bool forceTruncate)
-        {
-            var unresolvedQuery = from item in result.UnresolvablePointers
-                                  let Name = item.Key.Image ?? item.Key.Name
-                                  group item.Value by Name into g
-                                  let All = g.SelectMany(r => r).ToArray()
-                                  let Count = All.Length
-                                  orderby Count descending
-                                  select new
-                                  {
-                                      Name = g.Key,
-                                      Unique = new HashSet<ulong>(All).Count,
-                                      Count,
-                                      Pointer = GetLeastUniquePointer(All)
-                                  };
-
-
-            var unresolved = unresolvedQuery.ToArray();
-
-            int single = unresolved.Count(r => r.Count == 1);
-            int multi = unresolved.Length - single;
-
-            int maxSymbolLen = 86;
-            int totalUnique = 0;
-
-            bool truncate = forceTruncate || single + multi > 20 || single > multi;
-
-            WriteHeader(1, new int[] { maxSymbolLen, 12, 12, 16 }, "Symbol", "Unique", "Count", "RndPtr");
-            var items = truncate ? unresolved.Take(multi) : unresolved;
-            foreach (var item in items)
-            {
-                int uniqueCount = item.Unique;
-
-                string typeName = item.Name;
-                typeName = typeName.Length <= maxSymbolLen ? typeName : "..." + typeName[^(maxSymbolLen - 3)..];
-                typeName = typeName.PadLeft(maxSymbolLen);
-
-                Console.WriteLine($"{typeName} {uniqueCount,12:n0} {item.Count,12:n0} {item.Pointer,16:x}");
-                totalUnique += uniqueCount;
-            }
-
-            if (truncate)
-                Console.WriteLine($"{"Single pointers to other regions".PadLeft(maxSymbolLen)} {single,12:n0} {single,12:n0}");
-
-            Console.WriteLine(new string('-', Width));
-        }
-
-        private void WriteResolvablePointerTable(MemoryWalkContext ctx, RegionPointers result, bool forceTruncate)
-        {
-            var resolvedQuery = from ptr in result.ResolvablePointers.SelectMany(r => r.Value)
-                                let r = ctx.ResolveSymbol(DebugSymbols, ptr)
-                                let name = r.Symbol ?? "<unknown_function>"
-                                group (ptr, r.Offset) by name into g
-                                let Count = g.Count()
-                                let Unique = new HashSet<int>(g.Select(g => g.Offset))
-                                orderby Count descending
-                                select new
-                                {
-                                    Count,
-                                    Unique,
-                                    Symbol = g.Key,
-                                    Pointers = g.Select(r => r.ptr)
-                                };
-            
-            var resolved = resolvedQuery.ToArray();
-
-            int single = resolved.Count(r => r.Count == 1);
-            int multi = resolved.Length - single;
-
-            int maxSymbolLen = 86;
-            int totalUnique = 0;
-
-            bool truncate = forceTruncate || single + multi > 20 || single > multi;
-
-            WriteHeader(1, new int[] { maxSymbolLen, 12, 12, 16 }, "Symbol", "Unique", "Count", "RndPtr");
-
-            var items = truncate ? resolved.Take(multi) : resolved;
-            foreach (var item in items)
-            {
-                int uniqueCount = item.Unique.Count;
-
-                string typeName = item.Symbol;
-                if (typeName.EndsWith('!') && typeName.Count(r => r == '!') == 1)
-                    typeName = typeName[..^1];
-
-                int vtableIdx = typeName.IndexOf(VtableConst);
-                if (vtableIdx > 0)
-                    typeName = typeName.Replace(VtableConst, "") + "::vtable";
-
-                if (uniqueCount == 1 && item.Unique.Single() > 0)
-                    typeName = $"{typeName}+{item.Unique.Single():x}";
-
-                typeName = typeName.Length <= maxSymbolLen ? typeName : "..." + typeName[^(maxSymbolLen - 3)..];
-                typeName = typeName.PadLeft(maxSymbolLen);
-
-                Console.WriteLine($"{typeName} {uniqueCount,12:n0} {item.Count,12:n0} {GetLeastUniquePointer(item.Pointers),16:x}");
-                totalUnique += uniqueCount;
-            }
-
-            if (truncate)
-                Console.WriteLine($"{"Pointers to unique symbols".PadLeft(maxSymbolLen)} {single,12:n0} {single,12:n0}");
-
-            WriteHeader(1, new int[] { maxSymbolLen, 12, 12, 16 }, "TOTAL", $"{totalUnique:n0}", $"{resolved.Sum(c => c.Count):n0}", "");
-        }
-
         private static void PrintGCPointerTable(RegionPointers result)
         {
             if (result.PinnedPointers.Count == 0)
@@ -238,49 +128,106 @@ namespace DbgEngExtension
                                group obj.Address by name into g
                                let Count = g.Count()
                                orderby Count descending
-                               select new
-                               {
+                               select
+                               (
+                                   g.Key,
                                    Count,
-                                   Unique = new HashSet<ulong>(g).Count,
-                                   Type = g.Key,
-                                   FirstObject = g.First()
-                               };
-
-                // So we don't keep running this query over and over.
-                var gcResultArray = gcResult.ToArray();
-
-                int single = gcResultArray.Count(r => r.Count == 1);
-                int multi = gcResultArray.Length - single;
-
-                bool truncate = single + multi > 20 || single > multi;
-
-                var items = truncate ? gcResultArray.Take(multi) : gcResultArray;
-                int maxTypeLen = 86;
-                int totalUnique = 0;
-
-                WriteHeader(1, new int[] { maxTypeLen, 12, 12, 16 }, "Type", "Unique", "Count", "RndObj");
-                foreach (var item in items)
-                {
-                    string typeName = item.Type.Length <= maxTypeLen ? item.Type : "..." + item.Type[^(maxTypeLen - 3)..];
-                    typeName = typeName.PadLeft(maxTypeLen);
-                    Console.WriteLine($"{typeName} {item.Unique,12:n0} {item.Count,12:n0} {item.FirstObject,16:x}");
-                    totalUnique += item.Unique;
-                }
-
-                if (truncate)
-                    Console.WriteLine($"{"[Other Object Pointers]".PadLeft(maxTypeLen),12} {single,12:n0} {single,12:n0}");
+                                   new HashSet<ulong>(g).Count,
+                                   g.AsEnumerable()
+                               );
 
                 if (result.NonPinnedGCPointers.Count > 0)
                 {
-                    int uniqueNonPinned = new HashSet<ulong>(result.NonPinnedGCPointers).Count;
-                    totalUnique += uniqueNonPinned;
-
-                    var leastUniquePointer = GetLeastUniquePointer(result.NonPinnedGCPointers);
-                    Console.WriteLine($"{"Pointers to non-pinned objects".PadLeft(maxTypeLen)} {uniqueNonPinned,12:n0} {result.NonPinnedGCPointers.Count,12:n0} {GetLeastUniquePointer(result.NonPinnedGCPointers),16:x}");
+                    var v = new (string, int, int, IEnumerable<ulong>)[] { ("[Pointers to non-pinned objects]", result.NonPinnedGCPointers.Count, new HashSet<ulong>(result.NonPinnedGCPointers).Count, result.NonPinnedGCPointers) };
+                    gcResult = v.Concat(gcResult);
                 }
 
-                WriteHeader(1, new int[] { maxTypeLen, 12, 12, 16 }, "TOTAL POINTERS TO GC", totalUnique.ToString("n0").PadLeft(12, '-'), result.PointersToGC.ToString("n0").PadLeft(12, '-'), "");
+                PrintPointerTable("Type", "[Other Pinned Object Pointers]", forceTruncate: false, gcResult);
             }
+        }
+
+        private static void WriteUnresolvablePointerTable(RegionPointers result, bool forceTruncate)
+        {
+            var unresolvedQuery = from item in result.UnresolvablePointers
+                                  let Name = item.Key.Image ?? item.Key.Name
+                                  group item.Value by Name into g
+                                  let All = g.SelectMany(r => r).ToArray()
+                                  let Count = All.Length
+                                  orderby Count descending
+                                  select
+                                  (
+                                      g.Key,
+                                      Count,
+                                      new HashSet<ulong>(All).Count,
+                                      All.AsEnumerable()
+                                  );
+
+
+            PrintPointerTable("Region", "[Unique Pointers to Unique Regions]", forceTruncate, unresolvedQuery);
+        }
+
+        private void WriteResolvablePointerTable(MemoryWalkContext ctx, RegionPointers result, bool forceTruncate)
+        {
+            var resolvedQuery = from ptr in result.ResolvablePointers.SelectMany(r => r.Value)
+                                let r = ctx.ResolveSymbol(DebugSymbols, ptr)
+                                let name = r.Symbol ?? "<unknown_function>"
+                                group (ptr, r.Offset) by name into g
+                                let Count = g.Count()
+                                let UniqueOffsets = new HashSet<int>(g.Select(g => g.Offset))
+                                orderby Count descending
+                                select
+                                (
+                                    FixTypeName(g.Key, UniqueOffsets),
+                                    Count,
+                                    UniqueOffsets.Count,
+                                    g.Select(r => r.ptr)
+                                );
+
+            PrintPointerTable("Symbol", "[Unique Pointers]", forceTruncate, resolvedQuery);
+        }
+
+        private static void PrintPointerTable(string nameColumn, string truncatedName, bool forceTruncate, IEnumerable<(string Name, int Count, int Unique, IEnumerable<ulong> Pointers)> query)
+        {
+            var resolved = query.ToArray();
+            if (resolved.Length == 0)
+                return;
+
+            int single = resolved.Count(r => r.Count == 1);
+            int multi = resolved.Length - single;
+            bool truncate = forceTruncate || (single + multi > 20 && single > multi);
+
+            int maxNameLen = multi > 0 ? resolved.Where(r => !truncate || r.Count > 1).Max(r => r.Name.Length) : resolved.Max(r => r.Name.Length);
+            int nameLen = Math.Min(80, maxNameLen);
+
+            TableOutput table = new((nameLen, ""), (12, "n0"), (12, "n0"), (12, "x"));
+            table.Divider = "   ";
+            table.WriteRowWithSpacing('-', nameColumn, "Unique", "Count", "RndPtr");
+
+            var items = truncate ? resolved.Take(multi) : resolved;
+            foreach (var (Name, Count, Unique, Pointers) in items)
+                table.WriteRow(Name, Unique, Count, GetLeastUniquePointer(Pointers));
+
+            if (truncate)
+                table.WriteRow(truncatedName, single, single);
+
+            table.WriteRowWithSpacing('-', " [ TOTALS ] ", resolved.Sum(r => r.Unique), resolved.Sum(r => r.Count), "");
+        }
+
+        private static string FixTypeName(string typeName, HashSet<int> offsets)
+        {
+            if (typeName.EndsWith('!') && typeName.Count(r => r == '!') == 1)
+                typeName = typeName[..^1];
+
+            int vtableIdx = typeName.IndexOf(VtableConst);
+            if (vtableIdx > 0)
+                typeName = typeName.Replace(VtableConst, "") + "::vtable";
+
+            if (offsets.Count == 1 && offsets.Single() > 0)
+                typeName = $"{typeName}+{offsets.Single():x}";
+            else if (offsets.Count > 1)
+                typeName = $"{typeName}+...";
+
+            return typeName;
         }
 
         private static ulong GetLeastUniquePointer(IEnumerable<ulong> enumerable)
