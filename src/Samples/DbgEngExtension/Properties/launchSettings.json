@@ -1,0 +1,18 @@
+{
+  "profiles": {
+    "MHeap": {
+      "commandName": "Executable",
+      "executablePath": "cdb.exe",
+      "commandLineArgs": "-z src\\TestTargets\\bin\\x64\\AppDomains_wks.dmp -c \".load .\\artifacts\\bin\\DbgEngExtension\\Debug\\net7.0\\win-x64\\native\\DbgEngExtension.dll;!mheap -stat\"",
+      "workingDirectory": "..\\..\\..\\",
+      "nativeDebugging": true
+    },
+    "MAddress": {
+      "commandName": "Executable",
+      "executablePath": "cdb.exe",
+      "commandLineArgs": "-z src\\TestTargets\\bin\\x64\\AppDomains_wks.dmp -c \".load .\\artifacts\\bin\\DbgEngExtension\\Debug\\net7.0\\win-x64\\native\\DbgEngExtension.dll;!maddress\"",
+      "workingDirectory": "..\\..\\..\\",
+      "nativeDebugging": true
+    }
+  }
+}

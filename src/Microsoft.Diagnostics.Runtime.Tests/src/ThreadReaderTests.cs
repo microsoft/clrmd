@@ -20,7 +20,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             using SOSDac dac = runtime.DacLibrary.SOSDacInterface;
 
-
             foreach (ClrThread thread in runtime.Threads)
             {
                 if (!thread.IsAlive)

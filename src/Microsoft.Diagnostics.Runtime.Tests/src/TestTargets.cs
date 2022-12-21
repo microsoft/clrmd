@@ -136,35 +136,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public DataTarget LoadFullDumpWithDbgEng(GCMode gc = GCMode.Workstation)
         {
-            Guid guid = DebugClient.IID_IDebugClient;
-            int hr = DebugCreate(guid, out IntPtr pDebugClient);
-            if (hr != 0)
-                throw new Exception($"Failed to create DebugClient, hr={hr:x}.");
-
-            RefCountedFreeLibrary library = new RefCountedFreeLibrary(IntPtr.Zero);
-
-            Marshal.AddRef(pDebugClient);
-            Marshal.AddRef(pDebugClient);
-            DebugSystemObjects sys = new DebugSystemObjects(library, pDebugClient);
-            DebugClient client = new DebugClient(library, pDebugClient, sys);
-            DebugControl control = new DebugControl(library, pDebugClient, sys);
-
             string dumpPath = BuildDumpName(gc, true);
-            hr = client.OpenDumpFile(dumpPath);
-            if (hr != 0)
-                throw new Exception($"Failed to OpenDumpFile, hr={hr:x}.");
-
-            hr = control.WaitForEvent(10000);
-
-            if (hr != 0)
-                throw new Exception($"Failed to attach to dump file, hr={hr:x}.");
-
-            Marshal.Release(pDebugClient);
-            return DataTarget.CreateFromDbgEng(pDebugClient);
+            var dbgengReader = new Utilities.DbgEng.DbgEngIDataReader(dumpPath);
+            return new DataTarget(new CustomDataTarget(dbgengReader));
         }
-
-
-        [DllImport("dbgeng.dll")]
-        private static extern int DebugCreate(in Guid InterfaceId, out IntPtr pDebugClient);
     }
 }

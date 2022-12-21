@@ -699,7 +699,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             _library.DacDataTarget.EnterMagicCallbackContext();
             try
             {
-                _sos.GetWorkRequestData(DacDataTargetWrapper.MagicCallbackConstant, out _);
+                _sos.GetWorkRequestData(DacDataTarget.MagicCallbackConstant, out _);
             }
             finally
             {
