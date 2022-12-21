@@ -703,6 +703,12 @@ namespace DbgEngExtension
             return nonReserved;
         }
 
+        internal static ulong GetLeastUniquePointer(IEnumerable<ulong> enumerable)
+            => (from ptr in enumerable
+                group ptr by ptr into g
+                orderby g.Count() descending
+                select g.First()).First();
+
         public enum ClrMemoryKind
         {
             None,

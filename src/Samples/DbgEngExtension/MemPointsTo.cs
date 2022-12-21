@@ -230,12 +230,6 @@ namespace DbgEngExtension
             return typeName;
         }
 
-        private static ulong GetLeastUniquePointer(IEnumerable<ulong> enumerable)
-            => (from ptr in enumerable
-                group ptr by ptr into g
-                orderby g.Count() descending
-                select g.First()).First();
-
         private RegionPointers ProcessOneRegion(AddressMemoryRange source, IEnumerable<(ulong Pointer, AddressMemoryRange Range)> pointersFound, MemoryWalkContext ctx)
         {
             RegionPointers result = new();

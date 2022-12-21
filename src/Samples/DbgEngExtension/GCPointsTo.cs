@@ -1,4 +1,5 @@
 ﻿using Microsoft.Diagnostics.Runtime;
+using System.Diagnostics;
 using System.Text;
 using static DbgEngExtension.MAddress;
 
@@ -8,6 +9,8 @@ namespace DbgEngExtension
     public class GCPointsTo : DbgEngCommand
     {
         internal const string GCPointsToCommand = "gcpointsto";
+
+        const int Width = 120;
 
         public GCPointsTo(nint pUnknown, bool redirectConsoleOutput = true) : base(pUnknown, redirectConsoleOutput)
         {
@@ -29,8 +32,11 @@ namespace DbgEngExtension
                 PrintGCPointersToMemory(verbose: false, types);
         }
 
-        private void PrintGCPointersToMemory(bool verbose, string[] memoryTypes)
+        public void PrintGCPointersToMemory(bool verbose, params string[] memoryTypes)
         {
+            if (memoryTypes.Length == 0)
+                return;
+
             MAddress maddressHelper = new(this);
             IEnumerable<AddressMemoryRange> rangeEnum = maddressHelper.EnumerateAddressSpace(tagClrMemoryRanges: true, includeReserveMemory: false, tagReserveMemoryHeuristically: false);
             rangeEnum = rangeEnum.Where(r => memoryTypes.Any(memType => r.Name.Equals(memType, StringComparison.OrdinalIgnoreCase)));
@@ -53,21 +59,23 @@ namespace DbgEngExtension
                             .SelectMany(r => r.Heap.Segments)
                             .SelectMany(Segment => maddressHelper
                                                     .EnumerateRegionPointers(Segment.ObjectRange.Start, Segment.ObjectRange.End, ranges)
-                                                    .Select(regionPointer => (Segment, regionPointer.Address, regionPointer.MemoryRange)));
+                                                    .Select(regionPointer => (Segment, regionPointer.Address, regionPointer.Pointer, regionPointer.MemoryRange)));
 
             foreach (var item in items)
             {
                 if (!segmentLists.TryGetValue(item.Segment, out List<GCObjectToRange>? list))
                     list = segmentLists[item.Segment] = new();
 
-                list.Add(new GCObjectToRange(item.Address, item.MemoryRange));
+                list.Add(new GCObjectToRange(item.Address, item.Pointer, item.MemoryRange));
             }
 
             Console.WriteLine("Resolving object names...");
             foreach (string type in memoryTypes)
             {
+                WriteHeader($" {type} Regions ");
+
                 List<ulong> addressesNotInObjects = new();
-                Dictionary<string, int> unknownObjCounts = new();
+                List<(ulong Pointer, ClrObject Object)> unknownObjPointers = new();
                 Dictionary<ulong, KnownClrMemoryPointer> knownMemory = new();
                 Dictionary<ulong, int> sizeHints = new();
 
@@ -75,7 +83,7 @@ namespace DbgEngExtension
                 {
                     ClrSegment seg = segEntry.Key;
                     List<GCObjectToRange> pointers = segEntry.Value;
-                    pointers.Sort((x, y) => x.SegmentPointer.CompareTo(y.SegmentPointer));
+                    pointers.Sort((x, y) => x.GCPointer.CompareTo(y.GCPointer));
 
                     int index = 0;
                     foreach (ClrObject obj in seg.EnumerateObjects())
@@ -83,12 +91,12 @@ namespace DbgEngExtension
                         if (index >= pointers.Count)
                             break;
 
-                        while (index < pointers.Count && pointers[index].SegmentPointer < obj.Address)
+                        while (index < pointers.Count && pointers[index].GCPointer < obj.Address)
                         {
                             // If we "missed" the pointer then it's outside of an object range.
-                            addressesNotInObjects.Add(pointers[index].SegmentPointer);
+                            addressesNotInObjects.Add(pointers[index].GCPointer);
 
-                            Console.WriteLine($"Skipping {pointers[index].SegmentPointer:x} lastObj={obj.Address:x}-{obj.Address + obj.Size:x} {obj.Type?.Name}");
+                            Trace.WriteLine($"Skipping {pointers[index].GCPointer:x} lastObj={obj.Address:x}-{obj.Address + obj.Size:x} {obj.Type?.Name}");
 
                             index++;
                         }
@@ -96,7 +104,7 @@ namespace DbgEngExtension
                         if (index == pointers.Count)
                             break;
 
-                        while (index < pointers.Count && obj.Address <= pointers[index].SegmentPointer && pointers[index].SegmentPointer < obj.Address + obj.Size)
+                        while (index < pointers.Count && obj.Address <= pointers[index].GCPointer && pointers[index].GCPointer < obj.Address + obj.Size)
                         {
                             string typeName = obj.Type?.Name ?? $"<unknown_type>";
 
@@ -122,8 +130,7 @@ namespace DbgEngExtension
                                 if (typeName.Contains('>'))
                                     typeName = CollapseGenerics(typeName);
 
-                                unknownObjCounts.TryGetValue(typeName, out int count);
-                                unknownObjCounts[typeName] = count + 1;
+                                unknownObjPointers.Add((pointers[index].TargetSegmentPointer, obj));
                             }
 
                             index++;
@@ -132,119 +139,153 @@ namespace DbgEngExtension
                 }
 
                 Console.WriteLine(" ");
-                if (knownMemory.Count == 0 && unknownObjCounts.Count == 0)
+                if (knownMemory.Count == 0 && unknownObjPointers.Count == 0)
                 {
                     Console.WriteLine($"No GC heap pointers to '{type}' regions.");
                 }
                 else
                 {
-                    Console.WriteLine($"GC heap pointers to '{type}':");
+                    if (verbose)
+                    {
+                        Console.WriteLine($"All memory pointers:");
+
+                        IEnumerable<(ulong Pointer, ulong Size, ulong Object, string Type)> allPointers = unknownObjPointers.Select(unknown => (unknown.Pointer, 0ul, unknown.Object.Address, unknown.Object.Type?.Name ?? "<unknown_type>"));
+                        allPointers = allPointers.Concat(knownMemory.Values.Select(k => (k.Pointer, GetSize(sizeHints, k), k.Object.Address, k.Name)));
+
+                        TableOutput allOut = new((16, "x"), (16, "x"), (16, "x"))
+                        {
+                            Divider = " | "
+                        };
+
+                        allOut.WriteRowWithSpacing('-', "Pointer", "Size", "Object", "Type");
+                        foreach (var entry in allPointers)
+                            if (entry.Size == 0)
+                                allOut.WriteRow(entry.Pointer, "", entry.Object, entry.Type);
+                            else
+                                allOut.WriteRow(entry.Pointer, entry.Size, entry.Object, entry.Type);
+
+                        Console.WriteLine("");
+                    }
+
                     if (knownMemory.Count > 0)
                     {
-                        Console.WriteLine($"    Known memory pointers:");
+                        Console.WriteLine($"Well-known memory pointer summary:");
 
-                        var knownParts = from known in knownMemory.Values
-                                         group known by known.Pointer into g
-                                         let Count = g.Count()
-                                         let MaxSize = g.Max(k => GetSize(sizeHints, k))
-                                         orderby MaxSize descending, Count descending
-                                         select new
-                                         {
-                                             Pointer = g.Key,
-                                             Entries = g.OrderBy(o => o.Object.Address),
-                                             Count,
-                                             MaxSize,
-                                         };
+                        // totals
+                        var knownMemorySummary = from known in knownMemory.Values
+                                                 group known by known.Name into g
+                                                 let Name = g.Key
+                                                 let Count = g.Count()
+                                                 let TotalSize = g.Sum(k => (long)GetSize(sizeHints, k))
+                                                 orderby TotalSize descending, Name ascending
+                                                 select new
+                                                 {
+                                                     Name,
+                                                     Count,
+                                                     TotalSize,
+                                                     Pointer = GetLeastUniquePointer(g.Select(p => p.Pointer))
+                                                 };
 
-                        foreach (var item in knownParts)
+                        int maxNameLen = Math.Min(80, knownMemory.Values.Max(r => r.Name.Length));
+
+                        TableOutput summary = new((-maxNameLen, ""), (8, "n0"), (12, "n0"), (12, "n0"), (12, "x"))
                         {
-                            if (item.Count == 1)
-                            {
-                                Console.WriteLine($"        {item.Pointer:x} 0x{item.MaxSize:x4} bytes via {item.Entries.Single().Name}");
-                            }
-                            else
-                            {
-                                if (verbose)
-                                {
-                                    Console.WriteLine($"        {item.Pointer:x} 0x{item.MaxSize:x4} bytes:");
-                                    foreach (var obj in item.Entries)
-                                        Console.WriteLine($"            {obj.Object.Address:x} {obj.Name}");
-                                }
-                                else
-                                {
-                                    Console.WriteLine($"        {item.Pointer:x} 0x{item.MaxSize:x4} bytes: {GetUniqueNameString(item.Entries)} ({item.Count} objects)");
-                                }
-                            }
-                        }
+                            Divider = " | "
+                        };
 
-                        var ordered = from item in knownMemory.Values
-                                      orderby item.Pointer ascending, item.Size descending
-                                      select item;
+                        summary.WriteRowWithSpacing('-', "Type", "Count", "Size", "Size (bytes)", "RndPointer");
 
-                        int totalRegions = 0;
-                        ulong totalBytes = 0;
-                        ulong prevEnd = 0;
+                        foreach (var item in knownMemorySummary)
+                            summary.WriteRow(item.Name, item.Count, item.TotalSize.ConvertToHumanReadable(), item.TotalSize, item.Pointer);
 
-                        foreach (var item in ordered)
-                        {
-                            ulong size = GetSize(sizeHints, item);
+                        (int totalRegions, ulong totalBytes) = GetSizes(knownMemory, sizeHints);
 
-                            // overlapped pointer
-                            if (item.Pointer < prevEnd)
-                            {
-                                if (item.Pointer + size <= prevEnd)
-                                    continue;
+                        summary.WriteSpacer('-');
+                        summary.WriteRow("[TOTAL]", totalRegions, totalBytes.ConvertToHumanReadable(), totalBytes);
 
-                                ulong diff = prevEnd - item.Pointer;
-                                if (diff >= size)
-                                    continue;
-
-                                size -= diff;
-                                prevEnd += size;
-                            }
-                            else
-                            {
-                                totalRegions++;
-                                prevEnd = item.Pointer + size;
-                            }
-
-                            totalBytes += size;
-                        }
-
-                        Console.WriteLine(" ");
-                        Console.WriteLine($"        {totalBytes:n0} total bytes ({totalBytes.ConvertToHumanReadable()}) in {totalRegions:n0} regions.");
-                        Console.WriteLine(" ");
+                        Console.WriteLine("");
                     }
 
 
-                    if (unknownObjCounts.Count > 0)
+                    if (unknownObjPointers.Count > 0)
                     {
-                        Console.WriteLine($"    Other memory pointers:");
-                        var countParts = from kv in unknownObjCounts
-                                         let Type = kv.Key
-                                         let Count = kv.Value
-                                         orderby Count descending
-                                         select new
-                                         {
-                                             Type,
-                                             Count
-                                         };
+                        Console.WriteLine($"Other memory pointer summary:");
 
-                        foreach (var item in countParts)
+                        var unknownMemQuery = from known in unknownObjPointers
+                                                let name = CollapseGenerics(known.Object.Type?.Name ?? "<unknown_type>")
+                                                group known by name into g
+                                                let Name = g.Key
+                                                let Count = g.Count()
+                                                orderby Count descending
+                                                select new
+                                                {
+                                                    Name,
+                                                    Count,
+                                                    Pointer = GetLeastUniquePointer(g.Select(p => p.Pointer))
+                                                };
+
+                        var unknownMem = unknownMemQuery.ToArray();
+                        int maxNameLen = Math.Min(80, unknownMem.Max(r => r.Name.Length));
+
+                        TableOutput summary = new((-maxNameLen, ""), (8, "n0"), (12, "x"))
                         {
-                            Console.WriteLine($"      {item.Count,12:n0} {item.Type}");
-                        }
+                            Divider = " | "
+                        };
 
-                        Console.WriteLine(" ");
+                        summary.WriteRowWithSpacing('-', "Type", "Count", "RndPointer");
+
+                        foreach (var item in unknownMem)
+                            summary.WriteRow(item.Name, item.Count, item.Pointer);
                     }
                 }
             }
         }
 
-        private static string GetUniqueNameString(IOrderedEnumerable<KnownClrMemoryPointer> entries)
+        private static (int Regions, ulong Bytes) GetSizes(Dictionary<ulong, KnownClrMemoryPointer> knownMemory, Dictionary<ulong, int> sizeHints)
         {
-            HashSet<string> typeNames = new(entries.Select(e => e.Name));
-            return string.Join(", ", typeNames.Order());
+            var ordered = from item in knownMemory.Values
+                          orderby item.Pointer ascending, item.Size descending
+                          select item;
+
+            int totalRegions = 0;
+            ulong totalBytes = 0;
+            ulong prevEnd = 0;
+
+            foreach (var item in ordered)
+            {
+                ulong size = GetSize(sizeHints, item);
+
+                // overlapped pointer
+                if (item.Pointer < prevEnd)
+                {
+                    if (item.Pointer + size <= prevEnd)
+                        continue;
+
+                    ulong diff = prevEnd - item.Pointer;
+                    if (diff >= size)
+                        continue;
+
+                    size -= diff;
+                    prevEnd += size;
+                }
+                else
+                {
+                    totalRegions++;
+                    prevEnd = item.Pointer + size;
+                }
+
+                totalBytes += size;
+            }
+
+            return (totalRegions, totalBytes);
+        }
+
+        private static void WriteHeader(string header)
+        {
+            int lpad = (Width - header.Length) / 2;
+            if (lpad > 0)
+                header = header.PadLeft(Width - lpad, '=');
+            Console.WriteLine(header.PadRight(Width, '='));
         }
 
         private static string CollapseGenerics(string typeName)
@@ -287,13 +328,15 @@ namespace DbgEngExtension
 
         private class GCObjectToRange
         {
-            public ulong SegmentPointer { get; }
+            public ulong GCPointer { get; }
+            public ulong TargetSegmentPointer { get; }
             public ClrObject Object { get; set; }
             public AddressMemoryRange NativeMemoryRange { get; }
 
-            public GCObjectToRange(ulong gcaddr, AddressMemoryRange nativeMemory)
+            public GCObjectToRange(ulong gcaddr, ulong pointer, AddressMemoryRange nativeMemory)
             {
-                SegmentPointer = gcaddr;
+                GCPointer = gcaddr;
+                TargetSegmentPointer = pointer;
                 NativeMemoryRange = nativeMemory;
             }
         }
