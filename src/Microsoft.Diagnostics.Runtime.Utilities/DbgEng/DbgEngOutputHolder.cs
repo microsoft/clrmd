@@ -27,8 +27,6 @@
             _disposed = true;
         }
 
-        
-
         public void OnText(DEBUG_OUTPUT flags, string? text, ulong args)
         {
             if ((InterestMask & flags) != 0 && text is not null)
