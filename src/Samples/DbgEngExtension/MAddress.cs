@@ -15,7 +15,6 @@ namespace DbgEngExtension
     public class MAddress : DbgEngCommand
     {
         internal const string Command = "maddress";
-        internal const string ListCommand = "maddresslist";
 
         private const string IncludeReserveOption = "-includeReserve";
         private const string NoHeuristicOption = "-noReserveHeuristic";
@@ -306,7 +305,7 @@ namespace DbgEngExtension
         /// a MEM_COMMIT region is next to an unrelated MEM_RESERVE region.
         /// 
         /// This is a heuristic, so use it accordingly.</param>
-        /// <exception cref="InvalidOperationException">If !analyze fails we will throw InvalidOperationException.  This is usually
+        /// <exception cref="InvalidOperationException">If !address fails we will throw InvalidOperationException.  This is usually
         /// because symbols for ntdll couldn't be found.</exception>
         /// <returns>An enumerable of memory ranges.</returns>
         public IEnumerable<AddressMemoryRange> EnumerateAddressSpace(bool tagClrMemoryRanges, bool includeReserveMemory, bool tagReserveMemoryHeuristically)
@@ -351,7 +350,7 @@ namespace DbgEngExtension
                 }
             }
 
-            // On Linux, !analyze doesn't mark stack space.  Go do that.
+            // On Linux, !address doesn't mark stack space.  Go do that.
             if (DataTarget.DataReader.TargetPlatform == OSPlatform.Linux)
                 MarkStackSpace(ranges);
 
@@ -579,10 +578,10 @@ namespace DbgEngExtension
         }
 
         /// <summary>
-        /// Enumerates the output of !analyze in a usable format.
+        /// Enumerates the output of !address in a usable format.
         /// </summary>
         /// <returns></returns>
-        /// <exception cref="InvalidOperationException">If !analyze fails we will throw InvalidOperationException.  This is usually
+        /// <exception cref="InvalidOperationException">If !address fails we will throw InvalidOperationException.  This is usually
         /// because symbols for ntdll couldn't be found.</exception>
         public IEnumerable<AddressMemoryRange> EnumerateBangAddress()
         {
@@ -654,11 +653,11 @@ namespace DbgEngExtension
 
                     string description = parts[index++];
 
-                    // On Linux, !analyze is reporting this as MEM_PRIVATE or MEM_UNKNOWN
+                    // On Linux, !address is reporting this as MEM_PRIVATE or MEM_UNKNOWN
                     if (description == "Image")
                         kind = MemKind.MEM_IMAGE;
 
-                    // On Linux, !analyze is reporting this as nothing
+                    // On Linux, !address is reporting this as nothing
                     if (kind == MemKind.MEM_UNKNOWN && state == MemState.MEM_UNKNOWN && protect == MemProtect.PAGE_UNKNOWN)
                     {
                         state = MemState.MEM_FREE;
