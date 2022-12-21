@@ -17,17 +17,17 @@ namespace Benchmarks
         private static bool EnableDisablePrivilege(string PrivilegeName, bool enable)
         {
             if (!OpenProcessToken(Process.GetCurrentProcess().Handle, TokenAccessLevels.AdjustPrivileges | TokenAccessLevels.Query, out IntPtr processToken))
-                Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
+                return false;
 
             TOKEN_PRIVILEGES tokenPrivleges = new TOKEN_PRIVILEGES { PrivilegeCount = 1, Privileges = new LUID_AND_ATTRIBUTES[1] };
 
             if (!LookupPrivilegeValue(lpSystemName: null, PrivilegeName, out LUID luid))
-                Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
+                return false;
 
             tokenPrivleges.Privileges[0].LUID = luid;
             tokenPrivleges.Privileges[0].Attributes = enable ? LuidAttributes.Enabled : LuidAttributes.Disabled;
             if (AdjustTokenPrivileges(processToken, disableAllPrivleges: false, ref tokenPrivleges, bufferLength: (uint)Marshal.SizeOf(typeof(TOKEN_PRIVILEGES)), out _, out _) == 0)
-                Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
+                return false;
 
             int returnCode = Marshal.GetLastWin32Error();
             return returnCode != ERROR_NOT_ALL_ASSIGNED;
