@@ -250,7 +250,7 @@ namespace DbgEngExtension
 
                 output.WriteSpacer('-');
                 output.WriteRow("[TOTAL]", count, size.ConvertToHumanReadable(), size);
-                Console.WriteLine("");
+                Console.WriteLine();
             }
 
 

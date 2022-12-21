@@ -60,7 +60,7 @@ namespace DbgEngExtension
             if (ranges.Length == 0)
             {
                 Console.WriteLine($"No matching memory ranges.");
-                Console.WriteLine(" ");
+                Console.WriteLine();
                 return;
             }
 
@@ -150,7 +150,7 @@ namespace DbgEngExtension
                     }
                 }
 
-                Console.WriteLine(" ");
+                Console.WriteLine();
                 if (knownMemory.Count == 0 && unknownObjPointers.Count == 0)
                 {
                     Console.WriteLine($"No GC heap pointers to '{type}' regions.");
@@ -176,7 +176,7 @@ namespace DbgEngExtension
                             else
                                 allOut.WriteRow(entry.Pointer, entry.Size, entry.Object, entry.Type);
 
-                        Console.WriteLine("");
+                        Console.WriteLine();
                     }
 
                     if (knownMemory.Count > 0)
@@ -215,7 +215,7 @@ namespace DbgEngExtension
                         summary.WriteSpacer('-');
                         summary.WriteRow("[TOTAL]", totalRegions, totalBytes.ConvertToHumanReadable(), totalBytes);
 
-                        Console.WriteLine("");
+                        Console.WriteLine();
                     }
 
 

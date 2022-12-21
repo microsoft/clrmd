@@ -36,5 +36,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                     _client.SetOutputCallbacks(prev);
             }
         }
+
+        public override void WriteLine()
+        {
+            _control.Write(DEBUG_OUTPUT.NORMAL, "\n");
+        }
     }
 }

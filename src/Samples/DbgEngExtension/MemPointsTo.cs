@@ -61,9 +61,9 @@ namespace DbgEngExtension
 
                     WriteTables(ctx, result, false);
 
-                    Console.WriteLine("");
+                    Console.WriteLine();
                     Console.WriteLine("END REGION".PadLeft((Width - 10) / 2, '=').PadRight(Width, '='));
-                    Console.WriteLine("");
+                    Console.WriteLine();
 
                     result.AddTo(totals);
                 }
@@ -83,7 +83,7 @@ namespace DbgEngExtension
         {
             if (result.PointersToGC > 0)
             {
-                Console.WriteLine("");
+                Console.WriteLine();
                 Console.WriteLine("Pointers to GC heap:");
 
                 PrintGCPointerTable(result);
@@ -91,7 +91,7 @@ namespace DbgEngExtension
 
             if (result.ResolvablePointers.Count > 0)
             {
-                Console.WriteLine("");
+                Console.WriteLine();
                 Console.WriteLine("Pointers to images with symbols:");
 
                 WriteResolvablePointerTable(ctx, result, truncate);
@@ -99,7 +99,7 @@ namespace DbgEngExtension
 
             if (result.UnresolvablePointers.Count > 0)
             {
-                Console.WriteLine("");
+                Console.WriteLine();
                 Console.WriteLine("Other pointers:");
 
                 WriteUnresolvablePointerTable(result, truncate);
