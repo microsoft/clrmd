@@ -16,9 +16,9 @@ Yes.  If I haven't wrapped a particular method you need, you are more than welco
 1.  Please keep the IDebug* API as close to the original as possible.  It's totally fine to make it more C#-like, but try not to invent some totally new convention that doesn't fit with what the API does.
 2.  Please keep "helper" classes to a minimum.  I'm trying to avoid the original pitfall I had with this library of just dumping a bunch of random stuff into Utilities.  Feel free to file an issue and @leculver to ask ahead of doing major work in this space to get my opinion ahead of time.
 
-### How often will this library ship and will it be prerelease?
+### How often will this library ship?
 
-I will likely ship this library on a monthly-ish cadence when folks contribute PRs with newly wrapped functions.  I can't commit to faster than monthly cadence due to other project I work on for Microsoft.  Please @leculver if I didn't see a pull request, issue, or need to ship an update.
+I will likely ship this library on a monthly-ish cadence when folks contribute PRs with newly wrapped functions.  I can't commit to faster than monthly cadence due to other projects I work on for Microsoft.  Please @leculver if I didn't see a pull request, issue, or need to ship an update.
 
 ### Why isn't this function implemented?
 
