@@ -27,13 +27,26 @@ namespace DbgEngExtension
         {
             string[] types = args.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (types.Length == 0)
-                Console.WriteLine($"usage: !{GCPointsToCommand} [TYPES]");
+                Console.WriteLine($"usage: !{GCPointsToCommand} TYPES");
             else
                 PrintGCPointersToMemory(verbose: false, types);
         }
 
         public void PrintGCPointersToMemory(bool verbose, params string[] memoryTypes)
         {
+            // Strategy:
+            //   1. Use ClrMD to get the bounds of the GC heap where objects are allocated.
+            //   2. Manually read that memory and check every pointer-aligned address for pointers to the heap regions requested
+            //      while recording pointers in a list as we go (along with which ClrSegment they came from).
+            //   3. Walk each GC segment which has pointers to the target regions to find objects:
+            //        a.  Annotate each target pointer so we know what object points to the region (and throw away any pointers
+            //            that aren't in an object...those are pointers from dead or relocated objects).
+            //        b.  We have some special knowledge of "well known types" here that contain pointers.  These types point to
+            //            native memory and contain a size of the region they point to.  Record that information as we go.
+            //   4. Use information from "well known types" about regions of memory to annotate other pointers that do not have
+            //      size information.
+            //   5. Display all of this to the user.
+
             if (memoryTypes.Length == 0)
                 return;
 
@@ -53,7 +66,6 @@ namespace DbgEngExtension
 
             Console.WriteLine("Walking GC heap to find pointers...");
             Dictionary<ClrSegment, List<GCObjectToRange>> segmentLists = new();
-
 
             var items = Runtimes
                             .SelectMany(r => r.Heap.Segments)
@@ -79,7 +91,7 @@ namespace DbgEngExtension
                 Dictionary<ulong, KnownClrMemoryPointer> knownMemory = new();
                 Dictionary<ulong, int> sizeHints = new();
 
-                foreach (var segEntry in segmentLists)
+                foreach (KeyValuePair<ClrSegment, List<GCObjectToRange>> segEntry in segmentLists)
                 {
                     ClrSegment seg = segEntry.Key;
                     List<GCObjectToRange> pointers = segEntry.Value;

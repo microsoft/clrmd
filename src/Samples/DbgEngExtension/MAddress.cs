@@ -8,6 +8,10 @@ using System.Text;
 
 namespace DbgEngExtension
 {
+    /// <summary>
+    /// Parses the output of !address and annotates it with information about the CLR Runtime's
+    /// allocations and memory regions.
+    /// </summary>
     public class MAddress : DbgEngCommand
     {
         internal const string Command = "maddress";
@@ -33,6 +37,11 @@ namespace DbgEngExtension
         public MAddress(DbgEngCommand cmd)
             : base(cmd)
         {
+        }
+        internal void Run(string args)
+        {
+            if (ParseArgs(args, out bool printAllRanges, out bool showImageTable, out bool includeReserveMemory, out bool tagReserveMemoryHeuristically))
+                PrintMemorySummary(printAllRanges, showImageTable, includeReserveMemory, tagReserveMemoryHeuristically);
         }
 
         public IEnumerable<(ulong Address, ulong Pointer, AddressMemoryRange MemoryRange)> EnumerateRegionPointers(ulong start, ulong end, AddressMemoryRange[] ranges)
@@ -123,12 +132,6 @@ namespace DbgEngExtension
             }
 
             return result;
-        }
-
-        internal void Run(string args)
-        {
-            if (ParseArgs(args, out bool printAllRanges, out bool showImageTable, out bool includeReserveMemory, out bool tagReserveMemoryHeuristically))
-                PrintMemorySummary(printAllRanges, showImageTable, includeReserveMemory, tagReserveMemoryHeuristically);
         }
 
         private static bool ParseArgs(string args, out bool printAllRanges, out bool showImageTable, out bool includeReserveMemory, out bool tagReserveMemoryHeuristically)
