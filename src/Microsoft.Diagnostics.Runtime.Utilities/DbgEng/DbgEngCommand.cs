@@ -22,14 +22,14 @@ namespace DbgEngExtension
         protected ClrRuntime[] Runtimes => _context.Runtimes; // Make a copy to not let folks modify the original
         protected ClrRuntimeInitFailure[] RuntimeLoadErrors => _context.RuntimeLoadErrors;
 
-        protected DbgEngCommand(nint pUnknown, bool redirectConsoleOutput = true)
+        protected DbgEngCommand(nint pUnknown, bool redirectConsoleOutput)
         {
             _context = ExtensionContext.Create(pUnknown);
             if (redirectConsoleOutput)
                 _redirectedOutput = new DbgEngOutputStream(DebugClient, DebugControl);
         }
 
-        protected DbgEngCommand(IDisposable dbgeng, bool redirectConsoleOutput = true)
+        protected DbgEngCommand(IDisposable dbgeng, bool redirectConsoleOutput)
         {
             _context = ExtensionContext.Create(dbgeng);
             if (redirectConsoleOutput)
