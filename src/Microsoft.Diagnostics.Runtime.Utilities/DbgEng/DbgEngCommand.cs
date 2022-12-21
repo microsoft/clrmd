@@ -51,7 +51,7 @@ namespace DbgEngExtension
             _redirectedOutput?.Dispose();
         }
 
-        public (int HResult, string Output) RunCommandWithOutput(string command, DEBUG_OUTPUT mask = DEBUG_OUTPUT.NORMAL)
+        protected (int HResult, string Output) RunCommandWithOutput(string command, DEBUG_OUTPUT mask = DEBUG_OUTPUT.NORMAL)
         {
             StringBuilder result = new();
             int hr;
