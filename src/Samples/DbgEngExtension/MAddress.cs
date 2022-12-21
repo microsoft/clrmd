@@ -35,126 +35,18 @@ namespace DbgEngExtension
         {
         }
 
-        public void RunList(string args)
-        {
-            if (string.IsNullOrWhiteSpace(args))
-            {
-                Console.WriteLine("usage:  !maddresslist [TYPE]");
-            }
-            else
-            {
-                Dictionary<string, int> allCounts = new Dictionary<string, int>();
-                AddressMemoryRange[] ranges = EnumerateAddressSpace(tagClrMemoryRanges: true, includeReserveMemory: false, tagReserveMemoryHeuristically: false).ToArray();
-
-                foreach (string type in ParseListArgs(args, out bool annotateRefs))
-                {
-                    Dictionary<string, int> counts = new Dictionary<string, int>();
-                    IEnumerable<AddressMemoryRange> found = ranges.Where(r => r.Name == type).OrderByDescending(r => r.Length);
-                    if (found.Any())
-                    {
-                        Console.WriteLine($"{type}:");
-                        foreach (AddressMemoryRange mem in found)
-                        {
-                            Console.WriteLine($"    {mem.Start,12:x}-{mem.End,12:x} {mem.Length.ConvertToHumanReadable(),24} {mem.Kind,12} {mem.State,12} {mem.Protect}");
-                            if (annotateRefs)
-                            {
-                                Dictionary<string, List<ulong>> imagePointers = new();
-                                Dictionary<string, int> rangeCounts = new();
-                                foreach ((ulong address, ulong ptr, AddressMemoryRange memRng) in EnumerateRegionPointers(mem.Start, mem.Length > int.MaxValue ? int.MaxValue : (int)mem.Length, ranges))
-                                {
-                                    if (memRng.Kind == MemKind.MEM_IMAGE)
-                                    {
-                                        string key = memRng.Image!;
-                                        if (!imagePointers.TryGetValue(key, out List<ulong>? imgPtrs))
-                                            imagePointers[key] = imgPtrs = new();
-
-                                        imgPtrs.Add(ptr);
-
-                                        rangeCounts.TryGetValue(key, out int count);
-                                        rangeCounts[key] = count + 1;
-                                    }
-                                    else
-                                    {
-                                        string key = memRng.Name;
-                                        rangeCounts.TryGetValue(key, out int count);
-                                        rangeCounts[key] = count + 1;
-                                    }
-                                }
-
-                                foreach (var item in rangeCounts.OrderByDescending(d => d.Value))
-                                {
-                                    Console.WriteLine($"    {item.Value,12:n0} ref{(item.Value == 1 ? "" : "s")} to: {item.Key}");
-                                    if (imagePointers.TryGetValue(item.Key, out List<ulong>? ptrs))
-                                    {
-                                        var resolved = from ptr in ptrs
-                                                       group ptr by ptr into g
-                                                       let Count = g.Count()
-                                                       orderby Count descending
-                                                       select new
-                                                       {
-                                                           Pointer = g.Key,
-                                                           Symbol = ResolveSymbol(g.Key),
-                                                           Count
-                                                       };
-
-                                        Console.WriteLine();
-                                        foreach (var entry in resolved)
-                                            Console.WriteLine($"            {entry.Count,8:n0} ref{(entry.Count == 1 ? "" : "s")} to {entry.Pointer:x} {entry.Symbol}");
-                                    }
-
-                                    counts.TryGetValue(item.Key, out int totalCount);
-                                    counts[item.Key] = totalCount + item.Value;
-                                }
-
-                                Console.WriteLine($" ");
-                            }
-                        }
-
-                        Console.WriteLine("");
-
-                        Console.WriteLine("Pointer Stats:");
-                        foreach (var item in counts.OrderByDescending(d => d.Value))
-                        {
-                            Console.WriteLine($" {item.Value,12:n0} {item.Key}");
-
-                            allCounts.TryGetValue(item.Key, out int total);
-                            allCounts[item.Key] = total + item.Value;
-                        }
-                    }
-                }
-
-                if (allCounts.Count > 0)
-                {
-                    Console.WriteLine("All pointers:");
-                    foreach (var item in allCounts.OrderByDescending(d => d.Value))
-                        Console.WriteLine($" {item.Value,12:n0} {item.Key}");
-                }
-            }
-        }
-
-        private string ResolveSymbol(ulong pointer)
-        {
-            if (DebugSymbols.GetNameByOffset(pointer, out string? name, out ulong displacement))
-                return $"{name}+{displacement:x}";
-
-            return pointer.ToString("x");
-        }
-
-        public IEnumerable<(ulong Address, ulong Pointer, AddressMemoryRange MemoryRange)> EnumerateRegionPointers(ulong start, int length, AddressMemoryRange[] ranges)
+        public IEnumerable<(ulong Address, ulong Pointer, AddressMemoryRange MemoryRange)> EnumerateRegionPointers(ulong start, ulong end, AddressMemoryRange[] ranges)
         {
             ulong[] array = ArrayPool<ulong>.Shared.Rent(4096);
             int arrayBytes = array.Length * sizeof(ulong);
             try
             {
                 ulong curr = start;
-                int remaining = length;
+                ulong remaining = end - start;
 
                 while (remaining > 0)
                 {
-                    int size = Math.Min(remaining, arrayBytes);
-
-                    Console.Title = $"{remaining / size:n0} reads remaining";
-
+                    int size = Math.Min(remaining > int.MaxValue ? int.MaxValue : (int)remaining, arrayBytes);
                     bool res = ReadMemory(curr, array, size, out int bytesRead);
                     if (!res || bytesRead <= 0)
                         break;
@@ -169,7 +61,7 @@ namespace DbgEngExtension
                     }
 
                     curr += (uint)bytesRead;
-                    remaining -= bytesRead;
+                    remaining -= (uint)bytesRead; ;
                 }
 
             }
@@ -297,30 +189,33 @@ namespace DbgEngExtension
 
             AddressMemoryRange[] ranges = memoryRanges.ToArray();
 
+            int nameSizeMax = ranges.Max(r => r.Name.Length);
+
             // Tag reserved memory based on what's adjacent.
             if (tagReserveMemoryHeuristically)
                 CollapseReserveRegions(ranges);
 
             if (printAllMemory)
             {
-                WriteHeader(5, new int[] { 12, 12, 12, 12, 12, 32, -1 }, "StartAddr", "EndAddr-1", "Length", "Type", "State", "Protect", "Usage");
-                
-                foreach (var mem in ranges)
+                int kindSize = ranges.Max(r => r.Kind.ToString().Length);
+                int stateSize = ranges.Max(r => r.State.ToString().Length);
+                int protectSize = ranges.Max(r => r.Protect.ToString().Length);
+
+                TableOutput output = new((nameSizeMax, ""), (12, "x"), (12, "x"), (12, ""), (kindSize, ""), (stateSize, ""), (protectSize, ""))
                 {
-                    string description = mem.Description;
-                    if (mem.ClrMemoryKind != ClrMemoryKind.None)
-                        description = mem.ClrMemoryKind.ToString();
+                    AlignLeft = true,
+                    Divider = " | "
+                };
 
-                    Console.WriteLine($"{mem.Start,12:x}     {mem.End,12:x}     {mem.Length.ConvertToHumanReadable(),12:x}     {mem.Kind,12}     {mem.State,12}     {mem.Protect,32}     {description}");
-                }
+                output.WriteRowWithSpacing('-', "Memory Kind", "StartAddr", "EndAddr-1", "Size", "Type", "State", "Protect", "Image");
+                foreach (AddressMemoryRange mem in ranges)
+                    output.WriteRow(mem.Name, mem.Start, mem.End, mem.Length.ConvertToHumanReadable(), mem.Kind, mem.State, mem.Protect, mem.Image);
 
-                WriteBreak();
+                output.WriteSpacer('-');
             }
 
             if (showImageTable)
             {
-                int maxModuleLen = ranges.Where(r => !string.IsNullOrWhiteSpace(r.Image)).Max(r => r.Image.Length);
-
                 var imageGroups = from mem in ranges.Where(r => r.State != MemState.MEM_RESERVE && r.Image != null)
                                   group mem by mem.Image into g
                                   let Size = g.Sum(k => (long)(k.End - k.Start))
@@ -332,96 +227,64 @@ namespace DbgEngExtension
                                       Size
                                   };
 
-                WriteHeader(1, new int[] { maxModuleLen, 12, 12, 24 }, "Image", "Regions", "Size", "Size (bytes)");
+                int moduleLen = Math.Max(80, ranges.Max(r => r.Image?.Length ?? 0));
+
+                TableOutput output = new((moduleLen, ""), (8, "n0"), (12, ""), (24, "n0"))
+                {
+                    Divider = " | "
+                };
+
+                output.WriteRowWithSpacing('-', "Image", "Regions", "Size", "Size (bytes)");
 
                 int count = 0;
                 long size = 0;
                 foreach (var item in imageGroups)
                 {
-                    string image = item.Image + new string(' ', maxModuleLen - item.Image.Length);
-                    Console.WriteLine($"{image} {item.Count,12:n0} {item.Size.ConvertToHumanReadable(),12} {item.Size,24:n0}");
-
+                    output.WriteRow(item.Image, item.Count, item.Size.ConvertToHumanReadable(), item.Size);
                     count += item.Count;
                     size += item.Size;
                 }
 
-                WriteHeader(1, new int[] { maxModuleLen, 12, 12, 24 }, "TOTAL", count.ToString("n0"), size.ConvertToHumanReadable(), size.ToString("n0"));
-                WriteBreak();
+                output.WriteSpacer('-');
+                output.WriteRow("[TOTAL]", count, size.ConvertToHumanReadable(), size);
+                Console.WriteLine("");
             }
 
 
             // Print summary table unconditionally
             {
                 var grouped = from mem in ranges
-                              let type = mem.Name
-                              group mem by type into g
+                              let name = mem.Name
+                              group mem by name into g
                               let Count = g.Count()
                               let Size = g.Sum(f => (long)(f.End - f.Start))
                               orderby Size descending
                               select new
                               {
-                                  Type = g.Key,
+                                  Name = g.Key,
                                   Count,
                                   Size
                               };
 
-                WriteHeader(5, new int[] { 24, 12, 12, 24 }, "TypeSummary", "RngCount", "Size", "Size (bytes)");
+                TableOutput output = new((-nameSizeMax, ""), (8, "n0"), (12, ""), (24, "n0"))
+                {
+                    Divider = " | "
+                };
+
+                output.WriteRowWithSpacing('-', "Region Type", "Count", "Size", "Size (bytes)");
 
                 int count = 0;
                 long size = 0;
                 foreach (var item in grouped)
                 {
-                    Console.WriteLine($"{item.Type,24}     {item.Count,12:n0}     {item.Size.ConvertToHumanReadable(),12}     {item.Size,24:n0}");
+                    output.WriteRow(item.Name, item.Count, item.Size.ConvertToHumanReadable(), item.Size);
                     count += item.Count;
                     size += item.Size;
                 }
 
-                WriteHeader(5, new int[] { 24, 12, 12, 24 }, "TOTAL", count.ToString("n0"), size.ConvertToHumanReadable(), size.ToString("n0"));
+                output.WriteSpacer('-');
+                output.WriteRow("[TOTAL]", count, size.ConvertToHumanReadable(), size);
             }
-        }
-
-        private static void WriteHeader(int sepLength, int[] widths, params string[] columnNames)
-        {
-            if (widths.Length != columnNames.Length)
-                throw new ArgumentException($"{nameof(widths)}.Length != {nameof(columnNames)}.Length");
-
-            string separator = new('-', sepLength);
-            StringBuilder sb = new();
-            bool first = true;
-
-            for (int i = 0; i < widths.Length; i++)
-            {
-                if (!first)
-                    sb.Append(separator);
-
-                string column = columnNames[i];
-                int width = widths[i];
-
-                if (width > 0)
-                {
-                    if (column.Length > width)
-                        column = column[0..width];
-
-                    int padding = width - column.Length;
-                    if (padding > 0)
-                        sb.Append('-', padding);
-                    else if (padding < 0)
-                        column = column[0..width];
-                }
-
-                sb.Append(column);
-                first = false;
-            }
-
-            if (sb.Length < 79)
-                sb.Append('-', 79 - sb.Length);
-
-            Console.WriteLine(sb.ToString());
-        }
-
-        private static void WriteBreak()
-        {
-            Console.WriteLine(" ");
         }
 
         /// <summary>
@@ -447,6 +310,7 @@ namespace DbgEngExtension
         {
             IEnumerable<AddressMemoryRange> addressResult = EnumerateBangAddress().Where(m => m.State != MemState.MEM_FREE);
 
+            // TODO: remove this, it's code that's just for a particular dump I'm using to test this with
             addressResult = addressResult.Where(m => (m.Start & 0xffffffff00000000) != 0xffffffff00000000 && (m.End & 0xffffffff00000000) != 0xffffffff00000000);
 
             if (!includeReserveMemory)

@@ -7,6 +7,7 @@ namespace DbgEngExtension
     {
         private readonly char _spacing = ' ';
         public string Divider { get; set; } = " ";
+        public bool AlignLeft { get; set; } = false;
 
         private readonly (int width, string format)[] _formats;
 
@@ -15,7 +16,7 @@ namespace DbgEngExtension
             _formats = columns.ToArray();
         }
 
-        public void WriteRow(params object[] columns)
+        public void WriteRow(params object?[] columns)
         {
             StringBuilder sb = new(Divider.Length * columns.Length + _formats.Sum(c => Math.Abs(c.width)) + 32);
 
@@ -28,7 +29,7 @@ namespace DbgEngExtension
 
                 string? value;
                 if (string.IsNullOrWhiteSpace(format))
-                    value = columns[i].ToString();
+                    value = columns[i]?.ToString();
                 else
                     value = Format(columns[i], format);
 
@@ -38,7 +39,7 @@ namespace DbgEngExtension
             Console.WriteLine(sb);
         }
 
-        public void WriteRowWithSpacing(char spacing, params object[] columns)
+        public void WriteRowWithSpacing(char spacing, params object?[] columns)
         {
             StringBuilder sb = new(columns.Length + _formats.Sum(c => Math.Abs(c.width)));
 
@@ -51,7 +52,7 @@ namespace DbgEngExtension
 
                 string? value;
                 if (string.IsNullOrWhiteSpace(format))
-                    value = columns[i].ToString();
+                    value = columns[i]?.ToString();
                 else
                     value = Format(columns[i], format);
 
@@ -61,14 +62,15 @@ namespace DbgEngExtension
             Console.WriteLine(sb);
         }
 
+
         public void WriteSpacer(char spacer)
         {
             Console.WriteLine(new string(spacer, Divider.Length * (_formats.Length - 1) + _formats.Sum(c => Math.Abs(c.width))));
         }
 
-        private static void AddValue(char spacing, StringBuilder sb, int width, string value)
+        private void AddValue(char spacing, StringBuilder sb, int width, string value)
         {
-            bool leftAlign = width < 0;
+            bool leftAlign = AlignLeft ? width > 0 : width < 0;
             width = Math.Abs(width);
 
             if (width == 0)
@@ -105,8 +107,11 @@ namespace DbgEngExtension
             }
         }
 
-        private static string? Format(object obj, string format)
+        private static string? Format(object? obj, string format)
         {
+            if (obj is null)
+                return null;
+
             return obj switch
             {
                 nint ni => ni.ToString(format),
