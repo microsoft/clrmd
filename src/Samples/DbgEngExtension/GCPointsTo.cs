@@ -183,7 +183,7 @@ namespace DbgEngExtension
                                                      Name,
                                                      Count,
                                                      TotalSize,
-                                                     Pointer = GetLeastUniquePointer(g.Select(p => p.Pointer))
+                                                     Pointer = FindMostCommonPointer(g.Select(p => p.Pointer))
                                                  };
 
                         int maxNameLen = Math.Min(80, knownMemory.Values.Max(r => r.Name.Length));
@@ -221,7 +221,7 @@ namespace DbgEngExtension
                                                 {
                                                     Name,
                                                     Count,
-                                                    Pointer = GetLeastUniquePointer(g.Select(p => p.Pointer))
+                                                    Pointer = FindMostCommonPointer(g.Select(p => p.Pointer))
                                                 };
 
                         var unknownMem = unknownMemQuery.ToArray();

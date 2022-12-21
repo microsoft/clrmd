@@ -703,7 +703,7 @@ namespace DbgEngExtension
             return nonReserved;
         }
 
-        internal static ulong GetLeastUniquePointer(IEnumerable<ulong> enumerable)
+        internal static ulong FindMostCommonPointer(IEnumerable<ulong> enumerable)
             => (from ptr in enumerable
                 group ptr by ptr into g
                 orderby g.Count() descending

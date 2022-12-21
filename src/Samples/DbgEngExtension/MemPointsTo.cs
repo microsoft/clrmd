@@ -205,7 +205,7 @@ namespace DbgEngExtension
 
             var items = truncate ? resolved.Take(multi) : resolved;
             foreach (var (Name, Count, Unique, Pointers) in items)
-                table.WriteRow(Name, Unique, Count, GetLeastUniquePointer(Pointers));
+                table.WriteRow(Name, Unique, Count, FindMostCommonPointer(Pointers));
 
             if (truncate)
                 table.WriteRow(truncatedName, single, single);
