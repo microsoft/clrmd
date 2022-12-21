@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -13,54 +12,28 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    internal unsafe class DacDataTargetWrapper : COMCallableIUnknown
+    internal unsafe class DacDataTarget
     {
-        public const ulong MagicCallbackConstant = 0x43;
+        internal static readonly Guid IID_IDacDataTarget = new("3E11CCEE-D08B-43e5-AF01-32717A64DA03");
+        internal static readonly Guid IID_IMetadataLocator = new("aa8fa804-bc05-4642-b2c5-c353ed22fc63");
+        internal static readonly Guid IID_ICLRRuntimeLocator = new("b760bf44-9377-4597-8be7-58083bdc5146");
 
-        private static readonly Guid IID_IDacDataTarget = new("3E11CCEE-D08B-43e5-AF01-32717A64DA03");
-        private static readonly Guid IID_IMetadataLocator = new("aa8fa804-bc05-4642-b2c5-c353ed22fc63");
-        private static readonly Guid IID_ICLRRuntimeLocator = new Guid("b760bf44-9377-4597-8be7-58083bdc5146");
+        public const ulong MagicCallbackConstant = 0x43;
 
         private readonly DataTarget _dataTarget;
         private readonly IDataReader _dataReader;
-        private readonly ulong _runtimeBaseAddress;
         private volatile ModuleInfo[]? _modules;
 
         private Action? _callback;
         private volatile int _callbackContext;
 
-        public IntPtr IDacDataTarget { get; }
+        public ulong RuntimeBaseAddress { get; }
 
-        public DacDataTargetWrapper(DataTarget dataTarget, ulong runtimeBaseAddress = 0)
+        public DacDataTarget(DataTarget dataTarget, ulong runtimeBaseAddress = 0)
         {
             _dataTarget = dataTarget;
             _dataReader = _dataTarget.DataReader;
-            _runtimeBaseAddress = runtimeBaseAddress;
-
-            VTableBuilder builder = AddInterface(IID_IDacDataTarget, false);
-            builder.AddMethod(new GetMachineTypeDelegate(GetMachineType));
-            builder.AddMethod(new GetPointerSizeDelegate(GetPointerSize));
-            builder.AddMethod(new GetImageBaseDelegate(GetImageBase));
-            builder.AddMethod(new ReadVirtualDelegate(ReadVirtual));
-            builder.AddMethod(new WriteVirtualDelegate(WriteVirtual));
-            builder.AddMethod(new GetTLSValueDelegate(GetTLSValue));
-            builder.AddMethod(new SetTLSValueDelegate(SetTLSValue));
-            builder.AddMethod(new GetCurrentThreadIDDelegate(GetCurrentThreadID));
-            builder.AddMethod(new GetThreadContextDelegate(GetThreadContext));
-            builder.AddMethod(new SetThreadContextDelegate(SetThreadContext));
-            builder.AddMethod(new RequestDelegate(Request));
-            IDacDataTarget = builder.Complete();
-
-            builder = AddInterface(IID_IMetadataLocator, false);
-            builder.AddMethod(new GetMetadataDelegate(GetMetadata));
-            builder.Complete();
-
-            if (runtimeBaseAddress != 0)
-            {
-                builder = AddInterface(IID_ICLRRuntimeLocator, false);
-                builder.AddMethod(new GetRuntimeBaseDelegate(GetRuntimeBase));
-                builder.Complete();
-            }
+            RuntimeBaseAddress = runtimeBaseAddress;
         }
 
         public void EnterMagicCallbackContext() => Interlocked.Increment(ref _callbackContext);
@@ -69,9 +42,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public void SetMagicCallback(Action flushCallback) => _callback = flushCallback;
 
-        public int GetMachineType(IntPtr self, out IMAGE_FILE_MACHINE machineType)
+        public IMAGE_FILE_MACHINE MachineType
         {
-            machineType = _dataReader.Architecture switch
+            get =>_dataReader.Architecture switch
             {
                 Architecture.X64 => IMAGE_FILE_MACHINE.AMD64,
                 Architecture.X86 => IMAGE_FILE_MACHINE.I386,
@@ -79,9 +52,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 Architecture.Arm64 => IMAGE_FILE_MACHINE.ARM64,
                 _ => IMAGE_FILE_MACHINE.UNKNOWN,
             };
-
-            return HResult.S_OK;
         }
+
+        public int PointerSize => _dataTarget.DataReader.PointerSize;
 
         public void Flush()
         {
@@ -124,31 +97,21 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return null;
         }
 
-        public int GetPointerSize(IntPtr self, out int pointerSize)
-        {
-            pointerSize = _dataReader.PointerSize;
-            return HResult.S_OK;
-        }
-
-        public int GetImageBase(IntPtr self, string imagePath, out ulong baseAddress)
+        public ulong GetImageBase(string imagePath)
         {
             imagePath = Path.GetFileNameWithoutExtension(imagePath);
 
             foreach (ModuleInfo module in GetModules())
             {
                 string? moduleName = Path.GetFileNameWithoutExtension(module.FileName);
-                if (imagePath.Equals(moduleName, StringComparison.CurrentCultureIgnoreCase))
-                {
-                    baseAddress = module.ImageBase;
-                    return HResult.S_OK;
-                }
+                if (imagePath.Equals(moduleName, StringComparison.CurrentCultureIgnoreCase) && module.ImageBase != 0)
+                    return module.ImageBase;
             }
 
-            baseAddress = 0;
-            return HResult.E_FAIL;
+            return 0;
         }
 
-        public int ReadVirtual(IntPtr _, ClrDataAddress cda, IntPtr buffer, int bytesRequested, out int bytesRead)
+        public bool ReadVirtual(ClrDataAddress cda, IntPtr buffer, int bytesRequested, out int bytesRead)
         {
             ulong address = cda;
             Span<byte> span = new Span<byte>(buffer.ToPointer(), bytesRequested);
@@ -158,14 +121,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 // See comment in RuntimeBuilder.FlushDac
                 _callback?.Invoke();
                 bytesRead = 0;
-                return HResult.E_FAIL;
+                return false;
             }
 
             int read = _dataReader.Read(address, span);
             if (read > 0)
             {
                 bytesRead = read;
-                return HResult.S_OK;
+                return true;
             }
 
             bytesRead = 0;
@@ -183,58 +146,25 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                         bytesRead = peimage.Read(rva, span);
                         if (bytesRead > 0)
                         {
-                            return HResult.S_OK;
+                            return true;
                         }
                     }
                 }
             }
 
-            return HResult.E_FAIL;
+            return false;
         }
 
-        public int WriteVirtual(IntPtr self, ClrDataAddress address, IntPtr buffer, uint bytesRequested, out uint bytesWritten)
-        {
-            // This gets used by MemoryBarrier() calls in the dac, which really shouldn't matter what we do here.
-            bytesWritten = bytesRequested;
-            return HResult.S_OK;
-        }
-
-        public int GetTLSValue(IntPtr self, uint threadID, uint index, out ulong value)
-        {
-            value = 0;
-            return HResult.E_FAIL;
-        }
-
-        public int SetTLSValue(IntPtr self, uint threadID, uint index, ClrDataAddress value)
-        {
-            return HResult.E_FAIL;
-        }
-
-        public int GetCurrentThreadID(IntPtr self, out uint threadID)
-        {
-            threadID = 0;
-            return HResult.E_FAIL;
-        }
-
-        public int GetThreadContext(IntPtr self, uint threadID, uint contextFlags, int contextSize, IntPtr context)
+        public bool GetThreadContext(uint threadID, uint contextFlags, int contextSize, IntPtr context)
         {
             Span<byte> span = new Span<byte>(context.ToPointer(), contextSize);
             if (_dataReader.GetThreadContext(threadID, contextFlags, span))
-                return HResult.S_OK;
+                return true;
 
-            return HResult.E_FAIL;
+            return false;
         }
 
-        private int SetThreadContext(IntPtr self, uint threadID, uint contextSize, IntPtr context) => HResult.S_OK;
-
-        public int Request(IntPtr self, uint reqCode, uint inBufferSize, IntPtr inBuffer, IntPtr outBufferSize, out IntPtr outBuffer)
-        {
-            outBuffer = IntPtr.Zero;
-            return HResult.E_NOTIMPL;
-        }
-
-        public unsafe int GetMetadata(
-            IntPtr self,
+        public int GetMetadata(
             string fileName,
             int imageTimestamp,
             int imageSize,
@@ -272,15 +202,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     *pDataSize = read;
             }
 
-            return HResult.S_OK;
-        }
-
-        private int GetRuntimeBase(
-            IntPtr self,
-            out ulong address)
-        {
-            DebugOnly.Assert(_runtimeBaseAddress != 0);
-            address = _runtimeBaseAddress;
             return HResult.S_OK;
         }
 

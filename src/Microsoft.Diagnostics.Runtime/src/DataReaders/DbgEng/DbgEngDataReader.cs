@@ -18,6 +18,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
+    [Obsolete]
     internal sealed class DbgEngDataReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader
     {
         private static int s_totalInstanceCount;

@@ -137,12 +137,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             fixed (byte* ptr = buffer)
             {
-                var local = new iovec
+                var local = new IOVEC
                 {
                     iov_base = ptr,
                     iov_len = (IntPtr)readableBytesCount
                 };
-                var remote = new iovec
+                var remote = new IOVEC
                 {
                     iov_base = (void*)address,
                     iov_len = (IntPtr)readableBytesCount
@@ -359,12 +359,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private static extern IntPtr ptrace(int request, int pid, IntPtr addr, IntPtr data);
 
         [DllImport(LibC, SetLastError = true)]
-        private static extern unsafe IntPtr process_vm_readv(int pid, iovec* local_iov, UIntPtr liovcnt, iovec* remote_iov, UIntPtr riovcnt, UIntPtr flags);
+        private static extern unsafe IntPtr process_vm_readv(int pid, IOVEC* local_iov, UIntPtr liovcnt, IOVEC* remote_iov, UIntPtr riovcnt, UIntPtr flags);
 
         [DllImport(LibC)]
         private static extern int waitpid(int pid, IntPtr status, int options);
 
-        private unsafe struct iovec
+        private unsafe struct IOVEC
         {
             public void* iov_base;
             public IntPtr iov_len;

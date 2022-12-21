@@ -86,7 +86,7 @@
   <UsingTask
     Condition="'$(OS)' == 'Windows_NT'"
     TaskName="Microsoft.Diagnostics.Runtime.Tests.Tasks.Dump"
-    AssemblyFile="..\..\artifacts\bin\TestTasks\$(Configuration)\netcoreapp3.1\TestTasks.dll" />
+    AssemblyFile="..\..\artifacts\bin\TestTasks\$(Configuration)\net6.0\TestTasks.dll" />
 
   <Target
     Condition="'$(OS)' == 'Windows_NT'"

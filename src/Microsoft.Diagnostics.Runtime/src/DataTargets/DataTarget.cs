@@ -222,9 +222,6 @@ namespace Microsoft.Diagnostics.Runtime
                 cacheOptions ??= new CacheOptions();
 
                 DumpFileFormat format = ReadFileFormat(stream);
-
-#pragma warning disable CA2000 // Dispose objects before losing scope
-
                 IDataReader reader = format switch
                 {
                     DumpFileFormat.Minidump => new MinidumpReader(displayName, stream, cacheOptions, leaveOpen),
@@ -234,14 +231,14 @@ namespace Microsoft.Diagnostics.Runtime
                     // USERDU64 dumps are the "old" style of dumpfile.  This file format is very old and shouldn't be
                     // used.  However, IDebugClient::WriteDumpFile(,DEBUG_DUMP_DEFAULT) still generates this format
                     // (at least with the Win10 system32\dbgeng.dll), so we will support this for now.
-                    DumpFileFormat.Userdump64 => new DbgEngDataReader(displayName, stream, leaveOpen),
+                    DumpFileFormat.Userdump64 => throw new NotSupportedException($"This dump is in the Userdump64 format, which is not supported by ClrMD directly. " +
+                                "DbgEng can read this dump format, which can be obtained via DbgEngDataReader in the Microsoft.Diagnostics.Runtime.Utilities NuGet package."),
+
                     DumpFileFormat.CompressedArchive => throw new InvalidDataException($"Stream '{displayName}' is a compressed archived instead of a dump file."),
                     _ => throw new InvalidDataException($"Stream '{displayName}' is in an unknown or unsupported file format."),
                 };
 
                 return new DataTarget(new CustomDataTarget(reader) {CacheOptions = cacheOptions});
-
-#pragma warning restore CA2000 // Dispose objects before losing scope
             }
             catch
             {
@@ -369,7 +366,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="pDebugClient">An IDebugClient interface.</param>
         /// <returns>A <see cref="DataTarget"/> instance.</returns>
-        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
+        [Obsolete("Use the DbgEngDataReader class from the Microsoft.Diagnostics.Runtime.Utilities NuGet package.")]
         public static DataTarget CreateFromDbgEng(IntPtr pDebugClient)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))

@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -79,6 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// used to build this COM interface's methods.</param>
         /// <returns>A VTableBuilder to construct this interface.  Note that until VTableBuilder.Complete
         /// is called, the interface will not be registered.</returns>
+        [RequiresDynamicCode("This class uses reflection over delegates to generate code.  If used for NativeAOT, consider building a VTable with [UnmanagedCallersOnly] and native delegates instead.")]
         public VTableBuilder AddInterface(Guid guid, bool validate)
         {
 #if DEBUG

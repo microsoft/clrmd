@@ -633,7 +633,6 @@ Microsoft.Diagnostics.Runtime.DacLibrary.DacLibrary(Microsoft.Diagnostics.Runtim
 Microsoft.Diagnostics.Runtime.DacLibrary.DacLibrary(Microsoft.Diagnostics.Runtime.DataTarget! dataTarget, string! dacPath, ulong runtimeBaseAddress) -> void
 Microsoft.Diagnostics.Runtime.DacLibrary.DacPrivateInterface.get -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataProcess!
 Microsoft.Diagnostics.Runtime.DacLibrary.Dispose() -> void
-Microsoft.Diagnostics.Runtime.DacLibrary.GetInterface<T>(in System.Guid riid) -> T?
 Microsoft.Diagnostics.Runtime.DacLibrary.OwningLibrary.get -> Microsoft.Diagnostics.Runtime.RefCountedFreeLibrary?
 Microsoft.Diagnostics.Runtime.DacLibrary.SOSDacInterface.get -> Microsoft.Diagnostics.Runtime.DacInterface.SOSDac!
 Microsoft.Diagnostics.Runtime.DacLibrary.SOSDacInterface6.get -> Microsoft.Diagnostics.Runtime.DacInterface.SOSDac6?
