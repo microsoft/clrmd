@@ -77,7 +77,16 @@ foreach (ClrRuntime runtime in dt.ClrVersions.Select(clr => clr.CreateRuntime())
 // scratch, build ClrMD from scratch, and tear it down in Dispose.  If we don't dispose any
 // DbgEngCommand subclass, then we cache the IDebug* interfaces and ClrMD for performance.
 using (MHeap heapExtension = new(dbgeng, redirectConsoleOutput: false))
+{
     heapExtension.Run(statOnly: false);
+
+    // We can also initialize DbgEngCommand classes with another class.  By initializing MAddress
+    // with heapExtension, we re-use and share all DbgEng interfaces and ClrMD classes.  This
+    // greatly improves performance.  When heapExtension is disposed at the end of this using
+    // statement, dbgeng/ClrMD will be cleaned up for maddress too.
+    MAddress maddress = new(heapExtension);
+    maddress.PrintMemorySummary(printAllMemory: true, showImageTable: true, includeReserveMemory: false, tagReserveMemoryHeuristically: false);
+}
 
 // End of Demo.
 
