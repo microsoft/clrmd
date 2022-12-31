@@ -45,50 +45,69 @@ namespace DbgEngExtension
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine($"Failed to run {nameof(ManagedAddress)} command.");
-                Console.Error.WriteLine(e);
+                PrintError(MAddress.Command, e);
             }
 
             return 0;
         }
 
-        [UnmanagedCallersOnly(EntryPoint = GCPointsTo.GCPointsToCommand, CallConvs = new[] { typeof(CallConvStdcall) })]
-        public static int GCPointersToNative(nint pUnknown, nint args)
+        [UnmanagedCallersOnly(EntryPoint = GCToNative.Command, CallConvs = new[] { typeof(CallConvStdcall) })]
+        public static int FindGCToNativePointers(nint pUnknown, nint args)
         {
             try
             {
-                GCPointsTo cmd = new(pUnknown);
+                GCToNative cmd = new(pUnknown);
                 string? arguments = Marshal.PtrToStringAnsi(args);
                 cmd.Run(arguments ?? "");
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine($"Failed to run {nameof(ManagedAddress)} command.");
-                Console.Error.WriteLine(e);
+                PrintError(GCToNative.Command, e);
             }
 
             return 0;
         }
 
 
-        [UnmanagedCallersOnly(EntryPoint = MemPointsTo.MemPointsToCommand, CallConvs = new[] { typeof(CallConvStdcall) })]
-        public static int MemoryRegionPointsTo(nint pUnknown, nint args)
+        [UnmanagedCallersOnly(EntryPoint = DbgEngExtension.FindPointersIn.Command, CallConvs = new[] { typeof(CallConvStdcall) })]
+        public static int FindPointersIn(nint pUnknown, nint args)
         {
             try
             {
-                MemPointsTo cmd = new(pUnknown);
+                FindPointersIn cmd = new(pUnknown);
                 string? arguments = Marshal.PtrToStringAnsi(args);
                 cmd.Run(arguments ?? "");
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine($"Failed to run {nameof(ManagedAddress)} command.");
-                Console.Error.WriteLine(e);
+                PrintError(DbgEngExtension.FindPointersIn.Command, e);
             }
 
             return 0;
         }
 
+        [UnmanagedCallersOnly(EntryPoint = DbgEngExtension.Help.Command, CallConvs = new[] { typeof(CallConvStdcall) })]
+        public static int Help(nint pUnknown, nint args)
+        {
+            try
+            {
+                Help cmd = new(pUnknown);
+                string? arguments = Marshal.PtrToStringAnsi(args);
+                cmd.Show(arguments ?? "");
+            }
+            catch (Exception e)
+            {
+                PrintError(DbgEngExtension.FindPointersIn.Command, e);
+            }
+
+            return 0;
+        }
+
+        private static void PrintError(string command, Exception ex)
+        {
+            Console.Error.WriteLine($"An error occurred in !{command}:");
+            Console.Error.WriteLine(ex);
+        }
 
         [UnmanagedCallersOnly(EntryPoint = "DebugExtensionInitialize")]
         public static int DebugExtensionInitialize(uint *pVersion, uint *pFlags)

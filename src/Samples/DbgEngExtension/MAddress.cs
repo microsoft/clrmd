@@ -17,10 +17,9 @@ namespace DbgEngExtension
         internal const string Command = "maddress";
 
         private const string IncludeReserveOption = "-includeReserve";
-        private const string NoHeuristicOption = "-noReserveHeuristic";
-        private const string ShowImageTableOption = "-showImages";
+        private const string UseHeuristicOption = "-useReserveHeuristic";
+        private const string ShowImageTableOption = "-showImageTable";
         private const string SummaryOption = "-summary";
-        private const string AnnotateOption = "-annotate";
         private const string StatOption = "-stat";
 
         public MAddress(nint pUnknown, bool redirectConsoleOutput = true)
@@ -116,29 +115,13 @@ namespace DbgEngExtension
             }
         }
 
-        private static IEnumerable<string> ParseListArgs(string args, out bool annotateRefs)
-        {
-            string[] result = args.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-            if (result.Any(r => r.Equals(AnnotateOption, StringComparison.OrdinalIgnoreCase)))
-            {
-                annotateRefs = true;
-                result = result.Where(r => !r.Equals(AnnotateOption, StringComparison.OrdinalIgnoreCase)).ToArray();
-            }
-            else
-            {
-                annotateRefs = true;
-            }
-
-            return result;
-        }
 
         private static bool ParseArgs(string args, out bool printAllRanges, out bool showImageTable, out bool includeReserveMemory, out bool tagReserveMemoryHeuristically)
         {
             printAllRanges = true;
             showImageTable = false;
             includeReserveMemory = false;
-            tagReserveMemoryHeuristically = true;
+            tagReserveMemoryHeuristically = false;
 
             if (string.IsNullOrWhiteSpace(args))
                 return true;
@@ -156,8 +139,8 @@ namespace DbgEngExtension
                 if (word.Equals(IncludeReserveOption, StringComparison.OrdinalIgnoreCase))
                     includeReserveMemory = true;
 
-                else if (word.Equals(NoHeuristicOption, StringComparison.OrdinalIgnoreCase))
-                    tagReserveMemoryHeuristically = false;
+                else if (word.Equals(UseHeuristicOption, StringComparison.OrdinalIgnoreCase))
+                    tagReserveMemoryHeuristically = true;
 
                 else if (word.Equals(ShowImageTableOption, StringComparison.OrdinalIgnoreCase))
                     showImageTable = true;
@@ -180,7 +163,7 @@ namespace DbgEngExtension
             if (badEntry is not null)
                 Console.WriteLine($"Unknown parameter: {badEntry}");
 
-            Console.WriteLine($"usage: !{Command} [{SummaryOption}] [{ShowImageTableOption}] [{IncludeReserveOption}] [{NoHeuristicOption}]");
+            Console.WriteLine($"usage: !{Command} [{SummaryOption}] [{ShowImageTableOption}] [{IncludeReserveOption}] [{UseHeuristicOption}]");
         }
 
         public void PrintMemorySummary(bool printAllMemory, bool showImageTable, bool includeReserveMemory, bool tagReserveMemoryHeuristically)

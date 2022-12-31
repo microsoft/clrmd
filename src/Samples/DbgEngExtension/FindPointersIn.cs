@@ -5,31 +5,33 @@ using static DbgEngExtension.MAddress;
 
 namespace DbgEngExtension
 {
-    public class MemPointsTo : DbgEngCommand
+    public class FindPointersIn : DbgEngCommand
     {
         const int Width = 120;
 
-        internal const string MemPointsToCommand = "mempointsto";
+        internal const string Command = "findpointersin";
+        internal const string ExpandNonPinnedObjectsFlag = "expandNonPinnedObjects";
         private const string VtableConst = "vtable for ";
 
-        public MemPointsTo(nint pUnknown, bool redirectConsoleOutput = true)
+        public FindPointersIn(nint pUnknown, bool redirectConsoleOutput = true)
             : base(pUnknown, redirectConsoleOutput)
         {
         }
 
-        public MemPointsTo(IDisposable dbgeng, bool redirectConsoleOutput = false)
+        public FindPointersIn(IDisposable dbgeng, bool redirectConsoleOutput = false)
             : base(dbgeng, redirectConsoleOutput)
         {
         }
 
-        internal void Run(string args)
+        internal void Run(string strArgs)
         {
-            string[] types = args.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            string[] types = strArgs.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                                .GetOptionalFlag(ExpandNonPinnedObjectsFlag, out bool showAll);
 
-            PrintPointers(types);
+            PrintPointers(pinnedOnly: !showAll, types);
         }
 
-        public void PrintPointers(params string[] memTypes)
+        public void PrintPointers(bool pinnedOnly, params string[] memTypes)
         {
             MAddress address = new(this);
             AddressMemoryRange[] allRegions = address.EnumerateAddressSpace(tagClrMemoryRanges: true, includeReserveMemory: false, tagReserveMemoryHeuristically: false).ToArray();
@@ -51,7 +53,7 @@ namespace DbgEngExtension
                 foreach (AddressMemoryRange mem in matchingRanges.OrderBy(r => r.Start))
                 {
                     var pointersFound = address.EnumerateRegionPointers(mem.Start, mem.End, allRegions).Select(r => (r.Pointer, r.MemoryRange));
-                    RegionPointers result = ProcessOneRegion(mem, pointersFound, ctx);
+                    RegionPointers result = ProcessOneRegion(pinnedOnly, pointersFound, ctx);
 
                     WriteMemoryHeaderLine(mem);
 
@@ -194,10 +196,12 @@ namespace DbgEngExtension
 
             int single = resolved.Count(r => r.Count == 1);
             int multi = resolved.Length - single;
-            bool truncate = forceTruncate || (single + multi > 20 && single > multi);
+            bool truncate = forceTruncate || (single + multi > 75 && single > multi);
+            truncate = false;
 
             int maxNameLen = multi > 0 ? resolved.Where(r => !truncate || r.Count > 1).Max(r => r.Name.Length) : resolved.Max(r => r.Name.Length);
             int nameLen = Math.Min(80, maxNameLen);
+            nameLen = Math.Max(nameLen, truncatedName.Length);
 
             TableOutput table = new((nameLen, ""), (12, "n0"), (12, "n0"), (12, "x"));
             table.Divider = "   ";
@@ -230,7 +234,7 @@ namespace DbgEngExtension
             return typeName;
         }
 
-        private RegionPointers ProcessOneRegion(AddressMemoryRange source, IEnumerable<(ulong Pointer, AddressMemoryRange Range)> pointersFound, MemoryWalkContext ctx)
+        private RegionPointers ProcessOneRegion(bool pinnedOnly, IEnumerable<(ulong Pointer, AddressMemoryRange Range)> pointersFound, MemoryWalkContext ctx)
         {
             RegionPointers result = new();
 
@@ -238,10 +242,20 @@ namespace DbgEngExtension
             {
                 if (found.Range.ClrMemoryKind == ClrMemoryKind.GCHeapSegment)
                 {
-                    if (ctx.IsPinnedObject(found.Pointer, out ClrObject obj))
-                        result.AddGCPointer(obj);
+                    if (pinnedOnly)
+                    {
+                        if (ctx.IsPinnedObject(found.Pointer, out ClrObject obj))
+
+                            result.AddGCPointer(obj);
+                        else
+                            result.AddGCPointer(found.Pointer);
+                    }
                     else
-                        result.AddGCPointer(found.Pointer);
+                    {
+                        ClrObject obj = Runtimes.Single().Heap.GetObject(found.Pointer);
+                        if (obj.IsValid)
+                            result.AddGCPointer(obj);
+                    }
                 }
                 else if (found.Range.Kind == MemKind.MEM_IMAGE)
                 {
@@ -266,15 +280,13 @@ namespace DbgEngExtension
                 foreach (var root in runtime.Heap.EnumerateRoots().Where(r => r.IsPinned))
                 {
                     if (root.Object.IsValid && !root.Object.IsFree)
-                    {
                         if (seen.Add(root.Object))
                             pinned.Add(root.Object);
-                    }
                 }
 
                 foreach (ClrSegment seg in runtime.Heap.Segments.Where(s => s.IsPinnedObjectSegment || s.IsLargeObjectSegment))
                 {
-                    foreach (ClrObject obj in seg.EnumerateObjects())
+                    foreach (ClrObject obj in seg.EnumerateObjects().Where(o => seen.Add(o)))
                     {
                         if (!obj.IsFree && obj.IsValid)
                             pinned.Add(obj);
