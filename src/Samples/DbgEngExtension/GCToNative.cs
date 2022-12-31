@@ -6,17 +6,18 @@ using static DbgEngExtension.MAddress;
 namespace DbgEngExtension
 {
     // Commands for helping locate native memory held onto by the GC heap.
-    public class GCPointsTo : DbgEngCommand
+    public class GCToNative : DbgEngCommand
     {
-        internal const string GCPointsToCommand = "gcpointsto";
+        internal const string Command = "gctonative";
+        internal const string All = "all";
 
         const int Width = 120;
 
-        public GCPointsTo(nint pUnknown, bool redirectConsoleOutput = true) : base(pUnknown, redirectConsoleOutput)
+        public GCToNative(nint pUnknown, bool redirectConsoleOutput = true) : base(pUnknown, redirectConsoleOutput)
         {
         }
 
-        public GCPointsTo(IDisposable dbgeng, bool redirectConsoleOutput = false) : base(dbgeng, redirectConsoleOutput)
+        public GCToNative(IDisposable dbgeng, bool redirectConsoleOutput = false) : base(dbgeng, redirectConsoleOutput)
         {
         }
 
@@ -25,14 +26,16 @@ namespace DbgEngExtension
         /// </summary>
         internal void Run(string args)
         {
-            string[] types = args.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            string[] types = args.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                                 .GetOptionalFlag(All, out bool showAll);
+
             if (types.Length == 0)
-                Console.WriteLine($"usage: !{GCPointsToCommand} TYPES");
+                Console.WriteLine($"usage: !{Command} TYPES");
             else
-                PrintGCPointersToMemory(verbose: false, types);
+                PrintGCPointersToMemory(showAll, types);
         }
 
-        public void PrintGCPointersToMemory(bool verbose, params string[] memoryTypes)
+        public void PrintGCPointersToMemory(bool showAll, params string[] memoryTypes)
         {
             // Strategy:
             //   1. Use ClrMD to get the bounds of the GC heap where objects are allocated.
@@ -157,7 +160,7 @@ namespace DbgEngExtension
                 }
                 else
                 {
-                    if (verbose)
+                    if (showAll)
                     {
                         Console.WriteLine($"All memory pointers:");
 

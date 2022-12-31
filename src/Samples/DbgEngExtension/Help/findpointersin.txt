@@ -1,0 +1,49 @@
+The $FINDPOINTERSIN command will search the regions of memory given by MADDRESS_TYPE_LIST
+to find all pointers to other memory regions and display them.  By default, pointers
+to the GC heap are only displayed if the object it points to is pinned.  (As any
+random pointer to the GC heap to a non-pinned object is either an old/leftover
+pointer, or a stray pointer that should be ignored.) If -$NONPINNEDFLAG is set,
+then this command print out ALL objects that are pointed to instead of collapsing
+them into one entry.
+
+usage: !$FINDPOINTERSIN [-$NONPINNEDFLAG] MADDRESS_TYPE_LIST
+
+Note: The MADDRESS_TYPE_LIST must be a memory type as printed by !$MADDRESS.
+
+Example: "!$FINDPOINTERSIN PAGE_READWRITE" will only search for regions of memory that
+!$MADDRESS marks as "PAGE_READWRITE" and not every page of memory that's
+marked with PAGE_READWRITE protection.
+
+Example: Running the command "!$FINDPOINTERSIN Stack PAGE_READWRITE" will find all pointers
+on any "Stack" and "PAGE_READWRITE" memory segments and summarize those contents into
+three tables:  One table for pointers to the GC heap, one table for pointers where
+symbols could be resolved, and one table of pointers where we couldn't resolve symbols.
+
+
+Sample Output:
+
+    Pointers to GC heap:
+    -------------------------------Type---------Unique----------Count---------RndPtr
+       [Pointers to non-pinned objects]          3,168         16,765   7f05b80d5b60
+                        System.Object[]              3             58   7f07380f3120
+                          System.Byte[]              7             22   7f07380f00d8
+    Microsoft.Caching.ClrMD.RawResult[]              2             14   7f063822ae58
+    ----------------------- [ TOTALS ] ----------3,180---------16,859---------------
+
+    Pointers to images with symbols:
+    --------------------------------------------------------------------------Symbol---------Unique----------Count---------RndPtr
+                                                                      libcoreclr+...             34            457   7f08c66ff776
+                                       libcoreclr!JIT_GetSharedGCThreadStaticBase+33              1            260   7f08c637b453
+                                        libcoreclr!COMInterlocked::ExchangeObject+17              1            258   7f08c6336597
+
+                                        ...
+    -------------------------------------------------------------------- [ TOTALS ] ------------740---------10,361---------------
+
+    Other pointers:
+    ---------------------------------------------------------------Region---------Unique----------Count---------RndPtr
+                                                                    Stack         25,229         37,656   7f05297f4738
+                                                           PAGE_READWRITE          1,696          7,882   7f0500000000
+                                                         LowFrequencyHeap          2,618          7,347   7f084d1868e0
+
+                                                         ...
+    --------------------------------------------------------- [ TOTALS ] ---------33,360---------72,029---------------
