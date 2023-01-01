@@ -125,10 +125,39 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             return hr;
         }
 
+        int IDebugSymbols.GetTypeId(ulong moduleBase, string name, out ulong typeId)
+        {
+            GetVTable(this, out nint self, out IDebugSymbolsVtable* vtable);
+            fixed (char* namePtr = name)
+                return vtable->GetTypeIdWide(self, moduleBase, namePtr, out typeId);
+        }
+
+        int IDebugSymbols.GetFieldOffset(ulong moduleBase, ulong typeId, string name, out ulong offset)
+        {
+            GetVTable(this, out nint self, out IDebugSymbolsVtable* vtable);
+            fixed (char* namePtr = name)
+                return vtable->GetFieldOffsetWide(self, moduleBase, typeId, namePtr, out offset);
+        }
+
         int IDebugSymbols.GetModuleByOffset(ulong baseAddr, int nextIndex, out int index, out ulong claimedBaseAddr)
         {
             GetVTable(this, out nint self, out IDebugSymbolsVtable* vtable);
             return vtable->GetModuleByOffset(self, baseAddr, nextIndex, out index, out claimedBaseAddr);
+        }
+
+        bool IDebugSymbols.GetOffsetByName(string name, out ulong offset)
+        {
+            GetVTable(this, out nint self, out IDebugSymbolsVtable* vtable);
+
+            fixed (char* namePtr = name)
+            {
+                int hr = vtable->GetOffsetByNameWide(self, namePtr, out offset);
+                if (hr == 0)
+                    return true;
+            }
+
+            offset = 0;
+            return false;
         }
 
         bool IDebugSymbols.GetNameByOffset(ulong address, [NotNullWhen(true)] out string? name, out ulong displacement)

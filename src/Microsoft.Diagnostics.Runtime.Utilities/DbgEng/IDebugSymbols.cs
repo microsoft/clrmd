@@ -17,5 +17,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         int GetModuleName(DEBUG_MODNAME which, ulong baseAddress, out string name);
         int GetModuleByOffset(ulong baseAddr, int nextIndex, out int index, out ulong claimedBaseAddr);
         bool GetNameByOffset(ulong address, [NotNullWhen(true)] out string? name, out ulong displacement);
+        bool GetOffsetByName(string name, out ulong offset);
+        int GetTypeId(ulong moduleBase, string name, out ulong typeId);
+        int GetFieldOffset(ulong moduleBase, ulong typeId, string name, out ulong offset);
     }
 }
