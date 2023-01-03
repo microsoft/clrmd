@@ -1,4 +1,5 @@
 #nullable enable
+Microsoft.Diagnostics.Runtime.ClrInfo.CreateRuntime(Microsoft.Diagnostics.Runtime.DacLibrary! dacLibrary) -> Microsoft.Diagnostics.Runtime.ClrRuntime!
 Microsoft.Diagnostics.Runtime.IDumpInfoProvider
 Microsoft.Diagnostics.Runtime.IDumpInfoProvider.IsMiniOrTriage.get -> bool
 static Microsoft.Diagnostics.Runtime.ModuleInfo.TryCreate(Microsoft.Diagnostics.Runtime.IDataReader! reader, ulong baseAddress, string! name, int indexFileSize, int indexTimeStamp, System.Version? version) -> Microsoft.Diagnostics.Runtime.ModuleInfo?
