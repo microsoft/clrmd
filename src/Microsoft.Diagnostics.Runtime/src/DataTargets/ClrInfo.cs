@@ -413,6 +413,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A version string for this CLR.</returns>
         public override string ToString() => Version.ToString();
 
+        /// <summary>
+        /// Creates a runtime from the DacLibrary.
+        /// </summary>
+        /// <param name="dacLibrary">A fully constructed DacLibrary to use.</param>
+        /// <returns>The runtime associated with this CLR.</returns>
         public ClrRuntime CreateRuntime(DacLibrary dacLibrary)
         {
             if (IntPtr.Size != DataTarget.DataReader.PointerSize)
@@ -435,7 +440,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="dacPath">A full path to the matching DAC dll for this process.</param>
         /// <param name="ignoreMismatch">Whether or not to ignore mismatches between. </param>
-        /// <returns></returns>
+        /// <returns>The runtime associated with this CLR.</returns>
         public ClrRuntime CreateRuntime(string dacPath, bool ignoreMismatch = false)
         {
             if (string.IsNullOrEmpty(dacPath))
@@ -455,6 +460,10 @@ namespace Microsoft.Diagnostics.Runtime
             return CreateRuntime(dacLibrary);
         }
 
+        /// <summary>
+        /// Creates a runtime by searching for the correct dac to load.
+        /// </summary>
+        /// <returns>The runtime associated with this CLR.</returns>
         public ClrRuntime CreateRuntime()
         {
             if (IntPtr.Size != DataTarget.DataReader.PointerSize)
