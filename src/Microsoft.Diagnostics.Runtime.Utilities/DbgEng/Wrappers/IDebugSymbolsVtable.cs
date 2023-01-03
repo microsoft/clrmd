@@ -69,15 +69,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint RemoveTypeOptions;
         private readonly nint SetTypeOptions;
         public readonly delegate* unmanaged[Stdcall]<nint, ulong, char*, int, out int, out ulong, int> GetNameByOffsetWide;
-        private readonly nint GetOffsetByNameWide;
+        public readonly delegate* unmanaged[Stdcall]<nint, char*, out ulong, int> GetOffsetByNameWide;
         private readonly nint GetNearNameByOffsetWide;
         private readonly nint GetLineByOffsetWide;
         private readonly nint GetOffsetByLineWide;
         private readonly nint GetModuleByModuleNameWide;
         private readonly nint GetSymbolModuleWide;
         private readonly nint GetTypeNameWide;
-        private readonly nint GetTypeIdWide;
-        private readonly nint GetFieldOffsetWide;
+        public readonly delegate* unmanaged[Stdcall]<nint, ulong, char*, out ulong, int> GetTypeIdWide;
+        public readonly delegate* unmanaged[Stdcall]<nint, ulong, ulong, char*, out ulong, int> GetFieldOffsetWide;
         private readonly nint GetSymbolTypeIdWide;
         private readonly nint GetScopeSymbolGroup2;
         private readonly nint CreateSymbolGroup2;

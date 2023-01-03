@@ -413,6 +413,23 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A version string for this CLR.</returns>
         public override string ToString() => Version.ToString();
 
+        public ClrRuntime CreateRuntime(DacLibrary dacLibrary)
+        {
+            if (IntPtr.Size != DataTarget.DataReader.PointerSize)
+                throw new InvalidOperationException("Mismatched pointer size between this process and the dac.");
+
+            DacInterface.SOSDac? sos = dacLibrary.SOSDacInterface ?? throw new InvalidOperationException($"Could not create a ISOSDac pointer.");
+
+            var factory = new RuntimeBuilder(this, dacLibrary, sos);
+            if (Flavor == ClrFlavor.Core)
+                return factory.GetOrCreateRuntime();
+
+            if (Version.Major < 4 || (Version.Major == 4 && Version.Minor == 5 && Version.Revision < 10000))
+                throw new NotSupportedException($"CLR version '{Version}' is not supported by ClrMD.  For Desktop CLR, only CLR 4.6 and beyond are supported.");
+
+            return factory.GetOrCreateRuntime();
+        }
+
         /// <summary>
         /// Creates a runtime from the given DAC file on disk.
         /// </summary>
@@ -434,7 +451,8 @@ namespace Microsoft.Diagnostics.Runtime
                     throw new InvalidOperationException($"Mismatched dac. Dac version: {major}.{minor}.{revision}.{patch}, expected: {Version}.");
             }
 
-            return ConstructRuntime(dacPath);
+            DacLibrary dacLibrary = new DacLibrary(DataTarget, dacPath, ModuleInfo.ImageBase);
+            return CreateRuntime(dacLibrary);
         }
 
         public ClrRuntime CreateRuntime()
@@ -528,27 +546,6 @@ namespace Microsoft.Diagnostics.Runtime
             throw new InvalidOperationException($"Debugging a '{DataTarget.DataReader.TargetPlatform}' crash is not supported on '{current}'.");
         }
 
-#pragma warning disable CA2000 // Dispose objects before losing scope
-        private ClrRuntime ConstructRuntime(string dac)
-        {
-            if (IntPtr.Size != DataTarget.DataReader.PointerSize)
-                throw new InvalidOperationException("Mismatched pointer size between this process and the dac.");
-
-            DacLibrary dacLibrary = new DacLibrary(DataTarget, dac, ModuleInfo.ImageBase);
-            DacInterface.SOSDac? sos = dacLibrary.SOSDacInterface;
-            if (sos is null)
-                throw new InvalidOperationException($"Could not create a ISOSDac pointer from this dac library: {dac}");
-
-            var factory = new RuntimeBuilder(this, dacLibrary, sos);
-            if (Flavor == ClrFlavor.Core)
-                return factory.GetOrCreateRuntime();
-
-            if (Version.Major < 4 || (Version.Major == 4 && Version.Minor == 5 && Version.Revision < 10000))
-                throw new NotSupportedException($"CLR version '{Version}' is not supported by ClrMD.  For Desktop CLR, only CLR 4.6 and beyond are supported.");
-
-            return factory.GetOrCreateRuntime();
-        }
-
         private static T Read<T>(IDataReader reader, ref ulong address)
             where T : unmanaged
         {
@@ -556,14 +553,6 @@ namespace Microsoft.Diagnostics.Runtime
             address += (uint)Marshal.SizeOf<T>();
             return t;
         }
-
-        private static int Read(IDataReader reader, ref ulong address, Span<byte> buffer)
-        {
-            int read = reader.Read(address, buffer);
-            address += (uint)read;
-            return read;
-        }
-
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         private struct CLR_DEBUG_RESOURCE

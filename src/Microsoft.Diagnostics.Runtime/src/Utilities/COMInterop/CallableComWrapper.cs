@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         protected IntPtr Self { get; }
         private readonly IUnknownVTable* _unknownVTable;
-        private readonly RefCountedFreeLibrary _library;
+        private readonly RefCountedFreeLibrary? _library;
 
         protected void* _vtable => _unknownVTable + 1;
 
@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _library = toClone._library;
 
             AddRef();
-            _library.AddRef();
+            _library?.AddRef();
         }
 
         public int AddRef()
@@ -47,8 +47,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         protected CallableCOMWrapper(RefCountedFreeLibrary? library, in Guid desiredInterface, IntPtr pUnknown)
         {
-            _library = library ?? throw new ArgumentNullException(nameof(library));
-            _library.AddRef();
+            _library = library;
+            _library?.AddRef();
 
             IUnknownVTable* tbl = *(IUnknownVTable**)pUnknown;
 
@@ -81,7 +81,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!_disposed)
             {
                 Release();
-                _library.Release();
+                _library?.Release();
                 _disposed = true;
             }
         }
