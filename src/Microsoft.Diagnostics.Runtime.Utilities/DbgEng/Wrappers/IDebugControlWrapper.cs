@@ -1,5 +1,7 @@
 ﻿using System.Reflection;
 using System.Runtime.InteropServices;
+using static System.Net.Mime.MediaTypeNames;
+using System.Threading.Tasks;
 
 #pragma warning disable CS0169 // field is never used
 #pragma warning disable CS0649 // field is never assigned
@@ -69,6 +71,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
             fixed (char* textPtr = text)
                 vtable->OutputWide(self, mask, textPtr);
+        }
+
+        void IDebugControl.ControlledOutput(DEBUG_OUTCTL outCtl, DEBUG_OUTPUT dbgOutput, string text)
+        {
+            GetVTable(this, out nint self, out IDebugControlVtable* vtable);
+
+            fixed (char* textPtr = text)
+                vtable->ControlledOutputWide(self, outCtl, dbgOutput, textPtr);
         }
 
         int IDebugControl.GetExecutionStatus(out DEBUG_STATUS status)

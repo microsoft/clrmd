@@ -138,7 +138,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint ReturnInputWide;
         public readonly delegate* unmanaged[Stdcall]<nint, DEBUG_OUTPUT, char*, int> OutputWide;
         private readonly nint OutputVaListWide;
-        private readonly nint ControlledOutputWide;
+        public readonly delegate* unmanaged[Stdcall]<nint, DEBUG_OUTCTL, DEBUG_OUTPUT, char*, int> ControlledOutputWide;
         private readonly nint ControlledOutputVaListWide;
         private readonly nint OutputPromptWide;
         private readonly nint OutputPromptVaListWide;
