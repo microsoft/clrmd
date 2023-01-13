@@ -113,7 +113,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
             {
-                result = new PEImage(File.OpenRead(fileName), false, imageBase);
+                result = new PEImage(File.OpenRead(path), false, imageBase);
                 if (!result.IsValid)
                     result = null;
             }
