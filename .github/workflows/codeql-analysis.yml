@@ -1,0 +1,57 @@
+name: CodeQL Analysis
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 5.0.302
+
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v1
+        with:
+          queries: security-and-quality
+          languages: csharp
+
+      - name: Build solution
+        shell: pwsh
+        run: |
+          $pathToSolution = "Microsoft.Diagnostics.Runtime.sln"
+          $buildConfiguration = "Release"
+          $useSharedCompilation = "false"
+          $testProjects = "src/Microsoft.Diagnostics.Runtime.Tests/Microsoft.Diagnostics.Runtime.Tests.csproj" # separate paths with comma as in: "test1", "test2"
+
+          dotnet nuget locals all --clear
+
+          # remove one or more test projects, 
+          # so that CodeQL only analyzes the source code
+          dotnet sln $pathToSolution remove $testProjects
+
+          dotnet clean $pathToSolution `
+          --configuration $buildConfiguration
+
+          dotnet restore $pathToSolution
+
+          dotnet build $pathToSolution `
+          --configuration $buildConfiguration `
+          -property:UseSharedCompilation=$useSharedCompilation `
+          --no-incremental `
+          --no-restore
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v1
+
+# Built with ❤ by [Pipeline Foundation](https://pipeline.foundation)
