@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.Diagnostics.Runtime.Implementation;
-using Microsoft.Diagnostics.Runtime.Linux;
 using Microsoft.Diagnostics.Runtime.MacOS;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
@@ -15,6 +14,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -27,9 +27,8 @@ namespace Microsoft.Diagnostics.Runtime
         private bool _disposed;
         private ImmutableArray<ClrInfo> _clrs;
         private ModuleInfo[]? _modules;
-        private string? _symlink;
-        private readonly Dictionary<string, PEImage?> _pefileCache = new Dictionary<string, PEImage?>(StringComparer.OrdinalIgnoreCase);
-        private readonly object _sync = new object();
+        private readonly Dictionary<string, PEImage?> _pefileCache = new(StringComparer.OrdinalIgnoreCase);
+        private readonly object _sync = new();
 
         /// <summary>
         /// Gets the data reader for this instance.
@@ -45,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets or sets instance to manage the symbol path(s).
         /// </summary>
-        public IBinaryLocator? BinaryLocator { get => _target.BinaryLocator; set => _target.BinaryLocator = value; }
+        public IFileLocator? FileLocator { get => _target.FileLocator; set => _target.FileLocator = value; }
 
         /// <summary>
         /// Creates a DataTarget from the given reader.
@@ -57,25 +56,22 @@ namespace Microsoft.Diagnostics.Runtime
             DataReader = _target.DataReader;
             CacheOptions = _target.CacheOptions ?? new CacheOptions();
 
-            IBinaryLocator? locator = _target.BinaryLocator;
+            IFileLocator? locator = _target.FileLocator;
             if (locator == null)
             {
-                if (DataReader.TargetPlatform == OSPlatform.Windows)
-                {
-                    string sympath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH") ?? "http://msdl.microsoft.com/download/symbols";
-                    locator = new SymbolServerLocator(sympath);
-                }
-                else if (DataReader.TargetPlatform == OSPlatform.Linux)
-                {
-                    locator = new LinuxDefaultSymbolLocator(DataReader);
-                }
-                else
-                {
-                    locator = new MacOSDefaultSymbolLocator();
-                }
+                string sympath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH") ?? "";
+                locator = SymbolGroup.CreateFromSymbolPath(sympath);
             }
 
-            BinaryLocator = locator;
+            FileLocator = locator;
+        }
+
+        public void SetSymbolPath(string symbolPath)
+        {
+            if (symbolPath is null)
+                throw new ArgumentNullException(nameof(symbolPath));
+
+            FileLocator = SymbolGroup.CreateFromSymbolPath(symbolPath);
         }
 
         public void Dispose()
@@ -90,53 +86,52 @@ namespace Microsoft.Diagnostics.Runtime
                     _pefileCache.Clear();
                 }
 
-                if (_symlink != null)
-                {
-                    try
-                    {   
-                        File.Delete(_symlink);
-                    }
-                    catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
-                    {
-                    }
-                }
-
                 _target.Dispose();
                 _disposed = true;
             }
         }
 
-        internal PEImage? LoadPEImage(string path)
+        internal PEImage? LoadPEImage(string fileName, int timeStamp, int fileSize, bool checkProperties, ulong imageBase)
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(DataTarget));
 
-            if (string.IsNullOrEmpty(path))
+            if (string.IsNullOrEmpty(fileName))
                 return null;
+
+            string key = $"{fileName}/{timeStamp:x}{fileSize:x}";
 
             PEImage? result;
 
             lock (_pefileCache)
             {
-                if (_pefileCache.TryGetValue(path, out result))
+                if (_pefileCache.TryGetValue(key, out result))
                     return result;
             }
 
-            result = new PEImage(File.OpenRead(path));
+            string? path = FileLocator?.FindPEImage(fileName, timeStamp, fileSize, checkProperties);
 
-            if (!result.IsValid)
+            if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
+            {
+                result = new PEImage(File.OpenRead(path), false, imageBase);
+                if (!result.IsValid)
+                    result = null;
+            }
+            else
+            {
                 result = null;
+            }
 
             lock (_pefileCache)
             {
                 // We may have raced with another thread and that thread put a value here first
-                if (_pefileCache.TryGetValue(path, out PEImage? cached) && cached != null)
+                if (_pefileCache.TryGetValue(key, out PEImage? cached) && cached != null)
                 {
                     result?.Dispose(); // We don't need this instance now.
                     return cached;
                 }
 
-                return _pefileCache[path] = result;
+                return _pefileCache[key] = result;
             }
         }
 
@@ -158,52 +153,20 @@ namespace Microsoft.Diagnostics.Runtime
             if (_disposed)
                 throw new ObjectDisposedException(nameof(DataTarget));
 
-            if (!_clrs.IsDefault)
-                return _clrs;
-
-            Architecture arch = DataReader.Architecture;
-            ImmutableArray<ClrInfo>.Builder versions = ImmutableArray.CreateBuilder<ClrInfo>(2);
-            foreach (ModuleInfo module in EnumerateModules())
+            if (_clrs.IsDefault)
             {
-                if (!ClrInfoProvider.IsSupportedRuntime(module, out var flavor, out OSPlatform platform))
-                    continue;
+                // We order this so .Net Core comes first, so if there's multiple CLRs we prefer
+                // to debug .Net Core (assuming the user is just debugging one of them)
 
-                string dacFileName = ClrInfoProvider.GetDacFileName(flavor, platform);
-                string? dacLocation = Path.Combine(Path.GetDirectoryName(module.FileName)!, dacFileName);
+                var clrs = from module in EnumerateModules()
+                           let clrInfo = ClrInfo.TryCreate(this, module)
+                           where clrInfo != null
+                           orderby clrInfo.Flavor descending, clrInfo.Version
+                           select clrInfo;
 
-                if (platform == OSPlatform.Linux)
-                {
-                    if (File.Exists(dacLocation))
-                    {
-                        // Works around issue https://github.com/dotnet/coreclr/issues/20205
-                        lock (_sync)
-                        {
-                            _symlink = Path.GetTempFileName();
-                            if (LinuxFunctions.symlink(dacLocation, _symlink) == 0)
-                            {
-                                dacLocation = _symlink;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        dacLocation = null;
-                    }
-                }
-                else if (!File.Exists(dacLocation) || !PlatformFunctions.IsEqualFileVersion(dacLocation, module.Version))
-                {
-                    dacLocation = null;
-                }
-
-                VersionInfo version = module.Version;
-                string dacAgnosticName = ClrInfoProvider.GetDacRequestFileName(flavor, arch, arch, version, platform);
-                string dacRegularName = ClrInfoProvider.GetDacRequestFileName(flavor, IntPtr.Size == 4 ? Architecture.X86 : Architecture.Amd64, arch, version, platform);
-
-                DacInfo dacInfo = new DacInfo(dacLocation, dacRegularName, dacAgnosticName, arch, module.IndexFileSize, module.IndexTimeStamp, module.Version, module.BuildId);
-                versions.Add(new ClrInfo(this, flavor, module, dacInfo));
+                _clrs = clrs.ToImmutableArray();
             }
 
-            _clrs = versions.MoveOrCopyToImmutable();
             return _clrs;
         }
 
@@ -221,9 +184,6 @@ namespace Microsoft.Diagnostics.Runtime
             char[] invalid = Path.GetInvalidPathChars();
             ModuleInfo[] modules = DataReader.EnumerateModules().Where(m => m.FileName != null && m.FileName.IndexOfAny(invalid) < 0).ToArray();
             Array.Sort(modules, (a, b) => a.ImageBase.CompareTo(b.ImageBase));
-
-            foreach (ModuleInfo module in modules)
-                module.DataTarget = this;
 
             return _modules = modules;
         }
@@ -262,25 +222,23 @@ namespace Microsoft.Diagnostics.Runtime
                 cacheOptions ??= new CacheOptions();
 
                 DumpFileFormat format = ReadFileFormat(stream);
-
-#pragma warning disable CA2000 // Dispose objects before losing scope
-
                 IDataReader reader = format switch
                 {
                     DumpFileFormat.Minidump => new MinidumpReader(displayName, stream, cacheOptions, leaveOpen),
                     DumpFileFormat.ElfCoredump => new CoredumpReader(displayName, stream, leaveOpen),
+                    DumpFileFormat.MachOCoredump => new MachOCoreReader(displayName, stream, leaveOpen),
 
                     // USERDU64 dumps are the "old" style of dumpfile.  This file format is very old and shouldn't be
                     // used.  However, IDebugClient::WriteDumpFile(,DEBUG_DUMP_DEFAULT) still generates this format
                     // (at least with the Win10 system32\dbgeng.dll), so we will support this for now.
-                    DumpFileFormat.Userdump64 => new DbgEngDataReader(displayName, stream, leaveOpen),
+                    DumpFileFormat.Userdump64 => throw new NotSupportedException($"This dump is in the Userdump64 format, which is not supported by ClrMD directly. " +
+                                "DbgEng can read this dump format, which can be obtained via DbgEngDataReader in the Microsoft.Diagnostics.Runtime.Utilities NuGet package."),
+
                     DumpFileFormat.CompressedArchive => throw new InvalidDataException($"Stream '{displayName}' is a compressed archived instead of a dump file."),
                     _ => throw new InvalidDataException($"Stream '{displayName}' is in an unknown or unsupported file format."),
                 };
 
                 return new DataTarget(new CustomDataTarget(reader) {CacheOptions = cacheOptions});
-
-#pragma warning restore CA2000 // Dispose objects before losing scope
             }
             catch
             {
@@ -325,6 +283,8 @@ namespace Microsoft.Diagnostics.Runtime
                 0x464c457f => DumpFileFormat.ElfCoredump,       // ELF
                 0x52455355 => DumpFileFormat.Userdump64,        // USERDU64
                 0x4643534D => DumpFileFormat.CompressedArchive, // CAB
+                0xfeedfacf => DumpFileFormat.MachOCoredump,
+                0xfeedface => DumpFileFormat.MachOCoredump,
                 _ => DumpFileFormat.Unknown,
             };
 
@@ -406,7 +366,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="pDebugClient">An IDebugClient interface.</param>
         /// <returns>A <see cref="DataTarget"/> instance.</returns>
-        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
+        [Obsolete("Use the DbgEngDataReader class from the Microsoft.Diagnostics.Runtime.Utilities NuGet package.")]
         public static DataTarget CreateFromDbgEng(IntPtr pDebugClient)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))

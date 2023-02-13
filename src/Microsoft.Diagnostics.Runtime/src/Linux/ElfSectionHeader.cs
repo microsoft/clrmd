@@ -2,13 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal class ElfSectionHeader
     {
         public ElfSectionHeaderType Type { get; }
 
-        public int NameIndex { get; }
+        public uint NameIndex { get; }
 
         public ulong VirtualAddress { get; }
 
@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public ulong FileSize { get; }
 
-        public ElfSectionHeader(Reader reader, bool is64bit, long headerPositon)
+        public ElfSectionHeader(Reader reader, bool is64bit, ulong headerPositon)
         {
             if (is64bit)
             {

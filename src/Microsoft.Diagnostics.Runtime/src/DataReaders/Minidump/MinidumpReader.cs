@@ -2,17 +2,20 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
+using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Utilities;
+using Microsoft.Diagnostics.Runtime.Windows;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.Windows;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class MinidumpReader : IDataReader, IDisposable
+    internal sealed class MinidumpReader : IDataReader, IDisposable, IThreadReader, IDumpInfoProvider
     {
         private readonly Minidump _minidump;
         private IMemoryReader? _readerCached;
@@ -37,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             Architecture = _minidump.Architecture switch
             {
-                MinidumpProcessorArchitecture.Amd64 => Architecture.Amd64,
+                MinidumpProcessorArchitecture.Amd64 => Architecture.X64,
                 MinidumpProcessorArchitecture.Arm => Architecture.Arm,
                 MinidumpProcessorArchitecture.Arm64 => Architecture.Arm64,
                 MinidumpProcessorArchitecture.Intel => Architecture.X86,
@@ -51,9 +54,11 @@ namespace Microsoft.Diagnostics.Runtime
 
         public Architecture Architecture { get; }
 
-        public int ProcessId => -1;
+        public int ProcessId => _minidump.ProcessId;
 
         public int PointerSize { get; }
+
+        public bool IsMiniOrTriage => _minidump.IsMiniDump;
 
         public void Dispose()
         {
@@ -65,12 +70,19 @@ namespace Microsoft.Diagnostics.Runtime
             // We set buildId to "Empty" since only PEImages exist where minidumps are created, and we do not
             // want to try to lazily evaluate the buildId later
             return from module in _minidump.EnumerateModuleInfo()
-                   select new ModuleInfo(module.BaseOfImage, module.ModuleName, true, module.SizeOfImage,
-                                         module.DateTimeStamp, ImmutableArray<byte>.Empty);
+                   select new PEModuleInfo(this,  module.BaseOfImage, module.ModuleName ??"", true, module.DateTimeStamp, module.SizeOfImage);
         }
 
         public void FlushCachedData()
         {
+        }
+
+        public IEnumerable<uint> EnumerateOSThreadIds() => _minidump.OrderedThreads;
+
+        public ulong GetThreadTeb(uint osThreadId)
+        {
+            _minidump.Tebs.TryGetValue(osThreadId, out ulong teb);
+            return teb;
         }
 
         public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
@@ -84,22 +96,6 @@ namespace Microsoft.Diagnostics.Runtime
                 return false;
 
             return _minidump.MemoryReader.ReadFromRva(ctx.ContextRva, context) == context.Length;
-        }
-
-        public ImmutableArray<byte> GetBuildId(ulong baseAddress) => ImmutableArray<byte>.Empty;
-
-        public bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
-        {
-
-            MinidumpModuleInfo module = _minidump.EnumerateModuleInfo().FirstOrDefault(m => m.BaseOfImage == baseAddress);
-            if (module == null)
-            {
-                version = default;
-                return false;
-            }
-
-            version = module.VersionInfo.AsVersionInfo();
-            return true;
         }
 
         public int Read(ulong address, Span<byte> buffer) => MemoryReader.Read(address, buffer);

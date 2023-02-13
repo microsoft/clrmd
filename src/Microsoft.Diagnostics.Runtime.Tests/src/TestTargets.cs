@@ -5,8 +5,8 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.DbgEng;
 using Microsoft.Diagnostics.Runtime.Implementation;
-using Microsoft.Diagnostics.Runtime.Interop;
 using Xunit;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
@@ -51,6 +51,21 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static TestTarget ClrObjects => _clrObjects.Value;
         public static TestTarget Arrays => _arrays.Value;
         public static TestTarget ByReference => _byReference.Value;
+
+        public static string GetTestArtifactFolder()
+        {
+            string curr = Environment.CurrentDirectory;
+            while (curr != null)
+            {
+                string artifacts = Path.Combine(curr, "test_artifacts");
+                if (Directory.Exists(artifacts))
+                    return artifacts;
+
+                curr = Path.GetDirectoryName(curr);
+            }
+
+            return null;
+        }
     }
 
     public class TestTarget
@@ -96,7 +111,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 DataTarget dataTarget = DataTarget.LoadDump(path);
-                dataTarget.BinaryLocator = new SymbolServerLocator(string.Empty);
+                dataTarget.FileLocator = SymbolGroup.CreateFromSymbolPath(string.Empty);
                 return dataTarget;
             }
             else
@@ -121,30 +136,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public DataTarget LoadFullDumpWithDbgEng(GCMode gc = GCMode.Workstation)
         {
-            Guid guid = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
-            int hr = DebugCreate(guid, out IntPtr pDebugClient);
-            if (hr != 0)
-                throw new Exception($"Failed to create DebugClient, hr={hr:x}.");
-
-            IDebugClient client = (IDebugClient)Marshal.GetTypedObjectForIUnknown(pDebugClient, typeof(IDebugClient));
-            IDebugControl control = (IDebugControl)client;
-
             string dumpPath = BuildDumpName(gc, true);
-            hr = client.OpenDumpFile(dumpPath);
-            if (hr != 0)
-                throw new Exception($"Failed to OpenDumpFile, hr={hr:x}.");
-
-            hr = control.WaitForEvent(DEBUG_WAIT.DEFAULT, 10000);
-
-            if (hr != 0)
-                throw new Exception($"Failed to attach to dump file, hr={hr:x}.");
-
-            Marshal.Release(pDebugClient);
-            return DataTarget.CreateFromDbgEng(pDebugClient);
+            var dbgengReader = new Utilities.DbgEng.DbgEngIDataReader(dumpPath);
+            return new DataTarget(new CustomDataTarget(dbgengReader));
         }
-
-
-        [DllImport("dbgeng.dll")]
-        private static extern int DebugCreate(in Guid InterfaceId, out IntPtr pDebugClient);
     }
 }

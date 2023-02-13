@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
 
@@ -12,12 +13,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// Builds an individual VTable for a COM object.
     /// </summary>
+    [RequiresDynamicCode("This class uses reflection over delegates to generate code.  If used for NativeAOT, consider building a VTable with [UnmanagedCallersOnly] and native delegates instead.")]
     public sealed unsafe class VTableBuilder
     {
         private readonly Guid _guid;
         private readonly COMCallableIUnknown _wrapper;
         private readonly bool _forceValidation;
-        private readonly List<Delegate> _delegates = new List<Delegate>();
+        private readonly List<Delegate> _delegates = new();
 
         private bool _complete;
 
@@ -69,9 +71,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             *(void**)obj = vtable;
 
             IUnknownVTable iunk = _wrapper.IUnknown;
-            *vtable++ = iunk.QueryInterface;
-            *vtable++ = iunk.AddRef;
-            *vtable++ = iunk.Release;
+            *vtable++ = new IntPtr(iunk.QueryInterface);
+            *vtable++ = new IntPtr(iunk.AddRef);
+            *vtable++ = new IntPtr(iunk.Release);
 
             foreach (Delegate d in _delegates)
                 *vtable++ = Marshal.GetFunctionPointerForDelegate(d);

@@ -4,7 +4,7 @@
 
 using System.Runtime.InteropServices;
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal readonly struct ElfHeader32 : IElfHeader
@@ -37,9 +37,9 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         public ElfData Data => _common.Data;
 
-        public long ProgramHeaderOffset => _programHeaderOffset;
+        public ulong ProgramHeaderOffset => _programHeaderOffset;
 
-        public long SectionHeaderOffset => _sectionHeaderOffset;
+        public ulong SectionHeaderOffset => _sectionHeaderOffset;
 
         public ushort ProgramHeaderEntrySize => _programHeaderEntrySize;
 

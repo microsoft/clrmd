@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class ComSyncBlock : SyncBlock
+    internal sealed class ComSyncBlock : SyncBlock
     {
         public SyncBlockComFlags ComFlags { get; }
 

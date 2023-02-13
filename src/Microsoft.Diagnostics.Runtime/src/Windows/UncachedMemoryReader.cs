@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
     {
         private readonly ImmutableArray<MinidumpSegment> _segments;
         private readonly Stream _stream;
-        private readonly object _sync = new object();
+        private readonly object _sync = new();
         private readonly bool _leaveOpen;
 
         public UncachedMemoryReader(ImmutableArray<MinidumpSegment> segments, Stream stream, int pointerSize, bool leaveOpen)
@@ -46,32 +46,43 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public override int Read(ulong address, Span<byte> buffer)
         {
-            if (address == 0)
+            if (address == 0 || buffer.Length == 0)
                 return 0;
 
             lock (_sync)
             {
                 try
                 {
-                    int bytesRead = 0;
+                    int i = GetFirstSegmentContaining(address);
+                    if (i < 0)
+                        return 0;
 
-                    while (bytesRead < buffer.Length)
+                    int bytesRead = 0;
+                    for (; i < _segments.Length; i++)
                     {
-                        ulong currAddress = address + (uint)bytesRead;
-                        int curr = GetSegmentContaining(currAddress);
-                        if (curr == -1)
+                        MinidumpSegment segment = _segments[i];
+                        ulong virtualAddress = segment.VirtualAddress;
+                        ulong size = segment.Size;
+                        if (virtualAddress > address)
                             break;
 
-                        MinidumpSegment seg = _segments[curr];
-                        ulong offset = currAddress - seg.VirtualAddress;
+                        if (address >= virtualAddress + size)
+                            continue;
 
-                        Span<byte> slice = buffer.Slice(bytesRead, Math.Min(buffer.Length - bytesRead, (int)(seg.Size - offset)));
-                        _stream.Position = (long)(seg.FileOffset + offset);
+                        ulong offset = address - virtualAddress;
+                        int toRead = (int)Math.Min(buffer.Length - bytesRead, (long)(size - offset));
+
+                        Span<byte> slice = buffer.Slice(bytesRead, toRead);
+                        _stream.Position = (long)(segment.FileOffset + offset);
                         int read = _stream.Read(slice);
-                        if (read == 0)
+                        if (read < toRead)
                             break;
 
                         bytesRead += read;
+                        if (bytesRead == buffer.Length)
+                            break;
+
+                        address += (uint)read;
                     }
 
                     return bytesRead;
@@ -83,30 +94,33 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
         }
 
-        private int GetSegmentContaining(ulong address)
+        private int GetFirstSegmentContaining(ulong address)
         {
-            int result = -1;
             int lower = 0;
             int upper = _segments.Length - 1;
 
             while (lower <= upper)
             {
                 int mid = (lower + upper) >> 1;
-                MinidumpSegment seg = _segments[mid];
+                MinidumpSegment segment = _segments[mid];
 
-                if (seg.Contains(address))
+                if (segment.Contains(address))
                 {
-                    result = mid;
-                    break;
+                    while (mid > 0 && address < _segments[mid - 1].End)
+                    {
+                        mid--;
+                    }
+
+                    return mid;
                 }
 
-                if (address < seg.VirtualAddress)
+                if (address < segment.VirtualAddress)
                     upper = mid - 1;
                 else
                     lower = mid + 1;
             }
 
-            return result;
+            return -1;
         }
     }
 }

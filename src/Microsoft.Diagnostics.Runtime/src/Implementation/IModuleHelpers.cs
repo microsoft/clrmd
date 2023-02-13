@@ -6,7 +6,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IModuleHelpers
+    internal interface IModuleHelpers
     {
         ITypeFactory Factory { get; }
         IDataReader DataReader { get; }

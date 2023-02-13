@@ -8,19 +8,19 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
-    /// FileVersionInfo reprents the extended version formation that is optionally placed in the PE file resource area.
+    /// FileVersionInfo represents the extended version formation that is optionally placed in the PE file resource area.
     /// </summary>
-    public sealed unsafe class FileVersionInfo
+    internal sealed unsafe class FileVersionInfo
     {
         /// <summary>
-        /// Gets the verison string
+        /// Gets the version string
         /// </summary>
         public string? FileVersion { get; }
 
         /// <summary>
         /// Gets the version of this module
         /// </summary>
-        public VersionInfo VersionInfo { get; }
+        public System.Version? Version { get; }
 
         /// <summary>
         /// Gets comments to supplement the file version
@@ -33,25 +33,25 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             FileVersion = GetDataString(dataAsString, "FileVersion".AsSpan());
             Comments = GetDataString(dataAsString, "Comments".AsSpan());
-            VersionInfo = GetVersionInfo(dataAsString);
+            Version = GetVersionInfo(dataAsString);
         }
 
-        private static VersionInfo GetVersionInfo(ReadOnlySpan<char> dataAsString)
+        private static System.Version? GetVersionInfo(ReadOnlySpan<char> dataAsString)
         {
             ReadOnlySpan<char> fileVersionKey = "VS_VERSION_INFO".AsSpan();
             int fileVersionIndex = dataAsString.IndexOf(fileVersionKey);
             if (fileVersionIndex < 0)
-                return default;
+                return null;
 
             dataAsString = dataAsString.Slice(fileVersionIndex + fileVersionKey.Length);
             ReadOnlySpan<byte> asBytes = MemoryMarshal.Cast<char, byte>(dataAsString);
 
             int minor = MemoryMarshal.Read<ushort>(asBytes.Slice(12));
             int major = MemoryMarshal.Read<ushort>(asBytes.Slice(14));
-            int patch = MemoryMarshal.Read<ushort>(asBytes.Slice(16));
-            int revision = MemoryMarshal.Read<ushort>(asBytes.Slice(18));
+            int revision = MemoryMarshal.Read<ushort>(asBytes.Slice(16));
+            int build = MemoryMarshal.Read<ushort>(asBytes.Slice(18));
 
-            return new VersionInfo(major, minor, revision, patch, true);
+            return new System.Version(major, minor, build, revision);
         }
 
         private static string? GetDataString(ReadOnlySpan<char> dataAsString, ReadOnlySpan<char> fileVersionKey)

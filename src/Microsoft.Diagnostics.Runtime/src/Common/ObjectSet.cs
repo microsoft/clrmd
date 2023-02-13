@@ -14,19 +14,13 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public class ObjectSet
     {
+        private static int MinObjSize => IntPtr.Size * 3;
         private readonly HeapHashSegment[] _segments;
 
         /// <summary>
         /// The ClrHeap this is an object set over.
         /// </summary>
         public ClrHeap Heap { get; }
-
-        /// <summary>
-        /// The minimum object size for this particular heap.
-        /// </summary>
-#pragma warning disable CA1822 // CA1822: Mark members as static
-        public int MinObjSize => IntPtr.Size * 3;
-#pragma warning restore CA1822 // CA1822: Mark members as static
 
         /// <summary>
         /// The collection of segments and associated objects.
@@ -58,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         StartAddress = start,
                         EndAddress = end,
-                        Objects = new BitArray((int)(end - start) / MinObjSize, false)
+                        Objects = new BitArray((int)((uint)(end - start) / MinObjSize), false)
                     });
                 }
             }
@@ -146,7 +140,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The index into seg.Objects.</returns>
         protected int GetOffset(ulong obj, HeapHashSegment seg)
         {
-            return checked((int)(obj - seg.StartAddress) / MinObjSize);
+            return checked((int)((uint)(obj - seg.StartAddress) / MinObjSize));
         }
 
         /// <summary>
@@ -192,7 +186,7 @@ namespace Microsoft.Diagnostics.Runtime
         protected struct HeapHashSegment
         {
             /// <summary>
-            /// The the objects in the memory range.
+            /// The objects in the memory range.
             /// </summary>
             public BitArray Objects;
 

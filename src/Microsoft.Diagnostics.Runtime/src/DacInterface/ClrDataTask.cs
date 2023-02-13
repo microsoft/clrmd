@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     internal unsafe class ClrDataTask : CallableCOMWrapper
     {
-        private static readonly Guid IID_IXCLRDataTask = new Guid("A5B0BEEA-EC62-4618-8012-A24FFC23934C");
+        private static readonly Guid IID_IXCLRDataTask = new("A5B0BEEA-EC62-4618-8012-A24FFC23934C");
 
         public ClrDataTask(DacLibrary library, IntPtr pUnk)
             : base(library.OwningLibrary, IID_IXCLRDataTask, pUnk)
@@ -22,19 +22,16 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrStackWalk? CreateStackWalk(DacLibrary library, uint flags)
         {
-            CreateStackWalkDelegate create = Marshal.GetDelegateForFunctionPointer<CreateStackWalkDelegate>(VTable.CreateStackWalk);
-            if (!create(Self, flags, out IntPtr pUnk))
+            HResult hr = VTable.CreateStackWalk(Self, flags, out IntPtr pUnk);
+            if (!hr)
                 return null;
 
-            GC.KeepAlive(create);
             return new ClrStackWalk(library, pUnk);
         }
-
-        private delegate HResult CreateStackWalkDelegate(IntPtr self, uint flags, out IntPtr stackwalk);
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct ClrDataTaskVTable
+    internal readonly unsafe struct ClrDataTaskVTable
     {
         private readonly IntPtr GetProcess;
         private readonly IntPtr GetCurrentAppDomain;
@@ -44,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr GetManagedObject;
         private readonly IntPtr GetDesiredExecutionState;
         private readonly IntPtr SetDesiredExecutionState;
-        public readonly IntPtr CreateStackWalk;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, out IntPtr, int> CreateStackWalk;
         private readonly IntPtr GetOSThreadID;
         private readonly IntPtr GetContext;
         private readonly IntPtr SetContext;

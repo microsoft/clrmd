@@ -12,7 +12,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class ClrmdModule : ClrModule
+    internal sealed class ClrmdModule : ClrModule
     {
         private const int mdtTypeDef = 0x02000000;
         private const int mdtTypeRef = 0x01000000;
@@ -47,8 +47,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _data = data;
             _helpers = data.Helpers;
             AppDomain = parent;
-            Name = data.Name;
-            AssemblyName = data.AssemblyName;
+            Name = data.Name ?? data.FileName;
+            AssemblyName = data.AssemblyName ?? data.FileName;
             AssemblyAddress = data.AssemblyAddress;
             Address = data.Address;
             IsPEFile = data.IsPEFile;
@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Size = data.Size;
             MetadataAddress = data.MetadataStart;
             MetadataLength = data.MetadataLength;
-            IsDynamic = data.IsReflection || string.IsNullOrWhiteSpace(Name);
+            IsDynamic = data.IsReflection || data.IsDynamic;
         }
 
         public ClrmdModule(ClrAppDomain parent, IModuleHelpers helpers, ulong addr)

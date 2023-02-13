@@ -18,6 +18,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
+            // We make sure SearchMemory will find things that are not pointer aligned with 'i' here.
+            Span<byte> buffer = stackalloc byte[sizeof(ulong) + sizeof(int)];
+
             foreach (var segment in heap.Segments)
             {
                 HashSet<ulong> seen = new HashSet<ulong>() { 0 };
@@ -30,8 +33,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 foreach (ClrObject obj in firstSeenObjectOfType)
                 {
-                    // We make sure SearchMemory will find things that are not pointer aligned with 'i' here.
-                    Span<byte> buffer = stackalloc byte[sizeof(ulong) + sizeof(int)];
                     for (int i = 0; i < sizeof(int); i++)
                     {
                         ulong expectedOffset = obj.Address - (uint)i;
@@ -44,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                         ulong addressFound = dt.DataReader.SearchMemory(segment.Start, (int)segment.Length, buffer.Slice(0, i + sizeof(ulong)));
 
-                        // There could still accidently be a pattern that matches this somewhere
+                        // There could still accidentally be a pattern that matches this somewhere
                         while (addressFound != 0 && addressFound < expectedOffset)
                             addressFound = dt.DataReader.SearchMemory(addressFound + 1, (int)(segment.End - (addressFound + 1)), buffer.Slice(0, i + sizeof(ulong)));
 

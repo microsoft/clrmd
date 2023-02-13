@@ -2,8 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
+    /// <summary>
+    /// The kind of ELF note.
+    /// </summary>
     internal enum ElfNoteType : uint
     {
         PrpsStatus = 1,
@@ -11,7 +14,6 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         PrpsInfo = 3,
         TASKSTRUCT = 4,
         Aux = 6,
-
         File = 0x46494c45 // "FILE" in ascii
     }
 }

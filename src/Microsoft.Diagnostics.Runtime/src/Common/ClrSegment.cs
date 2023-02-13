@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract int LogicalHeap { get; }
 
         /// <summary>
-        /// Gets the range of memory reserved (but not commited) for this segment.
+        /// Gets the range of memory reserved (but not committed) for this segment.
         /// </summary>
         public abstract MemoryRange ReservedMemory { get; }
 
@@ -70,6 +70,11 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract bool IsLargeObjectSegment { get; }
 
         /// <summary>
+        /// Returns true if this is a segment for the Pinned Object Heap.  False otherwise.
+        /// </summary>
+        public abstract bool IsPinnedObjectSegment { get; }
+
+        /// <summary>
         /// Returns true if this segment is the ephemeral segment (meaning it contains gen0 and gen1
         /// objects).
         /// </summary>
@@ -86,7 +91,7 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract MemoryRange Generation1 { get; }
 
         /// <summary>
-        /// The memory range for Generation e on this segment.  This will be equivalent to ObjectRange if <see cref="IsEphemeralSegment"/> is false.
+        /// The memory range for Generation 2 on this segment.  This will be equivalent to ObjectRange if <see cref="IsEphemeralSegment"/> is false.
         /// </summary>
         public abstract MemoryRange Generation2 { get; }
 

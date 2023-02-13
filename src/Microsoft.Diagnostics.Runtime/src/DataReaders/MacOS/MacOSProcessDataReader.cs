@@ -3,21 +3,29 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
-    internal sealed class MacOSProcessDataReader : CommonMemoryReader, IDataReader, IDisposable
+    internal sealed class MacOSProcessDataReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader
     {
         private readonly int _task;
 
-        private List<MemoryRegion> _memoryRegions;
+        private ImmutableArray<MemoryRegion>.Builder _memoryRegions;
+        private readonly Dictionary<ulong, uint> _threadActs = new(); // map of thread id (uint64_t) -> thread (thread_act_t)
 
         private bool _suspended;
         private bool _disposed;
+        private readonly int _machTaskSelf;
 
         public MacOSProcessDataReader(int processId, bool suspend)
         {
@@ -26,9 +34,10 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 throw new ArgumentException("The process is not running");
 
             ProcessId = processId;
-            _memoryRegions = LoadMemoryRegions();
 
-            int kr = Native.task_for_pid(Native.mach_task_self(), processId, out int task);
+            _machTaskSelf = Native.mach_task_self();
+
+            int kr = Native.task_for_pid(_machTaskSelf, processId, out int task);
             if (kr != 0)
                 throw new ClrDiagnosticsException($"task_for_pid failed with status code 0x{kr:x}");
 
@@ -49,6 +58,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
                 _suspended = true;
             }
+
+            _memoryRegions = LoadMemoryRegions();
+            Architecture = RuntimeInformation.ProcessArchitecture;
         }
 
         ~MacOSProcessDataReader() => Dispose(false);
@@ -59,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         public OSPlatform TargetPlatform => OSPlatform.OSX;
 
-        public Architecture Architecture => Architecture.Amd64;
+        public Architecture Architecture { get; }
 
         public int ProcessId { get; }
 
@@ -69,10 +81,13 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             GC.SuppressFinalize(this);
         }
 
-        private void Dispose(bool _)
+        private void Dispose(bool disposing)
         {
             if (_disposed)
                 return;
+
+            foreach (uint threadAct in _threadActs.Values)
+                _ = Native.mach_port_deallocate(_machTaskSelf, threadAct);
 
             if (_suspended)
             {
@@ -80,11 +95,19 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 if (status < 0)
                 {
                     int errno = Marshal.GetLastWin32Error();
-                    throw new ClrDiagnosticsException($"Could not detach from process {ProcessId}, errno: {errno}", errno);
+
+                    // We don't want to bring down the process from the finalizer thread.
+                    // We'll only throw here if we are in a dispose call.
+                    if (disposing)
+                        throw new ClrDiagnosticsException($"Could not detach from process {ProcessId}, errno: {errno}");
+                    else
+                        Trace.WriteLine($"Could not detach from process {ProcessId}, errno: {errno}");
                 }
 
                 _suspended = false;
             }
+
+            _ = Native.mach_port_deallocate(_machTaskSelf, (uint)_task);
 
             _disposed = true;
         }
@@ -104,10 +127,14 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             Native.dyld_all_image_infos infos = Read<Native.dyld_all_image_infos>(dyldInfo.all_image_info_addr);
             for (uint i = 0; i < infos.infoArrayCount; i++)
             {
+                // TODO:  UUID?
+
                 Native.dyld_image_info info = Read<Native.dyld_image_info>(infos.infoArray, i);
                 ulong imageAddress = info.imageLoadAddress;
                 string imageFilePath = ReadNullTerminatedAscii(info.imageFilePath);
-                yield return new ModuleInfo(imageAddress, imageFilePath, true, 0, 0, ImmutableArray<byte>.Empty);
+
+                Version version = GetVersionInfo(info.imageLoadAddress) ?? new Version();
+                yield return new MachOModuleInfo(null, imageAddress, imageFilePath, version, 0);
             }
 
             unsafe T Read<T>(ulong address, uint index = 0)
@@ -142,15 +169,10 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             }
         }
 
-        public ImmutableArray<byte> GetBuildId(ulong baseAddress) => ImmutableArray<byte>.Empty;
-
-        public unsafe bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
+        public unsafe Version? GetVersionInfo(ulong baseAddress)
         {
             if (!Read(baseAddress, out MachOHeader64 header) || header.Magic != MachOHeader64.ExpectedMagic)
-            {
-                version = default;
-                return false;
-            }
+                return null;
 
             baseAddress += (uint)sizeof(MachOHeader64);
 
@@ -175,7 +197,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                             {
                                 long dataOffset = section.Address;
                                 long dataSize = section.Size;
-                                return this.GetVersionInfo(baseAddress + (ulong)dataOffset, (ulong)dataSize, out version);
+                                if (this.GetVersionInfo(baseAddress + (ulong)dataOffset, (ulong)dataSize, out Version? version))
+                                    return version;
                             }
                         }
 
@@ -188,15 +211,14 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 baseAddress += (uint)(commandSize - sizeof(MachOCommand));
             }
 
-            version = default;
-            return false;
+            return null;
         }
 
         public override unsafe int Read(ulong address, Span<byte> buffer)
         {
             DebugOnly.Assert(!buffer.IsEmpty);
 
-            int readable = GetReadableBytesCount(address, buffer.Length);
+            int readable = this.GetReadableBytesCount(_memoryRegions, address, buffer.Length);
             if (readable <= 0)
             {
                 return 0;
@@ -220,88 +242,98 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             return result;
         }
 
-        public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
+        public IEnumerable<uint> EnumerateOSThreadIds()
         {
-            // TODO
-            return false;
+            LoadThreads();
+            return _threadActs.Keys.Select(threadID => checked((uint)threadID));
         }
 
-        private int GetReadableBytesCount(ulong address, int bytesRequested)
+        public ulong GetThreadTeb(uint _) => 0;
+
+        public unsafe bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
-            if (bytesRequested < 1)
+            LoadThreads();
+            if (!_threadActs.TryGetValue(threadID, out var threadAct))
+                return false;
+
+            int stateFlavor;
+            int stateCount;
+            int regSize;
+            (stateFlavor, stateCount, regSize) = Architecture switch
             {
-                return 0;
+                Architecture.X64 => (Native.x86_THREAD_STATE64, Native.x86_THREAD_STATE64_COUNT, sizeof(x86_thread_state64_t)),
+                Architecture.Arm64 => (Native.ARM_THREAD_STATE64, Native.ARM_THREAD_STATE64_COUNT, sizeof(arm_thread_state64_t)),
+                _ => throw new PlatformNotSupportedException()
+            };
+
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(regSize);
+            try
+            {
+                fixed (byte* data = buffer)
+                {
+                    int kr = Native.thread_get_state(threadAct, stateFlavor, new IntPtr(data), ref stateCount);
+                    if (kr != 0)
+                        return false;
+                }
+
+                switch (Architecture)
+                {
+                    case Architecture.X64:
+                        Unsafe.As<byte, x86_thread_state64_t>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        break;
+                    case Architecture.Arm64:
+                        Unsafe.As<byte, arm_thread_state64_t>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        break;
+                    default:
+                        throw new PlatformNotSupportedException();
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
             }
 
-            ulong endAddress = address + (ulong)bytesRequested - 1;
-            int bytesReadable = 0;
-            ulong prevEndAddr = default;
+            return true;
+        }
 
-            int startIndex = -1;
-            for (int i = 0; i < _memoryRegions.Count; i++)
+        private unsafe void LoadThreads()
+        {
+            if (_threadActs.Count == 0)
             {
-                MemoryRegion entry = _memoryRegions[i];
-                ulong entryBeginAddr = entry.BeginAddress;
-                ulong entryEndAddr = entry.EndAddress;
-                if (entryBeginAddr <= address && address < entryEndAddr && entry.IsReadable)
+                uint* threads;
+                uint threadsCount;
+                int kr = Native.task_threads(_task, &threads, out threadsCount);
+                if (kr != 0)
+                    throw new ClrDiagnosticsException($"task_threads failed with status code 0x{kr:x}");
+
+                try
                 {
-                    int regionSize = (int)(entryEndAddr - address);
-                    if (regionSize >= bytesRequested)
+                    for (uint i = 0; i < threadsCount; ++i)
                     {
-                        return bytesRequested;
+                        int threadInfoCount = Native.THREAD_IDENTIFIER_INFO_COUNT;
+                        kr = Native.thread_info(threads[i], Native.THREAD_IDENTIFIER_INFO, out Native.thread_identifier_info identifierInfo, ref threadInfoCount);
+                        if (kr != 0)
+                            continue;
+
+                        _threadActs.Add(identifierInfo.thread_id, threads[i]);
                     }
-
-                    startIndex = i;
-                    bytesRequested -= regionSize;
-                    bytesReadable = regionSize;
-                    prevEndAddr = entryEndAddr;
-                    break;
                 }
-            }
-
-            if (startIndex < 0)
-            {
-                return 0;
-            }
-
-            for (int i = startIndex + 1; i < _memoryRegions.Count; i++)
-            {
-                MemoryRegion entry = _memoryRegions[i];
-                ulong entryBeginAddr = entry.BeginAddress;
-                ulong entryEndAddr = entry.EndAddress;
-                if (entryBeginAddr > endAddress || entryBeginAddr != prevEndAddr || !entry.IsReadable)
+                finally
                 {
-                    break;
+                    _ = Native.mach_vm_deallocate(Native.mach_task_self(), (ulong)threads, threadsCount * sizeof(uint));
                 }
-
-                int regionSize = (int)(entryEndAddr - entryBeginAddr);
-                if (regionSize >= bytesRequested)
-                {
-                    bytesReadable += bytesRequested;
-                    break;
-                }
-
-                bytesRequested -= regionSize;
-                bytesReadable += regionSize;
-                prevEndAddr = entryEndAddr;
             }
-
-            return bytesReadable;
         }
 
-        private List<MemoryRegion> LoadMemoryRegions()
+        private ImmutableArray<MemoryRegion>.Builder LoadMemoryRegions()
         {
-            List<MemoryRegion> result = new List<MemoryRegion>();
-
-            int kr = Native.task_for_pid(Native.mach_task_self(), ProcessId, out int task);
-            if (kr != 0)
-                throw new ClrDiagnosticsException($"task_for_pid failed with status code 0x{kr:x}");
+            ImmutableArray<MemoryRegion>.Builder result = ImmutableArray.CreateBuilder<MemoryRegion>();
 
             ulong address = 0;
             int infoCount = Native.VM_REGION_BASIC_INFO_COUNT_64;
             while (true)
             {
-                kr = Native.mach_vm_region(task, ref address, out ulong size, Native.VM_REGION_BASIC_INFO_64, out Native.vm_region_basic_info_64 info, ref infoCount, out _);
+                int kr = Native.mach_vm_region(_task, ref address, out ulong size, Native.VM_REGION_BASIC_INFO_64, out Native.vm_region_basic_info_64 info, ref infoCount, out _);
                 if (kr != 0)
                     if (kr != Native.KERN_INVALID_ADDRESS)
                         throw new ClrDiagnosticsException();
@@ -334,9 +366,15 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             internal const int PT_DETACH = 11;
 
             internal const int TASK_DYLD_INFO = 17;
+            internal const int THREAD_IDENTIFIER_INFO = 4;
+            internal const int x86_THREAD_STATE64 = 4;
+            internal const int ARM_THREAD_STATE64 = 6;
             internal const int VM_REGION_BASIC_INFO_64 = 9;
 
             internal static readonly unsafe int TASK_DYLD_INFO_COUNT = sizeof(task_dyld_info) / sizeof(uint);
+            internal static readonly unsafe int THREAD_IDENTIFIER_INFO_COUNT = sizeof(thread_identifier_info) / sizeof(uint);
+            internal static readonly unsafe int x86_THREAD_STATE64_COUNT = sizeof(x86_thread_state64_t) / sizeof(uint);
+            internal static readonly unsafe int ARM_THREAD_STATE64_COUNT = sizeof(arm_thread_state64_t) / sizeof(uint);
             internal static readonly unsafe int VM_REGION_BASIC_INFO_COUNT_64 = sizeof(vm_region_basic_info_64) / sizeof(int);
 
             private const string LibSystem = "libSystem.dylib";
@@ -357,10 +395,25 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             internal static extern int task_info(int target_task, uint flavor, out /*int*/task_dyld_info task_info, ref /*uint*/int task_info_count);
 
             [DllImport(LibSystem)]
+            internal static extern unsafe int task_threads(int target_task, uint** act_list, out uint act_list_count);
+
+            [DllImport(LibSystem)]
+            internal static extern int thread_info(uint target_act, uint flavor, out /*int*/thread_identifier_info thread_info, ref /*uint*/int thread_info_count);
+
+            [DllImport(LibSystem)]
+            internal static extern int thread_get_state(uint target_act, int flavor, /*uint**/IntPtr old_state, ref /*uint*/int old_state_count);
+
+            [DllImport(LibSystem)]
             internal static extern unsafe int vm_read_overwrite(int target_task, /*UIntPtr*/ulong address, /*UIntPtr*/long size, /*UIntPtr*/void* data, out /*UIntPtr*/long data_size);
 
             [DllImport(LibSystem)]
             internal static extern int mach_vm_region(int target_task, ref /*UIntPtr*/ulong address, out /*UIntPtr*/ulong size, int flavor, out /*int*/vm_region_basic_info_64 info, ref /*uint*/int info_count, out int object_name);
+
+            [DllImport(LibSystem)]
+            internal static extern int mach_vm_deallocate(int target_task, /*UIntPtr*/ulong address, /*UIntPtr*/ulong size);
+
+            [DllImport(LibSystem)]
+            internal static extern int mach_port_deallocate(/*uint*/int task, uint name);
 
             [DllImport(LibSystem)]
             internal static extern int waitpid(int pid, IntPtr status, int options);
@@ -388,6 +441,13 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 internal readonly int all_image_info_format;
             }
 
+            internal readonly struct thread_identifier_info
+            {
+                internal readonly ulong thread_id;
+                internal readonly ulong thread_handle;
+                internal readonly ulong dispatch_qaddr;
+            }
+
             internal readonly struct vm_region_basic_info_64
             {
                 internal readonly int protection;
@@ -401,10 +461,11 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             }
         }
 
-        internal sealed class MemoryRegion
+        internal struct MemoryRegion : IRegion
         {
             public ulong BeginAddress { get; set; }
             public ulong EndAddress { get; set; }
+
             public int Permission { get; set; }
 
             public bool IsReadable => (Permission & Native.PROT_READ) != 0;

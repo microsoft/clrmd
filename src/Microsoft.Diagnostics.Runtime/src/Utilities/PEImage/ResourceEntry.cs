@@ -14,9 +14,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// An entry in the resource table.
     /// </summary>
-    public sealed class ResourceEntry
+    internal sealed class ResourceEntry : IResourceNode
     {
-        private ImmutableArray<ResourceEntry> _children;
+        private ImmutableArray<IResourceNode> _children;
         private readonly int _offset;
 
         /// <summary>
@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         /// <param name="name">The name of the child to return.</param>
         /// <returns>The child in question, or <see langword="null"/> if none are found with that name.</returns>
-        public ResourceEntry this[string name] => Children.SingleOrDefault(c => c.Name == name);
+        public IResourceNode? GetChild(string name) => Children.FirstOrDefault(c => c.Name == name);
 
         internal ResourceEntry(PEImage image, ResourceEntry? parent, string name, bool leaf, int offset)
         {
@@ -99,13 +99,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// The data associated with this entry.
         /// </summary>
         /// <returns>A byte array of the data, or a byte[] of length 0 if this entry contains no data.</returns>
-        public int GetData(Span<byte> span)
+        public int Read(Span<byte> span, int offset)
         {
             GetDataVaAndSize(out int va, out int size);
             if (size == 0 || va == 0)
                 return 0;
 
-            return Image.Read(va, span);
+            return Image.Read(va + offset, span);
         }
 
         /// <summary>
@@ -114,7 +114,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <typeparam name="T">A struct type to convert.</typeparam>
         /// <param name="offset">The offset into the data.</param>
         /// <returns>The struct that was read out of the data section.</returns>
-        public unsafe T GetData<T>(int offset = 0) where T : unmanaged
+        public unsafe T Read<T>(int offset) where T : unmanaged
         {
             int size = Unsafe.SizeOf<T>();
             GetDataVaAndSize(out int va, out int sectionSize);
@@ -126,11 +126,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return read == size ? output : default;
         }
 
-
         /// <summary>
         /// Gets the children resources of this ResourceEntry.
         /// </summary>
-        public ImmutableArray<ResourceEntry> Children
+        public ImmutableArray<IResourceNode> Children
         {
             get
             {
@@ -138,7 +137,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     return _children;
 
                 if (IsLeaf)
-                    return _children = ImmutableArray<ResourceEntry>.Empty;
+                    return _children = ImmutableArray<IResourceNode>.Empty;
 
                 try
                 {
@@ -149,16 +148,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     // Cap the number of entires we inspect
                     int count = Math.Min(hdr.NumberOfNamedEntries + hdr.NumberOfIdEntries, MaxChildrenCount);
 
-                    ImmutableArray<ResourceEntry>.Builder result = ImmutableArray.CreateBuilder<ResourceEntry>(count);
+                    ImmutableArray<IResourceNode>.Builder result = ImmutableArray.CreateBuilder<IResourceNode>(count);
 
                     for (int i = 0; i < count; i++)
                     {
-                        if (!Image.TryRead<IMAGE_RESOURCE_DIRECTORY_ENTRY>(ref offset, out IMAGE_RESOURCE_DIRECTORY_ENTRY entry))
+                        if (!Image.TryRead<ImageResourceDirectoryEntry>(ref offset, out ImageResourceDirectoryEntry entry))
                             break;
 
                         string name;
                         if (!entry.IsStringName)
-                            name = IMAGE_RESOURCE_DIRECTORY_ENTRY.GetTypeNameForTypeId(entry.Id);
+                            name = ImageResourceDirectoryEntry.GetTypeNameForTypeId(entry.Id);
                         else
                             name = GetName(entry.NameOffset, resourceStartFileOffset);
 
@@ -172,7 +171,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     // If there's a bad image we could hit a variety of different failures here, including out of memory or
                     // under/overflow issues.  We'll just not return anything if we hit an error here since a bad image
                     // could lead to really unpredictable behavior if we are interpreting random bits of data.
-                    return _children = ImmutableArray<ResourceEntry>.Empty;
+                    return _children = ImmutableArray<IResourceNode>.Empty;
                 }
             }
         }
@@ -203,7 +202,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             try
             {
                 Span<char> span = new Span<char>(buffer, 0, len);
-                int count = Image.Read(offset, MemoryMarshal.AsBytes(span)) >> 1;
+                int count = Image.ReadFromOffset(offset, MemoryMarshal.AsBytes(span)) >> 1;
 
                 int i = 0;
                 while (i < len && buffer[i] != 0)
@@ -219,7 +218,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private void GetDataVaAndSize(out int va, out int size)
         {
-            IMAGE_RESOURCE_DATA_ENTRY dataEntry = Image.Read<IMAGE_RESOURCE_DATA_ENTRY>(_offset);
+            ImageResourceDataEntry dataEntry = Image.Read<ImageResourceDataEntry>(_offset);
             va = dataEntry.RvaToData;
             size = dataEntry.Size;
         }

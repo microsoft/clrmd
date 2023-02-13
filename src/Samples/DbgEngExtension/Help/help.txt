@@ -1,0 +1,4 @@
+Commands in this extension:
+    !$MADDRESS
+    !$FINDPOINTERSIN
+    !$GCTONATIVE

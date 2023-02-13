@@ -11,9 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     public sealed unsafe class ClrDataMethod : CallableCOMWrapper
     {
-        private static readonly Guid IID_IXCLRDataMethodInstance = new Guid("ECD73800-22CA-4b0d-AB55-E9BA7E6318A5");
-
-        private GetILAddressMapDelegate? _getILAddressMap;
+        private static readonly Guid IID_IXCLRDataMethodInstance = new("ECD73800-22CA-4b0d-AB55-E9BA7E6318A5");
 
         public ClrDataMethod(DacLibrary library, IntPtr pUnk)
             : base(library?.OwningLibrary, IID_IXCLRDataMethodInstance, pUnk)
@@ -24,23 +22,22 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ILToNativeMap[]? GetILToNativeMap()
         {
-            InitDelegate(ref _getILAddressMap, VTable.GetILAddressMap);
-
-            HResult hr = _getILAddressMap(Self, 0, out uint needed, null);
+            HResult hr = VTable.GetILAddressMap(Self, 0, out uint needed, null);
             if (!hr)
                 return null;
 
             ILToNativeMap[] map = new ILToNativeMap[needed];
-            hr = _getILAddressMap(Self, needed, out needed, map);
 
-            return hr ? map : null;
+            fixed (ILToNativeMap* ptr = map)
+            {
+                hr = VTable.GetILAddressMap(Self, needed, out needed, ptr);
+                return hr ? map : null;
+            }
         }
-
-        private delegate HResult GetILAddressMapDelegate(IntPtr self, uint mapLen, out uint mapNeeded, [Out][MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)] ILToNativeMap[]? map);
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct IXCLRDataMethodInstanceVTable
+    internal readonly unsafe struct IXCLRDataMethodInstanceVTable
     {
         private readonly IntPtr GetTypeInstance;
         private readonly IntPtr GetDefinition;
@@ -53,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr GetTypeArgumentByIndex;
         private readonly IntPtr GetILOffsetsByAddress; // (ulong address, uint offsetsLen, out uint offsetsNeeded, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] uint[] ilOffsets);
         private readonly IntPtr GetAddressRangesByILOffset; // (uint ilOffset, uint rangesLen, out uint rangesNeeded, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] uint[] addressRanges);
-        public readonly IntPtr GetILAddressMap;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, out uint, ILToNativeMap*, int> GetILAddressMap;
         private readonly IntPtr StartEnumExtents;
         private readonly IntPtr EnumExtent;
         private readonly IntPtr EndEnumExtents;

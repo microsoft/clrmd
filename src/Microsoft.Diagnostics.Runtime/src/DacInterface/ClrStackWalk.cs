@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     public sealed unsafe class ClrStackWalk : CallableCOMWrapper
     {
-        private static readonly Guid IID_IXCLRDataStackWalk = new Guid("E59D8D22-ADA7-49a2-89B5-A415AFCFC95F");
+        private static readonly Guid IID_IXCLRDataStackWalk = new("E59D8D22-ADA7-49a2-89B5-A415AFCFC95F");
 
         public ClrStackWalk(DacLibrary library, IntPtr pUnk)
             : base(library?.OwningLibrary, IID_IXCLRDataStackWalk, pUnk)
@@ -22,46 +22,34 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrDataAddress GetFrameVtable()
         {
-            InitDelegate(ref _request, VTable.Request);
-
             long ptr = 0xcccccccc;
 
-            HResult hr = _request(Self, 0xf0000000, 0, null, 8u, (byte*)&ptr);
+            HResult hr = VTable.Request(Self, 0xf0000000, 0, null, 8u, (byte*)&ptr);
             return hr ? new ClrDataAddress(ptr) : default;
         }
 
         public HResult Next()
         {
-            InitDelegate(ref _next, VTable.Next);
-
-            return _next(Self);
+            return VTable.Next(Self);
         }
 
         public HResult GetContext(uint contextFlags, int contextBufSize, out int contextSize, byte[] buffer)
         {
-            InitDelegate(ref _getContext, VTable.GetContext);
-            return _getContext(Self, contextFlags, contextBufSize, out contextSize, buffer);
+            fixed (byte *ptr = buffer)
+                return VTable.GetContext(Self, contextFlags, contextBufSize, out contextSize, ptr);
         }
-
-        private RequestDelegate? _request;
-        private NextDelegate? _next;
-        private GetContextDelegate? _getContext;
-
-        private delegate HResult GetContextDelegate(IntPtr self, uint contextFlags, int contextBufSize, out int contextSize, byte[] buffer);
-        private delegate HResult NextDelegate(IntPtr self);
-        private delegate HResult RequestDelegate(IntPtr self, uint reqCode, uint inBufferSize, byte* inBuffer, uint outBufferSize, byte* outBuffer);
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct IXCLRDataStackWalkVTable
+    internal readonly unsafe struct IXCLRDataStackWalkVTable
     {
-        public readonly IntPtr GetContext;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, int, out int, byte*, int> GetContext;
         private readonly IntPtr GetContext2;
-        public readonly IntPtr Next;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int> Next;
         private readonly IntPtr GetStackSizeSkipped;
         private readonly IntPtr GetFrameType;
         public readonly IntPtr GetFrame;
-        public readonly IntPtr Request;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, uint, byte*, uint, byte*, int> Request;
         private readonly IntPtr SetContext2;
     }
 }

@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
     internal unsafe sealed class DebugDataSpaces : CallableCOMWrapper
     {
-        internal static readonly Guid IID_IDebugDataSpaces2 = new Guid("7a5e852f-96e9-468f-ac1b-0b3addc4a049");
+        internal static readonly Guid IID_IDebugDataSpaces2 = new("7a5e852f-96e9-468f-ac1b-0b3addc4a049");
 
         public DebugDataSpaces(RefCountedFreeLibrary library, IntPtr pUnk, DebugSystemObjects sys)
             : base(library, IID_IDebugDataSpaces2, pUnk)
@@ -24,34 +24,26 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public int ReadVirtual(ulong address, Span<byte> buffer)
         {
-            InitDelegate(ref _readVirtual, VTable.ReadVirtual);
             using IDisposable holder = _sys.Enter();
             fixed (byte* ptr = buffer)
             {
-                HResult hr = _readVirtual(Self, address, ptr, buffer.Length, out int read);
+                HResult hr = VTable.ReadVirtual(Self, address, ptr, buffer.Length, out int read);
                 return read;
             }
         }
 
         public HResult QueryVirtual(ulong address, out MEMORY_BASIC_INFORMATION64 info)
         {
-            InitDelegate(ref _queryVirtual, VTable.QueryVirtual);
             using IDisposable holder = _sys.Enter();
-            return _queryVirtual(Self, address, out info);
+            return VTable.QueryVirtual(Self, address, out info);
         }
-
-        private ReadVirtualDelegate? _readVirtual;
-        private QueryVirtualDelegate? _queryVirtual;
         private readonly DebugSystemObjects _sys;
-
-        private delegate HResult ReadVirtualDelegate(IntPtr self, ulong address, byte* buffer, int size, out int read);
-        private delegate HResult QueryVirtualDelegate(IntPtr self, ulong address, out MEMORY_BASIC_INFORMATION64 info);
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct IDebugDataSpacesVTable
+    internal readonly unsafe struct IDebugDataSpacesVTable
     {
-        public readonly IntPtr ReadVirtual;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, byte*, int, out int, int> ReadVirtual;
         public readonly IntPtr WriteVirtual;
         public readonly IntPtr SearchVirtual;
         public readonly IntPtr ReadVirtualUncached;
@@ -76,6 +68,6 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr ReadHandleData;
         public readonly IntPtr FillVirtual;
         public readonly IntPtr FillPhysical;
-        public readonly IntPtr QueryVirtual;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, out MEMORY_BASIC_INFORMATION64, int> QueryVirtual;
     }
 }

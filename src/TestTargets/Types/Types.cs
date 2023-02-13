@@ -26,6 +26,14 @@ class Types
 
     static object s_i = 42;
 
+    delegate void TestDelegate1();
+    static event TestDelegate1 TestEvent;
+
+    delegate void TestDelegate2();
+
+    static TestDelegate2 TestDelegate = new TestDelegate2(Inner);
+
+
     public static FileAccess s_enum = FileAccess.Read;
 
     private static async Task Async()
@@ -42,6 +50,9 @@ class Types
         s_szObjArray[1] = s_szObjArray;
         s_mdObjArray.SetValue(s_mdObjArray, 2);
         s_2dObjArray[1, 2] = s_2dObjArray;
+
+        TestEvent += Inner;
+        TestEvent += new Types().InstanceMethod;
     }
 
     public static void Main()
@@ -59,5 +70,10 @@ class Types
     private static void Inner()
     {
         throw new Exception();
+    }
+
+    private void InstanceMethod()
+    {
+        TestEvent.Invoke();
     }
 }

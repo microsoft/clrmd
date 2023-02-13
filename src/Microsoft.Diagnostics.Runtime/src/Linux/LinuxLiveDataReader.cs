@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -10,19 +10,19 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.Utilities;
-using ProcessArchitecture = System.Runtime.InteropServices.Architecture;
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     /// <summary>
     /// A data reader that targets a Linux process.
     /// The current process must have ptrace access to the target process.
     /// </summary>
-    internal sealed class LinuxLiveDataReader : CommonMemoryReader, IDataReader, IDisposable
+    internal sealed class LinuxLiveDataReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader
     {
-        private List<MemoryMapEntry> _memoryMapEntries;
-        private readonly List<uint> _threadIDs = new List<uint>();
+        private ImmutableArray<MemoryMapEntry>.Builder _memoryMapEntries;
+        private readonly List<uint> _threadIDs = new();
 
         private bool _suspended;
         private bool _disposed;
@@ -41,28 +41,11 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
             if (suspend)
             {
-                status = (int)ptrace(PTRACE_ATTACH, processId, IntPtr.Zero, IntPtr.Zero);
-
-                if (status >= 0)
-                    status = waitpid(processId, IntPtr.Zero, 0);
-
-                if (status < 0)
-                {
-                    int errno = Marshal.GetLastWin32Error();
-                    throw new ClrDiagnosticsException($"Could not attach to process {processId}, errno: {errno}", errno);
-                }
-
+                LoadThreadsAndAttach();
                 _suspended = true;
             }
 
-            Architecture = RuntimeInformation.ProcessArchitecture switch
-            {
-                ProcessArchitecture.X86 => Architecture.X86,
-                ProcessArchitecture.X64 => Architecture.Amd64,
-                ProcessArchitecture.Arm => Architecture.Arm,
-                ProcessArchitecture.Arm64 => Architecture.Arm64,
-                _ => Architecture.Unknown,
-            };
+            Architecture = RuntimeInformation.ProcessArchitecture;
         }
 
         ~LinuxLiveDataReader() => Dispose(false);
@@ -84,13 +67,12 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
             if (_suspended)
             {
-                int status = (int)ptrace(PTRACE_DETACH, ProcessId, IntPtr.Zero, IntPtr.Zero);
-                if (status < 0)
+                foreach (var tid in _threadIDs)
                 {
-                    int errno = Marshal.GetLastWin32Error();
-                    throw new ClrDiagnosticsException($"Could not detach from process {ProcessId}, errno: {errno}", errno);
+                    // no point in handling errors here as the user can do nothing with them
+                    // also if Dispose is called from the finalizer we could crash the process
+                    var status = (int)ptrace(PTRACE_DETACH, (int) tid, IntPtr.Zero, IntPtr.Zero);
                 }
-
                 _suspended = false;
             }
 
@@ -112,49 +94,26 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             let filePath = image.Key
             let containsExecutable = image.Any(entry => entry.IsExecutable)
             let beginAddress = image.Min(entry => entry.BeginAddress)
-            let props = GetPEImageProperties(filePath)
-            select new ModuleInfo(beginAddress, filePath, containsExecutable, props.Filesize, props.Timestamp, buildId: default);
+            select GetModuleInfo(this, beginAddress, filePath, containsExecutable);
 
-        private static (int Filesize, int Timestamp) GetPEImageProperties(string filePath)
+        private ModuleInfo GetModuleInfo(IDataReader reader, ulong baseAddress, string filePath, bool isVirtual)
         {
-            if (File.Exists(filePath))
-            {
-                try
-                {
-                    using PEImage pe = new PEImage(File.OpenRead(filePath));
-                    if (pe.IsValid)
-                        return (pe.IndexFileSize, pe.IndexTimeStamp);
-                }
-                catch
-                {
-                }
-            }
+            if (reader.Read<ushort>(baseAddress) == 0x5a4d)
+                return new PEModuleInfo(reader, baseAddress, filePath, isVirtual);
 
-            return (0, 0);
-        }
+            long size = 0;
+            FileInfo fileInfo = new(filePath);
+            if (fileInfo.Exists)
+                size = fileInfo.Length;
 
-        public ImmutableArray<byte> GetBuildId(ulong baseAddress) => GetElfFile(baseAddress)?.BuildId ?? ImmutableArray<byte>.Empty;
-
-        public unsafe bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
-        {
-            ElfFile? file = GetElfFile(baseAddress);
-            if (file is null)
-            {
-                version = default;
-                return false;
-            }
-            else
-            {
-                return this.GetVersionInfo(baseAddress, file, out version);
-            }
+            return new ElfModuleInfo(reader, GetElfFile(baseAddress), baseAddress, size, filePath);
         }
 
         private ElfFile? GetElfFile(ulong baseAddress)
         {
-            MemoryVirtualAddressSpace memoryAddressSpace = new MemoryVirtualAddressSpace(this);
             try
             {
-                return new ElfFile(new Reader(memoryAddressSpace), (long)baseAddress);
+                return new ElfFile(this, baseAddress);
             }
             catch (InvalidDataException)
             {
@@ -170,7 +129,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
         private unsafe int ReadMemoryReadv(ulong address, Span<byte> buffer)
         {
-            int readableBytesCount = GetReadableBytesCount(address, buffer.Length);
+            int readableBytesCount = this.GetReadableBytesCount(this._memoryMapEntries, address, buffer.Length);
             if (readableBytesCount <= 0)
             {
                 return 0;
@@ -178,12 +137,12 @@ namespace Microsoft.Diagnostics.Runtime.Linux
 
             fixed (byte* ptr = buffer)
             {
-                var local = new iovec
+                var local = new IOVEC
                 {
                     iov_base = ptr,
                     iov_len = (IntPtr)readableBytesCount
                 };
-                var remote = new iovec
+                var remote = new IOVEC
                 {
                     iov_base = (void*)address,
                     iov_len = (IntPtr)readableBytesCount
@@ -203,6 +162,14 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             }
         }
 
+        public IEnumerable<uint> EnumerateOSThreadIds()
+        {
+            LoadThreads();
+            return _threadIDs;
+        }
+
+        public ulong GetThreadTeb(uint _) => 0;
+
         public unsafe bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
             LoadThreads();
@@ -213,7 +180,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             {
                 Architecture.Arm => sizeof(RegSetArm),
                 Architecture.Arm64 => sizeof(RegSetArm64),
-                Architecture.Amd64 => sizeof(RegSetX64),
+                Architecture.X64 => sizeof(RegSetX64),
                 _ => sizeof(RegSetX86),
             };
 
@@ -233,7 +200,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
                     case Architecture.Arm64:
                         Unsafe.As<byte, RegSetArm64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
                         break;
-                    case Architecture.Amd64:
+                    case Architecture.X64:
                         Unsafe.As<byte, RegSetX64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
                         break;
                     default:
@@ -249,88 +216,79 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return true;
         }
 
+        private void LoadThreadsAndAttach()
+        {
+            const int maxPasses = 100;
+            var tracees = new HashSet<uint>();
+            var makesProgress = true;
+            // Make up to maxPasses to be sure to attach to the threads that could have been created in the meantime
+            for (var i = 0; makesProgress && i < maxPasses; i++)
+            {
+                makesProgress = false;
+                // GetThreads could throw during enumeration. It means the process was killed so no cleanup is needed.
+                var threads = GetThreads(ProcessId);
+                foreach (var tid in threads)
+                {
+                    if (tracees.Contains(tid))
+                    {
+                        // We have already attached successfully to this thread
+                        continue;
+                    }
+
+                    var status = (int)ptrace(PTRACE_ATTACH, (int)tid, IntPtr.Zero, IntPtr.Zero);
+                    if (status >= 0)
+                    {
+                        status = waitpid((int)tid, IntPtr.Zero, 0);
+                    }
+                    if (status >= 0)
+                    {
+                        tracees.Add(tid);
+                        makesProgress = true;
+                    }
+
+                    if (status < 0)
+                    {
+                        // We failed to attach. It could mean multiple things:
+                        // 1. The tid exited: it's ok we won't see it at the next iteration.
+                        // 2. We don't have permissions: attach to other threads will likely fail, too, and we won't make progress
+                        // 3. Something is weird with this particular thread. We'll keep it as is and try to attach to everything else
+                        continue;
+                    }
+                }
+            }
+
+            if (tracees.Count == 0)
+            {
+                throw new ClrDiagnosticsException($"Could not PTRACE_ATTACH to any thread of the process {ProcessId}. Either the process has exited or you don't have permission.");
+            }
+
+            _threadIDs.AddRange(tracees);
+        }
+
         private void LoadThreads()
         {
             if (_threadIDs.Count == 0)
             {
-                string taskDirPath = $"/proc/{ProcessId}/task";
-                foreach (string taskDir in Directory.EnumerateDirectories(taskDirPath))
+                _threadIDs.AddRange(GetThreads(ProcessId));
+            }
+        }
+
+        private static IEnumerable<uint> GetThreads(int pid)
+        {
+            string taskDirPath = $"/proc/{pid}/task";
+            foreach (string taskDir in Directory.EnumerateDirectories(taskDirPath))
+            {
+                string dirName = Path.GetFileName(taskDir);
+                if (uint.TryParse(dirName, out uint taskId))
                 {
-                    string dirName = Path.GetFileName(taskDir);
-                    if (uint.TryParse(dirName, out uint taskId))
-                    {
-                        _threadIDs.Add(taskId);
-                    }
+                    yield return taskId;
                 }
             }
         }
 
-        private int GetReadableBytesCount(ulong address, int bytesRequested)
+        private ImmutableArray<MemoryMapEntry>.Builder LoadMemoryMaps()
         {
-            if (bytesRequested < 1)
-            {
-                return 0;
-            }
-
-            ulong endAddress = address + (ulong)bytesRequested - 1;
-            int bytesReadable = 0;
-            ulong prevEndAddr = default;
-
-            int startIndex = -1;
-            for (int i = 0; i < _memoryMapEntries.Count; i++)
-            {
-                MemoryMapEntry entry = _memoryMapEntries[i];
-                ulong entryBeginAddr = entry.BeginAddress;
-                ulong entryEndAddr = entry.EndAddress;
-                if (entryBeginAddr <= address && address < entryEndAddr && entry.IsReadable)
-                {
-                    int regionSize = (int)(entryEndAddr - address);
-                    if (regionSize >= bytesRequested)
-                    {
-                        return bytesRequested;
-                    }
-
-                    startIndex = i;
-                    bytesRequested -= regionSize;
-                    bytesReadable = regionSize;
-                    prevEndAddr = entryEndAddr;
-                    break;
-                }
-            }
-
-            if (startIndex < 0)
-            {
-                return 0;
-            }
-
-            for (int i = startIndex + 1; i < _memoryMapEntries.Count; i++)
-            {
-                MemoryMapEntry entry = _memoryMapEntries[i];
-                ulong entryBeginAddr = entry.BeginAddress;
-                ulong entryEndAddr = entry.EndAddress;
-                if (entryBeginAddr > endAddress || entryBeginAddr != prevEndAddr || !entry.IsReadable)
-                {
-                    break;
-                }
-
-                int regionSize = (int)(entryEndAddr - entryBeginAddr);
-                if (regionSize >= bytesRequested)
-                {
-                    bytesReadable += bytesRequested;
-                    break;
-                }
-
-                bytesRequested -= regionSize;
-                bytesReadable += regionSize;
-                prevEndAddr = entryEndAddr;
-            }
-
-            return bytesReadable;
-        }
-
-        private List<MemoryMapEntry> LoadMemoryMaps()
-        {
-            List<MemoryMapEntry> result = new List<MemoryMapEntry>();
+            ImmutableArray<MemoryMapEntry>.Builder result = ImmutableArray.CreateBuilder<MemoryMapEntry>();
             string mapsFilePath = $"/proc/{ProcessId}/maps";
             using StreamReader reader = new StreamReader(mapsFilePath);
             while (true)
@@ -401,12 +359,12 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private static extern IntPtr ptrace(int request, int pid, IntPtr addr, IntPtr data);
 
         [DllImport(LibC, SetLastError = true)]
-        private static extern unsafe IntPtr process_vm_readv(int pid, iovec* local_iov, UIntPtr liovcnt, iovec* remote_iov, UIntPtr riovcnt, UIntPtr flags);
+        private static extern unsafe IntPtr process_vm_readv(int pid, IOVEC* local_iov, UIntPtr liovcnt, IOVEC* remote_iov, UIntPtr riovcnt, UIntPtr flags);
 
         [DllImport(LibC)]
         private static extern int waitpid(int pid, IntPtr status, int options);
 
-        private unsafe struct iovec
+        private unsafe struct IOVEC
         {
             public void* iov_base;
             public IntPtr iov_len;
@@ -417,7 +375,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
         private const int PTRACE_DETACH = 17;
     }
 
-    internal class MemoryMapEntry
+    internal struct MemoryMapEntry : IRegion
     {
         public ulong BeginAddress { get; set; }
         public ulong EndAddress { get; set; }

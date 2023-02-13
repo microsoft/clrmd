@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface ITypeData
+    internal interface ITypeData
     {
         bool IsShared { get; }
         bool ContainsPointers { get; }

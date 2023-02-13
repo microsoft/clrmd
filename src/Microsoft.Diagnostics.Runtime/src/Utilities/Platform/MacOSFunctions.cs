@@ -21,10 +21,10 @@ namespace Microsoft.Diagnostics.Runtime
         internal override unsafe bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch)
         {
             using FileStream stream = File.OpenRead(dll);
-            MachOReader reader = new MachOReader(stream);
+            MachOFileReader reader = new MachOFileReader(stream);
 
             MachOHeader64 header = reader.Read<MachOHeader64>();
-            if (header.CpuType != MachOCpuType.X86_64)
+            if (header.Magic != MachOHeader64.ExpectedMagic)
             {
                 throw new NotSupportedException();
             }
@@ -70,6 +70,9 @@ namespace Microsoft.Diagnostics.Runtime
             long address = dataOffset;
             long endAddress = address + dataSize;
 
+            Span<byte> bytes = stackalloc byte[1];
+            Span<char> chars = stackalloc char[1];
+
             while (address < endAddress)
             {
                 int read = reader.Read(address, buffer);
@@ -91,7 +94,6 @@ namespace Microsoft.Diagnostics.Runtime
                 StringBuilder builder = new StringBuilder();
                 while (address < endAddress)
                 {
-                    Span<byte> bytes = stackalloc byte[1];
                     read = reader.Read(address, bytes);
                     if (read < bytes.Length)
                     {
@@ -107,7 +109,7 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         try
                         {
-                            Version v = Version.Parse(builder.ToString());
+                            System.Version v = System.Version.Parse(builder.ToString());
                             major = v.Major;
                             minor = v.Minor;
                             revision = v.Build;
@@ -120,7 +122,6 @@ namespace Microsoft.Diagnostics.Runtime
                         }
                     }
 
-                    Span<char> chars = stackalloc char[1];
                     fixed (byte* bytesPtr = &MemoryMarshal.GetReference(bytes))
                     fixed (char* charsPtr = &MemoryMarshal.GetReference(chars))
                     {

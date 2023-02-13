@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IModuleData
+    internal interface IModuleData
     {
         IModuleHelpers Helpers { get; }
 
@@ -13,9 +13,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ulong PEImageBase { get; }
         ulong ILImageBase { get; }
         bool IsFlatLayout { get; }
+        bool IsDynamic { get; }
         ulong Size { get; }
         ulong MetadataStart { get; }
         string? Name { get; }
+        string? FileName { get; }
         string? SimpleName { get; }
         string? AssemblyName { get; }
         ulong MetadataLength { get; }

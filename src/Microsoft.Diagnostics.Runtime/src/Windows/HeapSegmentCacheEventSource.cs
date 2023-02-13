@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
     [EventSource(Guid = "8C190136-52CE-4070-BBF1-2EF1E1368B5A", Name = "Microsoft.Diagnostics.Runtime.Windows.HeapSegmentCacheProvider")]
     internal class HeapSegmentCacheEventSource : EventSource
     {
-        internal static readonly HeapSegmentCacheEventSource Instance = new HeapSegmentCacheEventSource();
+        internal static readonly HeapSegmentCacheEventSource Instance = new();
 
         /// <summary>
         /// The event ID for when the cache starts paging in data.
@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private const int PageInDataEventStart = 1;
 
         /// <summary>
-        /// The event ID for when the cache failes while paging in data.
+        /// The event ID for when the cache failed while paging in data.
         /// </summary>
         private const int PageInDataEventFailed = 2;
 

@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public abstract class COMHelper
     {
-        protected static readonly Guid IUnknownGuid = new Guid("00000000-0000-0000-C000-000000000046");
+        protected static readonly Guid IUnknownGuid = new("00000000-0000-0000-C000-000000000046");
 
         [UnmanagedFunctionPointer(CallingConvention.Winapi)]
         protected delegate int AddRefDelegate(IntPtr self);
@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         protected delegate int ReleaseDelegate(IntPtr self);
 
         [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        protected delegate HResult QueryInterfaceDelegate(IntPtr self, in Guid guid, out IntPtr ptr);
+        protected delegate int QueryInterfaceDelegate(IntPtr self, in Guid guid, out IntPtr ptr);
 
         /// <summary>
         /// Release an IUnknown pointer.
@@ -35,8 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             IUnknownVTable* vtable = *(IUnknownVTable**)pUnk;
 
-            ReleaseDelegate release = Marshal.GetDelegateForFunctionPointer<ReleaseDelegate>(vtable->Release);
-            return release(pUnk);
+            return vtable->Release(pUnk);
         }
 
         public static unsafe HResult QueryInterface(IntPtr pUnk, in Guid riid, out IntPtr result)
@@ -48,8 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             IUnknownVTable* vtable = *(IUnknownVTable**)pUnk;
 
-            QueryInterfaceDelegate qi = Marshal.GetDelegateForFunctionPointer<QueryInterfaceDelegate>(vtable->QueryInterface);
-            return qi(pUnk, riid, out result);
+            return (HResult) vtable->QueryInterface(pUnk, riid, out result);
         }
     }
 }

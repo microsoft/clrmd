@@ -30,7 +30,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             _segmentData = segmentData;
 
             int pageCount = (int)((_segmentData.End - _segmentData.VirtualAddress) / EntryPageSize);
-            if (((int)(_segmentData.End - _segmentData.VirtualAddress) % EntryPageSize) != 0)
+
+            if ((_segmentData.End - _segmentData.VirtualAddress) % EntryPageSize != 0)
                 pageCount++;
 
             _pages = new CachePage<T>[pageCount];
@@ -40,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 _pageLocks[i] = new ReaderWriterLockSlim();
             }
 
-            _minSize = 4 * UIntPtr.Size + /*our four fields that are refrence type fields (pages, pageLocks, segmentData, and updateOwningCacheForAddedChunk)*/
+            _minSize = 4 * UIntPtr.Size + /*our four fields that are reference type fields (pages, pageLocks, segmentData, and updateOwningCacheForAddedChunk)*/
                            2 * (_pages.Length * UIntPtr.Size) + /*The array of cache pages and matching size array of locks */
                            2 * sizeof(uint) + /*entrySize and minSize fields*/
                            sizeof(long) /*lastAccessTickCount field*/ +
@@ -86,7 +87,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             ThrowIfDisposed();
 
-            uint offset = (uint)(address - _segmentData.VirtualAddress);
+            ulong offset = address - _segmentData.VirtualAddress;
 
             int bytesRemaining = (int)byteCount;
 
@@ -94,7 +95,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             // of hot methods for perf in this class.
             uint entryPageSize = EntryPageSize;
 
-            uint localBytesRead;
+            ulong localBytesRead;
             do
             {
                 ReadPageDataFromOffset(offset, buffer, (uint)bytesRemaining, entryPageSize, out localBytesRead);
@@ -122,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public override void UpdateLastAccessTimstamp()
         {
-            // NOTE: It dosn't matter that this isn't interlocked/protected. This value simply indicates how recently accessd this entry is vis-a-vis some other
+            // NOTE: It doesn't matter that this isn't interlocked/protected. This value simply indicates how recently accessed this entry is vis-a-vis some other
             // entry, if the values are slightly off because we have a RMW issue it doesn't matter since the only thing it influences is if this entry is eligible
             // to be trimmed, and being marginally off in the value is basically never going to put something into that group incorrectly. This USED to use
             // QPC/Interlocked.Exchange, but it showed up as a significant time sink in perf analysis.
@@ -148,7 +149,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 throw new ObjectDisposedException(GetType().Name);
         }
 
-        private void ReadPageDataFromOffset(uint segmentOffset, IntPtr buffer, uint byteCount, uint entryPageSize, out uint bytesRead)
+        private void ReadPageDataFromOffset(ulong segmentOffset, IntPtr buffer, uint byteCount, uint entryPageSize, out ulong bytesRead)
         {
             int pageIndex = (int)(segmentOffset / entryPageSize);
 
@@ -159,24 +160,24 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 return;
             }
 
-            uint pageSegmentOffset = (uint)pageIndex * entryPageSize;
+            ulong pageSegmentOffset = (ulong)pageIndex * entryPageSize;
 
-            uint inPageOffset = (segmentOffset - pageSegmentOffset);
+            ulong inPageOffset = segmentOffset - pageSegmentOffset;
 
             bytesRead = ReadPageDataFromOffset(pageIndex, inPageOffset, byteCount, buffer, dataReader: null);
         }
 
-        protected abstract uint InvokeCallbackWithDataPtr(CachePage<T> page, Func<UIntPtr, uint, uint> callback);
+        protected abstract uint InvokeCallbackWithDataPtr(CachePage<T> page, Func<UIntPtr, ulong, uint> callback);
 
-        protected abstract uint CopyDataFromPage(CachePage<T> page, IntPtr buffer, uint inPageOffset, uint byteCount);
+        protected abstract uint CopyDataFromPage(CachePage<T> page, IntPtr buffer, ulong inPageOffset, uint byteCount);
 
-        protected abstract (T Data, uint DataExtent) GetPageDataAtOffset(uint pageAlignedOffset);
+        protected abstract (T Data, ulong DataExtent) GetPageDataAtOffset(ulong pageAlignedOffset);
 
-        private uint ReadPageDataFromOffset(int pageIndex, uint inPageOffset, uint byteCount, IntPtr buffer, Func<UIntPtr, uint, uint> dataReader)
+        private ulong ReadPageDataFromOffset(int pageIndex, ulong inPageOffset, uint byteCount, IntPtr buffer, Func<UIntPtr, ulong, uint> dataReader)
         {
             bool notifyCacheOfSizeUpdate = false;
 
-            uint sizeRead = 0;
+            ulong sizeRead = 0;
             int addedSize = 0;
 
             ReaderWriterLockSlim pageLock = _pageLocks[pageIndex];
@@ -186,7 +187,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             try
             {
                 // THREADING: If the data is not null we can just read it directly as we hold the read lock, if it is null we must acquire the write lock in
-                // preperation to fetch the data from physical memory
+                // preparation to fetch the data from physical memory
                 if (_pages[pageIndex] != null)
                 {
                     UpdateLastAccessTimstamp();
@@ -212,9 +213,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         // the write lock)
                         if (_pages[pageIndex] == null)
                         {
-                            uint dataRange;
+                            ulong dataRange;
                             T data;
-                            (data, dataRange) = GetPageDataAtOffset((uint)pageIndex * EntryPageSize);
+                            (data, dataRange) = GetPageDataAtOffset((ulong)pageIndex * EntryPageSize);
 
                             _pages[pageIndex] = new CachePage<T>(data, dataRange);
 
@@ -288,7 +289,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         return CacheEntryBase<T>.ProcessPageForSequenceTerminatingRead(data, dataLength, inPageOffset, terminatingSequence, bytesRead, ref trailingBytes, ref sawTerminatingSequence);
                     });
 
-
                 pageIndex++;
                 inPageOffset = 0;
             } while ((pageIndex != _pages.Length) && !sawTerminatingSequence);
@@ -301,16 +301,16 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         //
         // A couple tricky things to keep in mind
         //
-        // 1) The length of 'terminatingSequence' can be basically anything. For a a common null-terminator style read it is dependent on the encoding the string in memory is in, which ony the caller
+        // 1) The length of 'terminatingSequence' can be basically anything. For a a common null-terminator style read it is dependent on the encoding the string in memory is in, which only the caller
         //    knows.
         //
         // 2) We have to be careful if we have to read across a page boundary (or multiple), if the page isn't an even multiple of the terminating sequence length then we will have extra work to do, 
         //    specifically we carry over the 'left over' bytes from the last page (in trailingBytes) and append to them data from the current page to see if that forms a terminating sequence. If so
-        //    we are done, if not we have to copy the trailing bytes to the the output (bytesRead) and skip the ones we added to check for a terminator when we start reading this page. The act of doing
+        //    we are done, if not we have to copy the trailing bytes to the output (bytesRead) and skip the ones we added to check for a terminator when we start reading this page. The act of doing
         //    this could cascade and cause THIS page to also have 'trailing bytes', so we must continue this little adventure until the string terminates.
         private static unsafe uint ProcessPageForSequenceTerminatingRead(UIntPtr data,
-                                                                         uint dataLength,
-                                                                         uint inPageOffset,
+                                                                         ulong dataLength,
+                                                                         ulong inPageOffset,
                                                                          byte[] terminatingSequence,
                                                                          List<byte> bytesRead,
                                                                          ref List<byte> trailingBytes,
@@ -318,15 +318,15 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             uint dataRead = 0;
 
-            uint availableDataOnPage = dataLength - inPageOffset;
+            ulong availableDataOnPage = dataLength - inPageOffset;
             uint startOffsetAdjustment = 0;
 
             if (trailingBytes != null && trailingBytes.Count != 0)
             {
                 // We had trailing bytes on the last page's read, so we need to prepend enough bytes from the start of this read to trailing bytes to check if it forms a terminator
-                // sequeunce, and if not copy the bytes over to the output buffer.
+                // sequence, and if not copy the bytes over to the output buffer.
 
-                // Since we are checking these bytes here make sure if we DON'T form a terminator sequence that the code below doesn't reproces them. We know that trailingBytes.Count MUST be less
+                // Since we are checking these bytes here make sure if we DON'T form a terminator sequence that the code below doesn't reprocess them. We know that trailingBytes.Count MUST be less
                 // that terminatingSeqence.Length, if not we would have processed the trailing bytes in the last page and wouldn't see them here.
                 startOffsetAdjustment = (uint)(terminatingSequence.Length - trailingBytes.Count);
 
@@ -359,7 +359,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             // If we will have left over bytes (i.e. the amount to read mod the length of the terminating sequence is not 0), then copy then to the trailingBytes buffer so we can
             // process them on the next go around if we don't complete the read on this page.
-            uint leftoverByteCount = ((availableDataOnPage - startOffsetAdjustment) % (uint)terminatingSequence.Length);
+            ulong leftoverByteCount = ((availableDataOnPage - startOffsetAdjustment) % (uint)terminatingSequence.Length);
             if (leftoverByteCount != 0)
             {
                 // We will have straggling bytes if we don't complete the read on this page, so copy them to the trailingBytes list

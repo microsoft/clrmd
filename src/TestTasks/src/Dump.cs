@@ -5,7 +5,7 @@
 using System;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
-using Microsoft.Diagnostics.Runtime.Interop;
+using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
 
 namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
 {
@@ -36,9 +36,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
             }
 
             using Debugger debugger = info.LaunchProcess(ExePath, null);
-            debugger.SecondChanceExceptionEvent += (debugger, exception) =>
+            debugger.OnException += (debugger, exception, firstChance) =>
             {
-                if (exception.ExceptionCode == (uint)ExceptionTypes.Clr)
+                if (!firstChance && exception.ExceptionCode == (uint)ExceptionTypes.Clr)
                 {
                     _ = debugger.WriteDumpFile(FullDumpPath, DEBUG_DUMP.DEFAULT);
 
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
             DEBUG_STATUS status;
             do
             {
-                status = debugger.ProcessEvents(0xffffffff);
+                status = debugger.ProcessEvents(TimeSpan.MaxValue);
             } while (status != DEBUG_STATUS.NO_DEBUGGEE);
 
             return true;

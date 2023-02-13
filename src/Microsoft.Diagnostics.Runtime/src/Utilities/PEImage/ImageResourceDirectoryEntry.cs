@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// field points to a resource data entry.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct IMAGE_RESOURCE_DIRECTORY_ENTRY
+    internal readonly struct ImageResourceDirectoryEntry
     {
         private readonly int _nameOffsetAndFlag;
         private readonly int _dataOffsetAndFlag;

@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -76,21 +75,55 @@ namespace Microsoft.Diagnostics.Runtime
                         parser.GetCallingConvInfo(out _);
                         parser.GetElemType(out int _);
 
-                        Type? underlying = ((ClrElementType)pdwCPlusTypeFlag).GetTypeForElementType();
-                        if (underlying != null)
-                        {
-                            object o = Marshal.PtrToStructure(ppValue, underlying)!;
-                            values.Add((name, o));
-                        }
-                        else
-                        {
-                            values.Add((name, null));
-                        }
+                        object? o = GetValueForPointer((ClrElementType)pdwCPlusTypeFlag, ppValue);
+                        values.Add((name, o));
                     }
                 }
             }
 
             return values.ToArray();
+        }
+
+        private unsafe object? GetValueForPointer(ClrElementType pdwCPlusTypeFlag, IntPtr ppValue)
+        {
+            switch (pdwCPlusTypeFlag)
+            {
+                case ClrElementType.Boolean:
+                    return *(byte*)ppValue;
+
+                case ClrElementType.Char:
+                    return *(char*)ppValue;
+
+                case ClrElementType.Double:
+                    return *(double*)ppValue;
+                case ClrElementType.Float:
+                    return *(float*)ppValue;
+
+                case ClrElementType.Int8:
+                    return *(sbyte*)ppValue;
+                case ClrElementType.Int16:
+                    return *(short*)ppValue;
+                case ClrElementType.Int32:
+                    return *(int*)ppValue;
+                case ClrElementType.Int64:
+                    return *(long*)ppValue;
+
+                case ClrElementType.UInt8:
+                    return *(byte*)ppValue;
+                case ClrElementType.UInt16:
+                    return *(ushort*)ppValue;
+                case ClrElementType.UInt32:
+                    return *(uint*)ppValue;
+                case ClrElementType.UInt64:
+                    return *(ulong*)ppValue;
+
+                case ClrElementType.NativeInt:
+                    return *(nint*)ppValue;
+                case ClrElementType.NativeUInt:
+                    return *(nuint*)ppValue;
+            }
+
+            return null;
         }
     }
 }

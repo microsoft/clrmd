@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IAppDomainData
+    internal interface IAppDomainData
     {
         IAppDomainHelpers Helpers { get; }
         string? Name { get; }

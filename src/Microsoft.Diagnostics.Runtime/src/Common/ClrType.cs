@@ -58,9 +58,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public virtual ulong AssemblyLoadContextAddress => 0;
         
-        [Obsolete("Use AssemblyLoadContextAddress.")]
-        public virtual ulong AssemblyLoadContextHandle =>AssemblyLoadContextAddress;
-
         /// <summary>
         /// Gets the <see cref="ClrHeap"/> this type belongs to.
         /// </summary>
@@ -264,7 +261,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Used to provide functionality to ClrObject.
         /// </summary>
-        public abstract IClrObjectHelpers ClrObjectHelpers { get; }
+        internal abstract IClrObjectHelpers ClrObjectHelpers { get; }
 
         public override bool Equals(object? obj) => Equals(obj as ClrType);
 

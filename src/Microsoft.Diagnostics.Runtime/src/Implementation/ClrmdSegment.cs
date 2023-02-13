@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class ClrmdSegment : ClrSegment
+    internal sealed class ClrmdSegment : ClrSegment
     {
         const int MarkerCount = 16;
 
@@ -30,6 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             LogicalHeap = data.LogicalHeap;
             IsLargeObjectSegment = data.IsLargeObjectSegment;
+            IsPinnedObjectSegment = data.IsPinnedObjectSegment;
             IsEphemeralSegment = data.IsEphemeralSegment;
 
             ObjectRange = new MemoryRange(data.Start, data.End);
@@ -48,6 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override int LogicalHeap { get; }
 
         public override bool IsLargeObjectSegment { get; }
+        public override bool IsPinnedObjectSegment { get; }
         public override bool IsEphemeralSegment { get; }
 
         public override MemoryRange ObjectRange { get; }
@@ -66,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IEnumerable<ClrObject> EnumerateObjects()
         {
-            bool large = IsLargeObjectSegment;
+            bool large = IsLargeObjectSegment || IsPinnedObjectSegment;
             uint minObjSize = (uint)IntPtr.Size * 3;
             ulong obj = FirstObjectAddress;
             IDataReader dataReader = _helpers.DataReader;
@@ -88,10 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     if (dataReader.Read(obj, buffer) != buffer.Length)
                         break;
 
-                    if (IntPtr.Size == 4)
-                        mt = Unsafe.As<byte, uint>(ref buffer[0]);
-                    else
-                        mt = Unsafe.As<byte, ulong>(ref buffer[0]);
+                    mt = Unsafe.As<byte, nuint>(ref buffer[0]);
                 }
                 else
                 {
@@ -151,6 +150,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             ulong step = Length / ((uint)_markers.Length + 1);
 
+            if (step == 0)
+                return -1;
+
             ulong offset = obj - FirstObjectAddress;
             int index = (int)(offset / step) - 1;
 
@@ -175,7 +177,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // should be roughly as fast as a binary search.
             foreach (ulong marker in _markers)
             {
-                // Markers can be 0 even when _markers was fully intialized by a full heap walk.  This is because parts of
+                // Markers can be 0 even when _markers was fully initialized by a full heap walk.  This is because parts of
                 // the ephemeral GC heap may be not in use (allocation contexts) or when objects on the large object heap
                 // are so big that there's simply not a valid object starting point in that range.
                 if (marker != 0)
@@ -211,7 +213,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (!ObjectRange.Contains(addr))
                 throw new InvalidOperationException($"Segment [{FirstObjectAddress:x},{CommittedMemory:x}] does not contain object {addr:x}");
 
-            bool large = IsLargeObjectSegment;
+            bool large = IsLargeObjectSegment || IsPinnedObjectSegment;
             uint minObjSize = (uint)IntPtr.Size * 3;
             IMemoryReader memoryReader = _helpers.DataReader;
             ulong mt = memoryReader.ReadPointer(addr);

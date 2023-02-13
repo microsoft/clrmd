@@ -72,6 +72,25 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Enumerates all objects that this object references.
+        /// </summary>
+        /// <param name="carefully">Only returns pointers which lie on the managed heap.  In very rare cases it's possible to
+        /// create a crash dump where the GC was in the middle of updating data structures, or to create a crash dump of a process
+        /// with heap corruption.  In those cases, setting carefully=true would ensure we would not enumerate those bad references.
+        /// Note that setting carefully=true will cause a small performance penalty.</param>
+        /// <param name="considerDependantHandles">Setting this to true will have ClrMD check for dependent handle references.
+        /// Checking dependent handles does come at a performance penalty but will give you the true reference chain as the
+        /// GC sees it.</param>
+        /// <returns>An enumeration of object references.</returns>
+        public IEnumerable<ulong> EnumerateReferenceAddresses(bool carefully = false, bool considerDependantHandles = true)
+        {
+            if (Type is null)
+                return Enumerable.Empty<ulong>();
+
+            return Type.Heap.EnumerateReferenceAddresses(Address, Type, carefully, considerDependantHandles);
+        }
+
+        /// <summary>
         /// Returns true if this object is a boxed struct or primitive type that 
         /// </summary>
         public bool IsBoxedValue => Type != null && (Type.IsPrimitive || Type.IsValueType);
@@ -98,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new InvalidOperationException($"Object {Address:x} is not an Exception.");
 
             if (Type is null || !Type.IsException)
-                return default;
+                return null;
 
             return new ClrException(Helpers.ExceptionHelpers, null, this);
         }
@@ -178,7 +197,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Gets a value indicating whether this object possibly contians GC pointers.
+        /// Gets a value indicating whether this object possibly contains GC pointers.
         /// </summary>
         public bool ContainsPointers => Type != null && Type.ContainsPointers;
 
@@ -195,9 +214,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ClrType type = GetTypeOrThrow();
             if (!type.IsArray)
-            {
                 throw new InvalidOperationException($"Object {Address:x} is not an array, type is '{type.Name}'.");
-            }
 
             return new ClrArray(Address, type);
         }
@@ -214,6 +231,42 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="clrObject">An object to get address of.</param>
         public static implicit operator ulong(ClrObject clrObject) => clrObject.Address;
+
+
+        /// <summary>
+        /// Tries to obtain the given object field from this ClrObject.  Returns false if the field wasn't found or if
+        /// the underlying type was not an object.
+        /// </summary>
+        /// <param name="fieldName">The name of the field to retrieve.</param>
+        /// <param name="result">True if the field was found and the field's type is an object.  Returns false otherwise.</param>
+        /// <returns>A ClrObject of the given field.</returns>
+        public bool TryReadObjectField(string fieldName, out ClrObject result)
+        {
+            result = default;
+            if (fieldName is null)
+                return false;
+
+            ClrType? type = Type;
+            if (type is null)
+                return false;
+
+            ClrInstanceField? field = type.GetFieldByName(fieldName);
+            if (field is null)
+                return false;
+
+            if (!field.IsObjectReference)
+                return false;
+
+            ClrHeap heap = type.Heap;
+
+            ulong addr = field.GetAddress(Address);
+            if (!type.ClrObjectHelpers.DataReader.ReadPointer(addr, out ulong obj))
+                return false;
+
+            result = heap.GetObject(obj);
+            return true;
+        }
+
 
         /// <summary>
         /// Gets the given object reference field from this ClrObject.
@@ -241,10 +294,6 @@ namespace Microsoft.Diagnostics.Runtime
             return heap.GetObject(obj);
         }
 
-        /// <summary>
-        /// </summary>
-        /// <param name="fieldName"></param>
-        /// <returns></returns>
         public ClrValueType ReadValueTypeField(string fieldName)
         {
             ClrType type = GetTypeOrThrow();
@@ -263,9 +312,31 @@ namespace Microsoft.Diagnostics.Runtime
             return new ClrValueType(addr, field.Type, true);
         }
 
+        public bool TryReadValueTypeField(string fieldName, out ClrValueType result)
+        {
+            result = default;
+
+            ClrType? type = Type;
+            if (type is null)
+                return false;
+
+            ClrInstanceField? field = type.GetFieldByName(fieldName);
+            if (field is null)
+                return false;
+
+            if (!field.IsValueType)
+                return false;
+
+            if (field.Type is null)
+                return false;
+
+            ulong addr = field.GetAddress(Address);
+            result = new ClrValueType(addr, field.Type, true);
+            return true;
+        }
+
         /// <summary>
-        /// Gets the value of a primitive field.  This will throw an InvalidCastException if the type parameter
-        /// does not match the field's type.
+        /// Gets the value of a primitive field.
         /// </summary>
         /// <typeparam name="T">The type of the field itself.</typeparam>
         /// <param name="fieldName">The name of the field.</param>
@@ -280,6 +351,35 @@ namespace Microsoft.Diagnostics.Runtime
 
             object value = field.Read<T>(Address, interior: false);
             return (T)value;
+        }
+
+
+        /// <summary>
+        /// Attempts to read the value of a primitive field.  This method does no type checking on whether T
+        /// matches the field's type.
+        /// </summary>
+        /// <typeparam name="T">The type of the field itself.</typeparam>
+        /// <param name="fieldName">The name of the field.</param>
+        /// <param name="result">The value of the missing field.</param>
+        /// <returns>True if we obtained this field and read its value, false otherwise.</returns>
+        public bool TryReadField<T>(string fieldName, out T result)
+            where T : unmanaged
+        {
+            result = default;
+
+            if (fieldName is null)
+                return false;
+
+            ClrType? type = Type;
+            if (type is null)
+                return false;
+
+            ClrInstanceField? field = type.GetFieldByName(fieldName);
+            if (field is null)
+                return false;
+
+            result = field.Read<T>(Address, interior: false);
+            return true;
         }
 
         public bool IsRuntimeType => Type?.Name == RuntimeType;
@@ -301,6 +401,37 @@ namespace Microsoft.Diagnostics.Runtime
                 mt = (ulong)ReadValueTypeField("m_handle").ReadField<IntPtr>("m_ptr");
 
             return type.ClrObjectHelpers.Factory.GetOrCreateType(mt, 0);
+        }
+
+        /// <summary>
+        /// Returns true if this object is a delegate, false otherwise.
+        /// </summary>
+        public bool IsDelegate
+        {
+            get
+            {
+                // Max depth = 8 should be enough to find a delegate type
+                ClrType? type = Type;
+                for (int i = 0; i < 8 && type != null; i++, type = type.BaseType)
+                    if (type.Name == ClrDelegate.DelegateType)
+                        return true;
+
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Returns this object in a <see cref="ClrDelegate"/> view.  Note it is only valid to call
+        /// <see cref="AsDelegate"/> if the underlying object is a subclass of System.Delegate.  You
+        /// can check <see cref="IsDelegate"/> before calling <see cref="AsDelegate"/>, but that is
+        /// not required as long as you are sure the object is a delegate or should be treated like
+        /// one.
+        /// </summary>
+        /// <returns>Returns this object in a <see cref="ClrDelegate"/> view.</returns>
+        public ClrDelegate AsDelegate()
+        {
+            DebugOnly.Assert(IsDelegate);
+            return new ClrDelegate(this);
         }
 
         /// <summary>
@@ -420,7 +551,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public override string ToString()
         {
-            return $"{Type?.Name} {Address:x}";
+            return $"{Address:x} {Type?.Name}";
         }
     }
 }

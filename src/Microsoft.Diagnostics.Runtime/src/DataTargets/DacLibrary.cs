@@ -5,7 +5,6 @@
 using System;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -14,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
         private bool _disposed;
         private SOSDac? _sos;
 
-        internal DacDataTargetWrapper DacDataTarget { get; }
+        internal DacDataTarget DacDataTarget { get; }
 
         public RefCountedFreeLibrary? OwningLibrary { get; }
 
@@ -44,35 +43,8 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         public SOSDac6? SOSDacInterface6 => InternalDacPrivateInterface.GetSOSDacInterface6();
-
         public SOSDac8? SOSDacInterface8 => InternalDacPrivateInterface.GetSOSDacInterface8();
-
-        public T? GetInterface<T>(in Guid riid)
-            where T : CallableCOMWrapper
-        {
-            IntPtr pUnknown = InternalDacPrivateInterface.QueryInterface(riid);
-            if (pUnknown == IntPtr.Zero)
-                return null;
-
-            T t = (T)Activator.CreateInstance(typeof(T), this, pUnknown)!;
-            return t;
-        }
-
-        internal static IntPtr TryGetDacPtr(object ix)
-        {
-            if (!(ix is IntPtr pUnk))
-            {
-                if (Marshal.IsComObject(ix))
-                    pUnk = Marshal.GetIUnknownForObject(ix);
-                else
-                    pUnk = IntPtr.Zero;
-            }
-
-            if (pUnk == IntPtr.Zero)
-                throw new ArgumentException("clrDataProcess not an instance of IXCLRDataProcess");
-
-            return pUnk;
-        }
+        public SOSDac12? SOSDacInterface12 => InternalDacPrivateInterface.GetSOSDacInterface12();
 
         public DacLibrary(DataTarget dataTarget, IntPtr pClrDataProcess)
         {
@@ -83,10 +55,15 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ArgumentNullException(nameof(pClrDataProcess));
 
             InternalDacPrivateInterface = new ClrDataProcess(this, pClrDataProcess);
-            DacDataTarget = new DacDataTargetWrapper(dataTarget);
+            DacDataTarget = new DacDataTarget(dataTarget);
         }
 
         public DacLibrary(DataTarget dataTarget, string dacPath)
+            : this(dataTarget, dacPath, runtimeBaseAddress: 0)
+        {
+        }
+
+        public unsafe DacLibrary(DataTarget dataTarget, string dacPath, ulong runtimeBaseAddress)
         {
             if (dataTarget is null)
                 throw new ArgumentNullException(nameof(dataTarget));
@@ -116,7 +93,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (dllMain == IntPtr.Zero)
                     throw new ClrDiagnosticsException("Failed to obtain Dac DllMain");
 
-                DllMain main = Marshal.GetDelegateForFunctionPointer<DllMain>(dllMain);
+                var main = (delegate* unmanaged[Stdcall]<IntPtr, int, IntPtr, int>)dllMain;
                 main(dacLibrary, 1, IntPtr.Zero);
             }
 
@@ -124,17 +101,28 @@ namespace Microsoft.Diagnostics.Runtime
             if (addr == IntPtr.Zero)
                 throw new ClrDiagnosticsException("Failed to obtain Dac CLRDataCreateInstance");
 
-            DacDataTarget = new DacDataTargetWrapper(dataTarget);
+            DacDataTarget = new DacDataTarget(dataTarget, runtimeBaseAddress);
 
-            CreateDacInstance func = Marshal.GetDelegateForFunctionPointer<CreateDacInstance>(addr);
+            var func = (delegate* unmanaged[Stdcall]<in Guid, IntPtr, out IntPtr, int>)addr;
             Guid guid = new Guid("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
-            int res = func(guid, DacDataTarget.IDacDataTarget, out IntPtr iUnk);
+
+#if NET6_0_OR_GREATER
+            IntPtr iDacDataTarget = DacDataTargetCOM.CreateIDacDataTarget(DacDataTarget);
+            int res = func(guid, iDacDataTarget, out nint iUnk);
+            Marshal.Release(iDacDataTarget);
+#else
+            LegacyDacDataTargetWrapper wrapper = new LegacyDacDataTargetWrapper(DacDataTarget, DacDataTarget.RuntimeBaseAddress != 0);
+            int res = func(guid, wrapper.IDacDataTarget, out nint iUnk);
+            GC.KeepAlive(wrapper);
+#endif
 
             if (res != 0)
                 throw new ClrDiagnosticsException($"Failure loading DAC: CreateDacInstance failed 0x{res:x}", res);
 
             InternalDacPrivateInterface = new ClrDataProcess(this, iUnk);
         }
+
+        internal void Flush() => DacDataTarget.Flush();
 
         public void Dispose()
         {
@@ -158,17 +146,5 @@ namespace Microsoft.Diagnostics.Runtime
                 _disposed = true;
             }
         }
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int DllMain(IntPtr instance, int reason, IntPtr reserved);
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int PAL_Initialize();
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate int CreateDacInstance(
-            in Guid riid,
-            IntPtr dacDataInterface,
-            out IntPtr ppObj);
     }
 }

@@ -14,8 +14,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal sealed class HeapSegmentDataCache : IDisposable
     {
-        private ReaderWriterLockSlim _cacheLock = new ReaderWriterLockSlim();
-        private Dictionary<ulong, SegmentCacheEntry> _cache = new Dictionary<ulong, SegmentCacheEntry>();
+        private ReaderWriterLockSlim _cacheLock = new();
+        private Dictionary<ulong, SegmentCacheEntry> _cache = new();
         private SegmentCacheEntryFactory _entryFactory;
 
         private long _cacheSize;
@@ -23,7 +23,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private readonly uint _entryCountWhenFull;
         private bool _cacheIsComplete;
         private readonly bool _cacheIsFullyPopulatedBeforeUse;
-
 
         public HeapSegmentDataCache(SegmentCacheEntryFactory entryFactory, uint entryCountWhenFull, bool cacheIsFullyPopulatedBeforeUse, long maxSize)
         {
@@ -145,11 +144,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             if (Interlocked.Read(ref _cacheSize) < _maxSize)
                 return;
 
-            IList<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, int LastAccessTimestamp)> entries = SnapshotNonMinSizeCacheItems(); ;
+            IList<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, int LastAccessTimestamp)> entries = SnapshotNonMinSizeCacheItems();
             if (entries.Count == 0)
                 return;
 
-            // Try to cut ourselves down to about 85% of our max capaity, otherwise just hang out right at that boundary and the next entry we add we end up having to
+            // Try to cut ourselves down to about 85% of our max capacity, otherwise just hang out right at that boundary and the next entry we add we end up having to
             // scavenge again, and again, and again...
             uint requiredCutAmount = (uint)(_maxSize * 0.15);
 
@@ -195,7 +194,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     if (haveUpdatedSnapshot || (Interlocked.Read(ref _cacheSize) <= desiredSize))
                         break;
 
-                    // we failed to find any non MinSize entris in the last 10% of entries. Since our snapshot originally ONLY contained non-MinSize entries this likely
+                    // we failed to find any non MinSize entries in the last 10% of entries. Since our snapshot originally ONLY contained non-MinSize entries this likely
                     // means other threads are also trimming. Re-snapshot and try again.
                     entries = SnapshotNonMinSizeCacheItems();
                     haveUpdatedSnapshot = true;
@@ -244,7 +243,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             // Select all cache entries which aren't at their min-size
             //
             // THREADING: We snapshot the LastAccessTickCount values here because there is the case where the Sort function will throw an exception if it tests two entries and the 
-            // lhs rhs comparison is inconsistent when reveresed (i.e. something like lhs < rhs is true but then rhs < lhs is also true). This sound illogical BUT it can happen
+            // lhs rhs comparison is inconsistent when reversed (i.e. something like lhs < rhs is true but then rhs < lhs is also true). This sound illogical BUT it can happen
             // if between the two comparisons the LastAccessTickCount changes (because other threads are concurrently accessing these same entries), in that case we would trigger 
             // this exception, which is bad :)
             //
@@ -263,8 +262,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             // Flip the sort order to the LEAST recently accessed items (i.e. the ones whose LastAccessTickCount are furthest in history) end up at the END of the array,
             //
-            // NOTE: Using tickcounts is succeptible to roll-over, but worst case scenario we remove a slightly more recently used one thinking it is older, not a huge deal
-            // and using DateTime.Now to get a non-roll-over succeptible timestamp showed up as 5% of scenario time in PerfView :(
+            // NOTE: Using tickcounts is susceptible to roll-over, but worst case scenario we remove a slightly more recently used one thinking it is older, not a huge deal
+            // and using DateTime.Now to get a non-roll-over susceptible timestamp showed up as 5% of scenario time in PerfView :(
             entries.Sort((lhs, rhs) => rhs.LastAccessTimestamp.CompareTo(lhs.LastAccessTimestamp));
 
             return entries;

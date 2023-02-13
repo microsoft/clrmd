@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -13,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         private const uint DACDATAMODULEPRIV_REQUEST_GET_MODULEDATA = 0xf0000001;
 
-        private static readonly Guid IID_IXCLRDataModule = new Guid("88E32849-0A0A-4cb0-9022-7CD2E9E139E2");
+        private static readonly Guid IID_IXCLRDataModule = new("88E32849-0A0A-4cb0-9022-7CD2E9E139E2");
 
         public ClrDataModule(DacLibrary library, IntPtr pUnknown)
             : base(library?.OwningLibrary, IID_IXCLRDataModule, pUnknown)
@@ -24,12 +25,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult GetModuleData(out ExtendedModuleData data)
         {
-            InitDelegate(ref _request, VTable.Request);
-
-            HResult hr;
             fixed (void* dataPtr = &data)
             {
-                hr = _request(Self, DACDATAMODULEPRIV_REQUEST_GET_MODULEDATA, 0, null, sizeof(ExtendedModuleData), dataPtr);
+                HResult hr = VTable.Request(Self, DACDATAMODULEPRIV_REQUEST_GET_MODULEDATA, 0, null, sizeof(ExtendedModuleData), dataPtr);
                 if (!hr)
                     data = default;
 
@@ -39,27 +37,37 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public string? GetName()
         {
-            InitDelegate(ref _getName, VTable.GetName);
-
-            HResult hr = _getName(Self, 0, out int nameLength, null);
+            HResult hr = VTable.GetName(Self, 0, out int nameLength, null);
             if (!hr)
                 return null;
 
             string name = new string('\0', nameLength - 1);
             fixed (char* namePtr = name)
-                hr = _getName(Self, nameLength, out _, namePtr);
+                hr = VTable.GetName(Self, nameLength, out _, namePtr);
 
             return hr ? name : null;
         }
 
-        private GetNameDelegate? _getName;
-        private delegate HResult GetNameDelegate(IntPtr self, int bufLen, out int nameLen, char* name);
-
-        private RequestDelegate? _request;
-        private delegate HResult RequestDelegate(IntPtr self, uint reqCode, int inBufferSize, void* inBuffer, int outBufferSize, void* outBuffer);
+        public string? GetFileName()
+        {
+            // GetFileName will fault if buffer pointer is null. Use fixed size buffer.
+            char[] buffer = ArrayPool<char>.Shared.Rent(1024);
+            try 
+            { 
+                fixed (char* bufferPtr = buffer)
+                {
+                    HResult hr = VTable.GetFileName(Self, buffer.Length, out int nameLength, bufferPtr);
+                    return hr && nameLength > 0 ? new string(buffer, 0, nameLength - 1) : null;
+                }
+            }
+            finally
+            {
+                ArrayPool<char>.Shared.Return(buffer);
+            }
+        }
 
         [StructLayout(LayoutKind.Sequential)]
-        private readonly struct IClrDataModuleVTable
+        private readonly unsafe struct IClrDataModuleVTable
         {
             private readonly IntPtr StartEnumAssemblies;
             private readonly IntPtr EnumAssembly;
@@ -87,14 +95,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             private readonly IntPtr StartEnumDataByName;
             private readonly IntPtr EnumDataByName;
             private readonly IntPtr EndEnumDataByName;
-            public readonly IntPtr GetName;
-            private readonly IntPtr GetFileName;
+            public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, char*, int> GetName;
+            public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out int, char*, int> GetFileName;
             private readonly IntPtr GetFlags;
             private readonly IntPtr IsSameObject;
             private readonly IntPtr StartEnumExtents;
             private readonly IntPtr EnumExtent;
             private readonly IntPtr EndEnumExtents;
-            public readonly IntPtr Request;
+            public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, int, void*, int, void*, int> Request;
             private readonly IntPtr StartEnumAppDomains;
             private readonly IntPtr EnumAppDomain;
             private readonly IntPtr EndEnumAppDomains;

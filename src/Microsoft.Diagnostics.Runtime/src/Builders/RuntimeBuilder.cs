@@ -6,11 +6,10 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
@@ -29,20 +28,21 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private readonly CacheOptions _options;
         private readonly SOSDac6? _sos6;
         private readonly SOSDac8? _sos8;
+        private readonly SOSDac12? _sos12;
         private readonly int _threads;
         private readonly ulong _finalizer;
         private readonly ulong _firstThread;
 
         private volatile ClrType?[]? _basicTypes;
-        private readonly Dictionary<ulong, ClrAppDomain> _domains = new Dictionary<ulong, ClrAppDomain>();
-        private readonly Dictionary<ulong, ClrModule> _modules = new Dictionary<ulong, ClrModule>();
+        private readonly Dictionary<ulong, ClrAppDomain> _domains = new();
+        private readonly Dictionary<ulong, ClrModule> _modules = new();
 
         private readonly ClrmdRuntime _runtime;
         private readonly ClrmdHeap _heap;
 
         private volatile StringReader? _stringReader;
 
-        private readonly Dictionary<ulong, ClrType> _types = new Dictionary<ulong, ClrType>();
+        private readonly Dictionary<ulong, ClrType> _types = new();
 
         private readonly ObjectPool<TypeBuilder> _typeBuilders;
         private readonly ObjectPool<MethodBuilder> _methodBuilders;
@@ -65,6 +65,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             _dac = _library.DacPrivateInterface;
             _sos6 = _library.SOSDacInterface6;
             _sos8 = _library.SOSDacInterface8;
+            _sos12 = library.SOSDacInterface12;
+
             DataReader = _clrInfo.DataTarget.DataReader;
 
             int version = 0;
@@ -139,7 +141,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 }
 
                 curr++;
-                if (curr >= max)
+                if (curr > max)
                     break;
 
                 hr = _sos.GetSyncBlockData(curr, out data);
@@ -168,8 +170,12 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     break;
             }
 
+            if (_sos12 is not null && _sos12.GetGlobalAllocationContext(out ulong globalAllocPtr, out ulong globalAllocLimit))
+                if (globalAllocPtr != 0 && globalAllocPtr < globalAllocLimit)
+                    allocContexts.Add(new MemoryRange(globalAllocPtr, globalAllocLimit));
+
             bool result = false;
-            SegmentBuilder segBuilder = new SegmentBuilder(_sos);
+            SegmentBuilder segBuilder = new SegmentBuilder(_sos, DataReader.PointerSize);
             if (clrHeap.IsServer)
             {
                 ClrDataAddress[] heapList = _sos.GetHeapList(clrHeap.LogicalHeapCount);
@@ -180,13 +186,13 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     {
                         // As long as we got at least one heap we'll count that as success
                         result = true;
-                        ProcessHeap(segBuilder, clrHeap, heap, allocContexts, segs, finalizerRoots, finalizerObjects);
+                        ProcessHeap(segBuilder, heapList[i], clrHeap, heap, allocContexts, segs, finalizerRoots, finalizerObjects);
                     }
                 }
             }
             else if (_sos.GetWksHeapDetails(out HeapDetails heap))
             {
-                ProcessHeap(segBuilder, clrHeap, heap, allocContexts, segs, finalizerRoots, finalizerObjects);
+                ProcessHeap(segBuilder, 0, clrHeap, heap, allocContexts, segs, finalizerRoots, finalizerObjects);
                 result = true;
             }
 
@@ -201,6 +207,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         private void ProcessHeap(
             SegmentBuilder segBuilder,
+            ulong heapAddress,
             ClrHeap clrHeap,
             in HeapDetails heap,
             ImmutableArray<MemoryRange>.Builder allocationContexts,
@@ -208,22 +215,45 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             ImmutableArray<FinalizerQueueSegment>.Builder fqRoots,
             ImmutableArray<FinalizerQueueSegment>.Builder fqObjects)
         {
+            bool regions = heap.SavedSweepEphemeralSeg.Value == -1;
+
             if (heap.EphemeralAllocContextPtr != 0 && heap.EphemeralAllocContextPtr != heap.EphemeralAllocContextLimit)
                 allocationContexts.Add(new MemoryRange(heap.EphemeralAllocContextPtr, heap.EphemeralAllocContextLimit));
 
             fqRoots.Add(new FinalizerQueueSegment(heap.FQRootsStart, heap.FQRootsStop));
             fqObjects.Add(new FinalizerQueueSegment(heap.FQAllObjectsStart, heap.FQAllObjectsStop));
 
-            AddSegments(segBuilder, clrHeap, large: true, heap, segments, heap.GenerationTable[3].StartSegment);
-            AddSegments(segBuilder, clrHeap, large: false, heap, segments, heap.GenerationTable[2].StartSegment);
+            AddSegments(segBuilder, clrHeap, 3, heap, segments, heap.GenerationTable[3].StartSegment);
+            AddSegments(segBuilder, clrHeap, 2, heap, segments, heap.GenerationTable[2].StartSegment);
+            if (regions)
+            {
+                AddSegments(segBuilder, clrHeap, 1, heap, segments, heap.GenerationTable[1].StartSegment);
+                AddSegments(segBuilder, clrHeap, 0, heap, segments, heap.GenerationTable[0].StartSegment);
+            }
+
+            if (_sos8 != null)
+            {
+                if (_sos8.GenerationCount == 5)
+                {
+                    GenerationData[]? genData;
+                    if (clrHeap.IsServer)
+                        genData = _sos8.GetGenerationTable(heapAddress);
+                    else
+                        genData = _sos8.GetGenerationTable();
+
+                    if (genData != null && genData.Length > 3)
+                        AddSegments(segBuilder, clrHeap, 4, heap, segments, genData[4].StartSegment);
+                }
+            }
         }
 
-        private void AddSegments(SegmentBuilder segBuilder, ClrHeap clrHeap, bool large, in HeapDetails heap, ImmutableArray<ClrSegment>.Builder segments, ulong address)
+        private void AddSegments(SegmentBuilder segBuilder, ClrHeap clrHeap, int generation, in HeapDetails heap, ImmutableArray<ClrSegment>.Builder segments, ulong address)
         {
             HashSet<ulong> seenSegments = new HashSet<ulong> { 0 };
-            segBuilder.IsLargeObjectSegment = large;
+            segBuilder.IsLargeObjectSegment = (generation == 3);
+            segBuilder.IsPinnedObjectSegment = (generation == 4);
 
-            while (seenSegments.Add(address) && segBuilder.Initialize(address, heap))
+            while (seenSegments.Add(address) && segBuilder.Initialize(address, generation, heap))
             {
                 // Unfortunately ClrmdSegment is tightly coupled to ClrmdHeap to make implementation vastly simpler and it can't
                 // be used with any generic ClrHeap.  There should be no way that this runtime builder ever mismatches the two
@@ -352,7 +382,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 contextSize = 716;
                 contextFlags = 0x1003f;
             }
-            else // Architecture.Amd64
+            else // Architecture.X64
             {
                 ipOffset = 248;
                 spOffset = 152;
@@ -368,18 +398,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     if (!stackwalk.GetContext(contextFlags, contextSize, out _, context))
                         break;
 
-                    ulong ip, sp;
-
-                    if (IntPtr.Size == 4)
-                    {
-                        ip = BitConverter.ToUInt32(context, ipOffset);
-                        sp = BitConverter.ToUInt32(context, spOffset);
-                    }
-                    else
-                    {
-                        ip = BitConverter.ToUInt64(context, ipOffset);
-                        sp = BitConverter.ToUInt64(context, spOffset);
-                    }
+                    ulong ip = context.AsSpan().AsPointer(ipOffset);
+                    ulong sp = context.AsSpan().AsPointer(spOffset);
 
                     ulong frameVtbl = stackwalk.GetFrameVtable();
                     if (frameVtbl != 0)
@@ -445,12 +465,12 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             if (runtime.SharedDomain != null)
                 foreach (ClrModule module in runtime.SharedDomain.Modules)
-                    if (!(module.Name is null) && module.Name.ToUpperInvariant().Contains(moduleName))
+                    if (!(module.Name is null) && module.Name.Contains(moduleName, StringComparison.OrdinalIgnoreCase))
                         return module;
 
             foreach (ClrAppDomain domain in runtime.AppDomains)
                 foreach (ClrModule module in domain.Modules)
-                    if (!(module.Name is null) && module.Name.ToUpperInvariant().Contains(moduleName))
+                    if (!(module.Name is null) && module.Name.Contains(moduleName, StringComparison.OrdinalIgnoreCase))
                         return module;
 
             return null;
@@ -679,7 +699,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             _library.DacDataTarget.EnterMagicCallbackContext();
             try
             {
-                _sos.GetWorkRequestData(DacDataTargetWrapper.MagicCallbackConstant, out _);
+                _sos.GetWorkRequestData(DacDataTarget.MagicCallbackConstant, out _);
             }
             finally
             {
@@ -687,7 +707,20 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             }
         }
 
-        ulong IRuntimeHelpers.GetMethodDesc(ulong ip) => _sos.GetMethodDescPtrFromIP(ip);
+        ulong IRuntimeHelpers.GetMethodDesc(ulong ip)
+        {
+            ulong md = _sos.GetMethodDescPtrFromIP(ip);
+            if (md == 0)
+            {
+                if (!_sos.GetCodeHeaderData(ip, out CodeHeaderData codeHeaderData))
+                    return 0;
+
+                if ((md = codeHeaderData.MethodDesc) == 0)
+                    return 0;
+            }
+
+            return md;
+        }
         string? IRuntimeHelpers.GetJitHelperFunctionName(ulong ip) => _sos.GetJitHelperFunctionName(ip);
 
         public IExceptionHelpers ExceptionHelpers => this;
@@ -875,7 +908,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         // When searching for a type, we don't want to actually cache or intern the name until we completely
         // construct the type.  This will alleviate a lot of needless memory usage when we do something like
         // search all modules for a named type we never find.
-        string? IModuleHelpers.GetTypeName(ulong mt) => FixGenerics(_sos.GetMethodTableName(mt));
+        string? IModuleHelpers.GetTypeName(ulong mt) => DACNameParser.Parse(_sos.GetMethodTableName(mt));
         (ulong MethodTable, int Token)[] IModuleHelpers.GetSortedTypeDefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable);
         (ulong MethodTable, int Token)[] IModuleHelpers.GetSortedTypeRefMap(ClrModule module) => GetSortedMap(module, SOSDac.ModuleMapTraverseKind.TypeRefToMethodTable);
 
@@ -1006,6 +1039,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (mt == 0)
                 return null;
 
+            // Remove marking bit.
+            mt &= ~1ul;
+
             {
                 ClrType? result = TryGetType(mt);
                 if (result != null)
@@ -1056,7 +1092,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 }
             }
         }
-
 
         public ClrType? GetOrCreateTypeFromSignature(ClrModule? module, SigParser parser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters)
         {
@@ -1128,7 +1163,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
                 if (!parser.GetToken(out int token))
                     return null;
-
 
                 if (!parser.GetData(out int count))
                     return null;
@@ -1441,123 +1475,11 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (string.IsNullOrWhiteSpace(name))
                 return true;
 
-            name = FixGenerics(name);
+            name = DACNameParser.Parse(name);
             if (_options.CacheTypeNames == StringCaching.Intern)
                 name = string.Intern(name);
 
             return _options.CacheTypeNames != StringCaching.None;
-        }
-
-        private static void FixGenerics(StringBuilder result, string name, int start, int len, ref int maxDepth, out int finish)
-        {
-            if (--maxDepth < 0)
-            {
-                finish = 0;
-                return;
-            }
-
-            int i = start;
-            while (i < len)
-            {
-                if (name[i] == '`')
-                    while (i < len && name[i] != '[')
-                        i++;
-
-                if (name[i] == ',')
-                {
-                    finish = i;
-                    return;
-                }
-
-                if (name[i] == '[')
-                {
-                    int end = FindEnd(name, i);
-
-                    if (IsArraySubstring(name, i, end))
-                    {
-                        result.Append(name, i, end - i + 1);
-                        i = end + 1;
-                    }
-                    else
-                    {
-                        result.Append('<');
-
-                        int curr = i;
-                        do
-                        {
-                            FixGenerics(result, name, curr + 2, end - 1, ref maxDepth, out int currEnd);
-                            if (maxDepth < 0)
-                            {
-                                finish = 0;
-                                return;
-                            }
-
-                            curr = FindEnd(name, currEnd) + 1;
-
-                            if (curr >= end)
-                                break;
-
-                            if (name[curr] == ',')
-                                result.Append(", ");
-                        }
-                        while (curr < end);
-
-                        result.Append('>');
-
-                        i = curr + 1;
-                    }
-                }
-                else
-                {
-                    result.Append(name[i]);
-                    i++;
-                }
-            }
-
-            finish = i;
-        }
-
-        private static int FindEnd(string name, int start)
-        {
-            int parenCount = 1;
-            for (int i = start + 1; i < name.Length; i++)
-            {
-                if (name[i] == '[')
-                    parenCount++;
-                if (name[i] == ']' && --parenCount == 0)
-                {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
-
-        private static bool IsArraySubstring(string name, int start, int end)
-        {
-            start++;
-            end--;
-            while (start < end)
-                if (name[start++] != ',')
-                    return false;
-
-            return true;
-        }
-
-        [return: NotNullIfNotNull("name")]
-        public static string? FixGenerics(string? name)
-        {
-            if (name == null || name.IndexOf("[[") == -1)
-                return name;
-
-            int maxDepth = 64;
-            StringBuilder sb = new StringBuilder();
-            FixGenerics(sb, name, 0, name.Length, ref maxDepth, out _);
-
-            if (maxDepth < 0)
-                return null;
-
-            return sb.ToString();
         }
 
         IClrObjectHelpers ITypeHelpers.ClrObjectHelpers => this;
@@ -1582,15 +1504,16 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return 0;
         }
 
-        IObjectData ITypeHelpers.GetObjectData(ulong objRef)
+        IObjectData? ITypeHelpers.GetObjectData(ulong objRef)
         {
             CheckDisposed();
 
             // todo remove
-            _sos.GetObjectData(objRef, out ObjectData data);
-            return data;
-        }
+            if (_sos.GetObjectData(objRef, out ObjectData data) == HResult.S_OK)
+                return data;
 
+            return null;
+        }
 
         string? IClrObjectHelpers.ReadString(ulong addr, int maxLength)
         {

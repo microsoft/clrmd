@@ -6,7 +6,7 @@ using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IExceptionHelpers
+    internal interface IExceptionHelpers
     {
         IDataReader DataReader { get; }
         ImmutableArray<ClrStackFrame> GetExceptionStackTrace(ClrThread? thread, ClrObject obj);

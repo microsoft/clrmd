@@ -2,11 +2,11 @@
 
 ## What happened to ClrRuntime.EnumerateTypes?
 
-We don't actually have a way to enumerate all "types" in the process.  ClrHeap.EnumerateTypes was an algorithm designed to help you find constructed types.  This was removed in ClrMD 2.0 becuase it's incredibly slow and is confusing as to what it's actually doing.  The Microsoft.Diagnostics.Runtime.Utilities NuGet package provides an extension method to add it back, but you can simply implement the algorithm yourself to do this.  The source for doing this can be found here:  https://github.com/microsoft/clrmd/blob/master/src/Microsoft.Diagnostics.Runtime.Utilities/EnumerateTypesExtension.cs.
+We don't actually have a way to enumerate all "types" in the process.  ClrHeap.EnumerateTypes was an algorithm designed to help you find constructed types.  This was removed in ClrMD 2.0 because it's incredibly slow and is confusing as to what it's actually doing.  The Microsoft.Diagnostics.Runtime.Utilities NuGet package provides an extension method to add it back, but you can simply implement the algorithm yourself to do this.  The source for doing this can be found here:  https://github.com/microsoft/clrmd/blob/master/src/Microsoft.Diagnostics.Runtime.Utilities/EnumerateTypesExtension.cs.
 
 ## Why are static roots no longer enumerated by `ClrHeap.EnumerateRoots`?
 
-Static variables are not "roots" in the strictest sense.  They are always rooted, but the GC does not consider then to be roots.  ClrMD 1.1 would report these as roots because it's convenient to treat them as roots when reporting to the user why an object is alive.  However, that code takes a very long time, and it wasn't providing an accurate view of the runtime.  If you need those back or to find what object addresses are you can use this method (or reimplement it yourself): https://github.com/microsoft/clrmd/blob/master/src/Microsoft.Diagnostics.Runtime.Utilities/StaticRootsExtension.cs.
+Static variables are not "roots" in the strictest sense.  They are always rooted, but the GC does not consider them to be roots.  ClrMD 1.1 would report these as roots because it's convenient to treat them as roots when reporting to the user why an object is alive.  However, that code takes a very long time, and it wasn't providing an accurate view of the runtime.  If you need those back or to find what object addresses are you can use this method (or reimplement it yourself): https://github.com/microsoft/clrmd/blob/master/src/Microsoft.Diagnostics.Runtime.Utilities/StaticRootsExtension.cs.
 
 ## Why doesn't ClrMD 2.0 provide ThreadStatics anymore?
 
@@ -31,7 +31,7 @@ DLL the C# code calling into CLR MD is then tied to the same architecture
 requirement.
 
 Theoretically you could get around this requirement yourself in a few ways. For
-example, you can wrap your calls to the API into a seperate process, then use
+example, you can wrap your calls to the API into a separate process, then use
 interprocess communication to relay the information. I do not plan on adding
 anything to the API to do this automatically though.
 

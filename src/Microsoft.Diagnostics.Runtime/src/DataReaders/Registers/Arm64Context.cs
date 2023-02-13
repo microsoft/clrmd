@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -13,13 +13,13 @@ namespace Microsoft.Diagnostics.Runtime
     [StructLayout(LayoutKind.Explicit, Pack = 1)]
     public struct Arm64Context
     {
-        public const uint Context = 0x00200000;
+        public const uint Context = 0x00400000;
         public const uint ContextControl = Context | 0x1;
         public const uint ContextInteger = Context | 0x2;
         public const uint ContextFloatingPoint = Context | 0x4;
         public const uint ContextDebugRegisters = Context | 0x8;
 
-        public static int Size => Marshal.SizeOf(typeof(Arm64Context));
+        public static int Size => 0x390;
 
         // Control flags
 

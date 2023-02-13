@@ -3,35 +3,35 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using Microsoft.Diagnostics.Runtime.Linux;
+using System.Diagnostics.CodeAnalysis;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     internal static class UnixDataReaderExtensions
     {
-        internal static bool GetVersionInfo(this IDataReader dataReader, ulong baseAddress, ElfFile loadedFile, out VersionInfo version)
+
+        [return: NotNullIfNotNull("version")]
+        internal static bool GetVersionInfo(this IDataReader dataReader, ulong baseAddress, ElfFile loadedFile, out System.Version? version)
         {
             foreach (ElfProgramHeader programHeader in loadedFile.ProgramHeaders)
             {
                 if (programHeader.Type == ElfProgramHeaderType.Load && programHeader.IsWritable)
-                {
-                    long loadAddress = programHeader.VirtualAddress;
-                    long loadSize = programHeader.VirtualSize;
-                    return GetVersionInfo(dataReader, baseAddress + (ulong)loadAddress, (ulong)loadSize, out version);
-                }
+                    return GetVersionInfo(dataReader, baseAddress + programHeader.VirtualAddress, programHeader.VirtualSize, out version);
             }
 
-            version = default;
+            version = null;
             return false;
         }
 
-        internal static bool GetVersionInfo(this IDataReader dataReader, ulong startAddress, ulong size, out VersionInfo version)
+        [return: NotNullIfNotNull("version")]
+        internal static bool GetVersionInfo(this IDataReader dataReader, ulong startAddress, ulong size, out System.Version? version)
         {
             // (int)size underflow will result in returning 0 here, so this is acceptable
             ulong address = dataReader.SearchMemory(startAddress, (int)size, PlatformFunctions.s_versionString);
             if (address == 0)
             {
-                version = default;
+                version = null;
                 return false;
             }
 
@@ -44,11 +44,11 @@ namespace Microsoft.Diagnostics.Runtime
                 return true;
             }
 
-            version = default;
+            version = null;
             return false;
         }
 
-        private static VersionInfo ParseAsciiVersion(ReadOnlySpan<byte> span)
+        private static System.Version? ParseAsciiVersion(ReadOnlySpan<byte> span)
         {
             int major = 0, minor = 0, rev = 0, patch = 0;
 
@@ -92,10 +92,10 @@ namespace Microsoft.Diagnostics.Runtime
 
                 // In this case I don't know what we are parsing but it's not a version
                 if (curr > int.MaxValue)
-                    return default;
+                    return null;
             }
 
-            return new VersionInfo(major, minor, rev, patch, true);
+            return new System.Version(major, minor, rev, patch);
         }
     }
 }

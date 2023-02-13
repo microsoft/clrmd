@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using Xunit;
 
@@ -19,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             // Make sure we never return different values for the version
             using DataTarget dt = TestTargets.Types.LoadFullDump();
-            foreach (ModuleInfo module in dt.EnumerateModules())
+            foreach (PEModuleInfo module in dt.EnumerateModules())
             {
                 if (!module.IsManaged)
                     continue;
@@ -30,8 +32,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 FileVersionInfo fileVersionInfo = img.GetFileVersionInfo();
                 if (fileVersionInfo != null)
                 {
-                    VersionInfo moduleVersion = module.Version;
-                    Assert.Equal(moduleVersion, fileVersionInfo.VersionInfo);
+                    Version moduleVersion = module.Version;
+                    Assert.Equal(moduleVersion, fileVersionInfo.Version);
                     found = true;
                 }
             }

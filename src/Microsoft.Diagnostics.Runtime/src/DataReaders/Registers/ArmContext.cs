@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
         public const uint ContextFloatingPoint = Context | 0x4;
         public const uint ContextDebugRegisters = Context | 0x8;
 
-        public static int Size => Marshal.SizeOf(typeof(ArmContext));
+        public static int Size => 0x1a0;
 
         // Control flags
 

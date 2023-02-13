@@ -6,18 +6,19 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 
 #pragma warning disable CA1721 // Property names should not match get methods
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class ClrmdHeap : ClrHeap
+    internal sealed class ClrmdHeap : ClrHeap
     {
         private const int MaxGen2ObjectSize = 85000;
         private readonly IHeapHelpers _helpers;
 
-        private readonly object _sync = new object();
+        private readonly object _sync = new();
         private volatile VolatileHeapData? _volatileHeapData;
         private volatile VolatileSyncBlockData? _volatileSyncBlocks;
         private ulong _lastComFlags;
@@ -61,8 +62,30 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // Prepopulate a few important method tables.  This should never fail.
             FreeType = _helpers.Factory.CreateSystemType(this, data.FreeMethodTable, "Free");
             ObjectType = _helpers.Factory.CreateSystemType(this, data.ObjectMethodTable, "System.Object");
-            StringType = _helpers.Factory.CreateSystemType(this, data.StringMethodTable, "System.String");
-            ExceptionType = _helpers.Factory.CreateSystemType(this, data.ExceptionMethodTable, "System.Exception");
+            try
+            {
+                ExceptionType = _helpers.Factory.CreateSystemType(this, data.ExceptionMethodTable, "System.Exception");
+            }
+            catch
+            {
+                ExceptionType = ObjectType;
+            }
+
+            // Triage dumps may not place System.String data into the dump.  In these cases we'll create a "fake"
+            // System.String type for the library to use.
+            try
+            {
+                StringType = _helpers.Factory.CreateSystemType(this, data.StringMethodTable, "System.String");
+            }
+            catch (System.IO.InvalidDataException)
+            {
+                int token = 0;
+                using var sosdac = Runtime.DacLibrary.SOSDacInterface;
+                if (sosdac.GetMethodTableData(data.StringMethodTable, out DacInterface.MethodTableData mtd))
+                    token = (int)mtd.Token;
+
+                StringType = new ClrmdStringType((ITypeHelpers)_helpers, this, data.StringMethodTable, token);
+            }
         }
 
         public override IEnumerable<MemoryRange> EnumerateAllocationContexts() => AllocationContexts.Select(item => new MemoryRange(item.Key, item.Value));
@@ -102,7 +125,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             uint minObjSize = (uint)IntPtr.Size * 3;
             while (AllocationContexts.TryGetValue(address, out ulong nextObj))
             {
-                nextObj += Align(minObjSize, seg.IsLargeObjectSegment);
+                nextObj += Align(minObjSize, seg.IsLargeObjectSegment || seg.IsPinnedObjectSegment);
 
                 if (address >= nextObj || address >= seg.End)
                     return 0;
@@ -198,7 +221,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return flags;
         }
 
-
         public override ulong GetObjectSize(ulong objRef, ClrType type)
         {
             ulong size;
@@ -268,7 +290,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     if (carefully)
                     {
                         ClrSegment? seg = GetSegmentByAddress(obj);
-                        if (seg is null || obj + size > seg.End || (!seg.IsLargeObjectSegment && size > MaxGen2ObjectSize))
+                        if (seg is null)
+                            yield break;
+
+                        bool large = seg.IsLargeObjectSegment || seg.IsPinnedObjectSegment;
+                        if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
                             yield break;
                     }
 
@@ -281,6 +307,68 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         {
                             foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
                                 yield return new ClrObject(reference, GetObjectType(reference));
+                        }
+                    }
+                    finally
+                    {
+                        ArrayPool<byte>.Shared.Return(buffer);
+                    }
+                }
+            }
+        }
+
+        public override IEnumerable<ulong> EnumerateReferenceAddresses(ulong obj, ClrType type, bool carefully, bool considerDependantHandles)
+        {
+            if (type is null)
+                throw new ArgumentNullException(nameof(type));
+
+            if (considerDependantHandles)
+            {
+                ImmutableArray<(ulong Source, ulong Target)> dependent = GetHeapData().GetDependentHandles(_helpers);
+
+                if (dependent.Length > 0)
+                {
+                    int index = dependent.Search(obj, (x, y) => x.Source.CompareTo(y));
+                    if (index != -1)
+                    {
+                        while (index >= 1 && dependent[index - 1].Source == obj)
+                            index--;
+
+                        while (index < dependent.Length && dependent[index].Source == obj)
+                            yield return dependent[index++].Target;
+                    }
+                }
+            }
+
+            if (type.ContainsPointers)
+            {
+                GCDesc gcdesc = type.GCDesc;
+                if (!gcdesc.IsEmpty)
+                {
+                    ulong size = GetObjectSize(obj, type);
+                    if (carefully)
+                    {
+                        ClrSegment? seg = GetSegmentByAddress(obj);
+                        if (seg is null)
+                            yield break;
+
+                        bool large = seg.IsLargeObjectSegment || seg.IsPinnedObjectSegment;
+                        if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
+                            yield break;
+                    }
+
+                    int intSize = (int)size;
+                    byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
+                    try
+                    {
+                        int read = _helpers.DataReader.Read(obj, new Span<byte>(buffer, 0, intSize));
+                        if (read > IntPtr.Size)
+                        {
+                            foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
+                            {
+                                yield return reference;
+                                DebugOnly.Assert(offset >= IntPtr.Size);
+                            }
                         }
                     }
                     finally
@@ -327,7 +415,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     if (carefully)
                     {
                         ClrSegment? seg = GetSegmentByAddress(obj);
-                        if (seg is null || obj + size > seg.End || (!seg.IsLargeObjectSegment && size > MaxGen2ObjectSize))
+                        if (seg is null)
+                            yield break;
+
+                        bool large = seg.IsLargeObjectSegment || seg.IsPinnedObjectSegment;
+                        if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
                             yield break;
                     }
 
@@ -355,13 +447,38 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-
         public override IEnumerable<IClrRoot> EnumerateRoots()
         {
             // Handle table
             foreach (ClrHandle handle in Runtime.EnumerateHandles())
+            {
                 if (handle.IsStrong)
                     yield return handle;
+
+                if (handle.RootKind == ClrRootKind.AsyncPinnedHandle && handle.Object.IsValid)
+                {
+                    (ulong address, ClrObject m_userObject) = GetObjectAndAddress(handle.Object, "m_userObject");
+
+                    if (address != 0 && m_userObject.IsValid)
+                    {
+                        yield return new ClrmdHandle(handle.AppDomain, address, m_userObject, handle.HandleKind);
+
+                        ClrElementType? arrayElementType = m_userObject.Type?.ComponentType?.ElementType;
+                        if (m_userObject.IsArray && arrayElementType.HasValue && arrayElementType.Value.IsObjectReference())
+                        {
+                            ClrArray array = m_userObject.AsArray();
+                            for (int i = 0; i < array.Length; i++)
+                            {
+                                ulong innerAddress = m_userObject + (ulong)(2 * IntPtr.Size + i * IntPtr.Size);
+                                ClrObject innerObj = array.GetObjectValue(i);
+
+                                if (innerObj.IsValid)
+                                    yield return new ClrmdHandle(handle.AppDomain, innerAddress, innerObj, handle.HandleKind);
+                            }
+                        }
+                    }
+                }
+            }
 
             // Finalization Queue
             foreach (ClrFinalizerRoot root in EnumerateFinalizerRoots())
@@ -370,6 +487,25 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // Threads
             foreach (IClrRoot root in EnumerateStackRoots())
                 yield return root;
+        }
+
+        private (ulong Address, ClrObject obj) GetObjectAndAddress(ClrObject containing, string fieldName)
+        {
+            if (containing.IsValid)
+            {
+                ClrInstanceField? field = containing.Type?.Fields.FirstOrDefault(f => f.Name == fieldName);
+                if (field != null && field.Offset > 0)
+                {
+                    ulong address = field.GetAddress(containing.Address);
+                    ulong objPtr = _helpers.DataReader.ReadPointer(address);
+                    ClrObject obj = GetObject(objPtr);
+
+                    if (obj.IsValid)
+                        return (address, obj);
+                }
+            }
+
+            return (0ul, default);
         }
 
         private IEnumerable<IClrRoot> EnumerateStackRoots()
@@ -463,7 +599,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         class VolatileHeapData
         {
-            private readonly object _sync = new object();
+            private readonly object _sync = new();
             private ImmutableArray<(ulong Source, ulong Target)> _dependentHandles;
 
             public ImmutableArray<FinalizerQueueSegment> FQRoots { get; }

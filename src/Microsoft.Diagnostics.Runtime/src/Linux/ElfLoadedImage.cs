@@ -2,31 +2,48 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
-using Microsoft.Diagnostics.Runtime.Utilities;
+using System.Linq;
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
+    /// <summary>
+    /// A representation of an ELF loaded image section.
+    /// </summary>
     internal class ElfLoadedImage
     {
-        private readonly List<ElfFileTableEntryPointers64> _fileTable = new List<ElfFileTableEntryPointers64>(4);
         private readonly Reader _vaReader;
         private readonly bool _is64bit;
-        private long _end;
-        internal bool _containsExecutable;
+        private ulong _baseAddress;
+        private ulong _minimumPointer = ulong.MaxValue;
+        private ulong _end;
 
-        public string Path { get; }
-        public long BaseAddress { get; private set; }
-        public long Size => _end - BaseAddress;
+        // The path of the image on disk.
+        public string FileName { get; }
 
-        public ElfLoadedImage(Reader virtualAddressReader, bool is64bit, string path)
+        /// <summary>
+        /// The BaseAddress of this image
+        /// </summary>
+        public ulong BaseAddress => _baseAddress == 0 ? _minimumPointer : _baseAddress;
+
+        /// <summary>
+        /// The size of this image in memory.
+        /// </summary>
+        public ulong Size => _end - BaseAddress;
+
+        internal ElfLoadedImage(Reader virtualAddressReader, bool is64bit, string path)
         {
             _vaReader = virtualAddressReader;
             _is64bit = is64bit;
-            Path = path;
+            FileName = path;
         }
 
+        /// <summary>
+        /// Open the loaded image as an ELFFile.
+        /// </summary>
+        /// <returns>An ELFFile if this is a valid ELF image, null otherwise.</returns>
         public ElfFile? Open()
         {
             IElfHeader? header;
@@ -42,26 +59,37 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return new ElfFile(header, _vaReader, BaseAddress, true);
         }
 
-        public PEImage OpenAsPEImage()
+        /// <summary>
+        /// Returns this ELF loaded image as a stream.
+        /// </summary>
+        /// <returns></returns>
+        internal ReaderStream AsStream()
         {
-            Stream stream = new ReaderStream(BaseAddress, Size, _vaReader);
-            return new PEImage(stream, leaveOpen: false, isVirtual: _containsExecutable);
+            return new ReaderStream(BaseAddress, Size, _vaReader);
         }
 
-        internal void AddTableEntryPointers(ElfFileTableEntryPointers64 pointers, bool isExecutable)
+        internal void AddTableEntryPointers(ElfFileTableEntryPointers64 pointers)
         {
-            _fileTable.Add(pointers);
-            _containsExecutable = _containsExecutable || isExecutable;
+            if (_end < pointers.Stop)
+                _end = pointers.Stop;
 
-            long start = checked((long)pointers.Start);
-            if (BaseAddress == 0 || start < BaseAddress)
-                BaseAddress = start;
+            // There are cases (like .NET single-file modules) where the first NT_FILE entry isn't the ELF
+            // or PE header (i.e the base address). The header is the first entry with PageOffset == 0. For
+            // ELF modules there should only be one PageOffset == 0 entry but with the memory mapped PE
+            // assemblies, there can be more than one PageOffset == 0 entry and the first one is the base
+            // address.
+            if (_baseAddress == 0 && pointers.PageOffset == 0)
+                _baseAddress = pointers.Start;
 
-            long end = checked((long)pointers.Stop);
-            if (_end < end)
-                _end = end;
+            // If no load address was found, will use the lowest start address. There has to be at least one
+            // entry. This fixes the .NET 5.0 MacOS ELF dumps which have modules with no PageOffset == 0 entries.
+            _minimumPointer = Math.Min(pointers.Start, _minimumPointer);
         }
 
-        public override string ToString() => Path;
+        /// <summary>
+        /// Returns <see cref="FileName"/>.
+        /// </summary>
+        /// <returns><see cref="FileName"/></returns>
+        public override string ToString() => FileName;
     }
 }

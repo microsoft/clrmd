@@ -8,7 +8,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal unsafe class Reader
     {
@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             DataSource = source;
         }
 
-        public T? TryRead<T>(long position)
+        public T? TryRead<T>(ulong position)
             where T : unmanaged
         {
             int size = Unsafe.SizeOf<T>();
@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return null;
         }
 
-        public T Read<T>(long position)
+        public T Read<T>(ulong position)
             where T : unmanaged
         {
             int size = Unsafe.SizeOf<T>();
@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return result;
         }
 
-        public T Read<T>(ref long position)
+        public T Read<T>(ref ulong position)
             where T : unmanaged
         {
             int size = Unsafe.SizeOf<T>();
@@ -52,22 +52,22 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             if (read != size)
                 throw new IOException();
 
-            position += read;
+            position += (uint)read;
             return result;
         }
 
-        public int ReadBytes(long position, Span<byte> buffer) => DataSource.Read(position, buffer);
+        public int ReadBytes(ulong position, Span<byte> buffer) => DataSource.Read(position, buffer);
 
-        public string ReadNullTerminatedAscii(long position)
+        public string ReadNullTerminatedAscii(ulong position)
         {
-            StringBuilder builder = new StringBuilder(64);
+            StringBuilder builder = new(64);
             Span<byte> bytes = stackalloc byte[64];
 
             bool done = false;
             int read;
             while (!done && (read = DataSource.Read(position, bytes)) != 0)
             {
-                position += read;
+                position += (uint)read;
                 for (int i = 0; !done && i < read; i++)
                 {
                     if (bytes[i] != 0)
@@ -80,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.Linux
             return builder.ToString();
         }
 
-        public string ReadNullTerminatedAscii(long position, int length)
+        public string ReadNullTerminatedAscii(ulong position, int length)
         {
             byte[]? array = null;
             Span<byte> buffer = length <= 32 ? stackalloc byte[length] : (array = ArrayPool<byte>.Shared.Rent(length)).AsSpan(0, length);

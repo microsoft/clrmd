@@ -13,7 +13,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public class ClrmdType : ClrType
+    internal class ClrmdType : ClrType
     {
         protected ITypeHelpers Helpers { get; }
         protected IDataReader DataReader => Helpers.DataReader;
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             get
             {
-                // Name can't really be string.Empty for a valid type, so we use that as a sentinal for
+                // Name can't really be string.Empty for a valid type, so we use that as a sentinel for
                 // "we tried to get the type name but it was null" to avoid calling GetTypeName over and
                 // over.
                 if (_name == null)
@@ -80,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ClrElementType ElementType => GetElementType();
         public bool Shared { get; }
-        public override IClrObjectHelpers ClrObjectHelpers => Helpers.ClrObjectHelpers;
+        internal override IClrObjectHelpers ClrObjectHelpers => Helpers.ClrObjectHelpers;
 
         public override ulong MethodTable { get; }
         public override ClrHeap Heap { get; }
@@ -377,7 +377,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override T[]? ReadArrayElements<T>(ulong objRef, int start, int count) => throw new InvalidOperationException($"{Name} is not an array.");
 
         // convenience function for testing
-        public static string? FixGenerics(string? name) => RuntimeBuilder.FixGenerics(name);
+        public static string? FixGenerics(string? name) => DACNameParser.Parse(name);
 
         private void InitFlags()
         {

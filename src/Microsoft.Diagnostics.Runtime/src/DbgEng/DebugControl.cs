@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
     {
         public const int INITIAL_BREAK = 0x20;
 
-        internal static readonly Guid IID_IDebugControl2 = new Guid("d4366723-44df-4bed-8c7e-4c05424f4588");
+        internal static readonly Guid IID_IDebugControl2 = new("d4366723-44df-4bed-8c7e-4c05424f4588");
 
         private readonly DebugSystemObjects _sys;
 
@@ -28,10 +28,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public IMAGE_FILE_MACHINE GetEffectiveProcessorType()
         {
-            InitDelegate(ref _getEffectiveProcessorType, VTable.GetEffectiveProcessorType);
-
             using IDisposable holder = _sys.Enter();
-            int hr = _getEffectiveProcessorType(Self, out IMAGE_FILE_MACHINE result);
+            int hr = VTable.GetEffectiveProcessorType(Self, out IMAGE_FILE_MACHINE result);
             if (hr == 0)
                 return result;
 
@@ -40,35 +38,27 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public bool IsPointer64Bit()
         {
-            InitDelegate(ref _isPointer64Bit, VTable.IsPointer64Bit);
-
             using IDisposable holder = _sys.Enter();
-            int hr = _isPointer64Bit(Self);
+            int hr = VTable.IsPointer64Bit(Self);
             return hr == 0;
         }
 
         public HResult WaitForEvent(uint timeout)
         {
-            InitDelegate(ref _waitForEvent, VTable.WaitForEvent);
-
             using IDisposable holder = _sys.Enter();
-            return _waitForEvent(Self, 0, timeout);
+            return VTable.WaitForEvent(Self, 0, timeout);
         }
 
         public HResult AddEngineOptions(int options)
         {
-            InitDelegate(ref _addEngineOptions, VTable.AddEngineOptions);
-
             using IDisposable holder = _sys.Enter();
-            return _addEngineOptions(Self, options);
+            return VTable.AddEngineOptions(Self, options);
         }
 
         public DEBUG_FORMAT GetDumpFormat()
         {
-            InitDelegate(ref _getDumpFormat, VTable.GetDumpFormatFlags);
-
             using IDisposable holder = _sys.Enter();
-            HResult hr = _getDumpFormat(Self, out DEBUG_FORMAT result);
+            HResult hr = VTable.GetDumpFormatFlags(Self, out DEBUG_FORMAT result);
             if (hr)
                 return result;
 
@@ -77,31 +67,15 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         public DEBUG_CLASS_QUALIFIER GetDebuggeeClassQualifier()
         {
-            InitDelegate(ref _getDebuggeeType, VTable.GetDebuggeeType);
-
             using IDisposable holder = _sys.Enter();
-            HResult hr = _getDebuggeeType(Self, out _, out DEBUG_CLASS_QUALIFIER result);
+            HResult hr = VTable.GetDebuggeeType(Self, out _, out DEBUG_CLASS_QUALIFIER result);
             DebugOnly.Assert(hr.IsOK);
             return result;
         }
-
-        private GetEffectiveProcessorTypeDelegate? _getEffectiveProcessorType;
-        private IsPointer64BitDelegate? _isPointer64Bit;
-        private WaitForEventDelegate? _waitForEvent;
-        private AddEngineOptionsDelegate? _addEngineOptions;
-        private GetDebuggeeTypeDelegate? _getDebuggeeType;
-        private GetDumpFormatFlagsDelegate? _getDumpFormat;
-
-        private delegate HResult GetEffectiveProcessorTypeDelegate(IntPtr self, out IMAGE_FILE_MACHINE Type);
-        private delegate HResult IsPointer64BitDelegate(IntPtr self);
-        private delegate HResult WaitForEventDelegate(IntPtr self, int flags, uint timeout);
-        private delegate HResult AddEngineOptionsDelegate(IntPtr self, int options);
-        private delegate HResult GetDebuggeeTypeDelegate(IntPtr self, out uint cls, out DEBUG_CLASS_QUALIFIER qualifier);
-        private delegate HResult GetDumpFormatFlagsDelegate(IntPtr self, out DEBUG_FORMAT format);
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal readonly struct IDebugControlVTable
+    internal readonly unsafe struct IDebugControlVTable
     {
         public readonly IntPtr GetInterrupt;
         public readonly IntPtr SetInterrupt;
@@ -134,7 +108,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr GetStackTrace;
         public readonly IntPtr GetReturnOffset;
         public readonly IntPtr OutputStackTrace;
-        public readonly IntPtr GetDebuggeeType;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out uint, out DEBUG_CLASS_QUALIFIER, int> GetDebuggeeType;
         public readonly IntPtr GetActualProcessorType;
         public readonly IntPtr GetExecutingProcessorType;
         public readonly IntPtr GetNumberPossibleExecutingProcessorTypes;
@@ -142,19 +116,19 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr GetNumberProcessors;
         public readonly IntPtr GetSystemVersion;
         public readonly IntPtr GetPageSize;
-        public readonly IntPtr IsPointer64Bit;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int> IsPointer64Bit;
         public readonly IntPtr ReadBugCheckData;
         public readonly IntPtr GetNumberSupportedProcessorTypes;
         public readonly IntPtr GetSupportedProcessorTypes;
         public readonly IntPtr GetProcessorTypeNames;
-        public readonly IntPtr GetEffectiveProcessorType;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IMAGE_FILE_MACHINE, int> GetEffectiveProcessorType;
         public readonly IntPtr SetEffectiveProcessorType;
         public readonly IntPtr GetExecutionStatus;
         public readonly IntPtr SetExecutionStatus;
         public readonly IntPtr GetCodeLevel;
         public readonly IntPtr SetCodeLevel;
         public readonly IntPtr GetEngineOptions;
-        public readonly IntPtr AddEngineOptions;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, int> AddEngineOptions;
         public readonly IntPtr RemoveEngineOptions;
         public readonly IntPtr SetEngineOptions;
         public readonly IntPtr GetSystemErrorControl;
@@ -193,12 +167,12 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         public readonly IntPtr SetExceptionFilterParameters;
         public readonly IntPtr GetExceptionFilterSecondCommand;
         public readonly IntPtr SetExceptionFilterSecondCommand;
-        public readonly IntPtr WaitForEvent;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, uint, int> WaitForEvent;
         public readonly IntPtr GetLastEventInformation;
 
         public readonly IntPtr GetCurrentTimeDate;
         public readonly IntPtr GetCurrentSystemUpTime;
-        public readonly IntPtr GetDumpFormatFlags;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out DEBUG_FORMAT, int> GetDumpFormatFlags;
         public readonly IntPtr GetNumberTextReplacements;
         public readonly IntPtr GetTextReplacement;
         public readonly IntPtr SetTextReplacement;

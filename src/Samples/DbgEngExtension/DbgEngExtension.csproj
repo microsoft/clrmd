@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PublishAot>true</PublishAot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Help\findpointersin.txt" />
+    <None Remove="Help\gctonative.txt" />
+    <None Remove="Help\help.txt" />
+    <None Remove="Help\maddress.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Help\findpointersin.txt" />
+    <EmbeddedResource Include="Help\gctonative.txt" />
+    <EmbeddedResource Include="Help\help.txt" />
+    <EmbeddedResource Include="Help\maddress.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Microsoft.Diagnostics.Runtime.Utilities\Microsoft.Diagnostics.Runtime.Utilities.csproj" />
+    <ProjectReference Include="..\..\Microsoft.Diagnostics.Runtime\Microsoft.Diagnostics.Runtime.csproj" />
+  </ItemGroup>
+
+</Project>

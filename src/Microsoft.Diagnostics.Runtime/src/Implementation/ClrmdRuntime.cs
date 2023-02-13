@@ -8,7 +8,7 @@ using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class ClrmdRuntime : ClrRuntime
+    internal sealed class ClrmdRuntime : ClrRuntime
     {
         private readonly IRuntimeHelpers _helpers;
         private ClrHeap? _heap;
@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private bool _disposed;
 
         public override bool IsThreadSafe => _helpers.Factory.IsThreadSafe && _helpers.DataReader.IsThreadSafe;
-        public override DataTarget? DataTarget => ClrInfo?.DataTarget;
+        public override DataTarget DataTarget => ClrInfo.DataTarget;
         public override DacLibrary DacLibrary { get; }
         public override ClrInfo ClrInfo { get; }
 
@@ -118,6 +118,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             _helpers.DataReader.FlushCachedData();
             _helpers.FlushCachedData();
+
+            DacLibrary.Flush();
         }
 
         public override IEnumerable<ClrModule> EnumerateModules()
@@ -156,7 +158,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             ulong md = _helpers.GetMethodDesc(ip);
             if (md == 0)
-                return null;
+            {
+                if (!DacLibrary.SOSDacInterface.GetCodeHeaderData(ip, out var codeHeaderData))
+                    return null;
+
+                if ((md = codeHeaderData.MethodDesc) == 0)
+                    return null;
+            }
 
             return GetMethodByHandle(md);
         }

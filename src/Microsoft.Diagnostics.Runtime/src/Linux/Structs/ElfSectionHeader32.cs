@@ -4,12 +4,12 @@
 
 using System.Runtime.InteropServices;
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal struct ElfSectionHeader32
     {
-        public int NameIndex;               // sh_name
+        public uint NameIndex;               // sh_name
         public ElfSectionHeaderType Type;   // sh_type
         public uint Flags;                  // sh_flags
         public uint VirtualAddress;         // sh_addr

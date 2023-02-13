@@ -9,14 +9,17 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using Microsoft.Diagnostics.Runtime.DbgEng;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 #pragma warning disable CA2213 // Disposable fields should be disposed
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class DbgEngDataReader : CommonMemoryReader, IDataReader, IDisposable
+    [Obsolete]
+    internal sealed class DbgEngDataReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader
     {
         private static int s_totalInstanceCount;
 
@@ -32,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime
         private List<ModuleInfo>? _modules;
         private int? _pointerSize;
         private Architecture? _architecture;
-        private static readonly RefCountedFreeLibrary _library = new RefCountedFreeLibrary(IntPtr.Zero);
+        private static readonly RefCountedFreeLibrary _library = new(IntPtr.Zero);
 
         public string DisplayName { get; }
         public OSPlatform TargetPlatform => OSPlatform.Windows;
@@ -122,60 +125,22 @@ namespace Microsoft.Diagnostics.Runtime
 
         public int ProcessId => (int)_systemObjects.GetProcessId();
 
-        public Architecture Architecture
+        public Architecture Architecture => _architecture ??= _control.GetEffectiveProcessorType() switch
         {
-            get
-            {
-                if (_architecture is Architecture architecture)
-                    return architecture;
-
-                IMAGE_FILE_MACHINE machineType = _control.GetEffectiveProcessorType();
-                switch (machineType)
-                {
-                    case IMAGE_FILE_MACHINE.I386:
-                        architecture = Architecture.X86;
-                        break;
-
-                    case IMAGE_FILE_MACHINE.AMD64:
-                        architecture = Architecture.Amd64;
-                        break;
-
-                    case IMAGE_FILE_MACHINE.ARM:
-                    case IMAGE_FILE_MACHINE.THUMB:
-                    case IMAGE_FILE_MACHINE.THUMB2:
-                        architecture = Architecture.Arm;
-                        break;
-
-                    case IMAGE_FILE_MACHINE.ARM64:
-                        architecture = Architecture.Arm64;
-                        break;
-
-                    default:
-                        architecture = Architecture.Unknown;
-                        break;
-                }
-
-                _architecture = architecture;
-                return architecture;
-            }
-        }
+            IMAGE_FILE_MACHINE.I386 => Architecture.X86,
+            IMAGE_FILE_MACHINE.AMD64 => Architecture.X64,
+            IMAGE_FILE_MACHINE.ARM or
+            IMAGE_FILE_MACHINE.THUMB or
+            IMAGE_FILE_MACHINE.THUMB2 => Architecture.Arm,
+            IMAGE_FILE_MACHINE.ARM64 => Architecture.Arm64,
+            _ => (Architecture)(-1)
+        };
 
         [DefaultDllImportSearchPaths(DllImportSearchPath.LegacyBehavior)]
         [DllImport("dbgeng.dll")]
         public static extern int DebugCreate(in Guid InterfaceId, out IntPtr Interface);
 
-        public override int PointerSize
-        {
-            get
-            {
-                _pointerSize = IntPtr.Size;
-                if (_pointerSize is int pointerSize)
-                    return pointerSize;
-
-                _pointerSize = pointerSize = _control.IsPointer64Bit() ? sizeof(long) : sizeof(int);
-                return pointerSize;
-            }
-        }
+        public override int PointerSize => _pointerSize ??= _control.IsPointer64Bit() ? sizeof(long) : sizeof(int);
 
         public void FlushCachedData()
         {
@@ -218,8 +183,9 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 for (int i = 0; i < bases.Length; ++i)
                 {
-                    string? fn = _symbols.GetModuleNameStringWide(DebugModuleName.Image, i, bases[i]);
-                    ModuleInfo info = new ModuleInfo(bases[i], fn, true, mods[i].Size, mods[i].TimeDateStamp, ImmutableArray<byte>.Empty);
+                    string? fn = _symbols.GetModuleNameStringWide(DebugModuleName.Image, i, bases[i]) ?? "";
+                    
+                    ModuleInfo info = new PEModuleInfo(this, bases[i], fn, true, mods[i].Size, mods[i].TimeDateStamp, GetVersionInfo(bases[i]));
                     modules.Add(info);
                 }
             }
@@ -262,17 +228,12 @@ namespace Microsoft.Diagnostics.Runtime
             return _spaces.ReadVirtual(address, buffer);
         }
 
-        public ImmutableArray<byte> GetBuildId(ulong baseAddress) => ImmutableArray<byte>.Empty;
-
-        public bool GetVersionInfo(ulong baseAddress, out VersionInfo version)
+        public Version? GetVersionInfo(ulong baseAddress)
         {
-            version = default;
-
             if (!FindModuleIndex(baseAddress, out int index))
-                return false;
+                return null;
 
-            version = _symbols.GetModuleVersionInformation(index, baseAddress);
-            return true;
+            return _symbols.GetModuleVersionInformation(index, baseAddress);
         }
 
         private bool FindModuleIndex(ulong baseAddr, out int index)
@@ -299,6 +260,9 @@ namespace Microsoft.Diagnostics.Runtime
                 nextIndex = index + 1;
             }
         }
+
+        public IEnumerable<uint> EnumerateOSThreadIds() => _systemObjects.GetThreadIds();
+        public ulong GetThreadTeb(uint osThreadId) => _systemObjects.GetThreadTeb(osThreadId);
 
         public void Dispose()
         {

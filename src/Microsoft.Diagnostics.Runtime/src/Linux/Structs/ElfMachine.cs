@@ -2,8 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-namespace Microsoft.Diagnostics.Runtime.Linux
+namespace Microsoft.Diagnostics.Runtime.Utilities
 {
+    /// <summary>
+    /// The ELF machine type
+    /// </summary>
     internal enum ElfMachine : ushort
     {
         EM_NONE = 0,            /* No machine */

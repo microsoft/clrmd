@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class ClrmdThread : ClrThread
+    internal sealed class ClrmdThread : ClrThread
     {
         private readonly IThreadHelpers _helpers;
         private readonly int _threadState;
@@ -146,7 +146,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             TS_TPWorkerThread = 0x01000000, // is this a threadpool worker thread?
 
             // TS_Interruptible          = 0x02000000,    // sitting in a Sleep(), Wait(), Join()
-            // TS_Interrupted            = 0x04000000,    // was awakened by an interrupt APC. !!! This can be moved to TSNC
+            // TS_Interrupted            = 0x04000000,    // was awakened by an interrupt APC. !! This can be moved to TSNC
 
             TS_CompletionPortThread = 0x08000000, // Completion port thread
 

@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface ITypeHelpers
+    internal interface ITypeHelpers
     {
         IDataReader DataReader { get; }
         ITypeFactory Factory { get; }
@@ -22,6 +22,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ulong GetAssemblyLoadContextAddress(ulong mt);
 
         // TODO: Should not expose this:
-        IObjectData GetObjectData(ulong objRef);
+        IObjectData? GetObjectData(ulong objRef);
     }
 }

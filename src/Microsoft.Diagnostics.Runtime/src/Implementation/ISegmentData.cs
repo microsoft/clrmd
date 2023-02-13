@@ -4,7 +4,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface ISegmentData
+    internal interface ISegmentData
     {
         int LogicalHeap { get; }
         ulong BaseAddress { get; }
@@ -19,6 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ulong Gen2Start { get; }
         ulong Gen2Length { get; }
 
+        bool IsPinnedObjectSegment { get; }
         bool IsLargeObjectSegment { get; }
         bool IsEphemeralSegment { get; }
     }

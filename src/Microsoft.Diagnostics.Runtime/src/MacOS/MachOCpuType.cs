@@ -8,5 +8,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
     {
         X86 = 7,
         X86_64 = X86 | MachOCpuArch.Abi64,
+
+        ARM = 12,
+        ARM64 = ARM | MachOCpuArch.Abi64
     }
 }

@@ -146,7 +146,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             [return: MarshalAs(UnmanagedType.Bool)]
             private static extern bool HeapFree(IntPtr heapHandle, [MarshalAs(UnmanagedType.U4)] HeapFlags heapFlags, UIntPtr lpMem);
 
-
             internal static uint HeapSize(UIntPtr heapAddress)
             {
                 UIntPtr heapSize = HeapSize(GetProcessHeap(), 0, heapAddress);
@@ -178,8 +177,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             [return: MarshalAs(UnmanagedType.Bool)]
             private static extern bool AllocateUserPhysicalPages(IntPtr processHandle, ref UIntPtr numberOfPages, UIntPtr pageArray);
 
-
-            internal static bool MapUserPhysicalPages(UIntPtr virtualAddress, uint numberOfPages, UIntPtr pageArray)
+            internal static bool MapUserPhysicalPages(UIntPtr virtualAddress, ulong numberOfPages, UIntPtr pageArray)
             {
                 UIntPtr numberOfPagesToMap = new UIntPtr(numberOfPages);
                 return MapUserPhysicalPages(virtualAddress, numberOfPagesToMap, pageArray);
@@ -228,27 +226,26 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             [DllImport("kernel32.dll", SetLastError = true)]
             internal static extern void GetSystemInfo(ref SYSTEM_INFO lpSystemInfo);
 
-            internal static bool EnableDisablePrivilege(string PrivilegeName, bool enable)
+            internal unsafe static bool EnableDisablePrivilege(string PrivilegeName, bool enable)
             {
                 if (!OpenProcessToken(Process.GetCurrentProcess().Handle, TokenAccessLevels.AdjustPrivileges | TokenAccessLevels.Query, out IntPtr processToken))
-                    Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
+                    return false;
 
-                TOKEN_PRIVILEGES tokenPrivleges = new TOKEN_PRIVILEGES { PrivilegeCount = 1, Privileges = new LUID_AND_ATTRIBUTES[1] };
+                TOKEN_PRIVILEGES tokenPrivleges = new TOKEN_PRIVILEGES { PrivilegeCount = 1 };
 
                 if (!LookupPrivilegeValue(lpSystemName: null, PrivilegeName, out LUID luid))
-                    Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
+                    return false;
 
-                tokenPrivleges.Privileges[0].LUID = luid;
-                tokenPrivleges.Privileges[0].Attributes = enable ? LuidAttributes.Enabled : LuidAttributes.Disabled;
-                if (AdjustTokenPrivileges(processToken, disableAllPrivleges: false, ref tokenPrivleges, bufferLength: (uint)Marshal.SizeOf(typeof(TOKEN_PRIVILEGES)), out _, out _) == 0)
-                    Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
+                tokenPrivleges.Privileges.LUID = luid;
+                tokenPrivleges.Privileges.Attributes = enable ? LuidAttributes.Enabled : LuidAttributes.Disabled;
+                if (AdjustTokenPrivileges(processToken, disableAllPrivleges: false, ref tokenPrivleges, bufferLength: (uint)sizeof(TOKEN_PRIVILEGES), out _, out _) == 0)
+                    return false;
 
                 int returnCode = Marshal.GetLastWin32Error();
                 return returnCode != ERROR_NOT_ALL_ASSIGNED;
             }
 
             private const int ERROR_NOT_ALL_ASSIGNED = 1300;
-
 
             private enum LuidAttributes : uint
             {
@@ -280,7 +277,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 public uint PrivilegeCount;
 
                 [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
-                public LUID_AND_ATTRIBUTES[] Privileges;
+                public LUID_AND_ATTRIBUTES Privileges;
             }
 
             [DllImport("advapi32", SetLastError = true)]

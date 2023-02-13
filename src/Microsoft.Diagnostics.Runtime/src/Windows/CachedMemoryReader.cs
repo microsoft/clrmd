@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         [ThreadStatic]
         private static (MinidumpSegment Segment, int SegmentIndex) _lastAccessed;
 
-        private readonly object _rvaLock = new object();
+        private readonly object _rvaLock = new();
         private Stream? _rvaStream;
 
         public string DumpPath { get; }
@@ -73,7 +73,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 _cachedMemorySegments = new HeapSegmentDataCache(cacheEntryFactory, entryCountWhenFull: (uint)_segments.Length, cacheIsFullyPopulatedBeforeUse: true, MaxCacheSize);
 
                 // Force the cache entry creation, this is because the AWE factory will read the heap segment data from the file into physical memory, it is FAR
-                // better for perf if we read it all in one contiunous go instead of piece-meal as needed and it allows us to elide locks on the first level of the cache.
+                // better for perf if we read it all in one continuous go instead of piece-meal as needed and it allows us to elide locks on the first level of the cache.
                 foreach (MinidumpSegment segment in _segments)
                     _cachedMemorySegments.CreateAndAddEntry(segment);
 
@@ -85,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 // We can't add the lock memory privilege, so just fall back on our ArrayPool/MemoryMappedFile based cache 
                 _cachedMemorySegments = new HeapSegmentDataCache(new ArrayPoolBasedCacheEntryFactory(stream, leaveOpen), entryCountWhenFull: (uint)_segments.Length, cacheIsFullyPopulatedBeforeUse: true, MaxCacheSize);
 
-                // Force creation of emtpy entries for each segment, this won't map the data in from disk but it WILL prevent us from needing to take any locks at the first level of the cache
+                // Force creation of empty entries for each segment, this won't map the data in from disk but it WILL prevent us from needing to take any locks at the first level of the cache
                 // (the individual entries, when asked for data requiring page-in or when evicting data in page-out will still take locks for consistency).
                 foreach (MinidumpSegment segment in _segments)
                     _cachedMemorySegments.CreateAndAddEntry(segment);

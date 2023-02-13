@@ -9,7 +9,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface ITypeFactory : IDisposable
+    internal interface ITypeFactory : IDisposable
     {
         bool IsThreadSafe { get; }
 

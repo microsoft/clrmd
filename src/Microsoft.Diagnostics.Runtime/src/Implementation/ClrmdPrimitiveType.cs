@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public sealed class ClrmdPrimitiveType : ClrType
+    internal sealed class ClrmdPrimitiveType : ClrType
     {
         public ClrmdPrimitiveType(ITypeHelpers helpers, ClrModule module, ClrHeap heap, ClrElementType type)
         {
@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsEnum => false;
         public override ClrEnum AsEnum() => throw new InvalidOperationException();
         public override ClrModule Module { get; }
-        public override IClrObjectHelpers ClrObjectHelpers { get; }
+        internal override IClrObjectHelpers ClrObjectHelpers { get; }
         public override ClrElementType ElementType { get; }
         public override bool IsShared => false;
         public override int StaticSize => ClrmdField.GetSize(this, ElementType);

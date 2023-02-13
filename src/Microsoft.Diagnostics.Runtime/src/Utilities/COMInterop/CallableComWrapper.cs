@@ -3,10 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 #pragma warning disable CA1816 // Dispose methods should call SuppressFinalize
 namespace Microsoft.Diagnostics.Runtime.Utilities
@@ -17,12 +13,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         protected IntPtr Self { get; }
         private readonly IUnknownVTable* _unknownVTable;
-        private readonly RefCountedFreeLibrary _library;
+        private readonly RefCountedFreeLibrary? _library;
 
         protected void* _vtable => _unknownVTable + 1;
-
-        private ReleaseDelegate? _release;
-        private AddRefDelegate? _addRef;
 
         protected CallableCOMWrapper(CallableCOMWrapper toClone)
         {
@@ -37,14 +30,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _library = toClone._library;
 
             AddRef();
-            _library.AddRef();
+            _library?.AddRef();
         }
 
         public int AddRef()
         {
-            _addRef ??= Marshal.GetDelegateForFunctionPointer<AddRefDelegate>(_unknownVTable->AddRef);
-
-            int count = _addRef(Self);
+            int count = _unknownVTable->AddRef(Self);
             return count;
         }
 
@@ -56,60 +47,33 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         protected CallableCOMWrapper(RefCountedFreeLibrary? library, in Guid desiredInterface, IntPtr pUnknown)
         {
-            _library = library ?? throw new ArgumentNullException(nameof(library));
-            _library.AddRef();
+            _library = library;
+            _library?.AddRef();
 
             IUnknownVTable* tbl = *(IUnknownVTable**)pUnknown;
 
-            QueryInterfaceDelegate queryInterface = Marshal.GetDelegateForFunctionPointer<QueryInterfaceDelegate>(tbl->QueryInterface);
-            int hr = queryInterface(pUnknown, desiredInterface, out IntPtr pCorrectUnknown);
+            int hr = tbl->QueryInterface(pUnknown, desiredInterface, out IntPtr pCorrectUnknown);
             if (hr != 0)
             {
                 GC.SuppressFinalize(this);
                 throw new InvalidCastException($"{GetType().FullName}.QueryInterface({desiredInterface}) failed, hr=0x{hr:x}");
             }
 
-            ReleaseDelegate release = Marshal.GetDelegateForFunctionPointer<ReleaseDelegate>(tbl->Release);
-            int count = release(pUnknown);
+            int count = tbl->Release(pUnknown);
             Self = pCorrectUnknown;
             _unknownVTable = *(IUnknownVTable**)pCorrectUnknown;
         }
 
         public int Release()
         {
-            _release ??= Marshal.GetDelegateForFunctionPointer<ReleaseDelegate>(_unknownVTable->Release);
-
-            int count = _release(Self);
+            int count = _unknownVTable->Release(Self);
             return count;
         }
 
         public IntPtr QueryInterface(in Guid riid)
         {
-            QueryInterfaceDelegate queryInterface = Marshal.GetDelegateForFunctionPointer<QueryInterfaceDelegate>(_unknownVTable->QueryInterface);
-
-            HResult hr = queryInterface(Self, riid, out IntPtr unk);
+            HResult hr = _unknownVTable->QueryInterface(Self, riid, out IntPtr unk);
             return hr.IsOK ? unk : IntPtr.Zero;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static void InitDelegate<T>([NotNull] ref T? t, IntPtr entry)
-            where T : Delegate
-        {
-            if (t != null)
-                return;
-
-            InitDelegateWorker(ref t, entry);
-        }
-
-        private static void InitDelegateWorker<T>([NotNull] ref T? t, IntPtr entry)
-            where T : Delegate
-        {
-            t = Marshal.GetDelegateForFunctionPointer<T>(entry);
-
-#if DEBUG
-            if (t.Method.GetParameters().First().ParameterType != typeof(IntPtr))
-                throw new InvalidOperationException();
-#endif
         }
 
         protected virtual void Dispose(bool disposing)
@@ -117,7 +81,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!_disposed)
             {
                 Release();
-                _library.Release();
+                _library?.Release();
                 _disposed = true;
             }
         }

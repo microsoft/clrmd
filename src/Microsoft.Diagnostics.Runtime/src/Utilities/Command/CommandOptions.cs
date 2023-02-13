@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -11,8 +11,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// CommandOptions is a helper class for the Command class.  It stores options
     /// that affect the behavior of the execution of ETWCommands and is passes as a
-    /// parapeter to the constuctor of a Command.
-    /// It is useful for these options be be on a separate class (rather than
+    /// parameter to the constructor of a Command.
+    /// It is useful for these options be on a separate class (rather than
     /// on Command itself), because it is reasonably common to want to have a set
     /// of options passed to several commands, which is not easily possible otherwise.
     /// </summary>
@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Updates the NoThrow propery and returns the updated commandOptions.
+        /// Updates the NoThrow property and returns the updated commandOptions.
         /// <returns>Updated command options</returns>
         /// </summary>
         public CommandOptions AddNoThrow()
@@ -87,7 +87,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Updates the Start propery and returns the updated commandOptions.
+        /// Updates the Start property and returns the updated commandOptions.
         /// </summary>
         public CommandOptions AddStart()
         {
@@ -107,7 +107,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Updates the Start propery and returns the updated commandOptions.
+        /// Updates the Start property and returns the updated commandOptions.
         /// </summary>
         public CommandOptions AddUseShellExecute()
         {
@@ -125,7 +125,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Updates the NoWindow propery and returns the updated commandOptions.
+        /// Updates the NoWindow property and returns the updated commandOptions.
         /// </summary>
         public CommandOptions AddNoWindow()
         {
@@ -143,7 +143,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Updates the NoWait propery and returns the updated commandOptions.
+        /// Updates the NoWait property and returns the updated commandOptions.
         /// </summary>
         public CommandOptions AddNoWait()
         {
@@ -152,7 +152,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the command must run at elevated Windows privledges (causes a new command window).
+        /// Gets or sets a value indicating whether the command must run at elevated Windows privileges (causes a new command window).
         /// </summary>
         public bool Elevate
         {
@@ -161,7 +161,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Updates the Elevate propery and returns the updated commandOptions.
+        /// Updates the Elevate property and returns the updated commandOptions.
         /// </summary>
         public CommandOptions AddElevate()
         {
@@ -172,7 +172,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// By default commands have a 10 minute timeout (600,000 msec), If this
         /// is inappropriate, the Timeout property can change this.  Like all
-        /// timouts in .NET, it is in units of milliseconds, and you can use
+        /// timeouts in .NET, it is in units of milliseconds, and you can use
         /// CommandOptions.Infinite to indicate no timeout.
         /// </summary>
         public int Timeout
@@ -182,7 +182,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Updates the Timeout propery and returns the updated commandOptions.
+        /// Updates the Timeout property and returns the updated commandOptions.
         /// CommandOptions.Infinite can be used for infinite.
         /// </summary>
         public CommandOptions AddTimeout(int milliseconds)
@@ -201,7 +201,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Updates the Input propery and returns the updated commandOptions.
+        /// Updates the Input property and returns the updated commandOptions.
         /// </summary>
         public CommandOptions AddInput(string input)
         {
@@ -219,7 +219,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Updates the CurrentDirectory propery and returns the updated commandOptions.
+        /// Updates the CurrentDirectory property and returns the updated commandOptions.
         /// </summary>
         public CommandOptions AddCurrentDirectory(string directoryPath)
         {
@@ -247,7 +247,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Updates the OutputFile propery and returns the updated commandOptions.
+        /// Updates the OutputFile property and returns the updated commandOptions.
         /// </summary>
         public CommandOptions AddOutputFile(string outputFile)
         {
@@ -273,7 +273,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         /// <summary>
-        /// Updates the OutputStream propery and returns the updated commandOptions.
+        /// Updates the OutputStream property and returns the updated commandOptions.
         /// </summary>
         public CommandOptions AddOutputStream(TextWriter outputStream)
         {
@@ -300,7 +300,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         /// <summary>
         /// Adds the environment variable with the give value to the set of
-        /// environmetn variables to be passed to the sub-process and returns the
+        /// environment variables to be passed to the sub-process and returns the
         /// updated commandOptions.   Any time a string
         /// of the form %VAR% is found in a value of a environment variable it is
         /// replaced with the value of the environment variable at the time the

@@ -457,7 +457,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void ComponentTypeEventuallyFilledTest()
         {
             // https://github.com/microsoft/clrmd/issues/108
-            // Ensure that a previously created type with a erronous null ComponentType eventually
+            // Ensure that a previously created type with a erroneous null ComponentType eventually
             // gets its ComponentType set.
 
             using DataTarget dt = TestTargets.Types.LoadFullDump();
@@ -564,7 +564,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            ClrType genericType = runtime.GetModule("sharedlibrary.dll").GetTypeByName("GenericClass`5");
+            ClrType genericType = runtime.GetModule("sharedlibrary.dll").GetTypeByName("GenericClass<T1, T2, T3, T4, T5>");
 
             ClrGenericParameter[] genericParameters = genericType.EnumerateGenericParameters().ToArray();
             Assert.Equal(5, genericParameters.Length);

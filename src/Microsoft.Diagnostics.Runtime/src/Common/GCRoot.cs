@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class GCRoot
     {
-        private static readonly Stack<ClrObject> s_emptyStack = new Stack<ClrObject>();
+        private static readonly Stack<ClrObject> s_emptyStack = new();
 
         /// <summary>
         /// Since GCRoot can be long running, this event will provide periodic updates to how many objects the algorithm
@@ -99,7 +99,7 @@ namespace Microsoft.Diagnostics.Runtime
                 ObjectSet processedObjects = new ObjectSet(Heap);
                 foreach (IClrRoot root in roots)
                 {
-                    LinkedList<ClrObject> path = PathsTo(processedObjects, knownEndPoints, root.Object, target, returnOnlyFullyUniquePaths, cancellationToken).FirstOrDefault();
+                    LinkedList<ClrObject>? path = PathsTo(processedObjects, knownEndPoints, root.Object, target, returnOnlyFullyUniquePaths, cancellationToken).FirstOrDefault();
                     if (path != null)
                         yield return new GCRootPath(root, path.ToImmutableArray());
 
@@ -123,12 +123,16 @@ namespace Microsoft.Diagnostics.Runtime
                     threads[i].Start();
                 }
 
+#pragma warning disable CA2016 // Forward the 'CancellationToken' parameter to methods that take one (BlockingCollection is unbounded so Add will not block)
                 foreach (IClrRoot root in roots)
                     queue.Add(root);
 
-                // Add one sentinal value for every thread
+                // Add one sentinel value for every thread
                 for (int i = 0; i < threads.Length; i++)
                     queue.Add(null);
+#pragma warning restore CA2016 // Forward the 'CancellationToken' parameter to methods that take one
+
+                queue.CompleteAdding();
 
                 int count = 0;
 
@@ -139,6 +143,9 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     while (!threads[i].Join(100))
                     {
+                        if (cancellationToken.IsCancellationRequested)
+                            yield break;
+
                         while (results.TryDequeue(out GCRootPath result))
                             yield return result;
                     }
@@ -173,10 +180,19 @@ namespace Microsoft.Diagnostics.Runtime
             bool returnOnlyFullyUniquePaths,
             CancellationToken cancellationToken)
         {
-            IClrRoot? root;
-            while ((root = queue.Take()) != null)
+            while (true)
             {
-                if (cancellationToken.IsCancellationRequested)
+                IClrRoot? root;
+                try
+                {
+                    root = queue.Take(cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+
+                if (root == null)
                     break;
 
                 foreach (LinkedList<ClrObject> path in PathsTo(seen, knownEndPoints, root.Object, target, returnOnlyFullyUniquePaths, cancellationToken))
@@ -199,7 +215,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="target">The object we are searching for.</param>
         /// <param name="cancellationToken">A cancellation token to stop searching.</param>
         /// <returns>A path from 'source' to 'target' if one exists, <see langword="null"/> if one does not.</returns>
-        public LinkedList<ClrObject> FindSinglePath(ulong source, ulong target, CancellationToken cancellationToken = default)
+        public LinkedList<ClrObject>? FindSinglePath(ulong source, ulong target, CancellationToken cancellationToken = default)
         {
             return PathsTo(new ObjectSet(Heap), null, new ClrObject(source, Heap.GetObjectType(source)), target, false, cancellationToken).FirstOrDefault();
         }
@@ -359,7 +375,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                         // We should never reach the 'end' here, as we always check if we found the target
                         // value when adding refs below.
-                        Debug.Assert(next.Address != target);
+                        DebugOnly.Assert(next.Address != target);
 
                         PathEntry nextPathEntry = new PathEntry
                         {
@@ -476,7 +492,7 @@ namespace Microsoft.Diagnostics.Runtime
         internal static bool IsTooLarge(ulong obj, ClrType type, ClrSegment seg)
         {
             ulong size = type.Heap.GetObjectSize(obj, type);
-            if (!seg.IsLargeObjectSegment && size >= 85000)
+            if (!seg.IsLargeObjectSegment && !seg.IsPinnedObjectSegment && size >= 85000)
                 return true;
 
             return obj + size > seg.End;

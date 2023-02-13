@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -16,11 +17,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     public unsafe class COMCallableIUnknown : COMHelper
     {
-        private readonly GCHandle _handle;
+        // NOTE do not make this field readonly, as otherwise we operate upon a copy of it
+        private GCHandle _handle;
         private int _refCount;
 
-        private readonly Dictionary<Guid, IntPtr> _interfaces = new Dictionary<Guid, IntPtr>();
-        private readonly List<Delegate> _delegates = new List<Delegate>();
+        private readonly Dictionary<Guid, IntPtr> _interfaces = new();
+        private readonly List<Delegate> _delegates = new();
 
         /// <summary>
         /// Gets the IUnknown pointer to this object.
@@ -41,15 +43,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             IUnknownVTable* vtable = (IUnknownVTable*)Marshal.AllocHGlobal(sizeof(IUnknownVTable)).ToPointer();
             QueryInterfaceDelegate qi = QueryInterfaceImpl;
-            vtable->QueryInterface = Marshal.GetFunctionPointerForDelegate(qi);
+            vtable->QueryInterface = (delegate* unmanaged[Stdcall]<IntPtr, in Guid, out IntPtr, int>)Marshal.GetFunctionPointerForDelegate(qi);
             _delegates.Add(qi);
 
             AddRefDelegate addRef = new AddRefDelegate(AddRefImpl);
-            vtable->AddRef = Marshal.GetFunctionPointerForDelegate(addRef);
+            vtable->AddRef = (delegate* unmanaged[Stdcall]<IntPtr, int>)Marshal.GetFunctionPointerForDelegate(addRef);
             _delegates.Add(addRef);
 
             ReleaseDelegate release = new ReleaseDelegate(ReleaseImpl);
-            vtable->Release = Marshal.GetFunctionPointerForDelegate(release);
+            vtable->Release = (delegate* unmanaged[Stdcall]<IntPtr, int>)Marshal.GetFunctionPointerForDelegate(release);
             _delegates.Add(release);
 
             IUnknownObject = Marshal.AllocHGlobal(IntPtr.Size);
@@ -78,6 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// used to build this COM interface's methods.</param>
         /// <returns>A VTableBuilder to construct this interface.  Note that until VTableBuilder.Complete
         /// is called, the interface will not be registered.</returns>
+        [RequiresDynamicCode("This class uses reflection over delegates to generate code.  If used for NativeAOT, consider building a VTable with [UnmanagedCallersOnly] and native delegates instead.")]
         public VTableBuilder AddInterface(Guid guid, bool validate)
         {
 #if DEBUG
@@ -93,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _delegates.AddRange(keepAlive);
         }
 
-        private HResult QueryInterfaceImpl(IntPtr _, in Guid guid, out IntPtr ptr)
+        private int QueryInterfaceImpl(IntPtr _, in Guid guid, out IntPtr ptr)
         {
             if (_interfaces.TryGetValue(guid, out IntPtr value))
             {
@@ -114,16 +117,23 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 // Only free memory the first time we reach here.
                 if (_handle.IsAllocated)
                 {
-                    foreach (IntPtr ptr in _interfaces.Values)
+                    try
                     {
-                        IntPtr* val = (IntPtr*)ptr;
-                        Marshal.FreeHGlobal(*val);
-                        Marshal.FreeHGlobal(ptr);
+                        Destroy();
                     }
+                    finally
+                    {
+                        foreach (IntPtr ptr in _interfaces.Values)
+                        {
+                            IntPtr* val = (IntPtr*)ptr;
+                            Marshal.FreeHGlobal(*val);
+                            Marshal.FreeHGlobal(ptr);
+                        }
 
-                    _handle.Free();
-                    _interfaces.Clear();
-                    _delegates.Clear();
+                        _handle.Free();
+                        _interfaces.Clear();
+                        _delegates.Clear();
+                    }
                 }
             }
 
@@ -131,5 +141,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         private int AddRefImpl(IntPtr self) => Interlocked.Increment(ref _refCount);
+
+        protected virtual void Destroy()
+        {
+        }
     }
 }
