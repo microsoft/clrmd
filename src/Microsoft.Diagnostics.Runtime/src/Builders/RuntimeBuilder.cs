@@ -763,7 +763,16 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
                 hr = _sos13.TraverseLoaderHeap(address, kind, callback);
             }
-            else if (_clrInfo.Flavor == ClrFlavor.Desktop || (_clrInfo.Flavor == ClrFlavor.Core && _clrInfo.Version.Major != 7))
+            else if (_clrInfo.Flavor == ClrFlavor.Core && _clrInfo.Version.Major == 7)
+            {
+                // See note below, .Net 7 inverts the logic that everything else uses.
+
+                if (kind == SOSDac13.LoaderHeapKind.LoaderHeapKindNormal)
+                    address += (uint)DataReader.PointerSize;
+
+                hr = _sos.TraverseLoaderHeap(address, callback);
+            }
+            else
             {
                 // The basic ISOSDacInterface doesn't understand the difference between the different kinds of runtime
                 // loader heaps.  If the heap is an ExplicitControlLoaderHeap then it doesn't have a vtable but it will
@@ -773,15 +782,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
                 if (kind == SOSDac13.LoaderHeapKind.LoaderHeapKindExplicitControl)
                     address -= (uint)DataReader.PointerSize;
-
-                hr = _sos.TraverseLoaderHeap(address, callback);
-            }
-            else
-            {
-                // Except on .NET 7 where we inverted that behavior.
-
-                if (kind == SOSDac13.LoaderHeapKind.LoaderHeapKindNormal)
-                    address += (uint)DataReader.PointerSize;
 
                 hr = _sos.TraverseLoaderHeap(address, callback);
             }
