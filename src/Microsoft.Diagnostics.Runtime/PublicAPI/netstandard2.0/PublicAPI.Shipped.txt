@@ -1634,3 +1634,45 @@ Microsoft.Diagnostics.Runtime.ModuleKind.MachO = 4 -> Microsoft.Diagnostics.Runt
 Microsoft.Diagnostics.Runtime.ModuleKind.Other = 1 -> Microsoft.Diagnostics.Runtime.ModuleKind
 Microsoft.Diagnostics.Runtime.ModuleKind.PortableExecutable = 2 -> Microsoft.Diagnostics.Runtime.ModuleKind
 Microsoft.Diagnostics.Runtime.ModuleKind.Unknown = 0 -> Microsoft.Diagnostics.Runtime.ModuleKind
+abstract Microsoft.Diagnostics.Runtime.ClrRuntime.EnumerateClrNativeHeaps() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo>!
+Microsoft.Diagnostics.Runtime.ClrInfo.CreateRuntime(Microsoft.Diagnostics.Runtime.DacLibrary! dacLibrary) -> Microsoft.Diagnostics.Runtime.ClrRuntime!
+Microsoft.Diagnostics.Runtime.DacInterface.ClrDataProcess.GetSOSDacInterface13() -> Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13?
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.TraverseStubHeap(ulong heap, Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.VCSHeapType type, Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.LoaderHeapTraverse! callback) -> Microsoft.Diagnostics.Runtime.Utilities.HResult
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.VCSHeapType
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.VCSHeapType.CacheEntryHeap = 4 -> Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.VCSHeapType
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.VCSHeapType.DispatchHeap = 3 -> Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.VCSHeapType
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.VCSHeapType.IndcellHeap = 0 -> Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.VCSHeapType
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.VCSHeapType.LookupHeap = 1 -> Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.VCSHeapType
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.VCSHeapType.ResolveHeap = 2 -> Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.VCSHeapType
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.VCSHeapType.VtableHeap = 5 -> Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.VCSHeapType
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13.LoaderHeapKind
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13.LoaderHeapKind.LoaderHeapKindExplicitControl = 1 -> Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13.LoaderHeapKind
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13.LoaderHeapKind.LoaderHeapKindNormal = 0 -> Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13.LoaderHeapKind
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13.TraverseLoaderHeap(ulong heap, Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13.LoaderHeapKind kind, Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.LoaderHeapTraverse! callback) -> Microsoft.Diagnostics.Runtime.Utilities.HResult
+Microsoft.Diagnostics.Runtime.DacLibrary.SOSDacInterface13.get -> Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13?
+Microsoft.Diagnostics.Runtime.IDumpInfoProvider
+Microsoft.Diagnostics.Runtime.IDumpInfoProvider.IsMiniOrTriage.get -> bool
+Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo
+Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo.Address.get -> ulong
+Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo.ClrNativeHeapInfo() -> void
+Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo.ClrNativeHeapInfo(ulong address, ulong? size, Microsoft.Diagnostics.Runtime.NativeHeapKind kind) -> void
+Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo.Kind.get -> Microsoft.Diagnostics.Runtime.NativeHeapKind
+Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo.Size.get -> ulong?
+Microsoft.Diagnostics.Runtime.NativeHeapKind
+Microsoft.Diagnostics.Runtime.NativeHeapKind.CacheEntryHeap = 5 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
+Microsoft.Diagnostics.Runtime.NativeHeapKind.DispatchHeap = 4 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
+Microsoft.Diagnostics.Runtime.NativeHeapKind.HighFrequencyHeap = 10 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
+Microsoft.Diagnostics.Runtime.NativeHeapKind.HostCodeHeap = 8 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
+Microsoft.Diagnostics.Runtime.NativeHeapKind.IndirectionCellHeap = 1 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
+Microsoft.Diagnostics.Runtime.NativeHeapKind.LoaderCodeHeap = 7 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
+Microsoft.Diagnostics.Runtime.NativeHeapKind.LookupHeap = 2 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
+Microsoft.Diagnostics.Runtime.NativeHeapKind.LowFrequencyHeap = 11 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
+Microsoft.Diagnostics.Runtime.NativeHeapKind.ResolveHeap = 3 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
+Microsoft.Diagnostics.Runtime.NativeHeapKind.StubHeap = 9 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
+Microsoft.Diagnostics.Runtime.NativeHeapKind.Unknown = 0 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
+Microsoft.Diagnostics.Runtime.NativeHeapKind.VtableHeap = 6 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13.SOSDac13(Microsoft.Diagnostics.Runtime.DacLibrary! library, System.IntPtr ptr) -> void
+override Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo.ToString() -> string!
+static Microsoft.Diagnostics.Runtime.ModuleInfo.TryCreate(Microsoft.Diagnostics.Runtime.IDataReader! reader, ulong baseAddress, string! name, int indexFileSize, int indexTimeStamp, System.Version? version) -> Microsoft.Diagnostics.Runtime.ModuleInfo?
+virtual Microsoft.Diagnostics.Runtime.ModuleInfo.TrySetProperties(int indexFileSize, int indexTimeStamp, System.Version? version) -> void

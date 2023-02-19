@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac;
 
 namespace DbgEngExtension
 {
@@ -465,7 +466,7 @@ namespace DbgEngExtension
                                 CodeHeapType.Loader => ClrMemoryKind.LoaderHeap,
                                 CodeHeapType.Host => ClrMemoryKind.Host,
                                 _ => ClrMemoryKind.UnknownCodeHeap
-                            }
+                            } 
                         };
 
                     foreach (var seg in runtime.Heap.Segments)
@@ -532,27 +533,27 @@ namespace DbgEngExtension
                 }));
 
 
-                sos.TraverseStubHeap(address, (int)VCSHeapType.LookupHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
+                sos.TraverseStubHeap(address, VCSHeapType.LookupHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
                 {
                     Address = address,
                     Kind = ClrMemoryKind.LookupHeap
                 }));
 
 
-                sos.TraverseStubHeap(address, (int)VCSHeapType.ResolveHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
+                sos.TraverseStubHeap(address, VCSHeapType.ResolveHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
                 {
                     Address = address,
                     Kind = ClrMemoryKind.ResolveHeap
                 }));
 
 
-                sos.TraverseStubHeap(address, (int)VCSHeapType.DispatchHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
+                sos.TraverseStubHeap(address, VCSHeapType.DispatchHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
                 {
                     Address = address,
                     Kind = ClrMemoryKind.DispatchHeap
                 }));
 
-                sos.TraverseStubHeap(address, (int)VCSHeapType.CacheEntryHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
+                sos.TraverseStubHeap(address, VCSHeapType.CacheEntryHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
                 {
                     Address = address,
                     Kind = ClrMemoryKind.CacheEntryHeap
@@ -713,14 +714,6 @@ namespace DbgEngExtension
             HandleTable,
         }
 
-        enum VCSHeapType
-        {
-            IndcellHeap,
-            LookupHeap,
-            ResolveHeap,
-            DispatchHeap,
-            CacheEntryHeap
-        }
 
         [Flags]
         public enum MemProtect
