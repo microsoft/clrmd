@@ -582,7 +582,6 @@ Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.SOSDac(Microsoft.Diagnostics.R
 Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.SOSDac(Microsoft.Diagnostics.Runtime.DacLibrary? library, System.IntPtr ptr) -> void
 Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.TraverseLoaderHeap(ulong heap, Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.LoaderHeapTraverse! callback) -> Microsoft.Diagnostics.Runtime.Utilities.HResult
 Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.TraverseModuleMap(Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.ModuleMapTraverseKind mt, ulong module, Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.ModuleMapTraverse! traverse) -> Microsoft.Diagnostics.Runtime.Utilities.HResult
-Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.TraverseStubHeap(ulong heap, int type, Microsoft.Diagnostics.Runtime.DacInterface.SOSDac.LoaderHeapTraverse! callback) -> Microsoft.Diagnostics.Runtime.Utilities.HResult
 Microsoft.Diagnostics.Runtime.DacInterface.SOSDac6
 Microsoft.Diagnostics.Runtime.DacInterface.SOSDac6.GetMethodTableCollectibleData(ulong mt, out Microsoft.Diagnostics.Runtime.DacInterface.MethodTableCollectibleData data) -> Microsoft.Diagnostics.Runtime.Utilities.HResult
 Microsoft.Diagnostics.Runtime.DacInterface.SOSDac6.SOSDac6(Microsoft.Diagnostics.Runtime.DacLibrary! library, System.IntPtr ptr) -> void
