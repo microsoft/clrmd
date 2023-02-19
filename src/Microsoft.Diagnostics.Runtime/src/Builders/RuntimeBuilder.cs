@@ -763,7 +763,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
                 hr = _sos13.TraverseLoaderHeap(address, kind, callback);
             }
-            else if (_clrInfo.Flavor == ClrFlavor.Core && _clrInfo.Version.Major != 7)
+            else if (_clrInfo.Flavor == ClrFlavor.Desktop || (_clrInfo.Flavor == ClrFlavor.Core && _clrInfo.Version.Major != 7))
             {
                 // The basic ISOSDacInterface doesn't understand the difference between the different kinds of runtime
                 // loader heaps.  If the heap is an ExplicitControlLoaderHeap then it doesn't have a vtable but it will
