@@ -154,6 +154,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ClrMethod? GetMethodByHandle(ulong methodHandle) => _helpers.Factory.CreateMethodFromHandle(methodHandle);
 
+        public override IEnumerable<ClrNativeHeapInfo> EnumerateClrNativeHeaps() => _helpers.EnumerateClrNativeHeaps(SystemDomain?.Address ?? 0, SharedDomain?.Address ?? 0);
+
         public override ClrMethod? GetMethodByInstructionPointer(ulong ip)
         {
             ulong md = _helpers.GetMethodDesc(ip);

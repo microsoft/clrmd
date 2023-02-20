@@ -591,7 +591,17 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr;
         }
 
-        public HResult TraverseStubHeap(ulong heap, int type, LoaderHeapTraverse callback)
+        public enum VCSHeapType
+        {
+            IndcellHeap,
+            LookupHeap,
+            ResolveHeap,
+            DispatchHeap,
+            CacheEntryHeap,
+            VtableHeap
+        }
+
+        public HResult TraverseStubHeap(ulong heap, VCSHeapType type, LoaderHeapTraverse callback)
         {
             HResult hr = VTable.TraverseVirtCallStubHeap(Self, heap, type, Marshal.GetFunctionPointerForDelegate(callback));
             GC.KeepAlive(callback);
@@ -776,7 +786,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         // Heaps
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, IntPtr, int> TraverseLoaderHeap;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, JitCodeHeapInfo*, out int, int> GetCodeHeapList;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, IntPtr, int> TraverseVirtCallStubHeap;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, SOSDac.VCSHeapType, IntPtr, int> TraverseVirtCallStubHeap;
 
         // Other
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out CommonMethodTables, int> GetUsefulGlobals;
