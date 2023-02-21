@@ -1681,3 +1681,5 @@ Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13.GetLoaderAllocatorHeaps(Micr
 Microsoft.Diagnostics.Runtime.NativeHeapKind.ExecutableHeap = 12 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
 Microsoft.Diagnostics.Runtime.NativeHeapKind.FixupPrecodeHeap = 13 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
 Microsoft.Diagnostics.Runtime.NativeHeapKind.NewStubPrecodeHeap = 14 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
+Microsoft.Diagnostics.Runtime.NativeHeapKind.ThunkHeap = 15 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
+readonly Microsoft.Diagnostics.Runtime.DacInterface.ModuleData.LoaderAllocator -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress

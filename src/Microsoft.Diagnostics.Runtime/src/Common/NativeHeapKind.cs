@@ -80,6 +80,10 @@
         /// NewStubPrecodeHeap
         /// </summary>
         NewStubPrecodeHeap,
+
+        /// <summary>
+        /// ThunkHeap
+        /// </summary>
         ThunkHeap,
     }
 }
