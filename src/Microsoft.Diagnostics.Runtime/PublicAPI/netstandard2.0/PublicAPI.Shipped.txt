@@ -1356,7 +1356,6 @@ readonly Microsoft.Diagnostics.Runtime.DacInterface.ModuleData.FileReferencesMap
 readonly Microsoft.Diagnostics.Runtime.DacInterface.ModuleData.ILBase -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
 readonly Microsoft.Diagnostics.Runtime.DacInterface.ModuleData.IsPEFile -> uint
 readonly Microsoft.Diagnostics.Runtime.DacInterface.ModuleData.IsReflection -> uint
-readonly Microsoft.Diagnostics.Runtime.DacInterface.ModuleData.LookupTableHeap -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
 readonly Microsoft.Diagnostics.Runtime.DacInterface.ModuleData.ManifestModuleReferencesMap -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
 readonly Microsoft.Diagnostics.Runtime.DacInterface.ModuleData.MemberRefToDescMap -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
 readonly Microsoft.Diagnostics.Runtime.DacInterface.ModuleData.MetadataSize -> ulong
