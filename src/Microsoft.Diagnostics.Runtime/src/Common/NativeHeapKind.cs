@@ -65,5 +65,21 @@
         /// Low frequency heap.
         /// </summary>
         LowFrequencyHeap,
+
+        /// <summary>
+        /// Executable heap.
+        /// </summary>
+        ExecutableHeap,
+
+        /// <summary>
+        /// FixupPrecodeHeap
+        /// </summary>
+        FixupPrecodeHeap,
+
+        /// <summary>
+        /// NewStubPrecodeHeap
+        /// </summary>
+        NewStubPrecodeHeap,
+        ThunkHeap,
     }
 }

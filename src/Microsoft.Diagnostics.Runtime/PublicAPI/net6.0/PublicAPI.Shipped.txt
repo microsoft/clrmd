@@ -1675,3 +1675,9 @@ Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13.SOSDac13(Microsoft.Diagnosti
 override Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo.ToString() -> string!
 static Microsoft.Diagnostics.Runtime.ModuleInfo.TryCreate(Microsoft.Diagnostics.Runtime.IDataReader! reader, ulong baseAddress, string! name, int indexFileSize, int indexTimeStamp, System.Version? version) -> Microsoft.Diagnostics.Runtime.ModuleInfo?
 virtual Microsoft.Diagnostics.Runtime.ModuleInfo.TrySetProperties(int indexFileSize, int indexTimeStamp, System.Version? version) -> void
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13.GetDomainLoaderAllocator(Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress domainAddress) -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13.GetLoaderAllocatorHeapNames() -> string![]!
+Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13.GetLoaderAllocatorHeaps(Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress loaderAllocator) -> (Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress Address, Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13.LoaderHeapKind Kind)[]!
+Microsoft.Diagnostics.Runtime.NativeHeapKind.ExecutableHeap = 12 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
+Microsoft.Diagnostics.Runtime.NativeHeapKind.FixupPrecodeHeap = 13 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
+Microsoft.Diagnostics.Runtime.NativeHeapKind.NewStubPrecodeHeap = 14 -> Microsoft.Diagnostics.Runtime.NativeHeapKind

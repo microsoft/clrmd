@@ -14,6 +14,7 @@ using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
+using Microsoft.Diagnostics.Runtime.Windows;
 
 namespace Microsoft.Diagnostics.Runtime.Builders
 {
@@ -659,8 +660,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         IEnumerable<ClrNativeHeapInfo> IRuntimeHelpers.EnumerateClrNativeHeaps(ulong systemDomainAddress, ulong sharedDomainAddress)
         {
-            List<ClrNativeHeapInfo> heaps = new();
-
+            List<ClrNativeHeapInfo> codeLoaderHeaps = new();
             // Enumerate JIT code heaps.
             foreach (JitManagerInfo jitMgr in _sos.GetJitManagers())
             {
@@ -668,11 +668,11 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 {
                     if (mem.Type == CodeHeapType.Loader)
                     {
-                        if (TraverseLoaderHeap(mem.Address, SOSDac13.LoaderHeapKind.LoaderHeapKindExplicitControl, (address, size, _) => heaps.Add(new ClrNativeHeapInfo(address, SanitizeSize(size), NativeHeapKind.LoaderCodeHeap))))
-                            foreach (ClrNativeHeapInfo result in heaps)
+                        if (TraverseLoaderHeap(mem.Address, SOSDac13.LoaderHeapKind.LoaderHeapKindExplicitControl, (address, size, _) => codeLoaderHeaps.Add(new ClrNativeHeapInfo(address, SanitizeSize(size), NativeHeapKind.LoaderCodeHeap))))
+                            foreach (ClrNativeHeapInfo result in codeLoaderHeaps)
                                 yield return result;
 
-                        heaps.Clear();
+                        codeLoaderHeaps.Clear();
                     }
                     else if (mem.Type == CodeHeapType.Host)
                     {
@@ -686,43 +686,130 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 }
             }
 
+            // A set of already processed addresses.
+            HashSet<ulong> seen = new() { 0 };
+
+            NativeHeapKind[] nativeKinds = _sos13 == null
+                ? nativeKinds = Array.Empty<NativeHeapKind>()
+                : _sos13.GetLoaderAllocatorHeapNames().Select(r => r switch
+                {
+                    "LowFrequencyHeap" => NativeHeapKind.LowFrequencyHeap,
+                    "HighFrequencyHeap" => NativeHeapKind.HighFrequencyHeap,
+                    "StubHeap" => NativeHeapKind.StubHeap,
+                    "ExecutableHeap" => NativeHeapKind.ExecutableHeap,
+                    "FixupPrecodeHeap" => NativeHeapKind.FixupPrecodeHeap,
+                    "NewStubPrecodeHeap" => NativeHeapKind.NewStubPrecodeHeap,
+                    "IndcellHeap" => NativeHeapKind.IndirectionCellHeap,
+                    "LookupHeap" => NativeHeapKind.LookupHeap,
+                    "ResolveHeap" => NativeHeapKind.ResolveHeap,
+                    "DispatchHeap" => NativeHeapKind.DispatchHeap,
+                    "CacheEntryHeap" => NativeHeapKind.CacheEntryHeap,
+                    "VtableHeap" => NativeHeapKind.VtableHeap,
+                    _ => NativeHeapKind.Unknown
+                }).ToArray();
+
             // Enumerate AppDomain heaps
             if (systemDomainAddress != 0)
-                AddAppDomainHeaps(systemDomainAddress, heaps);
-
-            if (sharedDomainAddress != 0 && sharedDomainAddress != systemDomainAddress)
-                AddAppDomainHeaps(sharedDomainAddress, heaps);
-
-            // Shouldn't be needed, but just some defensive coding to not enumerate the same heaps
-            HashSet<ulong> seen = new();
-            foreach (var heap in heaps)
-                if (seen.Add(heap.Address))
+                foreach (ClrNativeHeapInfo heap in EnumerateAppDomainHeaps(systemDomainAddress, nativeKinds, seen))
                     yield return heap;
 
-            foreach (ClrDataAddress appDomainAddress in _sos.GetAppDomainList())
+            if (sharedDomainAddress != 0 && sharedDomainAddress != systemDomainAddress)
+                foreach (ClrNativeHeapInfo heap in EnumerateAppDomainHeaps(sharedDomainAddress, nativeKinds, seen))
+                    yield return heap;
+
+            foreach (ClrNativeHeapInfo heap in _sos.GetAppDomainList().SelectMany(adAddress => EnumerateAppDomainHeaps(adAddress, nativeKinds, seen)))
+                yield return heap;
+        }
+
+        private IEnumerable<ClrNativeHeapInfo> EnumerateAppDomainHeaps(ClrDataAddress appDomainAddress, NativeHeapKind[] kinds, HashSet<ulong> seen)
+        {
+            if (_sos13 is not null)
             {
-                heaps.Clear();
-                AddAppDomainHeaps(appDomainAddress, heaps);
-                foreach (var heap in heaps)
-                    if (seen.Add(heap.Address))
-                        yield return heap;
+                // This will enumerate/add both the "normal" loader heaps like StubHeap, HighFrequencyHeap,
+                // etc and it will also enumerate/add stub heaps, like IndcellHeap, VtableHeap, etc.
+                ClrDataAddress loaderAllocator = _sos13.GetDomainLoaderAllocator(appDomainAddress);
+                foreach (var heap in EnumerateLoaderAllocatorHeaps(_sos13, loaderAllocator, kinds, seen))
+                    yield return heap;
+
+                // Now walk all modules's LoaderAllocators if they differ from the containing AppDomain's.
+                // We only do this if ISOSDacInterface13 is present, since before its implementation
+                // the relevant fields in DacpModuleData are always 0.
+                List<ClrNativeHeapInfo>? found = null;
+                foreach (ulong assemblyAddress in _sos.GetAssemblyList(appDomainAddress))
+                {
+                    foreach (ulong moduleAddress in _sos.GetModuleList(assemblyAddress))
+                    {
+                        if (_sos.GetModuleData(moduleAddress, out ModuleData moduleData))
+                        {
+                            if (moduleData.ThunkHeap != 0 && seen.Add(moduleData.ThunkHeap))
+                            {
+                                found ??= new();
+
+                                TraverseWithCleanup(found, () => TraverseLoaderHeap(moduleData.ThunkHeap, SOSDac13.LoaderHeapKind.LoaderHeapKindNormal, (address, size, isCurrent) => found.Add(new(address, SanitizeSize(size), NativeHeapKind.ThunkHeap))));
+                                foreach (var item in found)
+                                    yield return item;
+
+                                found.Clear();
+                            }
+
+                            foreach (var heap in EnumerateLoaderAllocatorHeaps(_sos13, moduleData.LoaderAllocator, kinds, seen))
+                                yield return heap;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // pre-ISOSDacInterface13 way of querying for heaps.  This will not find all heaps, unfortunately.
+                List<ClrNativeHeapInfo> result = new();
+                if (_sos.GetAppDomainData(appDomainAddress, out AppDomainData domain))
+                {
+                    if (seen.Add(domain.StubHeap))
+                        TraverseWithCleanup(result, () => TraverseLoaderHeap(domain.StubHeap, SOSDac13.LoaderHeapKind.LoaderHeapKindNormal, (address, size, isCurrent) => result.Add(new(address, SanitizeSize(size), NativeHeapKind.StubHeap))));
+
+                    if (seen.Add(domain.HighFrequencyHeap))
+                        TraverseWithCleanup(result, () => TraverseLoaderHeap(domain.HighFrequencyHeap, SOSDac13.LoaderHeapKind.LoaderHeapKindNormal, (address, size, isCurrent) => result.Add(new(address, SanitizeSize(size), NativeHeapKind.HighFrequencyHeap))));
+
+                    if (seen.Add(domain.LowFrequencyHeap))
+                        TraverseWithCleanup(result, () => TraverseLoaderHeap(domain.LowFrequencyHeap, SOSDac13.LoaderHeapKind.LoaderHeapKindNormal, (address, size, isCurrent) => result.Add(new(address, SanitizeSize(size), NativeHeapKind.LowFrequencyHeap))));
+
+                    foreach (var item in result)
+                        yield return item;
+                    result.Clear();
+                }
+
+                TraverseWithCleanup(result, () => _sos.TraverseStubHeap(appDomainAddress, SOSDac.VCSHeapType.IndcellHeap, (address, size, isCurrent) => result.Add(new(address, SanitizeSize(size), NativeHeapKind.IndirectionCellHeap))));
+                TraverseWithCleanup(result, () => _sos.TraverseStubHeap(appDomainAddress, SOSDac.VCSHeapType.LookupHeap, (address, size, isCurrent) => result.Add(new(address, SanitizeSize(size), NativeHeapKind.LookupHeap))));
+                TraverseWithCleanup(result, () => _sos.TraverseStubHeap(appDomainAddress, SOSDac.VCSHeapType.ResolveHeap, (address, size, isCurrent) => result.Add(new(address, SanitizeSize(size), NativeHeapKind.ResolveHeap))));
+                TraverseWithCleanup(result, () => _sos.TraverseStubHeap(appDomainAddress, SOSDac.VCSHeapType.DispatchHeap, (address, size, isCurrent) => result.Add(new(address, SanitizeSize(size), NativeHeapKind.DispatchHeap))));
+                TraverseWithCleanup(result, () => _sos.TraverseStubHeap(appDomainAddress, SOSDac.VCSHeapType.CacheEntryHeap, (address, size, isCurrent) => result.Add(new(address, SanitizeSize(size), NativeHeapKind.CacheEntryHeap))));
+                TraverseWithCleanup(result, () => _sos.TraverseStubHeap(appDomainAddress, SOSDac.VCSHeapType.VtableHeap, (address, size, isCurrent) => result.Add(new(address, SanitizeSize(size), NativeHeapKind.VtableHeap))));
+
+                foreach (var item in result)
+                    yield return item;
             }
         }
 
-        private void AddAppDomainHeaps(ClrDataAddress appDomainAddress, List<ClrNativeHeapInfo> heaps)
+        private IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorHeaps(SOSDac13 sos13, ClrDataAddress loaderAllocator, NativeHeapKind[] nativeKinds, HashSet<ulong> seen)
         {
-            if (_sos.GetAppDomainData(appDomainAddress, out AppDomainData domain))
+            if (seen.Add(loaderAllocator))
             {
-                TraverseWithCleanup(heaps, () => TraverseLoaderHeap(domain.StubHeap, SOSDac13.LoaderHeapKind.LoaderHeapKindNormal, (address, size, isCurrent) => heaps.Add(new(address, SanitizeSize(size), NativeHeapKind.StubHeap))));
-                TraverseWithCleanup(heaps, () => TraverseLoaderHeap(domain.HighFrequencyHeap, SOSDac13.LoaderHeapKind.LoaderHeapKindNormal, (address, size, isCurrent) => heaps.Add(new(address, SanitizeSize(size), NativeHeapKind.HighFrequencyHeap))));
-                TraverseWithCleanup(heaps, () => TraverseLoaderHeap(domain.LowFrequencyHeap, SOSDac13.LoaderHeapKind.LoaderHeapKindNormal, (address, size, isCurrent) => heaps.Add(new(address, SanitizeSize(size), NativeHeapKind.LowFrequencyHeap))));
+                List<ClrNativeHeapInfo> result = new();
+                var heaps = sos13.GetLoaderAllocatorHeaps(loaderAllocator);
 
-                TraverseWithCleanup(heaps, () => _sos.TraverseStubHeap(appDomainAddress, SOSDac.VCSHeapType.IndcellHeap, (address, size, isCurrent) => heaps.Add(new(address, SanitizeSize(size), NativeHeapKind.IndirectionCellHeap))));
-                TraverseWithCleanup(heaps, () => _sos.TraverseStubHeap(appDomainAddress, SOSDac.VCSHeapType.LookupHeap, (address, size, isCurrent) => heaps.Add(new(address, SanitizeSize(size), NativeHeapKind.LookupHeap))));
-                TraverseWithCleanup(heaps, () => _sos.TraverseStubHeap(appDomainAddress, SOSDac.VCSHeapType.ResolveHeap, (address, size, isCurrent) => heaps.Add(new(address, SanitizeSize(size), NativeHeapKind.ResolveHeap))));
-                TraverseWithCleanup(heaps, () => _sos.TraverseStubHeap(appDomainAddress, SOSDac.VCSHeapType.DispatchHeap, (address, size, isCurrent) => heaps.Add(new(address, SanitizeSize(size), NativeHeapKind.DispatchHeap))));
-                TraverseWithCleanup(heaps, () => _sos.TraverseStubHeap(appDomainAddress, SOSDac.VCSHeapType.CacheEntryHeap, (address, size, isCurrent) => heaps.Add(new(address, SanitizeSize(size), NativeHeapKind.CacheEntryHeap))));
-                TraverseWithCleanup(heaps, () => _sos.TraverseStubHeap(appDomainAddress, SOSDac.VCSHeapType.VtableHeap, (address, size, isCurrent) => heaps.Add(new(address, SanitizeSize(size), NativeHeapKind.VtableHeap))));
+                for (int i = 0; i < heaps.Length; i++)
+                {
+                    if (heaps[i].Address == 0 || !seen.Add(heaps[i].Address))
+                        continue;
+
+                    NativeHeapKind nativeKind = i < nativeKinds.Length ? nativeKinds[i] : NativeHeapKind.Unknown;
+                    TraverseWithCleanup(result, () => TraverseLoaderHeap(heaps[i].Address, heaps[i].Kind, (address, size, isCurrent) => result.Add(new(address, SanitizeSize(size), nativeKind))));
+
+                    foreach (var item in result)
+                        yield return item;
+
+                    result.Clear();
+                }
             }
         }
 
@@ -736,18 +823,21 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return (ulong)size;
         }
 
-        private void TraverseWithCleanup(List<ClrNativeHeapInfo> heaps, Func<HResult> traverseAction)
+        private static HResult TraverseWithCleanup(List<ClrNativeHeapInfo> heaps, Func<HResult> traverseAction)
         {
             // TraverseLoaderHeap can fail, even after making some callbacks.  This happens if we have a bad address
             // or corrupted LoaderHeap/corrupted dump. If this happens, remove all entries we added to the list of
             // heaps we found.
             int count = heaps.Count;
-            if (!traverseAction())
+            HResult hr = traverseAction();
+            if (!hr)
             {
                 int added = heaps.Count - count;
                 if (added > 0)
                     heaps.RemoveRange(count, added);
             }
+
+            return hr;
         }
 
         private HResult TraverseLoaderHeap(ulong address, SOSDac13.LoaderHeapKind kind, SOSDac.LoaderHeapTraverse callback)

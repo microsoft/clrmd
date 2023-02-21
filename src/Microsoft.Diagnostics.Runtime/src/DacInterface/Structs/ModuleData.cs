@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly ClrDataAddress MemberRefToDescMap;
         public readonly ClrDataAddress FileReferencesMap;
         public readonly ClrDataAddress ManifestModuleReferencesMap;
-        public readonly ClrDataAddress LookupTableHeap;
+        public readonly ClrDataAddress LoaderAllocator;
         public readonly ClrDataAddress ThunkHeap;
         public readonly ulong ModuleIndex;
     }
