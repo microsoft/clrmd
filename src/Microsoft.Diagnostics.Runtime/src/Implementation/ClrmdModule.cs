@@ -38,6 +38,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong MetadataLength { get; }
         public override bool IsDynamic { get; }
         public override MetadataImport? MetadataImport => _metadata ??= _helpers.GetMetadataImport(this);
+        public override ulong ThunkHeap { get; }
+        public override ulong LoaderAllocator { get; }
 
         public ClrmdModule(ClrAppDomain parent, IModuleData data)
         {
@@ -58,6 +60,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             MetadataAddress = data.MetadataStart;
             MetadataLength = data.MetadataLength;
             IsDynamic = data.IsReflection || data.IsDynamic;
+            ThunkHeap = data.ThunkHeap;
+            LoaderAllocator = data.LoaderAllocator;
         }
 
         public ClrmdModule(ClrAppDomain parent, IModuleHelpers helpers, ulong addr)
@@ -182,6 +186,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             return _helpers.Factory.GetOrCreateType(map[index].MethodTable, 0);
         }
+
+        public override IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorHeaps() => _helpers.EnumerateLoaderAllocatorNativeHeaps(LoaderAllocator);
+
+        public override IEnumerable<ClrNativeHeapInfo> EnumerateThunkHeap() => _helpers.EnumerateThunkHeaps(ThunkHeap);
 
         private static int CompareTo((ulong MethodTable, int Token) entry, int token) => entry.Token.CompareTo(token);
     }

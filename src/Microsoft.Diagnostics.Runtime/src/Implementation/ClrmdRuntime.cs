@@ -154,7 +154,58 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ClrMethod? GetMethodByHandle(ulong methodHandle) => _helpers.Factory.CreateMethodFromHandle(methodHandle);
 
-        public override IEnumerable<ClrNativeHeapInfo> EnumerateClrNativeHeaps() => _helpers.EnumerateClrNativeHeaps(SystemDomain?.Address ?? 0, SharedDomain?.Address ?? 0);
+        public override IEnumerable<ClrNativeHeapInfo> EnumerateJitCodeHeaps() => _helpers.EnumerateJitCodeHeaps();
+
+        public override IEnumerable<ClrNativeHeapInfo> EnumerateClrNativeHeaps()
+        {
+            // Enumerate the JIT code heaps.
+            foreach (ClrNativeHeapInfo heap in EnumerateJitCodeHeaps())
+                yield return heap;
+
+            HashSet<ulong> visited = new();
+
+            // Walk domains
+            if (SystemDomain is not null)
+            {
+                visited.Add(SystemDomain.LoaderAllocator);
+                foreach (ClrNativeHeapInfo heap in SystemDomain.EnumerateLoaderAllocatorHeaps())
+                    yield return heap;
+            }
+
+            if (SharedDomain is not null)
+            {
+                visited.Add(SharedDomain.LoaderAllocator);
+                foreach (ClrNativeHeapInfo heap in SharedDomain.EnumerateLoaderAllocatorHeaps())
+                    yield return heap;
+            }
+
+            foreach (ClrAppDomain domain in AppDomains)
+            {
+                if (domain.LoaderAllocator == 0 || visited.Add(domain.LoaderAllocator))
+                    foreach (ClrNativeHeapInfo heap in domain.EnumerateLoaderAllocatorHeaps())
+                        yield return heap;
+            }
+
+            // Walk modules.  We do this after domains to ensure we don't enumerate
+            // previously enumerated LoaderAllocators.
+            foreach (ClrModule module in EnumerateModules())
+            {
+                // We don't want to skip modules with no address, as we might have
+                // multiple of those with unique heaps.
+                if (module.Address == 0 || visited.Add(module.Address))
+                {
+                    if (module.ThunkHeap != 0 && visited.Add(module.ThunkHeap))
+                        foreach (ClrNativeHeapInfo heap in module.EnumerateThunkHeap())
+                            yield return heap;
+
+                    // LoaderAllocator may be shared with its parent domain.  We only have a
+                    // unique LoaderAllocator in the case of collectable assemblies.
+                    if (module.LoaderAllocator != 0 && visited.Add(module.LoaderAllocator))
+                        foreach (ClrNativeHeapInfo heap in module.EnumerateLoaderAllocatorHeaps())
+                            yield return heap;
+                }
+            }
+        }
 
         public override ClrMethod? GetMethodByInstructionPointer(ulong ip)
         {

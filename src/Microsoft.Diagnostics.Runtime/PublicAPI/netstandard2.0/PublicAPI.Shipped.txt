@@ -1682,3 +1682,10 @@ Microsoft.Diagnostics.Runtime.NativeHeapKind.FixupPrecodeHeap = 13 -> Microsoft.
 Microsoft.Diagnostics.Runtime.NativeHeapKind.NewStubPrecodeHeap = 14 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
 Microsoft.Diagnostics.Runtime.NativeHeapKind.ThunkHeap = 15 -> Microsoft.Diagnostics.Runtime.NativeHeapKind
 readonly Microsoft.Diagnostics.Runtime.DacInterface.ModuleData.LoaderAllocator -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
+abstract Microsoft.Diagnostics.Runtime.ClrAppDomain.EnumerateLoaderAllocatorHeaps() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo>!
+abstract Microsoft.Diagnostics.Runtime.ClrAppDomain.LoaderAllocator.get -> ulong
+abstract Microsoft.Diagnostics.Runtime.ClrModule.EnumerateLoaderAllocatorHeaps() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo>!
+abstract Microsoft.Diagnostics.Runtime.ClrModule.EnumerateThunkHeap() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo>!
+abstract Microsoft.Diagnostics.Runtime.ClrRuntime.EnumerateJitCodeHeaps() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo>!
+virtual Microsoft.Diagnostics.Runtime.ClrModule.LoaderAllocator.get -> ulong
+virtual Microsoft.Diagnostics.Runtime.ClrModule.ThunkHeap.get -> ulong

@@ -90,6 +90,33 @@ namespace Microsoft.Diagnostics.Runtime
         public virtual MetadataImport? MetadataImport => null;
 
         /// <summary>
+        /// The ThunkHeap associated with this Module.  This is only available when debugging a .Net 8 or
+        /// later runtime.
+        /// </summary>
+        public virtual ulong ThunkHeap => 0;
+
+        /// <summary>
+        /// The LoaderAllocator associated with this Module.  This is only available when debugging a .Net 8 or
+        /// later runtime.  Note that this LoaderAllocator is usually share with its parent domain, except in
+        /// rare circumstances, like for collectable assemblies.
+        /// </summary>
+        public virtual ulong LoaderAllocator => 0;
+
+        /// <summary>
+        /// Enumerates the native heaps associated with the ThunkHeap.
+        /// </summary>
+        /// <returns>An enumerable of heaps.</returns>
+        public abstract IEnumerable<ClrNativeHeapInfo> EnumerateThunkHeap();
+
+        /// <summary>
+        /// Enumerates the native heaps associated with the LoaderAllocator.  This may be the same set of
+        /// heaps enumerated by ClrAppDomain.EnumerateLoaderAllocatorHeaps if LoaderAllocator is not 0 and
+        /// equals ClrAppDomain.LoaderAllocator.
+        /// </summary>
+        /// <returns>An enumerable of heaps.</returns>
+        public abstract IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorHeaps();
+
+        /// <summary>
         /// Gets the debugging attributes for this module.
         /// </summary>
         public abstract DebuggableAttribute.DebuggingModes DebuggingMode { get; }

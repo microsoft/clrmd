@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Collections.Generic;
 using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -47,6 +48,20 @@ namespace Microsoft.Diagnostics.Runtime
         /// not support enumerating this information.
         /// </summary>
         public abstract string? ApplicationBase { get; }
+
+        /// <summary>
+        /// Returns the LoaderAllocator for this AppDomain.  This is used to debug some CLR internal state
+        /// and isn't generally useful for most developers.  This field is only available when debugging
+        /// .Net 8+ runtimes.
+        /// </summary>
+        public abstract ulong LoaderAllocator { get; }
+
+        /// <summary>
+        /// Enumerates the native heaps associated with this AppDomain.  Note that this may also enumerate
+        /// the same heaps as other domains if they share the same LoaderAllocator (especially SystemDomain).
+        /// </summary>
+        /// <returns>An enumerable of native heaps associated with this AppDomain.</returns>
+        public abstract IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorHeaps();
 
         /// <summary>
         /// To string override.
