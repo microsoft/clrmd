@@ -96,12 +96,18 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract IEnumerable<ClrModule> EnumerateModules();
 
         /// <summary>
-        /// Enumerates native heaps that CLR has allocated.  This method is used to give insights into
+        /// Enumerates all native heaps that CLR has allocated.  This method is used to give insights into
         /// what native memory ranges are owned by CLR.  For example, this is the information enumerated
         /// by SOS's !eeheap and "!ext maddress".
         /// </summary>
         /// <returns>An enumeration of heaps.</returns>
         public abstract IEnumerable<ClrNativeHeapInfo> EnumerateClrNativeHeaps();
+
+        /// <summary>
+        /// Enumerates native heaps that the JIT has allocated.
+        /// </summary>
+        /// <returns>An enumeration of heaps.</returns>
+        public abstract IEnumerable<ClrNativeHeapInfo> EnumerateJitCodeHeaps();
 
         /// <summary>
         /// Flushes the DAC cache.  This function MUST be called any time you expect to call the same function

@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -16,5 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         (ulong MethodTable, int Token)[] GetSortedTypeRefMap(ClrModule module);
         ClrType? TryGetType(ulong mt);
         string? GetTypeName(ulong mt);
+        IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorNativeHeaps(ulong address);
+        IEnumerable<ClrNativeHeapInfo> EnumerateThunkHeaps(ulong thunkHeapAddress);
     }
 }

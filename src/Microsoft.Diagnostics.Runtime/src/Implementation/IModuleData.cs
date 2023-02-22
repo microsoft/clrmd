@@ -23,5 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ulong MetadataLength { get; }
         bool IsReflection { get; }
         ulong AssemblyAddress { get; }
+        ulong ThunkHeap { get; }
+        ulong LoaderAllocator { get; }
     }
 }

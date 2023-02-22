@@ -31,6 +31,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         public bool IsFlatLayout { get; private set; }
         public bool IsDynamic { get; private set; }
         public ulong Size { get; private set; }
+        public ulong LoaderAllocator => _moduleData.LoaderAllocator;
+        public ulong ThunkHeap => _moduleData.ThunkHeap;
 
         public string? Name
         {

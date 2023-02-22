@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -19,6 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override string? ConfigurationFile => _helpers.GetConfigFile(this);
         public override string? ApplicationBase => _helpers.GetApplicationBase(this);
+        public override ulong LoaderAllocator => _helpers.GetLoaderAllocator(this);
 
         public ClrmdAppDomain(ClrRuntime runtime, IAppDomainData data)
         {
@@ -54,5 +56,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Id = -1;
             Modules = _helpers.EnumerateModules(this).ToImmutableArray();
         }
+
+        public override IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorHeaps() => _helpers.EnumerateNativeHeaps(this);
     }
 }
