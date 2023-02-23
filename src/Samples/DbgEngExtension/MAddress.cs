@@ -461,10 +461,10 @@ namespace DbgEngExtension
                         yield return new ClrMemoryPointer()
                         {
                             Address = mem.Address,
-                            Kind = mem.Type switch
+                            Kind = mem.Kind switch
                             {
-                                CodeHeapType.Loader => ClrMemoryKind.LoaderHeap,
-                                CodeHeapType.Host => ClrMemoryKind.Host,
+                                CodeHeapKind.Loader => ClrMemoryKind.LoaderHeap,
+                                CodeHeapKind.Host => ClrMemoryKind.Host,
                                 _ => ClrMemoryKind.UnknownCodeHeap
                             } 
                         };

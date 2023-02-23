@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     [StructLayout(LayoutKind.Sequential)]
     public readonly struct JitCodeHeapInfo
     {
-        public readonly CodeHeapType Type;
+        public readonly CodeHeapKind Kind;
         public readonly ClrDataAddress Address;
         public readonly ClrDataAddress CurrentAddress;
     }

@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     public readonly struct JitManagerInfo
     {
         public readonly ClrDataAddress Address;
-        public readonly CodeHeapType Type;
+        public readonly CodeHeapKind Kind;
         public readonly ClrDataAddress HeapList;
     }
 }

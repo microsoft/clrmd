@@ -112,6 +112,9 @@ namespace DbgEngExtension
             if (obj is null)
                 return null;
 
+            if (obj is Enum)
+                return obj.ToString();
+
             return obj switch
             {
                 nint ni => ni.ToString(format),
@@ -120,6 +123,7 @@ namespace DbgEngExtension
                 uint ui => ui.ToString(format),
                 int i => i.ToString(format),
                 string s => s,
+                StringBuilder sb => sb.ToString(),
                 _ => throw new NotImplementedException(obj.GetType().ToString()),
             };
         }

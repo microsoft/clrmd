@@ -445,10 +445,6 @@ Microsoft.Diagnostics.Runtime.DacInterface.ClrStackWalk.GetFrameVtable() -> Micr
 Microsoft.Diagnostics.Runtime.DacInterface.ClrStackWalk.Next() -> Microsoft.Diagnostics.Runtime.Utilities.HResult
 Microsoft.Diagnostics.Runtime.DacInterface.CodeHeaderData
 Microsoft.Diagnostics.Runtime.DacInterface.CodeHeaderData.CodeHeaderData() -> void
-Microsoft.Diagnostics.Runtime.DacInterface.CodeHeapType
-Microsoft.Diagnostics.Runtime.DacInterface.CodeHeapType.Host = 1 -> Microsoft.Diagnostics.Runtime.DacInterface.CodeHeapType
-Microsoft.Diagnostics.Runtime.DacInterface.CodeHeapType.Loader = 0 -> Microsoft.Diagnostics.Runtime.DacInterface.CodeHeapType
-Microsoft.Diagnostics.Runtime.DacInterface.CodeHeapType.Unknown = 2 -> Microsoft.Diagnostics.Runtime.DacInterface.CodeHeapType
 Microsoft.Diagnostics.Runtime.DacInterface.CommonMethodTables
 Microsoft.Diagnostics.Runtime.DacInterface.CommonMethodTables.CommonMethodTables() -> void
 Microsoft.Diagnostics.Runtime.DacInterface.DomainLocalModuleData
@@ -1311,10 +1307,8 @@ readonly Microsoft.Diagnostics.Runtime.DacInterface.HeapDetails.SavedSweepEpheme
 readonly Microsoft.Diagnostics.Runtime.DacInterface.HeapDetails.SavedSweepEphemeralStart -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
 readonly Microsoft.Diagnostics.Runtime.DacInterface.JitCodeHeapInfo.Address -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
 readonly Microsoft.Diagnostics.Runtime.DacInterface.JitCodeHeapInfo.CurrentAddress -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
-readonly Microsoft.Diagnostics.Runtime.DacInterface.JitCodeHeapInfo.Type -> Microsoft.Diagnostics.Runtime.DacInterface.CodeHeapType
 readonly Microsoft.Diagnostics.Runtime.DacInterface.JitManagerInfo.Address -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
 readonly Microsoft.Diagnostics.Runtime.DacInterface.JitManagerInfo.HeapList -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
-readonly Microsoft.Diagnostics.Runtime.DacInterface.JitManagerInfo.Type -> Microsoft.Diagnostics.Runtime.DacInterface.CodeHeapType
 readonly Microsoft.Diagnostics.Runtime.DacInterface.MethodDescData.AddressOfNativeCodeSlot -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
 readonly Microsoft.Diagnostics.Runtime.DacInterface.MethodDescData.GCInfo -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
 readonly Microsoft.Diagnostics.Runtime.DacInterface.MethodDescData.GCStressCodeCopy -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
@@ -1653,7 +1647,6 @@ Microsoft.Diagnostics.Runtime.IDumpInfoProvider.IsMiniOrTriage.get -> bool
 Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo
 Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo.Address.get -> ulong
 Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo.ClrNativeHeapInfo() -> void
-Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo.ClrNativeHeapInfo(ulong address, ulong? size, Microsoft.Diagnostics.Runtime.NativeHeapKind kind) -> void
 Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo.Kind.get -> Microsoft.Diagnostics.Runtime.NativeHeapKind
 Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo.Size.get -> ulong?
 Microsoft.Diagnostics.Runtime.NativeHeapKind
@@ -1686,6 +1679,5 @@ abstract Microsoft.Diagnostics.Runtime.ClrAppDomain.EnumerateLoaderAllocatorHeap
 abstract Microsoft.Diagnostics.Runtime.ClrAppDomain.LoaderAllocator.get -> ulong
 abstract Microsoft.Diagnostics.Runtime.ClrModule.EnumerateLoaderAllocatorHeaps() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo>!
 abstract Microsoft.Diagnostics.Runtime.ClrModule.EnumerateThunkHeap() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo>!
-abstract Microsoft.Diagnostics.Runtime.ClrRuntime.EnumerateJitCodeHeaps() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo>!
 virtual Microsoft.Diagnostics.Runtime.ClrModule.LoaderAllocator.get -> ulong
 virtual Microsoft.Diagnostics.Runtime.ClrModule.ThunkHeap.get -> ulong
