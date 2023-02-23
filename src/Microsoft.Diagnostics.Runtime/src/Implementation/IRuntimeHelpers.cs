@@ -19,6 +19,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ulong GetMethodDesc(ulong ip);
         string? GetJitHelperFunctionName(ulong ip);
         ClrModule? GetBaseClassLibrary(ClrRuntime runtime);
-        IEnumerable<ClrNativeHeapInfo> EnumerateJitCodeHeaps();
+        IEnumerable<ClrJitManager> EnumerateClrJitManagers();
     }
 }

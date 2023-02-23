@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -154,13 +155,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ClrMethod? GetMethodByHandle(ulong methodHandle) => _helpers.Factory.CreateMethodFromHandle(methodHandle);
 
-        public override IEnumerable<ClrNativeHeapInfo> EnumerateJitCodeHeaps() => _helpers.EnumerateJitCodeHeaps();
+        public override IEnumerable<ClrJitManager> EnumerateJitManagers() => _helpers.EnumerateClrJitManagers();
 
         public override IEnumerable<ClrNativeHeapInfo> EnumerateClrNativeHeaps()
         {
             // Enumerate the JIT code heaps.
-            foreach (ClrNativeHeapInfo heap in EnumerateJitCodeHeaps())
-                yield return heap;
+            foreach (ClrJitManager jitMgr in EnumerateJitManagers())
+                foreach (ClrNativeHeapInfo heap in jitMgr.EnumerateNativeHeaps())
+                    yield return heap;
 
             HashSet<ulong> visited = new();
 

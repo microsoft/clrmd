@@ -22,13 +22,20 @@
         public NativeHeapKind Kind { get; }
 
         /// <summary>
+        /// Whether this particular region of the heap is the current block or if it's been already
+        /// filled.
+        /// </summary>
+        public bool IsCurrentBlock { get; }
+
+        /// <summary>
         /// Constructor.
         /// </summary>
-        public ClrNativeHeapInfo(ulong address, ulong? size, NativeHeapKind kind)
+        public ClrNativeHeapInfo(ulong address, ulong? size, NativeHeapKind kind, bool current)
         {
             Address = address;
             Size = size;
             Kind = kind;
+            IsCurrentBlock = current;
         }
 
         /// <inheritdoc/>

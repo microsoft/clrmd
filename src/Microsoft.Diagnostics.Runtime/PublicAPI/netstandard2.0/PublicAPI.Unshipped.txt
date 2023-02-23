@@ -1,1 +1,18 @@
 #nullable enable
+abstract Microsoft.Diagnostics.Runtime.ClrRuntime.EnumerateJitManagers() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrJitManager!>!
+Microsoft.Diagnostics.Runtime.ClrJitManager
+Microsoft.Diagnostics.Runtime.ClrJitManager.Address.get -> ulong
+Microsoft.Diagnostics.Runtime.ClrJitManager.ClrJitManager(Microsoft.Diagnostics.Runtime.ClrRuntime! runtime, in Microsoft.Diagnostics.Runtime.DacInterface.JitManagerInfo info, Microsoft.Diagnostics.Runtime.Implementation.IJitManagerHelpers! helpers) -> void
+Microsoft.Diagnostics.Runtime.ClrJitManager.EnumerateNativeHeaps() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo>!
+Microsoft.Diagnostics.Runtime.ClrJitManager.Kind.get -> Microsoft.Diagnostics.Runtime.CodeHeapKind
+Microsoft.Diagnostics.Runtime.ClrJitManager.Runtime.get -> Microsoft.Diagnostics.Runtime.ClrRuntime!
+Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo.ClrNativeHeapInfo(ulong address, ulong? size, Microsoft.Diagnostics.Runtime.NativeHeapKind kind, bool current) -> void
+Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo.IsCurrentBlock.get -> bool
+Microsoft.Diagnostics.Runtime.CodeHeapKind
+Microsoft.Diagnostics.Runtime.CodeHeapKind.Host = 1 -> Microsoft.Diagnostics.Runtime.CodeHeapKind
+Microsoft.Diagnostics.Runtime.CodeHeapKind.Loader = 0 -> Microsoft.Diagnostics.Runtime.CodeHeapKind
+Microsoft.Diagnostics.Runtime.CodeHeapKind.Unknown = 2 -> Microsoft.Diagnostics.Runtime.CodeHeapKind
+Microsoft.Diagnostics.Runtime.Implementation.IJitManagerHelpers
+Microsoft.Diagnostics.Runtime.Implementation.IJitManagerHelpers.EnumerateNativeHeaps(Microsoft.Diagnostics.Runtime.ClrJitManager! clrJitManager) -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo>!
+readonly Microsoft.Diagnostics.Runtime.DacInterface.JitCodeHeapInfo.Kind -> Microsoft.Diagnostics.Runtime.CodeHeapKind
+readonly Microsoft.Diagnostics.Runtime.DacInterface.JitManagerInfo.Kind -> Microsoft.Diagnostics.Runtime.CodeHeapKind
