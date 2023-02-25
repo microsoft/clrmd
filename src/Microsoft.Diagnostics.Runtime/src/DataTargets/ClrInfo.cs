@@ -97,8 +97,12 @@ namespace Microsoft.Diagnostics.Runtime
                     }
                 }
 
-                // We don't actually know the version of single file CLR since the version of the module would be the user's app version
                 Version = new Version();
+                if (info.IsClrRuntimeInfo2)
+                {
+                    ClrRuntimeInfo2 info2 = DataTarget.DataReader.Read<ClrRuntimeInfo2>(runtimeInfo);
+                    Version = info2.RuntimeVersion;
+                }
             }
             else
             {
@@ -111,7 +115,6 @@ namespace Microsoft.Diagnostics.Runtime
             // Long-name dac
             if (dt.DataReader.TargetPlatform == OSPlatform.Windows && Version.Major != 0)
                 artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, GetWindowsLongNameDac(flavor, currentArch, targetArch, Version), currentArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp));
-
 
             // Short-name dac under CLR's properties
             if (targetPlatform == currentPlatform)

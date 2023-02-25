@@ -31,6 +31,8 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
+        public bool IsClrRuntimeInfo2 => _version >= 2;
+
         public (int TimeStamp, int FileSize) RuntimePEProperties
         {
             get
@@ -100,5 +102,14 @@ namespace Microsoft.Diagnostics.Runtime
             Span<byte> buffer = new Span<byte>(ptr + 1, ptr[0]);
             return buffer.ToArray().ToImmutableArray();
         }
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    internal unsafe struct ClrRuntimeInfo2
+    {
+        public ClrRuntimeInfo RuntimeInfo;
+        private fixed int _runtimeVersion[4];
+
+        public Version RuntimeVersion => new Version(_runtimeVersion[0], _runtimeVersion[1], _runtimeVersion[2], _runtimeVersion[3]);
     }
 }
