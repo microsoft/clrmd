@@ -8,9 +8,9 @@ using System.Buffers;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// A public extension methods to support searching an IMemoryReader for a given span.
+    /// A set of extension methods to help when dealing with memory.
     /// </summary>
-    internal static class MemorySearcher
+    internal static class MemoryExtensions
     {
         /// <summary>
         /// Searches memory from startAddress to endAddress, looking for the memory specified by `searchFor`.  Note
@@ -77,6 +77,25 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             return 0;
+        }
+
+        public static string ConvertToHumanReadable(this ulong totalBytes) => ConvertToHumanReadable((double)totalBytes);
+        public static string ConvertToHumanReadable(this long totalBytes) => ConvertToHumanReadable((double)totalBytes);
+
+        public static string ConvertToHumanReadable(this double totalBytes)
+        {
+            double updated = totalBytes;
+
+            updated /= 1024;
+            if (updated < 1024)
+                return $"{updated:0.00}kb";
+
+            updated /= 1024;
+            if (updated < 1024)
+                return $"{updated:0.00}mb";
+
+            updated /= 1024;
+            return $"{updated:0.00}gb";
         }
     }
 }
