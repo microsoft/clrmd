@@ -95,7 +95,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             _runtime = new ClrmdRuntime(clr, library, this);
             _runtime.Initialize();
 
-            GCHeapHelpers helpers = new(_sos, _sos8, DataReader);
+            ClrSubHeapHelpers helpers = new(_sos, _sos8, DataReader);
             _heap = new ClrmdHeap(_runtime, new HeapBuilder(this, _sos), helpers);
 
             library.DacDataTarget.SetMagicCallback(_dac.Flush);
@@ -273,7 +273,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
                 segments.Add(new ClrSegment(clrHeap, DataReader)
                 {
-                    LogicalHeap = null,
+                    SubHeap = null,
                     Kind = kind,
 
                     ObjectRange = new MemoryRange(segBuilder.Start, segBuilder.End),

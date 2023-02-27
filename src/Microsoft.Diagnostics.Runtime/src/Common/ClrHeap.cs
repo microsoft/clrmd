@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the number of logical heaps in the process.
         /// </summary>
-        public abstract ImmutableArray<ClrGCHeap> LogicalHeaps { get; }
+        public abstract ImmutableArray<ClrSubHeap> ClrSubHeap { get; }
 
         /// <summary>
         /// A heap is has a list of contiguous memory regions called segments.  This list is returned in order of

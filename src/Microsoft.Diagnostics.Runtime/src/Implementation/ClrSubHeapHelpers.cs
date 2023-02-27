@@ -2,18 +2,18 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IClrGCHeapHelpers
+    public interface IClrSubHeapHelpers
     {
         int GenerationTableSize { get; }
         GenerationData[]? TryGetGenerationData(ulong serverAddress);
         ClrDataAddress[]? TryGetFinalizationPointers(ulong serverAddress);
-        ClrSegment? CreateSegment(ClrHeap clrHeap, ulong address, int generation, ClrGCHeap gcHeap);
+        ClrSegment? CreateSegment(ClrHeap clrHeap, ulong address, int generation, ClrSubHeap gcHeap);
         bool GetHeapData(ulong address, out HeapDetails data);
         bool GetHeapData(out HeapDetails data);
         ClrDataAddress[] GetHeaps(int count);
     }
 
-    internal class GCHeapHelpers : IClrGCHeapHelpers
+    internal class ClrSubHeapHelpers : IClrSubHeapHelpers
     {
         public IMemoryReader _memoryReader { get; }
 
@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public uint SizeOfPlugAndGap => (uint)_memoryReader.PointerSize * 4;
 
-        public GCHeapHelpers(SOSDac sos, SOSDac8? sos8, IMemoryReader reader)
+        public ClrSubHeapHelpers(SOSDac sos, SOSDac8? sos8, IMemoryReader reader)
         {
             _memoryReader = reader;
             _sos = sos;
@@ -53,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return _sos8?.GetFinalizationFillPointers(serverAddress);
         }
 
-        public ClrSegment? CreateSegment(ClrHeap clrHeap, ulong address, int generation, ClrGCHeap gcHeap)
+        public ClrSegment? CreateSegment(ClrHeap clrHeap, ulong address, int generation, ClrSubHeap gcHeap)
         {
             const nint heap_segment_flags_readonly = 1;
 
@@ -145,7 +145,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return new ClrSegment(clrHeap, _memoryReader)
             {
                 Address = data.Address,
-                LogicalHeap = gcHeap,
+                SubHeap = gcHeap,
                 Kind = kind,
                 ObjectRange = allocated,
                 CommittedMemory = committed,

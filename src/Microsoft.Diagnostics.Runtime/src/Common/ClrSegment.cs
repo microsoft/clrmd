@@ -110,7 +110,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// has a logical processor in the PC associated with it.  This property returns that logical
         /// processor number (starting at 0).
         /// </summary>
-        public ClrGCHeap LogicalHeap { get; init; }
+        public ClrSubHeap SubHeap { get; init; }
 
         /// <summary>
         /// Gets the range of memory reserved (but not committed) for this segment.

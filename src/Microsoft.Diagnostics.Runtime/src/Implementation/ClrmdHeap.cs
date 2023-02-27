@@ -47,9 +47,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsServer { get; }
 
-        public override ImmutableArray<ClrGCHeap> LogicalHeaps { get; }
+        public override ImmutableArray<ClrSubHeap> ClrSubHeap { get; }
 
-        public ClrmdHeap(ClrRuntime runtime, IHeapData data, IClrGCHeapHelpers gcHeapHelpers)
+        public ClrmdHeap(ClrRuntime runtime, IHeapData data, IClrSubHeapHelpers gcHeapHelpers)
         {
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
@@ -92,30 +92,30 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (data.IsServer)
             {
                 ClrDataAddress[] heapAddresses = gcHeapHelpers.GetHeaps(data.LogicalHeapCount);
-                var heapsBuilder = ImmutableArray.CreateBuilder<ClrGCHeap>(heapAddresses.Length);
+                var heapsBuilder = ImmutableArray.CreateBuilder<ClrSubHeap>(heapAddresses.Length);
                 for (int i = 0; i < data.LogicalHeapCount; i++)
                 {
                     if (gcHeapHelpers.GetHeapData(heapAddresses[i], out HeapDetails heapData))
-                        heapsBuilder.Add(new ClrGCHeap(this, i, heapAddresses[i], heapData, gcHeapHelpers));
+                        heapsBuilder.Add(new ClrSubHeap(this, i, heapAddresses[i], heapData, gcHeapHelpers));
                 }
 
-                LogicalHeaps = heapsBuilder.MoveToImmutable();
+                ClrSubHeap = heapsBuilder.MoveToImmutable();
             }
             else
             {
                 if (gcHeapHelpers.GetHeapData(out HeapDetails heapData))
                 {
-                    LogicalHeaps = ImmutableArray.Create(new ClrGCHeap(this, 0, 0, heapData, gcHeapHelpers));
+                    ClrSubHeap = ImmutableArray.Create(new ClrSubHeap(this, 0, 0, heapData, gcHeapHelpers));
                 }
                 else
                 {
-                    LogicalHeaps = ImmutableArray<ClrGCHeap>.Empty;
+                    ClrSubHeap = ImmutableArray<ClrSubHeap>.Empty;
                 }
             }
 
-            CanWalkHeap &= LogicalHeaps.Length > 0;
+            CanWalkHeap &= ClrSubHeap.Length > 0;
 
-            Segments = LogicalHeaps.SelectMany(s => s.Segments).OrderBy(s => s.FirstObjectAddress).ToImmutableArray();
+            Segments = ClrSubHeap.SelectMany(s => s.Segments).OrderBy(s => s.FirstObjectAddress).ToImmutableArray();
         }
 
         public override IEnumerable<MemoryRange> EnumerateAllocationContexts() => AllocationContexts.Select(item => new MemoryRange(item.Key, item.Value));

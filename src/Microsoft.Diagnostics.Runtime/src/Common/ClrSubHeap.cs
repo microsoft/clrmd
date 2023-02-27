@@ -12,9 +12,9 @@ namespace Microsoft.Diagnostics.Runtime
     /// Workstation GC, the managed heap has only one logical "heap".  When using Server GC,
     /// there can be many of them.  This class tracks information about logical heaps.
     /// </summary>
-    public class ClrGCHeap
+    public class ClrSubHeap
     {
-        public ClrGCHeap(ClrHeap clrHeap, int index, ulong address, in HeapDetails heap, IClrGCHeapHelpers helpers)
+        public ClrSubHeap(ClrHeap clrHeap, int index, ulong address, in HeapDetails heap, IClrSubHeapHelpers helpers)
         {
             Address = address;
             Index = index;
@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime
             Segments = EnumerateSegments(clrHeap, helpers).ToImmutableArray();
         }
 
-        private IEnumerable<ClrSegment> EnumerateSegments(ClrHeap heap, IClrGCHeapHelpers helpers)
+        private IEnumerable<ClrSegment> EnumerateSegments(ClrHeap heap, IClrSubHeapHelpers helpers)
         {
             HashSet<ulong> seen = new() { 0 };
             IEnumerable<ClrSegment> segments = EnumerateSegments(heap, helpers, 3, seen);
@@ -67,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime
             return segments;
         }
 
-        private IEnumerable<ClrSegment> EnumerateSegments(ClrHeap heap, IClrGCHeapHelpers helpers, int generation, HashSet<ulong> seen)
+        private IEnumerable<ClrSegment> EnumerateSegments(ClrHeap heap, IClrSubHeapHelpers helpers, int generation, HashSet<ulong> seen)
         {
             ulong address = GenerationTable[generation].StartSegment;
 
