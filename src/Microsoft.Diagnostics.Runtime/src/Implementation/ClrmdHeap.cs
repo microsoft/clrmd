@@ -2,11 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Linq;
 
 #pragma warning disable CA1721 // Property names should not match get methods
@@ -27,13 +27,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool CanWalkHeap { get; }
 
-        private Dictionary<ulong, ulong> AllocationContexts => GetHeapData().AllocationContext;
+        internal override Dictionary<ulong, ulong> AllocationContexts => GetHeapData().AllocationContext;
 
         private ImmutableArray<FinalizerQueueSegment> FQRoots => GetHeapData().FQRoots;
 
         private ImmutableArray<FinalizerQueueSegment> FQObjects => GetHeapData().FQObjects;
 
-        public override ImmutableArray<ClrSegment> Segments => GetHeapData().Segments;
+        public override ImmutableArray<ClrSegment> Segments { get; }
 
         public override int LogicalHeapCount { get; }
 
@@ -47,7 +47,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsServer { get; }
 
-        public ClrmdHeap(ClrRuntime runtime, IHeapData data)
+        public override ImmutableArray<ClrGCHeap> LogicalHeaps { get; }
+
+        public ClrmdHeap(ClrRuntime runtime, IHeapData data, IClrGCHeapHelpers gcHeapHelpers)
         {
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
@@ -86,9 +88,38 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 StringType = new ClrmdStringType((ITypeHelpers)_helpers, this, data.StringMethodTable, token);
             }
+
+            if (data.IsServer)
+            {
+                ClrDataAddress[] heapAddresses = gcHeapHelpers.GetHeaps(data.LogicalHeapCount);
+                var heapsBuilder = ImmutableArray.CreateBuilder<ClrGCHeap>(heapAddresses.Length);
+                for (int i = 0; i < data.LogicalHeapCount; i++)
+                {
+                    if (gcHeapHelpers.GetHeapData(heapAddresses[i], out HeapDetails heapData))
+                        heapsBuilder.Add(new ClrGCHeap(this, i, heapAddresses[i], heapData, gcHeapHelpers));
+                }
+
+                LogicalHeaps = heapsBuilder.MoveToImmutable();
+            }
+            else
+            {
+                if (gcHeapHelpers.GetHeapData(out HeapDetails heapData))
+                {
+                    LogicalHeaps = ImmutableArray.Create(new ClrGCHeap(this, 0, 0, heapData, gcHeapHelpers));
+                }
+                else
+                {
+                    LogicalHeaps = ImmutableArray<ClrGCHeap>.Empty;
+                }
+            }
+
+            CanWalkHeap &= LogicalHeaps.Length > 0;
+
+            Segments = LogicalHeaps.SelectMany(s => s.Segments).OrderBy(s => s.FirstObjectAddress).ToImmutableArray();
         }
 
         public override IEnumerable<MemoryRange> EnumerateAllocationContexts() => AllocationContexts.Select(item => new MemoryRange(item.Key, item.Value));
+        internal override ClrType? GetOrCreateType(ClrHeap heap, ulong mt, ulong obj) => _helpers.Factory.GetOrCreateType(heap, mt, obj);
 
         private VolatileHeapData GetHeapData()
         {
@@ -119,13 +150,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (seg is null)
                 throw new ArgumentNullException(nameof(seg));
 
-            if (seg.IsLargeObjectSegment)
+            if (seg.Kind == SegmentKind.Large)
                 return address;
 
             uint minObjSize = (uint)IntPtr.Size * 3;
             while (AllocationContexts.TryGetValue(address, out ulong nextObj))
             {
-                nextObj += Align(minObjSize, seg.IsLargeObjectSegment || seg.IsPinnedObjectSegment);
+                nextObj += Align(minObjSize, seg.Kind == SegmentKind.Pinned);
 
                 if (address >= nextObj || address >= seg.End)
                     return 0;
@@ -293,7 +324,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         if (seg is null)
                             yield break;
 
-                        bool large = seg.IsLargeObjectSegment || seg.IsPinnedObjectSegment;
+                        bool large = seg.Kind == SegmentKind.Large || seg.Kind == SegmentKind.Pinned;
                         if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
                             yield break;
                     }
@@ -352,7 +383,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         if (seg is null)
                             yield break;
 
-                        bool large = seg.IsLargeObjectSegment || seg.IsPinnedObjectSegment;
+                        bool large = seg.Kind == SegmentKind.Large || seg.Kind == SegmentKind.Pinned;
                         if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
                             yield break;
                     }
@@ -418,7 +449,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         if (seg is null)
                             yield break;
 
-                        bool large = seg.IsLargeObjectSegment || seg.IsPinnedObjectSegment;
+                        bool large = seg.Kind == SegmentKind.Large || seg.Kind == SegmentKind.Pinned;
                         if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
                             yield break;
                     }

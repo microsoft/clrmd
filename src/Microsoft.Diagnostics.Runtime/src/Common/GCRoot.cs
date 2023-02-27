@@ -489,15 +489,6 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        internal static bool IsTooLarge(ulong obj, ClrType type, ClrSegment seg)
-        {
-            ulong size = type.Heap.GetObjectSize(obj, type);
-            if (!seg.IsLargeObjectSegment && !seg.IsPinnedObjectSegment && size >= 85000)
-                return true;
-
-            return obj + size > seg.End;
-        }
-
         [Conditional("GCROOTTRACE")]
         private static void TraceFullPath(LinkedList<PathEntry> path, LinkedListNode<ClrObject> foundEnding)
         {

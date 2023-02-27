@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly ClrDataAddress Address; // Only filled in server mode, otherwise NULL
         public readonly ClrDataAddress Allocated;
         public readonly ClrDataAddress MarkArray;
-        public readonly ClrDataAddress CAllocateLH;
+        public readonly ClrDataAddress CurrentGCState;
         public readonly ClrDataAddress NextSweepObj;
         public readonly ClrDataAddress SavedSweepEphemeralSeg;
         public readonly ClrDataAddress SavedSweepEphemeralStart;

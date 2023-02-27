@@ -2,42 +2,107 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Implementation;
+using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace Microsoft.Diagnostics.Runtime
 {
+    /// <summary>
+    /// The kind of GC Segment or region.
+    /// </summary>
+    public enum SegmentKind
+    {
+        /// <summary>
+        /// An Ephemeral segment is one which has Gen0, Gen1, and Gen2 sections.
+        /// </summary>
+        Ephemeral,
+
+        /// <summary>
+        /// This "segment" is actually a GC Gen0 region.  This is only enumerated
+        /// when the GC regions feature is present in the target CLR.
+        /// </summary>
+        Generation0,
+
+        /// <summary>
+        /// This "segment" is actually a GC Gen1 region.  This is only enumerated
+        /// when the GC regions feature is present in the target CLR.
+        /// </summary>
+        Generation1,
+
+        /// <summary>
+        /// This segment contains only Gen2 objects.  This may be a segment or
+        /// region.
+        /// </summary>
+        Generation2,
+
+        /// <summary>
+        /// This segment is frozen, meaning it is both pinned and no objects will
+        /// ever be collected.
+        /// </summary>
+        Frozen,
+
+        /// <summary>
+        /// A large object segment.  Objects here are above a certain size (usually
+        /// 85,000 bytes) and all objects here are pinned.
+        /// </summary>
+        Large,
+
+        /// <summary>
+        /// Pinned object segment.  All objects here are pinned.
+        /// </summary>
+        Pinned,
+    }
+
     /// <summary>
     /// A ClrSegment represents a contiguous region of memory that is devoted to the GC heap.
     /// Segments.  It has a start and end and knows what heap it belongs to.   Segments can
     /// optional have regions for Gen 0, 1 and 2, and Large properties.
     /// </summary>
-    public abstract class ClrSegment
+    public sealed class ClrSegment
     {
+        const int MarkerCount = 16;
+        private readonly IMemoryReader _memoryReader;
+        private readonly ulong[] _markers = new ulong[MarkerCount];
+
+        public ClrSegment(ClrHeap heap, IMemoryReader reader)
+        {
+            Heap = heap;
+            _memoryReader = reader;
+        }
+
+        /// <summary>
+        /// The address of the CLR segment object.
+        /// </summary>
+        public ulong Address { get; init; }
+
         /// <summary>
         /// Gets the GC heap associated with this segment.  There's only one GCHeap per process, so this is
         /// only a convenience method to keep from having to pass the heap along with a segment.
         /// </summary>
-        public abstract ClrHeap Heap { get; }
+        public ClrHeap Heap { get; }
 
         /// <summary>
         /// The memory range of the segment on which objects are allocated.  All objects in this segment fall within this range.
         /// </summary>
-        public abstract MemoryRange ObjectRange { get; }
+        public MemoryRange ObjectRange { get; init; }
 
         /// <summary>
         /// Gets the start address of the segment.  Equivalent to <see cref="ObjectRange"/>.<see cref="Start"/>.
         /// </summary>
-        public virtual ulong Start => ObjectRange.Start;
+        public ulong Start => ObjectRange.Start;
 
         /// <summary>
         /// Gets the end address of the segment.  Equivalent to <see cref="ObjectRange"/>.<see cref="Length"/>.
         /// </summary>
-        public virtual ulong End => ObjectRange.End;
+        public ulong End => ObjectRange.End;
 
         /// <summary>
         /// Equivalent to <see cref="ObjectRange"/>.<see cref="Length"/>.
         /// </summary>
-        public virtual ulong Length => ObjectRange.Length;
+        public ulong Length => ObjectRange.Length;
 
         /// <summary>
         /// Gets the processor that this heap is affinitized with.  In a workstation GC, there is no processor
@@ -45,67 +110,226 @@ namespace Microsoft.Diagnostics.Runtime
         /// has a logical processor in the PC associated with it.  This property returns that logical
         /// processor number (starting at 0).
         /// </summary>
-        public abstract int LogicalHeap { get; }
+        public ClrGCHeap LogicalHeap { get; init; }
 
         /// <summary>
         /// Gets the range of memory reserved (but not committed) for this segment.
         /// </summary>
-        public abstract MemoryRange ReservedMemory { get; }
+        public MemoryRange ReservedMemory { get; init; }
 
         /// <summary>
         /// Gets the range of memory committed for the segment (this may be larger than MemoryRange).
         /// </summary>
-        public abstract MemoryRange CommittedMemory { get; }
+        public MemoryRange CommittedMemory { get; init; }
 
         /// <summary>
         /// Gets the first object on this segment or 0 if this segment contains no objects.
         /// </summary>
-        public abstract ulong FirstObjectAddress { get; }
+        public ulong FirstObjectAddress => ObjectRange.Start;
+
+        public SegmentKind Kind { get; init; }
 
         /// <summary>
-        /// Returns true if this is a segment for the Large Object Heap.  False otherwise.
-        /// Large objects (greater than 85,000 bytes in size), are stored in their own segments and
-        /// only collected on full (gen 2) collections.
+        /// Returns true if the objects in this segment are pinned and cannot be relocated.
         /// </summary>
-        public abstract bool IsLargeObjectSegment { get; }
+        public bool IsPinned => Kind == SegmentKind.Pinned || Kind == SegmentKind.Large || Kind == SegmentKind.Frozen;
 
         /// <summary>
-        /// Returns true if this is a segment for the Pinned Object Heap.  False otherwise.
+        /// The memory range for Generation 0 on this segment.  This will be empty if this is not an ephemeral segment.
         /// </summary>
-        public abstract bool IsPinnedObjectSegment { get; }
+        public MemoryRange Generation0 { get; init; }
 
         /// <summary>
-        /// Returns true if this segment is the ephemeral segment (meaning it contains gen0 and gen1
-        /// objects).
+        /// The memory range for Generation 1 on this segment.  This will be empty if this is not an ephemeral segment.
         /// </summary>
-        public abstract bool IsEphemeralSegment { get; }
+        public MemoryRange Generation1 { get; init; }
 
         /// <summary>
-        /// The memory range for Generation 0 on this segment.  This will be empty if <see cref="IsEphemeralSegment"/> is false.
+        /// The memory range for Generation 2 on this segment.  This will be empty if this is not an ephemeral segment.
         /// </summary>
-        public abstract MemoryRange Generation0 { get; }
-
-        /// <summary>
-        /// The memory range for Generation 1 on this segment.  This will be empty if <see cref="IsEphemeralSegment"/> is false.
-        /// </summary>
-        public abstract MemoryRange Generation1 { get; }
-
-        /// <summary>
-        /// The memory range for Generation 2 on this segment.  This will be equivalent to ObjectRange if <see cref="IsEphemeralSegment"/> is false.
-        /// </summary>
-        public abstract MemoryRange Generation2 { get; }
+        public MemoryRange Generation2 { get; init; }
 
         /// <summary>
         /// Enumerates all objects on the segment.
         /// </summary>
-        public abstract IEnumerable<ClrObject> EnumerateObjects();
+        public IEnumerable<ClrObject> EnumerateObjects()
+        {
+            bool isLargeOrPinned = Kind == SegmentKind.Large || Kind == SegmentKind.Pinned;
+            uint minObjSize = (uint)IntPtr.Size * 3;
+            ulong obj = FirstObjectAddress;
+
+            // C# isn't smart enough to understand that !large means memoryReader is non-null.  We will just be
+            // careful here.
+            using MemoryReader memoryReader = (!isLargeOrPinned ? new MemoryReader(_memoryReader, 0x10000) : null)!;
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(IntPtr.Size * 2 + sizeof(uint));
+
+            // The large object heap
+            if (!isLargeOrPinned)
+                memoryReader.EnsureRangeInCache(obj);
+
+            while (ObjectRange.Contains(obj))
+            {
+                ulong mt;
+                if (isLargeOrPinned)
+                {
+                    if (_memoryReader.Read(obj, buffer) != buffer.Length)
+                        break;
+
+                    mt = Unsafe.As<byte, nuint>(ref buffer[0]);
+                }
+                else
+                {
+                    if (!memoryReader.ReadPtr(obj, out mt))
+                        break;
+                }
+
+                ClrType? type = Heap.GetOrCreateType(Heap, mt, obj);
+                if (type is null)
+                    break;
+
+                int marker = GetMarkerIndex(obj);
+                if (marker != -1 && _markers[marker] == 0)
+                    _markers[marker] = obj;
+
+                ClrObject result = new ClrObject(obj, type);
+                yield return result;
+
+                ulong size;
+                if (type.ComponentSize == 0)
+                {
+                    size = (uint)type.StaticSize;
+                }
+                else
+                {
+                    uint count;
+                    if (isLargeOrPinned)
+                        count = Unsafe.As<byte, uint>(ref buffer[IntPtr.Size]);
+                    else
+                        memoryReader.ReadDword(obj + (uint)IntPtr.Size, out count);
+
+                    // Strings in v4+ contain a trailing null terminator not accounted for.
+                    if (Heap.StringType == type)
+                        count++;
+
+                    size = count * (ulong)type.ComponentSize + (ulong)type.StaticSize;
+                }
+
+                size = ClrmdHeap.Align(size, isLargeOrPinned);
+                if (size < minObjSize)
+                    size = minObjSize;
+
+                obj += size;
+                obj = SkipAllocationContext(obj);
+            }
+
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+
+        private ulong SkipAllocationContext(ulong address)
+        {
+            if (Kind == SegmentKind.Large || Kind == SegmentKind.Frozen)
+                return address;
+
+            // TODO: layer this properly
+            var allocationContexts = ((ClrmdHeap)Heap).AllocationContexts;
+
+            uint minObjSize = (uint)IntPtr.Size * 3;
+            while (allocationContexts.TryGetValue(address, out ulong nextObj))
+            {
+                nextObj += ClrmdHeap.Align(minObjSize, Kind == SegmentKind.Pinned);
+
+                if (address >= nextObj || address >= End)
+                    return 0;
+
+                // Only if there's data corruption:
+                if (address >= nextObj || address >= End)
+                    return 0;
+
+                address = nextObj;
+            }
+
+            return address;
+        }
+
+        private int GetMarkerIndex(ulong obj)
+        {
+            if (obj <= FirstObjectAddress)
+                return -1;
+
+            if (obj >= End)
+                return _markers.Length - 1;
+
+            ulong step = Length / ((uint)_markers.Length + 1);
+
+            if (step == 0)
+                return -1;
+
+            ulong offset = obj - FirstObjectAddress;
+            int index = (int)(offset / step) - 1;
+
+            if (index >= _markers.Length)
+                index = _markers.Length - 1;
+
+            return index;
+        }
 
         /// <summary>
         /// Returns the object after the given object.
         /// </summary>
         /// <param name="obj">A valid object address that resides on this segment.</param>
         /// <returns>The next object on this segment, or 0 if <paramref name="obj"/> is the last object on the segment.</returns>
-        public abstract ulong GetNextObjectAddress(ulong obj);
+        public ulong GetNextObjectAddress(ulong obj)
+        {
+            if (obj == 0)
+                return 0;
+
+            if (!ObjectRange.Contains(obj))
+                throw new InvalidOperationException($"Segment [{FirstObjectAddress:x},{CommittedMemory:x}] does not contain object {obj:x}");
+
+            bool largeOrPinned = Kind == SegmentKind.Large || Kind == SegmentKind.Pinned;
+            uint minObjSize = (uint)IntPtr.Size * 3;
+            IMemoryReader memoryReader = _memoryReader;
+            ulong mt = memoryReader.ReadPointer(obj);
+
+            ClrType? type = Heap.GetOrCreateType(Heap, mt, obj);
+            if (type is null)
+                return 0;
+
+            ulong size;
+            if (type.ComponentSize == 0)
+            {
+                size = (uint)type.StaticSize;
+            }
+            else
+            {
+                uint count = memoryReader.Read<uint>(obj + (uint)IntPtr.Size);
+
+                // Strings in v4+ contain a trailing null terminator not accounted for.
+                if (Heap.StringType == type)
+                    count++;
+
+                size = count * (ulong)type.ComponentSize + (ulong)type.StaticSize;
+            }
+
+            size = ClrmdHeap.Align(size, largeOrPinned);
+            if (size < minObjSize)
+                size = minObjSize;
+
+            ulong result = obj + size;
+
+            if (!largeOrPinned)
+                result = SkipAllocationContext(result); // ignore mt here because it won't be used
+
+            if (result >= End)
+                return 0;
+
+            int marker = GetMarkerIndex(result);
+            if (marker != -1 && _markers[marker] == 0)
+                _markers[marker] = result;
+
+            return result;
+        }
+
 
         /// <summary>
         /// Returns the object before the given object.  Note that this function may take a while because in the worst case
@@ -113,7 +337,48 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="obj">An address that resides on this segment.  This does not need to point directly to a good object.</param>
         /// <returns>The previous object on this segment, or 0 if <paramref name="obj"/> is the first object on the segment.</returns>
-        public abstract ulong GetPreviousObjectAddress(ulong obj);
+        public ulong GetPreviousObjectAddress(ulong obj)
+        {
+            if (!ObjectRange.Contains(obj))
+                throw new InvalidOperationException($"Segment [{FirstObjectAddress:x},{CommittedMemory:x}] does not contain address {obj:x}");
+
+            if (obj == FirstObjectAddress)
+                return 0;
+
+            // Default to the start of the segment
+            ulong prevAddr = FirstObjectAddress;
+
+            // Look for markers that are closer to the address.  We keep the size of _markers small so a linear walk
+            // should be roughly as fast as a binary search.
+            foreach (ulong marker in _markers)
+            {
+                // Markers can be 0 even when _markers was fully initialized by a full heap walk.  This is because parts of
+                // the ephemeral GC heap may be not in use (allocation contexts) or when objects on the large object heap
+                // are so big that there's simply not a valid object starting point in that range.
+                if (marker != 0)
+                {
+                    if (marker >= obj)
+                        break;
+
+                    prevAddr = marker;
+                }
+            }
+
+            // Linear walk from the last known good previous address to the one we are looking for.
+            // This could take a while if we don't know a close enough address.
+            ulong curr = prevAddr;
+            while (curr != 0 && curr <= obj)
+            {
+                ulong next = GetNextObjectAddress(curr);
+
+                if (next >= obj)
+                    return curr;
+
+                curr = next;
+            }
+
+            return 0;
+        }
 
         /// <summary>
         /// Returns the generation of an object in this segment.
@@ -123,7 +388,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// The generation of the given object if that object lies in this segment.  The return
         /// value is undefined if the object does not lie in this segment.
         /// </returns>
-        public virtual int GetGeneration(ulong obj)
+        public int GetGeneration(ulong obj)
         {
             if (Generation2.Contains(obj))
                 return 2;
@@ -143,7 +408,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A string representation of this object.</returns>
         public override string ToString()
         {
-            return $"HeapSegment {Length / 1000000.0:n2}mb [{Start:X8}, {End:X8}]";
+            return $"[{Start:x12}, {End:x12}]";
         }
+
+        /// <summary>
+        /// The next segment in the heap.
+        /// </summary>
+        internal ulong Next { get; init; }
     }
 }

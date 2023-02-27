@@ -33,6 +33,11 @@ namespace Microsoft.Diagnostics.Runtime
         public abstract int LogicalHeapCount { get; }
 
         /// <summary>
+        /// Returns the number of logical heaps in the process.
+        /// </summary>
+        public abstract ImmutableArray<ClrGCHeap> LogicalHeaps { get; }
+
+        /// <summary>
         /// A heap is has a list of contiguous memory regions called segments.  This list is returned in order of
         /// of increasing object addresses.
         /// </summary>
@@ -188,5 +193,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// the heap may be in an inconsistent state.)
         /// </param>
         public abstract IEnumerable<ulong> EnumerateReferenceAddresses(ulong obj, ClrType type, bool carefully, bool considerDependantHandles);
+
+        internal abstract ClrType? GetOrCreateType(ClrHeap heap, ulong mt, ulong obj);
+        internal abstract Dictionary<ulong, ulong> AllocationContexts { get; }
     }
 }

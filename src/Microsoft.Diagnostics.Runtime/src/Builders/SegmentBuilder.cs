@@ -29,22 +29,21 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             _sizeofPlugAndGap = (ulong)pointerSize * 4;
         }
 
-        public bool Initialize(ulong address, int generation, in HeapDetails heap)
+        public bool Initialize(ulong address, int generation, bool regions, ulong allocated, ulong ephemSeg, ulong ephemGen0, ulong ephemGen1)
         {
-            _regions = heap.SavedSweepEphemeralSeg.Value == -1;
+            _regions = regions;
 
-            _heapAllocated = heap.Allocated;
+            _heapAllocated = allocated;
             if (_regions)
             {
                 _generation = generation;
             }
             else
             {
-                _ephemGen0Start = heap.GenerationTable[0].AllocationStart;
-                _ephemGen1Start = heap.GenerationTable[1].AllocationStart;
+                _ephemGen0Start = ephemGen0;
+                _ephemGen1Start = ephemGen1;
             }
-            _ephemAddress = heap.EphemeralHeapSegment;
-
+            _ephemAddress = ephemSeg;
             return _sos.GetSegmentData(address, out _segment);
         }
 

@@ -18,6 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ulong Gen1Length { get; }
         ulong Gen2Start { get; }
         ulong Gen2Length { get; }
+        ulong Next { get; }
 
         bool IsPinnedObjectSegment { get; }
         bool IsLargeObjectSegment { get; }

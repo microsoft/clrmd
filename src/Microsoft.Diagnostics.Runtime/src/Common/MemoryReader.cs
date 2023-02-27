@@ -12,12 +12,12 @@ namespace Microsoft.Diagnostics.Runtime
         private ulong _currPageStart;
         private int _currPageSize;
         private readonly byte[] _data;
-        private readonly IDataReader _dataReader;
+        private readonly IMemoryReader _memoryReader;
 
-        public MemoryReader(IDataReader dataReader, int cacheSize)
+        public MemoryReader(IMemoryReader memoryReader, int cacheSize)
         {
             _data = ArrayPool<byte>.Shared.Rent(cacheSize);
-            _dataReader = dataReader;
+            _memoryReader = memoryReader;
         }
 
         public void Dispose()
@@ -139,7 +139,7 @@ namespace Microsoft.Diagnostics.Runtime
         private bool MisalignedRead(ulong addr, out ulong value)
         {
             Span<byte> span = stackalloc byte[IntPtr.Size];
-            bool res = _dataReader.Read(addr, span) == IntPtr.Size;
+            bool res = _memoryReader.Read(addr, span) == IntPtr.Size;
 
             value = span.AsPointer();
 
@@ -149,7 +149,7 @@ namespace Microsoft.Diagnostics.Runtime
         private bool MisalignedRead(ulong addr, out uint value)
         {
             Span<byte> span = stackalloc byte[sizeof(uint)];
-            bool res = _dataReader.Read(addr, span) == sizeof(uint);
+            bool res = _memoryReader.Read(addr, span) == sizeof(uint);
 
             value = span.AsUInt32();
 
@@ -159,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime
         private bool MisalignedRead(ulong addr, out int value)
         {
             Span<byte> span = stackalloc byte[sizeof(int)];
-            bool res = _dataReader.Read(addr, span) == sizeof(int);
+            bool res = _memoryReader.Read(addr, span) == sizeof(int);
 
             value = span.AsInt32();
 
@@ -168,7 +168,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private bool MoveToPage(ulong addr)
         {
-            _currPageSize = _dataReader.Read(addr, _data);
+            _currPageSize = _memoryReader.Read(addr, _data);
 
             if (_currPageSize == 0)
             {

@@ -1294,7 +1294,7 @@ readonly Microsoft.Diagnostics.Runtime.DacInterface.HeapDetails.Address -> Micro
 readonly Microsoft.Diagnostics.Runtime.DacInterface.HeapDetails.Allocated -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
 readonly Microsoft.Diagnostics.Runtime.DacInterface.HeapDetails.BackgroundSavedHighestAddress -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
 readonly Microsoft.Diagnostics.Runtime.DacInterface.HeapDetails.BackgroundSavedLowestAddress -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
-readonly Microsoft.Diagnostics.Runtime.DacInterface.HeapDetails.CAllocateLH -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
+readonly Microsoft.Diagnostics.Runtime.DacInterface.HeapDetails.CurrentGCState -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
 readonly Microsoft.Diagnostics.Runtime.DacInterface.HeapDetails.CardTable -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
 readonly Microsoft.Diagnostics.Runtime.DacInterface.HeapDetails.EphemeralHeapSegment -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress
 readonly Microsoft.Diagnostics.Runtime.DacInterface.HeapDetails.FinalizationFillPointers -> Microsoft.Diagnostics.Runtime.DacInterface.ClrDataAddress[]!

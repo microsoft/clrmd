@@ -95,7 +95,8 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             _runtime = new ClrmdRuntime(clr, library, this);
             _runtime.Initialize();
 
-            _heap = new ClrmdHeap(_runtime, new HeapBuilder(this, _sos));
+            GCHeapHelpers helpers = new(_sos, _sos8, DataReader);
+            _heap = new ClrmdHeap(_runtime, new HeapBuilder(this, _sos), helpers);
 
             library.DacDataTarget.SetMagicCallback(_dac.Flush);
         }
@@ -256,12 +257,36 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             segBuilder.IsLargeObjectSegment = (generation == 3);
             segBuilder.IsPinnedObjectSegment = (generation == 4);
 
-            while (seenSegments.Add(address) && segBuilder.Initialize(address, generation, heap))
+            while (seenSegments.Add(address) && segBuilder.Initialize(address, generation, heap.SavedSweepEphemeralSeg.Value == -1, heap.Allocated, heap.EphemeralHeapSegment, heap.GenerationTable[0].AllocationStart, heap.GenerationTable[1].AllocationStart))
             {
                 // Unfortunately ClrmdSegment is tightly coupled to ClrmdHeap to make implementation vastly simpler and it can't
                 // be used with any generic ClrHeap.  There should be no way that this runtime builder ever mismatches the two
                 // so this cast will always succeed.
-                segments.Add(new ClrmdSegment((ClrmdHeap)clrHeap, this, segBuilder));
+
+                var kind = SegmentKind.Generation2;
+                if (segBuilder.IsLargeObjectSegment)
+                    kind = SegmentKind.Large;
+                if (segBuilder.IsPinnedObjectSegment)
+                    kind = SegmentKind.Pinned;
+                if (segBuilder.IsEphemeralSegment)
+                    kind = SegmentKind.Ephemeral;
+
+                segments.Add(new ClrSegment(clrHeap, DataReader)
+                {
+                    LogicalHeap = null,
+                    Kind = kind,
+
+                    ObjectRange = new MemoryRange(segBuilder.Start, segBuilder.End),
+                    ReservedMemory = new MemoryRange(segBuilder.CommittedEnd, segBuilder.ReservedEnd),
+                    CommittedMemory = new MemoryRange(segBuilder.BaseAddress, segBuilder.CommittedEnd),
+
+                    Generation0 = MemoryRange.CreateFromLength(segBuilder.Gen0Start, segBuilder.Gen0Length),
+                    Generation1 = MemoryRange.CreateFromLength(segBuilder.Gen1Start, segBuilder.Gen1Length),
+                    Generation2 = MemoryRange.CreateFromLength(segBuilder.Gen2Start, segBuilder.Gen2Length),
+
+                    Next = segBuilder.Next,
+                });
+
                 address = segBuilder.Next;
             }
         }

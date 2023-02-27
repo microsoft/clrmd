@@ -1,5 +1,6 @@
 #nullable enable
 abstract Microsoft.Diagnostics.Runtime.ClrRuntime.EnumerateJitManagers() -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrJitManager!>!
+Microsoft.Diagnostics.Runtime.ClrGenerationData
 Microsoft.Diagnostics.Runtime.ClrJitManager
 Microsoft.Diagnostics.Runtime.ClrJitManager.Address.get -> ulong
 Microsoft.Diagnostics.Runtime.ClrJitManager.ClrJitManager(Microsoft.Diagnostics.Runtime.ClrRuntime! runtime, in Microsoft.Diagnostics.Runtime.DacInterface.JitManagerInfo info, Microsoft.Diagnostics.Runtime.Implementation.IJitManagerHelpers! helpers) -> void
