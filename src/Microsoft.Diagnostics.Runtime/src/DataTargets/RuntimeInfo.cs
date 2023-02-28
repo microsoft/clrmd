@@ -22,6 +22,28 @@ namespace Microsoft.Diagnostics.Runtime
         private fixed byte _dacModuleIndex[24];
         private fixed byte _dbiModuleIndex[24];
 
+        public static unsafe bool TryReadClrRuntimeInfo(IDataReader reader, ulong address, out ClrRuntimeInfo header, out Version version)
+        {
+            header = default;
+            version = new Version();
+
+            int size = sizeof(ClrRuntimeInfo);
+            fixed (ClrRuntimeInfo* pHeader = &header)
+                if (reader.Read(address, new Span<byte>(pHeader, size)) != size || !header.IsValid)
+                    return false;
+
+            if (header._version >= 2)
+            {
+                Span<int> runtimeVersion = stackalloc int[4];
+                Span<byte> buffer = MemoryMarshal.Cast<int, byte>(runtimeVersion);
+
+                if (reader.Read(address + (uint)size, buffer) == buffer.Length)
+                    version = new Version(runtimeVersion[0], runtimeVersion[1], runtimeVersion[2], runtimeVersion[3]);
+            }
+
+            return true;
+        }
+
         public bool IsValid
         {
             get

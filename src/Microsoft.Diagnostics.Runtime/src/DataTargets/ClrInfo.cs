@@ -55,8 +55,7 @@ namespace Microsoft.Diagnostics.Runtime
             string? dbiTargetPlatform = GetDbiFileName(flavor, targetPlatform);
             if (IsSingleFile)
             {
-                ClrRuntimeInfo info = DataTarget.DataReader.Read<ClrRuntimeInfo>(runtimeInfo);
-                if (info.IsValid)
+                if (ClrRuntimeInfo.TryReadClrRuntimeInfo(DataTarget.DataReader, runtimeInfo, out ClrRuntimeInfo info, out Version version))
                 {
                     if (dt.DataReader.TargetPlatform == OSPlatform.Windows)
                     {
@@ -96,9 +95,7 @@ namespace Microsoft.Diagnostics.Runtime
                         }
                     }
                 }
-
-                // We don't actually know the version of single file CLR since the version of the module would be the user's app version
-                Version = new Version();
+                Version = version;
             }
             else
             {
@@ -111,7 +108,6 @@ namespace Microsoft.Diagnostics.Runtime
             // Long-name dac
             if (dt.DataReader.TargetPlatform == OSPlatform.Windows && Version.Major != 0)
                 artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, GetWindowsLongNameDac(flavor, currentArch, targetArch, Version), currentArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp));
-
 
             // Short-name dac under CLR's properties
             if (targetPlatform == currentPlatform)
