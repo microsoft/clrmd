@@ -16,6 +16,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         int ComponentSize { get; }
         int MethodCount { get; }
 
-        ITypeHelpers Helpers { get; }
+        IClrTypeHelpers Helpers { get; }
     }
 }

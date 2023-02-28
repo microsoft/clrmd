@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal class ClrmdType : ClrType
     {
-        protected ITypeHelpers Helpers { get; }
+        protected IClrTypeHelpers Helpers { get; }
         protected IDataReader DataReader => Helpers.DataReader;
 
         private string? _name;

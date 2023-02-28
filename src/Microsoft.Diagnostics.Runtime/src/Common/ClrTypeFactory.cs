@@ -18,67 +18,79 @@ namespace Microsoft.Diagnostics.Runtime
         ClrType ObjectType { get; }
         ClrType ExceptionType { get; }
 
-
-        ClrType? GetOrCreateType(ulong mt, ulong obj);
         ClrType? GetOrCreateType(ulong mt, ulong obj);
         ClrType GetOrCreateBasicType(ClrElementType basicType);
         ClrType? GetOrCreateArrayType(ClrType inner, int ranks);
         ClrType? GetOrCreateTypeFromToken(ClrModule module, int token);
         ClrType? GetOrCreateTypeFromSignature(ClrModule? module, SigParser parser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters);
         ClrType? GetOrCreatePointerType(ClrType innerType, int depth);
-        ClrMethod? CreateMethodFromHandle(ulong methodHandle);
 
         bool CreateMethodsForType(ClrType type, out ImmutableArray<ClrMethod> methods);
         bool CreateFieldsForType(ClrType type, out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> staticFields);
-
-        ComCallableWrapper? CreateCCWForObject(ulong obj);
-        RuntimeCallableWrapper? CreateRCWForObject(ulong obj);
-        ImmutableArray<ComInterfaceData> GetRCWInterfaces(ulong address, int interfaceCount);
     }
 
     internal class ClrTypeFactory : IClrTypeFactory
     {
-        private readonly ClrRuntime _runtime;
         private readonly SOSDac _sos;
         private readonly CacheOptions _options;
         private readonly ObjectPool<FieldBuilder> _fieldBuilders;
         private readonly ObjectPool<TypeBuilder> _typeBuilders;
-        private ClrHeap? _heap;
+        private readonly ClrHeap _heap;
         private volatile ClrType?[]? _basicTypes;
         private readonly Dictionary<ulong, ClrType> _types = new();
+        private readonly CommonMethodTables _commonMTs;
+        private Dictionary<ulong, ClrModule>? _modules;
 
-        public ClrTypeFactory(ClrRuntime runtime, SOSDac sos, CacheOptions options)
+        public ClrTypeFactory(ClrHeap heap, SOSDac sos, CacheOptions options)
         {
-            _runtime = runtime;
+            _heap = heap;
             _sos = sos;
             _options = options;
             _fieldBuilders = new ObjectPool<FieldBuilder>((owner, obj) => obj.Owner = owner);
             _typeBuilders = new ObjectPool<TypeBuilder>((owner, obj) => obj.Owner = owner);
+
+            _sos.GetCommonMethodTables(out _commonMTs);
         }
 
-        public void SetHeap(ClrHeap heap)
+        public ClrType FreeType => CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.FreeMethodTable, "Free");
+
+        public ClrType StringType
         {
-            _heap = heap;
+            get
+            {
+                try
+                {
+                    return CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.StringMethodTable, "System.String");
+                }
+                catch (System.IO.InvalidDataException)
+                {
+                    int token = 0;
+                    if (_sos.GetMethodTableData(_commonMTs.StringMethodTable, out MethodTableData mtd))
+                        token = (int)mtd.Token;
+
+                    return new ClrmdStringType((ITypeHelpers)_helpers, this, data.StringMethodTable, token);
+                }
+            }
         }
 
-        private ClrHeap GetHeap()
+        public ClrType ObjectType => CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.FreeMethodTable, "System.ObjectType");
+
+        public ClrType ExceptionType
         {
-            if (_heap is null)
-                throw new InvalidOperationException();
-
-            return _heap;
+            get
+            {
+                try
+                {
+                    ExceptionType = _helpers.Factory.CreateSystemType(this, data.ExceptionMethodTable, "System.Exception");
+                }
+                catch
+                {
+                    ExceptionType = ObjectType;
+                }
+            }
         }
 
-        public ClrType FreeType => throw new NotImplementedException();
-
-        public ClrType StringType => throw new NotImplementedException();
-
-        public ClrType ObjectType => throw new NotImplementedException();
-
-        public ClrType ExceptionType => throw new NotImplementedException();
-
-
-        public ClrType CreateSystemType(ClrHeap heap, ulong mt, string typeName)
+        public ClrType CreateSystemType(ClrHeap heap, ClrModule? bcl, ulong mt, string typeName)
         {
             using TypeBuilder typeData = _typeBuilders.Rent();
             if (!typeData.Init(_sos, mt, this))
@@ -89,12 +101,11 @@ namespace Microsoft.Diagnostics.Runtime
             if (typeData.ParentMethodTable != 0 && !_types.TryGetValue(typeData.ParentMethodTable, out baseType))
                 throw new InvalidOperationException($"Base type for '{typeName}' was not pre-created from MethodTable {typeData.ParentMethodTable:x}.");
 
-            ClrModule? module = GetModule(typeData.Module);
             ClrmdType result;
             if (typeData.ComponentSize == 0)
-                result = new ClrmdType(heap, baseType, module, typeData, typeName);
+                result = new ClrmdType(heap, baseType, bcl, typeData, typeName);
             else
-                result = new ClrmdArrayType(heap, baseType, module, typeData, typeName);
+                result = new ClrmdArrayType(heap, baseType, bcl, typeData, typeName);
 
             // Regardless of caching options, we always cache important system types and basic types
             lock (_types)
@@ -127,12 +138,12 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!typeData.Init(_sos, mt, this))
                     return null;
 
-                ClrType? baseType = GetOrCreateType(heap, typeData.ParentMethodTable, 0);
+                ClrType? baseType = GetOrCreateType(typeData.ParentMethodTable, 0);
 
                 ClrModule? module = GetModule(typeData.Module);
                 if (typeData.ComponentSize == 0)
                 {
-                    ClrmdType result = new ClrmdType(heap, baseType, module, typeData);
+                    ClrmdType result = new ClrmdType(_heap, baseType, module, typeData);
 
                     if (_options.CacheTypes)
                     {
@@ -144,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
                 else
                 {
-                    ClrmdArrayType result = new ClrmdArrayType(heap, baseType, module, typeData);
+                    ClrmdArrayType result = new ClrmdArrayType(_heap, baseType, module, typeData);
 
                     if (_options.CacheTypes)
                     {
@@ -262,7 +273,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (index < 0 || index >= param.Length)
                     return null;
 
-                return new ClrmdGenericType(this, GetOrCreateHeap(), module, param[index]);
+                return new ClrmdGenericType(this, _heap, module, param[index]);
             }
 
             if (etype == ClrElementType.Pointer)
@@ -313,27 +324,9 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public ComCallableWrapper? CreateCCWForObject(ulong obj)
-        {
-            CcwBuilder builder = new(_sos, this);
-            if (!builder.Init(obj))
-                return null;
-
-            return new ComCallableWrapper(builder);
-        }
-
-        public RuntimeCallableWrapper? CreateRCWForObject(ulong obj)
-        {
-            RcwHelpers builder = new(_sos, this);
-            if (!builder.Init(obj))
-                return null;
-
-            return new RuntimeCallableWrapper(builder);
-        }
-
         public ClrType GetOrCreateBasicType(ClrElementType basicType)
         {
-            ClrHeap heap = GetHeap();
+            ClrModule bcl = _heap.Runtime.BaseClassLibrary;
 
             // We'll assume 'Class' is just System.Object
             if (basicType == ClrElementType.Class)
@@ -344,7 +337,6 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 basicTypes = new ClrType[(int)ClrElementType.SZArray];
                 int count = 0;
-                ClrModule bcl = _runtime.BaseClassLibrary;
                 if (bcl != null && bcl.MetadataImport != null)
                 {
                     foreach ((ulong mt, int _) in bcl.EnumerateTypeDefToMethodTableMap())
@@ -382,8 +374,8 @@ namespace Microsoft.Diagnostics.Runtime
                     }
                 }
 
-                basicTypes[(int)ClrElementType.Object] = heap.ObjectType;
-                basicTypes[(int)ClrElementType.String] = heap.StringType;
+                basicTypes[(int)ClrElementType.Object] = _heap.ObjectType;
+                basicTypes[(int)ClrElementType.String] = _heap.StringType;
 
                 Interlocked.CompareExchange(ref _basicTypes, basicTypes, null);
             }
@@ -396,7 +388,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (result is not null)
                 return result;
 
-            return basicTypes[index] = new ClrmdPrimitiveType(this, _runtime.BaseClassLibrary, heap, basicType);
+            return basicTypes[index] = new ClrmdPrimitiveType(this, bcl, _heap, basicType);
         }
 
         public bool CreateMethodsForType(ClrType type, out ImmutableArray<ClrMethod> methods)
@@ -481,12 +473,12 @@ namespace Microsoft.Diagnostics.Runtime
                 }
                 else if (fieldData.IsStatic)
                 {
-                    ClrmdStaticField staticField = new ClrmdStaticField(type, fieldData);
+                    ClrmdStaticField staticField = new(type, fieldData);
                     staticsBuilder.Add(staticField);
                 }
                 else
                 {
-                    ClrmdField field = new ClrmdField(type, fieldData);
+                    ClrmdField field = new(type, fieldData);
                     fieldsBuilder.Add(field);
                 }
 
@@ -499,24 +491,16 @@ namespace Microsoft.Diagnostics.Runtime
             statics = staticsBuilder.MoveOrCopyToImmutable();
         }
 
-        public ImmutableArray<ComInterfaceData> GetRCWInterfaces(ulong address, int interfaceCount)
+        private ClrModule? GetModule(ulong moduleAddress)
         {
-            COMInterfacePointerData[]? ifs = _sos.GetRCWInterfaces(address, interfaceCount);
-            if (ifs is null)
-                return ImmutableArray<ComInterfaceData>.Empty;
+            if (_modules is null)
+            {
+                var modules = _heap.Runtime.EnumerateModules().ToDictionary(k => k.Address, v => v);
+                Interlocked.CompareExchange(ref _modules, modules, null);
+            }
 
-            return GetComInterfaces(ifs);
-        }
-
-        private ImmutableArray<ComInterfaceData> GetComInterfaces(COMInterfacePointerData[]? ifs)
-        {
-            ImmutableArray<ComInterfaceData>.Builder result = ImmutableArray.CreateBuilder<ComInterfaceData>(ifs.Length);
-            result.Count = result.Capacity;
-
-            for (int i = 0; i < ifs.Length; i++)
-                result[i] = new ComInterfaceData(GetOrCreateType(ifs[i].MethodTable, 0), ifs[i].InterfacePointer);
-
-            return result.MoveToImmutable();
+            _modules.TryGetValue(moduleAddress, out var module);
+            return module;
         }
     }
 }

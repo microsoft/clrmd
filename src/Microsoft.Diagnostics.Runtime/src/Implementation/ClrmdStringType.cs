@@ -12,12 +12,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ClrmdStringType : ClrType
     {
-        private ITypeHelpers Helpers { get; }
+        private IClrTypeHelpers Helpers { get; }
         private ImmutableArray<ClrMethod> _methods;
         private ImmutableArray<ClrInstanceField> _fields;
         private ImmutableArray<ClrStaticField> _statics;
 
-        public ClrmdStringType(ITypeHelpers helpers, ClrHeap heap, ulong mt, int token)
+        public ClrmdStringType(IClrTypeHelpers helpers, ClrHeap heap, ulong mt, int token)
         {
             Helpers = helpers;
             Heap = heap;

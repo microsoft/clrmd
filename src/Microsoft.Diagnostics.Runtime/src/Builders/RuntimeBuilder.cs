@@ -18,8 +18,8 @@ using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13;
 
 namespace Microsoft.Diagnostics.Runtime.Builders
 {
-    internal sealed unsafe class RuntimeBuilder : IRuntimeHelpers, ITypeFactory, ITypeHelpers, IModuleHelpers, IMethodHelpers, IClrObjectHelpers, IFieldHelpers,
-                                         IAppDomainHelpers, IThreadHelpers, IExceptionHelpers, IHeapHelpers
+    internal sealed unsafe class RuntimeBuilder : IRuntimeHelpers, ITypeFactory, IClrTypeHelpers, IModuleHelpers, IMethodHelpers, IFieldHelpers,
+                                         IAppDomainHelpers, IThreadHelpers, IHeapHelpers
     {
         private bool _disposed;
         private readonly ClrInfo _clrInfo;
@@ -908,168 +908,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         }
         string? IRuntimeHelpers.GetJitHelperFunctionName(ulong ip) => _sos.GetJitHelperFunctionName(ip);
 
-        public IExceptionHelpers ExceptionHelpers => this;
-
-        uint IExceptionHelpers.GetInnerExceptionOffset(ClrType? type)
-        {
-            ClrField? field = type?.Fields.FirstOrDefault(f => f.Name == "_innerException");
-
-            if (field != null && field.Offset >= 0)
-                return (uint)(field.Offset + IntPtr.Size);
-
-            uint result = _runtime.ClrInfo.Flavor switch
-            {
-                ClrFlavor.Core => DataReader.PointerSize switch
-                {
-                    4 => 0xc,
-                    8 => 0x18,
-                    _ => uint.MaxValue
-                },
-
-                ClrFlavor.Desktop => DataReader.PointerSize switch
-                {
-                    4 => 0x14,
-                    8 => 0x28,
-                    _ => uint.MaxValue
-                },
-
-                _ => uint.MaxValue
-            };
-
-            return result == uint.MaxValue ? 0 : result + (uint)IntPtr.Size;
-        }
-
-        uint IExceptionHelpers.GetHResultOffset(ClrType? type)
-        {
-            ClrField? field = type?.Fields.FirstOrDefault(f => f.Name == "_HResult");
-
-            if (field != null && field.Offset >= 0)
-                return (uint)(field.Offset + IntPtr.Size);
-
-            uint result = _runtime.ClrInfo.Flavor switch
-            {
-                ClrFlavor.Core => DataReader.PointerSize switch
-                {
-                    4 => 0x38,
-                    8 => 0x6c,
-                    _ => uint.MaxValue
-                },
-
-                ClrFlavor.Desktop => DataReader.PointerSize switch
-                {
-                    4 => 0x3c,
-                    8 => 0x84,
-                    _ => uint.MaxValue
-                },
-
-                _ => uint.MaxValue
-            };
-
-            return result == uint.MaxValue ? 0 : result + (uint)IntPtr.Size;
-        }
-
-        uint IExceptionHelpers.GetMessageOffset(ClrType? type)
-        {
-            ClrField? field = type?.Fields.FirstOrDefault(f => f.Name == "_message");
-
-            if (field != null && field.Offset >= 0)
-                return (uint)(field.Offset + IntPtr.Size);
-
-            uint result = _runtime.ClrInfo.Flavor switch
-            {
-                ClrFlavor.Core => DataReader.PointerSize switch
-                {
-                    4 => 4,
-                    8 => 8,
-                    _ => uint.MaxValue
-                },
-
-                ClrFlavor.Desktop => DataReader.PointerSize switch
-                {
-                    4 => 0xc,
-                    8 => 0x18,
-                    _ => uint.MaxValue
-                },
-
-                _ => uint.MaxValue
-            };
-
-            return result == uint.MaxValue ? 0 : result + (uint)IntPtr.Size;
-        }
-
-        private uint GetStackTraceOffset(ClrType? type)
-        {
-            ClrField? field = type?.Fields.FirstOrDefault(f => f.Name == "_stackTrace");
-
-            if (field != null && field.Offset >= 0)
-                return (uint)(field.Offset + IntPtr.Size);
-
-            uint result = _runtime.ClrInfo.Flavor switch
-            {
-                ClrFlavor.Core => DataReader.PointerSize switch
-                {
-                    4 => 0x14,
-                    8 => 0x28,
-                    _ => uint.MaxValue
-                },
-
-                ClrFlavor.Desktop => DataReader.PointerSize switch
-                {
-                    4 => 0x1c,
-                    8 => 0x38,
-                    _ => uint.MaxValue
-                },
-
-                _ => uint.MaxValue
-            };
-
-            return result == uint.MaxValue ? 0 : result + (uint)IntPtr.Size;
-        }
-
-        ImmutableArray<ClrStackFrame> IExceptionHelpers.GetExceptionStackTrace(ClrThread? thread, ClrObject obj)
-        {
-            CheckDisposed();
-
-            uint offset = GetStackTraceOffset(obj.Type);
-            DebugOnly.Assert(offset != uint.MaxValue);
-            if (offset == 0)
-                return ImmutableArray<ClrStackFrame>.Empty;
-
-            ulong address = DataReader.ReadPointer(obj.Address + offset);
-            ClrObject _stackTrace = GetOrCreateHeap().GetObject(address);
-
-            if (_stackTrace.IsNull)
-                return ImmutableArray<ClrStackFrame>.Empty;
-
-            int len = _stackTrace.AsArray().Length;
-            if (len == 0)
-                return ImmutableArray<ClrStackFrame>.Empty;
-
-            int elementSize = IntPtr.Size * 4;
-            ulong dataPtr = _stackTrace + (ulong)(IntPtr.Size * 2);
-            if (!DataReader.ReadPointer(dataPtr, out ulong count))
-                return ImmutableArray<ClrStackFrame>.Empty;
-
-            ImmutableArray<ClrStackFrame>.Builder result = ImmutableArray.CreateBuilder<ClrStackFrame>((int)count);
-            result.Count = result.Capacity;
-
-            // Skip size and header
-            dataPtr += (ulong)(IntPtr.Size * 2);
-
-            for (int i = 0; i < (int)count; ++i)
-            {
-                ulong ip = DataReader.ReadPointer(dataPtr);
-                ulong sp = DataReader.ReadPointer(dataPtr + (ulong)IntPtr.Size);
-                ulong md = DataReader.ReadPointer(dataPtr + (ulong)IntPtr.Size + (ulong)IntPtr.Size);
-
-                ClrMethod? method = CreateMethodFromHandle(md);
-                result[i] = new ClrmdStackFrame(thread, null, ip, sp, ClrStackFrameKind.ManagedMethod, method, frameName: null);
-                dataPtr += (ulong)elementSize;
-            }
-
-            return result.MoveToImmutable();
-        }
-
         string? IAppDomainHelpers.GetConfigFile(ClrAppDomain domain) => _sos.GetConfigFile(domain.Address);
         string? IAppDomainHelpers.GetApplicationBase(ClrAppDomain domain) => _sos.GetAppBase(domain.Address);
         ulong IAppDomainHelpers.GetLoaderAllocator(ClrAppDomain domain)
@@ -1196,9 +1034,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (heap is not null)
                 return heap;
 
-            ClrTypeFactory typeFactory = new(_sos, _options);
             heap = new(GetOrCreateRuntime(), typeFactory, DataReader, new ClrHeapHelpers(_sos, _sos8, _sos12, DataReader));
-            typeFactory.SetHeap(heap);
 
             // We can race with Flush.
             while (Interlocked.CompareExchange(ref _heap, heap, null) != null)
@@ -1304,7 +1140,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return (flags & 1) != 0;
         }
 
-        bool ITypeHelpers.GetTypeName(ulong mt, out string? name)
+        bool IClrTypeHelpers.GetTypeName(ulong mt, out string? name)
         {
             name = _sos.GetMethodTableName(mt);
             if (string.IsNullOrWhiteSpace(name))
@@ -1317,9 +1153,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return _options.CacheTypeNames != StringCaching.None;
         }
 
-        IClrObjectHelpers ITypeHelpers.ClrObjectHelpers => this;
+        IClrObjectHelpers IClrTypeHelpers.ClrObjectHelpers => this;
 
-        ulong ITypeHelpers.GetLoaderAllocatorHandle(ulong mt)
+        ulong IClrTypeHelpers.GetLoaderAllocatorHandle(ulong mt)
         {
             CheckDisposed();
 
@@ -1329,7 +1165,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return 0;
         }
 
-        ulong ITypeHelpers.GetAssemblyLoadContextAddress(ulong mt)
+        ulong IClrTypeHelpers.GetAssemblyLoadContextAddress(ulong mt)
         {
             CheckDisposed();
 
@@ -1339,7 +1175,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             return 0;
         }
 
-        IObjectData? ITypeHelpers.GetObjectData(ulong objRef)
+        IObjectData? IClrTypeHelpers.GetObjectData(ulong objRef)
         {
             CheckDisposed();
 
@@ -1348,21 +1184,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 return data;
 
             return null;
-        }
-
-        string? IClrObjectHelpers.ReadString(ulong addr, int maxLength)
-        {
-            if (addr == 0)
-                return null;
-
-            StringReader? reader = _stringReader;
-            if (reader == null)
-            {
-                reader = new StringReader(DataReader, GetOrCreateHeap().StringType);
-                _stringReader = reader;
-            }
-
-            return reader.ReadString(DataReader, addr, maxLength);
         }
 
         bool IMethodHelpers.GetSignature(ulong methodDesc, out string? signature)

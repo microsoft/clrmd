@@ -32,12 +32,17 @@ namespace Microsoft.Diagnostics.Runtime
         private volatile SubHeapData? _subHeapData;
         private ulong _lastComFlags;
 
-        public ClrHeap(ClrRuntime runtime, IClrTypeFactory typeFactory, IMemoryReader memoryReader, IClrHeapHelpers helpers)
+        public ClrHeap(ClrRuntime runtime, IMemoryReader memoryReader, IClrHeapHelpers helpers)
         {
             Runtime = runtime;
-            _typeFactory = typeFactory;
             _memoryReader = memoryReader;
             _helpers = helpers;
+
+            _typeFactory = helpers.CreateTypeFactory(this);
+            FreeType = _typeFactory.FreeType;
+            StringType = _typeFactory.StringType;
+            ObjectType = _typeFactory.ObjectType;
+            ExceptionType = _typeFactory.ExceptionType;
         }
 
         /// <summary>
@@ -67,22 +72,22 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the <see cref="ClrType"/> representing free space on the GC heap.
         /// </summary>
-        public ClrType FreeType => _typeFactory.FreeType;
+        public ClrType FreeType { get; }
 
         /// <summary>
         /// Gets the <see cref="ClrType"/> representing <see cref="string"/>.
         /// </summary>
-        public ClrType StringType => _typeFactory.StringType;
+        public ClrType StringType { get; }
 
         /// <summary>
         /// Gets the <see cref="ClrType"/> representing <see cref="object"/>.
         /// </summary>
-        public ClrType ObjectType => _typeFactory.ObjectType;
+        public ClrType ObjectType { get; }
 
         /// <summary>
         /// Gets the <see cref="ClrType"/> representing <see cref="System.Exception"/>.
         /// </summary>
-        public ClrType ExceptionType => _typeFactory.ExceptionType;
+        public ClrType ExceptionType { get; }
 
         /// <summary>
         /// Gets a value indicating whether the GC heap is in Server mode.
@@ -777,6 +782,8 @@ namespace Microsoft.Diagnostics.Runtime
 
     public interface IClrHeapHelpers
     {
+        IClrTypeFactory CreateTypeFactory(ClrHeap heap);
+
         bool IsServerMode { get; }
         bool AreGCStructuresValid { get; }
         IEnumerable<MemoryRange> EnumerateThreadAllocationContexts();
@@ -792,23 +799,27 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly SOSDac8? _sos8;
         private readonly SOSDac12? _sos12;
         private readonly IMemoryReader _memoryReader;
+        private readonly CacheOptions _cacheOptions;
         private readonly GCInfo _gcInfo;
 
         public bool IsServerMode => _gcInfo.ServerMode != 0;
         public bool AreGCStructuresValid => _gcInfo.GCStructuresValid != 0;
         public ulong SizeOfPlugAndGap { get; }
 
-        public ClrHeapHelpers(SOSDac sos, SOSDac8? sos8, SOSDac12? sos12, IMemoryReader reader)
+        public ClrHeapHelpers(SOSDac sos, SOSDac8? sos8, SOSDac12? sos12, IMemoryReader reader, CacheOptions cacheOptions)
         {
             _sos = sos;
             _sos8 = sos8;
             _sos12 = sos12;
             _memoryReader = reader;
+            _cacheOptions = cacheOptions;
             SizeOfPlugAndGap = (ulong)_memoryReader.PointerSize * 4;
 
             if (!_sos.GetGCHeapData(out _gcInfo))
                 _gcInfo = default; // Ensure _gcInfo.GCStructuresValid == false.
         }
+
+        public IClrTypeFactory CreateTypeFactory(ClrHeap heap) => new ClrTypeFactory(heap, _sos, _cacheOptions);
 
         public IEnumerable<MemoryRange> EnumerateThreadAllocationContexts()
         {

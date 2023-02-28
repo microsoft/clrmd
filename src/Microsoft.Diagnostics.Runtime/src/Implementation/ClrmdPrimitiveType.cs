@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ClrmdPrimitiveType : ClrType
     {
-        public ClrmdPrimitiveType(ITypeHelpers helpers, ClrModule module, ClrHeap heap, ClrElementType type)
+        public ClrmdPrimitiveType(IClrTypeHelpers helpers, ClrModule module, ClrHeap heap, ClrElementType type)
         {
             if (helpers is null)
                 throw new ArgumentNullException(nameof(helpers));

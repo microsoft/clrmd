@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public readonly struct ClrObject : IAddressableTypedEntity, IEquatable<ClrObject>
     {
-        private const string RuntimeType = "System.RuntimeType";
+        internal const string RuntimeTypeName = "System.RuntimeType";
 
         private IClrObjectHelpers Helpers => GetTypeOrThrow().ClrObjectHelpers;
 
@@ -119,7 +119,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (Type is null || !Type.IsException)
                 return null;
 
-            return new ClrException(Helpers.ExceptionHelpers, null, this);
+            return new ClrException(Helpers, null, this);
         }
 
         /// <summary>
@@ -181,7 +181,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsNull || !IsValid || !HasComCallableWrapper)
                 return null;
 
-            return Helpers.Factory.CreateCCWForObject(Address);
+            return Helpers.CreateCCWForObject(Address);
         }
 
         /// <summary>
@@ -193,7 +193,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsNull || !IsValid)
                 return null;
 
-            return Helpers.Factory.CreateRCWForObject(Address);
+            return Helpers.CreateRCWForObject(Address);
         }
 
         /// <summary>
@@ -382,26 +382,8 @@ namespace Microsoft.Diagnostics.Runtime
             return true;
         }
 
-        public bool IsRuntimeType => Type?.Name == RuntimeType;
-        public ClrType? AsRuntimeType()
-        {
-            ClrType type = GetTypeOrThrow();
-
-            if (!IsRuntimeType)
-                throw new InvalidOperationException($"Object {Address:x} is of type '{Type?.Name ?? "null" }', expected '{RuntimeType}'.");
-
-            ClrInstanceField? field = type.Fields.Where(f => f.Name == "m_handle").FirstOrDefault();
-            if (field is null)
-                return null;
-
-            ulong mt;
-            if (field.ElementType == ClrElementType.NativeInt)
-                mt = (ulong)ReadField<IntPtr>("m_handle");
-            else
-                mt = (ulong)ReadValueTypeField("m_handle").ReadField<IntPtr>("m_ptr");
-
-            return type.ClrObjectHelpers.Factory.GetOrCreateType(mt, 0);
-        }
+        public bool IsRuntimeType => Type?.Name == RuntimeTypeName;
+        public ClrType? AsRuntimeType() => Helpers.CreateRuntimeType(this);
 
         /// <summary>
         /// Returns true if this object is a delegate, false otherwise.

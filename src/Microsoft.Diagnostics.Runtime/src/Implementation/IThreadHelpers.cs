@@ -10,8 +10,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         IDataReader DataReader { get; }
         ITypeFactory Factory { get; }
-        IExceptionHelpers ExceptionHelpers { get; }
-
         IEnumerable<IClrStackRoot> EnumerateStackRoots(ClrThread thread);
         IEnumerable<ClrStackFrame> EnumerateStackTrace(ClrThread thread, bool includeContext);
     }
