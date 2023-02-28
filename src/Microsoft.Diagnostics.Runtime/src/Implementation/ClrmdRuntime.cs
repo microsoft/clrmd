@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private ClrAppDomain? _sharedDomain;
         private bool _disposed;
 
-        public override bool IsThreadSafe => _helpers.Factory.IsThreadSafe && _helpers.DataReader.IsThreadSafe;
+        public override bool IsThreadSafe => _helpers.DataReader.IsThreadSafe;
         public override DataTarget DataTarget => ClrInfo.DataTarget;
         public override DacLibrary DacLibrary { get; }
         public override ClrInfo ClrInfo { get; }

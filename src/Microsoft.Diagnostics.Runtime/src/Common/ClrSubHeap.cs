@@ -1,6 +1,4 @@
 ﻿using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Implementation;
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -14,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public class ClrSubHeap
     {
-        public ClrSubHeap(ClrHeap clrHeap, int index, ulong address, in HeapDetails heap, IClrSubHeapHelpers helpers)
+        public ClrSubHeap(IClrHeapHelpers helpers, int index, ulong address, in HeapDetails heap, IEnumerable<GenerationData> genData, IEnumerable<ulong> finalizationPointers)
         {
             Address = address;
             Index = index;
@@ -31,57 +29,17 @@ namespace Microsoft.Diagnostics.Runtime
             HighestAddress = heap.HighestAddress;
             CardTable = heap.CardTable;
 
-            int genTableSize = helpers.GenerationTableSize;
-
-            // Use the expanded GenerationTable if ISOSDacInterface8 exists.
-            GenerationData[] genData = helpers.TryGetGenerationData(Address) ?? heap.GenerationTable;
-            GenerationTable = genData.Select(r => new ClrGenerationData(r)).ToImmutableArray();
-
-            ClrDataAddress[] finalization = helpers.TryGetFinalizationPointers(Address) ?? heap.FinalizationFillPointers;
-            FinalizationPointers = finalization.Select(r => (ulong)r).ToImmutableArray();
+            GenerationTable = genData.Select(data => new ClrGenerationData(data)).ToImmutableArray();
+            FinalizationPointers = finalizationPointers.ToImmutableArray();
 
             HasRegions = GenerationTable.Length >= 2 && GenerationTable[0].StartSegment != GenerationTable[1].StartSegment;
-            HasPinnedObjectHeap = genTableSize > 4;
+            HasPinnedObjectHeap = GenerationTable.Length > 4;
 
             FinalizerQueueRoots = new MemoryRange(heap.FQRootsStart, heap.FQRootsStop);
             FinalizerQueueObjects = new MemoryRange(heap.FQAllObjectsStart, heap.FQAllObjectsStop);
             AllocationContext = new MemoryRange(heap.EphemeralAllocContextPtr, heap.EphemeralAllocContextLimit);
 
-            Segments = EnumerateSegments(clrHeap, helpers).ToImmutableArray();
-        }
-
-        private IEnumerable<ClrSegment> EnumerateSegments(ClrHeap heap, IClrSubHeapHelpers helpers)
-        {
-            HashSet<ulong> seen = new() { 0 };
-            IEnumerable<ClrSegment> segments = EnumerateSegments(heap, helpers, 3, seen);
-            segments = segments.Concat(EnumerateSegments(heap, helpers, 2, seen));
-            if (HasRegions)
-            {
-                segments = segments.Concat(EnumerateSegments(heap, helpers, 1, seen));
-                segments = segments.Concat(EnumerateSegments(heap, helpers, 0, seen));
-            }
-
-            if (GenerationTable.Length > 4)
-                segments = segments.Concat(EnumerateSegments(heap, helpers, 4, seen));
-
-            return segments;
-        }
-
-        private IEnumerable<ClrSegment> EnumerateSegments(ClrHeap heap, IClrSubHeapHelpers helpers, int generation, HashSet<ulong> seen)
-        {
-            ulong address = GenerationTable[generation].StartSegment;
-
-            while (address != 0 && seen.Add(address))
-            {
-                Console.WriteLine($"heap:{Index}, address:{address:x} gen:{generation}");
-                ClrSegment? segment = helpers.CreateSegment(heap, address, generation, this);
-
-                if (segment is null)
-                    break;
-
-                yield return segment;
-                address = segment.Next;
-            }
+            Segments = helpers.EnumerateSegments(this).ToImmutableArray();
         }
 
         public ImmutableArray<ClrSegment> Segments { get; }

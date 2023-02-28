@@ -6,7 +6,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ComSyncBlock : SyncBlock
     {
-        public SyncBlockComFlags ComFlags { get; }
+        public override SyncBlockComFlags ComFlags { get; }
 
         public override bool IsComCallWrapper => (ComFlags & SyncBlockComFlags.ComCallableWrapper) == SyncBlockComFlags.ComCallableWrapper;
         public override bool IsRuntimeCallWrapper => (ComFlags & SyncBlockComFlags.ComCallableWrapper) == SyncBlockComFlags.ComCallableWrapper;

@@ -12,12 +12,12 @@ namespace Microsoft.Diagnostics.Runtime.Builders
     {
         private CcwData _ccwData;
         private readonly SOSDac _sos;
-        private readonly RuntimeBuilder _builder;
+        private readonly IClrTypeFactory _factory;
 
-        public CcwBuilder(SOSDac sos, RuntimeBuilder builder)
+        public CcwBuilder(SOSDac sos, IClrTypeFactory factory)
         {
             _sos = sos;
-            _builder = builder;
+            _factory = factory;
         }
 
         public bool Init(ulong obj)
@@ -41,13 +41,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         int ICcwData.RefCount => _ccwData.RefCount + _ccwData.JupiterRefCount;
         int ICcwData.JupiterRefCount => _ccwData.JupiterRefCount;
 
-        ImmutableArray<ComInterfaceData> ICcwData.GetInterfaces()
-        {
-            COMInterfacePointerData[]? ifs = _sos.GetCCWInterfaces(Address, _ccwData.InterfaceCount);
-            if (ifs is null)
-                return ImmutableArray<ComInterfaceData>.Empty;
-
-            return _builder.CreateComInterfaces(ifs);
-        }
+        ImmutableArray<ComInterfaceData> ICcwData.GetInterfaces() => _factory.GetCCWInterfaces(Address, _ccwData.InterfaceCount);
     }
 }

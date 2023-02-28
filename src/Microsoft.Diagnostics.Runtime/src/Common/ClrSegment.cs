@@ -67,9 +67,8 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly IMemoryReader _memoryReader;
         private readonly ulong[] _markers = new ulong[MarkerCount];
 
-        public ClrSegment(ClrHeap heap, IMemoryReader reader)
+        public ClrSegment(IMemoryReader reader)
         {
-            Heap = heap;
             _memoryReader = reader;
         }
 
@@ -77,12 +76,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// The address of the CLR segment object.
         /// </summary>
         public ulong Address { get; init; }
-
-        /// <summary>
-        /// Gets the GC heap associated with this segment.  There's only one GCHeap per process, so this is
-        /// only a convenience method to keep from having to pass the heap along with a segment.
-        /// </summary>
-        public ClrHeap Heap { get; }
 
         /// <summary>
         /// The memory range of the segment on which objects are allocated.  All objects in this segment fall within this range.
@@ -154,104 +147,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public IEnumerable<ClrObject> EnumerateObjects()
         {
-            bool isLargeOrPinned = Kind == SegmentKind.Large || Kind == SegmentKind.Pinned;
-            uint minObjSize = (uint)IntPtr.Size * 3;
-            ulong obj = FirstObjectAddress;
 
-            // C# isn't smart enough to understand that !large means memoryReader is non-null.  We will just be
-            // careful here.
-            using MemoryReader memoryReader = (!isLargeOrPinned ? new MemoryReader(_memoryReader, 0x10000) : null)!;
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(IntPtr.Size * 2 + sizeof(uint));
-
-            // The large object heap
-            if (!isLargeOrPinned)
-                memoryReader.EnsureRangeInCache(obj);
-
-            while (ObjectRange.Contains(obj))
-            {
-                ulong mt;
-                if (isLargeOrPinned)
-                {
-                    if (_memoryReader.Read(obj, buffer) != buffer.Length)
-                        break;
-
-                    mt = Unsafe.As<byte, nuint>(ref buffer[0]);
-                }
-                else
-                {
-                    if (!memoryReader.ReadPtr(obj, out mt))
-                        break;
-                }
-
-                ClrType? type = Heap.GetOrCreateType(Heap, mt, obj);
-                if (type is null)
-                    break;
-
-                int marker = GetMarkerIndex(obj);
-                if (marker != -1 && _markers[marker] == 0)
-                    _markers[marker] = obj;
-
-                ClrObject result = new ClrObject(obj, type);
-                yield return result;
-
-                ulong size;
-                if (type.ComponentSize == 0)
-                {
-                    size = (uint)type.StaticSize;
-                }
-                else
-                {
-                    uint count;
-                    if (isLargeOrPinned)
-                        count = Unsafe.As<byte, uint>(ref buffer[IntPtr.Size]);
-                    else
-                        memoryReader.ReadDword(obj + (uint)IntPtr.Size, out count);
-
-                    // Strings in v4+ contain a trailing null terminator not accounted for.
-                    if (Heap.StringType == type)
-                        count++;
-
-                    size = count * (ulong)type.ComponentSize + (ulong)type.StaticSize;
-                }
-
-                size = ClrmdHeap.Align(size, isLargeOrPinned);
-                if (size < minObjSize)
-                    size = minObjSize;
-
-                obj += size;
-                obj = SkipAllocationContext(obj);
-            }
-
-            ArrayPool<byte>.Shared.Return(buffer);
         }
 
         private ulong SkipAllocationContext(ulong address)
         {
-            if (Kind == SegmentKind.Large || Kind == SegmentKind.Frozen)
-                return address;
-
-            // TODO: layer this properly
-            var allocationContexts = ((ClrmdHeap)Heap).AllocationContexts;
-
-            uint minObjSize = (uint)IntPtr.Size * 3;
-            while (allocationContexts.TryGetValue(address, out ulong nextObj))
-            {
-                nextObj += ClrmdHeap.Align(minObjSize, Kind == SegmentKind.Pinned);
-
-                if (address >= nextObj || address >= End)
-                    return 0;
-
-                // Only if there's data corruption:
-                if (address >= nextObj || address >= End)
-                    return 0;
-
-                address = nextObj;
-            }
-
-            return address;
         }
 
-        private int GetMarkerIndex(ulong obj)
+        internal int GetMarkerIndex(ulong obj)
         {
             if (obj <= FirstObjectAddress)
                 return -1;
@@ -271,6 +174,12 @@ namespace Microsoft.Diagnostics.Runtime
                 index = _markers.Length - 1;
 
             return index;
+        }
+
+        internal void SetMarkerIndex(int marker, ulong obj)
+        {
+            if (0 <= marker && marker < _markers.Length && _markers[marker] == 0)
+                _markers[marker] = obj;
         }
 
         /// <summary>

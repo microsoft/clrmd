@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the thread which created this RCW.
         /// </summary>
-        public ClrThread? CreatorThread { get; }
+        public ulong CreatorThreadAddress { get; }
 
         /// <summary>
         /// Gets the internal WinRT object associated with this RCW (if one exists).
@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ImmutableArray<ComInterfaceData> Interfaces { get; }
 
-        internal RuntimeCallableWrapper(ClrRuntime runtime, IRcwData data)
+        internal RuntimeCallableWrapper(IRcwHelpers data)
         {
             if (data is null)
                 throw new System.ArgumentNullException(nameof(data));
@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime
             RefCount = data.RefCount;
             Object = data.ManagedObject;
             IsDisconnected = data.Disconnected;
-            CreatorThread = runtime?.Threads.FirstOrDefault(t => t.Address == data.CreatorThread);
+            CreatorThreadAddress = data.CreatorThread;
             Interfaces = data.GetInterfaces();
         }
     }
