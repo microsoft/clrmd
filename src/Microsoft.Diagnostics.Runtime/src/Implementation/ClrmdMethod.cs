@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ClrmdMethod : ClrMethod
     {
-        private readonly IMethodHelpers _helpers;
+        private readonly IClrMethodHelpers _helpers;
         private string? _signature;
         private readonly HotColdRegions _hotCold;
         private readonly MethodAttributes _attrs;
@@ -40,11 +40,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ulong NativeCode => HotColdInfo.HotStart != 0 ? HotColdInfo.HotStart : HotColdInfo.ColdStart;
 
-        public ClrmdMethod(ClrType type, IMethodData data)
+        public ClrmdMethod(ClrType type, IMethodData data, IClrMethodHelpers helpers)
         {
             if (data is null)
                 throw new ArgumentNullException(nameof(data));
-            _helpers = data.Helpers;
+            _helpers = helpers;
 
             Type = type;
             MethodDesc = data.MethodDesc;
@@ -136,10 +136,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private ILInfo? GetILInfo()
         {
-            IDataReader? dataReader = _helpers.DataReader;
-            if (dataReader is null)
-                return null;
-
+            IDataReader dataReader = _helpers.DataReader;
             ClrModule? module = Type?.Module;
             if (module is null)
                 return null;

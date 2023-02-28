@@ -402,7 +402,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                     ClrmdType ct = (ClrmdType)type;
 
-                    ClrmdPrimitiveType prim = new ClrmdPrimitiveType((ITypeHelpers)type.ClrObjectHelpers, runtime.BaseClassLibrary, runtime.Heap, ct.ElementType);
+                    ClrmdPrimitiveType prim = new ClrmdPrimitiveType((ITypeHelpers)type.Helpers, runtime.BaseClassLibrary, runtime.Heap, ct.ElementType);
                     Assert.True(ct == prim);
                     Assert.True(prim == ct);
                 }

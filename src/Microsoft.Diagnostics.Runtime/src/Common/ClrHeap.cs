@@ -40,8 +40,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             _typeFactory = helpers.CreateTypeFactory(this);
             FreeType = _typeFactory.FreeType;
-            StringType = _typeFactory.StringType;
             ObjectType = _typeFactory.ObjectType;
+            StringType = _typeFactory.StringType;
             ExceptionType = _typeFactory.ExceptionType;
         }
 
@@ -795,6 +795,7 @@ namespace Microsoft.Diagnostics.Runtime
 
     internal sealed class ClrHeapHelpers : IClrHeapHelpers
     {
+        private readonly ClrDataProcess _clrDataProcess;
         private readonly SOSDac _sos;
         private readonly SOSDac8? _sos8;
         private readonly SOSDac12? _sos12;
@@ -806,8 +807,9 @@ namespace Microsoft.Diagnostics.Runtime
         public bool AreGCStructuresValid => _gcInfo.GCStructuresValid != 0;
         public ulong SizeOfPlugAndGap { get; }
 
-        public ClrHeapHelpers(SOSDac sos, SOSDac8? sos8, SOSDac12? sos12, IMemoryReader reader, CacheOptions cacheOptions)
+        public ClrHeapHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac8? sos8, SOSDac12? sos12, IMemoryReader reader, CacheOptions cacheOptions)
         {
+            _clrDataProcess = clrDataProcess;
             _sos = sos;
             _sos8 = sos8;
             _sos12 = sos12;
@@ -819,7 +821,7 @@ namespace Microsoft.Diagnostics.Runtime
                 _gcInfo = default; // Ensure _gcInfo.GCStructuresValid == false.
         }
 
-        public IClrTypeFactory CreateTypeFactory(ClrHeap heap) => new ClrTypeFactory(heap, _sos, _cacheOptions);
+        public IClrTypeFactory CreateTypeFactory(ClrHeap heap) => new ClrTypeFactory(heap, _clrDataProcess, _sos, _cacheOptions);
 
         public IEnumerable<MemoryRange> EnumerateThreadAllocationContexts()
         {

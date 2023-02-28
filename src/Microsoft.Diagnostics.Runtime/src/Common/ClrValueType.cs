@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public readonly struct ClrValueType : IAddressableTypedEntity
     {
-        private IDataReader DataReader => GetTypeOrThrow().ClrObjectHelpers.DataReader;
+        private IDataReader DataReader => GetTypeOrThrow().Helpers.DataReader;
         private readonly bool _interior;
 
         /// <summary>

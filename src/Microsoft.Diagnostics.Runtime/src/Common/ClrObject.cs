@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime
     {
         internal const string RuntimeTypeName = "System.RuntimeType";
 
-        private IClrObjectHelpers Helpers => GetTypeOrThrow().ClrObjectHelpers;
+        private IClrTypeHelpers Helpers => GetTypeOrThrow().Helpers;
 
         /// <summary>
         /// Constructor.
@@ -102,7 +102,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The value read.</returns>
         public T ReadBoxedValue<T>() where T : unmanaged
         {
-            IClrObjectHelpers? helpers = Helpers;
+            IClrTypeHelpers? helpers = Helpers;
             if (helpers is null)
                 return default;
 
@@ -260,7 +260,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrHeap heap = type.Heap;
 
             ulong addr = field.GetAddress(Address);
-            if (!type.ClrObjectHelpers.DataReader.ReadPointer(addr, out ulong obj))
+            if (!type.Helpers.DataReader.ReadPointer(addr, out ulong obj))
                 return false;
 
             result = heap.GetObject(obj);
@@ -288,7 +288,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrHeap heap = type.Heap;
 
             ulong addr = field.GetAddress(Address);
-            if (!type.ClrObjectHelpers.DataReader.ReadPointer(addr, out ulong obj))
+            if (!type.Helpers.DataReader.ReadPointer(addr, out ulong obj))
                 return default;
 
             return heap.GetObject(obj);

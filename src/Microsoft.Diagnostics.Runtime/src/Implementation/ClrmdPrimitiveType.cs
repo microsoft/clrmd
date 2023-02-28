@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -16,16 +17,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (helpers is null)
                 throw new ArgumentNullException(nameof(helpers));
 
-            ClrObjectHelpers = helpers.ClrObjectHelpers;
+            Helpers = helpers;
             Module = module ?? throw new ArgumentNullException(nameof(module));
             Heap = heap ?? throw new ArgumentNullException(nameof(heap));
             ElementType = type;
         }
 
+        public override IClrTypeHelpers Helpers { get; }
         public override bool IsEnum => false;
         public override ClrEnum AsEnum() => throw new InvalidOperationException();
         public override ClrModule Module { get; }
-        internal override IClrObjectHelpers ClrObjectHelpers { get; }
         public override ClrElementType ElementType { get; }
         public override bool IsShared => false;
         public override int StaticSize => ClrmdField.GetSize(this, ElementType);
@@ -72,13 +73,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsFinalizeSuppressed(ulong obj) => false;
 
-        public override ImmutableArray<ClrInstanceField> Fields => ImmutableArray<ClrInstanceField>.Empty;
-
         public override GCDesc GCDesc => default;
 
-        public override ImmutableArray<ClrStaticField> StaticFields => ImmutableArray<ClrStaticField>.Empty;
+        public override ReadOnlyCollection<ClrInstanceField> Fields => Array.AsReadOnly(Array.Empty<ClrInstanceField>());
 
-        public override ImmutableArray<ClrMethod> Methods => ImmutableArray<ClrMethod>.Empty;
+        public override ReadOnlyCollection<ClrStaticField> StaticFields => Array.AsReadOnly(Array.Empty<ClrStaticField>());
+
+        public override ReadOnlyCollection<ClrMethod> Methods => Array.AsReadOnly(Array.Empty<ClrMethod>());
 
         public override ClrType? ComponentType => null;
 

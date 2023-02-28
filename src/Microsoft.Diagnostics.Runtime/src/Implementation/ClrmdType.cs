@@ -5,9 +5,11 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Builders;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
@@ -15,7 +17,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal class ClrmdType : ClrType
     {
-        protected IClrTypeHelpers Helpers { get; }
         protected IDataReader DataReader => Helpers.DataReader;
 
         private string? _name;
@@ -23,12 +24,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private ulong _loaderAllocatorHandle = ulong.MaxValue - 1;
         private ulong _assemblyLoadContextHandle = ulong.MaxValue - 1;
 
-        private ImmutableArray<ClrMethod> _methods;
-        private ImmutableArray<ClrInstanceField> _fields;
-        private ImmutableArray<ClrStaticField> _statics;
+        private ReadOnlyCollection<ClrMethod>? _methods;
+        private ReadOnlyCollection<ClrInstanceField>? _fields;
+        private ReadOnlyCollection<ClrStaticField>? _statics;
 
         private ClrElementType _elementType;
         private GCDesc _gcDesc;
+        private ClrType? _componentType;
+        private int _baseArrayOffset;
 
         public override IEnumerable<ClrGenericParameter> EnumerateGenericParameters()
         {
@@ -58,7 +61,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (_name == null)
                 {
                     // GetTypeName returns whether the value should be cached or not.
-                    if (!Helpers.GetTypeName(MethodTable, out string? name))
+                    if (!Helpers.TryGetTypeName(MethodTable, out string? name))
                         return name;
 
                     // Cache the result or "string.Empty" for null.
@@ -72,15 +75,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
+        public override IClrTypeHelpers Helpers { get; }
         public override int StaticSize { get; }
-        public override int ComponentSize => 0;
-        public override ClrType? ComponentType => null;
+        public override int ComponentSize { get; }
+        public override ClrType? ComponentType => _componentType;
         public override ClrModule? Module { get; }
         public override GCDesc GCDesc => GetOrCreateGCDesc();
 
         public override ClrElementType ElementType => GetElementType();
-        public bool Shared { get; }
-        internal override IClrObjectHelpers ClrObjectHelpers => Helpers.ClrObjectHelpers;
 
         public override ulong MethodTable { get; }
         public override ClrHeap Heap { get; }
@@ -90,27 +92,24 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool ContainsPointers { get; }
         public override bool IsShared { get; }
 
-        public ClrmdType(ClrHeap heap, ClrType? baseType, ClrModule? module, ITypeData data, string? name = null)
+        public ClrmdType(IClrTypeHelpers helpers, ClrHeap heap, ClrType? baseType, ClrType? componentType, ClrModule? module, ulong methodTable, in MethodTableData data, string? name = null)
         {
-            if (data is null)
-                throw new ArgumentNullException(nameof(data));
-
-            Helpers = data.Helpers;
-            MethodTable = data.MethodTable;
+            Helpers = helpers;
+            MethodTable = methodTable;
             Heap = heap;
             BaseType = baseType;
+            _componentType = componentType;
             Module = module;
-            MetadataToken = data.Token;
-            Shared = data.IsShared;
-            StaticSize = data.BaseSize;
-            ContainsPointers = data.ContainsPointers;
-            IsShared = data.IsShared;
+            MetadataToken = unchecked((int)data.Token);
+            StaticSize = unchecked((int)data.BaseSize);
+            ContainsPointers = data.ContainsPointers != 0;
+            IsShared = data.Shared != 0;
             _name = name;
 
             // If there are no methods, preempt the expensive work to create methods
-            if (data.MethodCount == 0)
-                _methods = ImmutableArray<ClrMethod>.Empty;
-
+            if (data.NumMethods == 0)
+                _methods = Array.AsReadOnly(Array.Empty<ClrMethod>());
+            
             DebugOnlyLoadLazyValues();
         }
 
@@ -119,6 +118,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             _ = Name;
         }
+
+        public void SetComponentType(ClrType? type) => _componentType = type;
 
         private GCDesc GetOrCreateGCDesc()
         {
@@ -318,14 +319,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsString => this == Heap.StringType;
 
-        public override ImmutableArray<ClrInstanceField> Fields
+        public override ReadOnlyCollection<ClrInstanceField> Fields
         {
             get
             {
                 if (!_fields.IsDefault)
                     return _fields;
 
-                if (Helpers.Factory.CreateFieldsForType(this, out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> statics))
+                if (Helpers.CreateFieldsForType(this, out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> statics))
                 {
                     _fields = fields;
                     _statics = statics;
@@ -335,14 +336,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override ImmutableArray<ClrStaticField> StaticFields
+        public override ReadOnlyCollection<ClrStaticField> StaticFields
         {
             get
             {
                 if (!_statics.IsDefault)
                     return _statics;
 
-                if (Helpers.Factory.CreateFieldsForType(this, out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> statics))
+                if (Helpers.CreateFieldsForType(this, out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> statics))
                 {
                     _fields = fields;
                     _statics = statics;
@@ -352,16 +353,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override ImmutableArray<ClrMethod> Methods
+        public override ReadOnlyCollection<ClrMethod> Methods
         {
             get
             {
-                if (!_methods.IsDefault)
-                    return _methods;
-
-                // Returns whether or not we should cache methods or not
-                if (Helpers.Factory.CreateMethodsForType(this, out ImmutableArray<ClrMethod> methods))
-                    _methods = methods;
+                ReadOnlyCollection<ClrMethod>? methods = _methods;
+                if (methods is null)
+                {
+                    methods = Array.AsReadOnly(Helpers.GetMethodsForType(this));
+                    if (methods.Count == 0 || Helpers.CacheOptions.CacheMethods)
+                        _methods = methods;
+                }
 
                 return methods;
             }
@@ -373,8 +375,71 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         // TODO: remove
         public override ClrInstanceField? GetFieldByName(string name) => Fields.FirstOrDefault(f => f.Name == name);
 
-        public override ulong GetArrayElementAddress(ulong objRef, int index) => throw new InvalidOperationException($"{Name} is not an array.");
-        public override T[]? ReadArrayElements<T>(ulong objRef, int start, int count) => throw new InvalidOperationException($"{Name} is not an array.");
+        public override ulong GetArrayElementAddress(ulong objRef, int index)
+        {
+            if (ComponentSize == 0)
+                throw new InvalidOperationException($"{Name} is not an array.");
+
+            if (_baseArrayOffset == 0)
+            {
+                ClrType? componentType = ComponentType;
+
+                IObjectData? data = Helpers.GetObjectData(objRef);
+                if (data != null)
+                {
+                    _baseArrayOffset = (int)(data.DataPointer - objRef);
+                    DebugOnly.Assert(_baseArrayOffset >= 0);
+                }
+                else if (componentType != null)
+                {
+                    if (!componentType.IsObjectReference)
+                        _baseArrayOffset = IntPtr.Size * 2;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+
+            return objRef + (ulong)(_baseArrayOffset + index * ComponentSize);
+        }
+
+        public override T[]? ReadArrayElements<T>(ulong objRef, int start, int count)
+        {
+            if (ComponentSize == 0)
+                throw new InvalidOperationException($"{Name} is not an array.");
+
+            ulong address = GetArrayElementAddress(objRef, start);
+            ClrType? componentType = ComponentType;
+            ClrElementType cet;
+            if (componentType != null)
+            {
+                cet = componentType.ElementType;
+            }
+            else
+            {
+                // Slow path, we need to get the element type of the array.
+                IObjectData? data = Helpers.GetObjectData(objRef);
+                if (data is null)
+                    return null;
+
+                cet = data.ElementType;
+            }
+
+            if (cet == ClrElementType.Unknown)
+                return null;
+
+            if (address == 0)
+                return null;
+
+            var values = new T[count];
+            Span<byte> buffer = MemoryMarshal.Cast<T, byte>(values);
+
+            if (DataReader.Read(address, buffer) == buffer.Length)
+                return values;
+
+            return null;
+        }
 
         // convenience function for testing
         public static string? FixGenerics(string? name) => DACNameParser.Parse(name);

@@ -17,9 +17,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         public ClrGenericParameter GenericParameter { get; }
 
-        public ClrmdGenericType(IClrObjectHelpers helpers, ClrHeap heap, ClrModule? module, ClrGenericParameter clrGenericParameter)
+        public ClrmdGenericType(IClrTypeHelpers helpers, ClrHeap heap, ClrModule? module, ClrGenericParameter clrGenericParameter)
         {
-            ClrObjectHelpers = helpers ?? throw new ArgumentNullException(nameof(helpers));
+            Helpers = helpers ?? throw new ArgumentNullException(nameof(helpers));
             Heap = heap ?? throw new ArgumentNullException(nameof(heap));
             Module = module;
             GenericParameter = clrGenericParameter;
@@ -75,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsShared => false;
 
-        internal override IClrObjectHelpers ClrObjectHelpers { get; }
+        internal override IClrTypeHelpers Helpers { get; }
 
         public override ClrEnum AsEnum() => throw new InvalidOperationException();
 

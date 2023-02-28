@@ -8,37 +8,31 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Builders
 {
-    internal class MethodBuilder : IMethodData, IDisposable
+    internal class MethodBuilder : IMethodData
     {
         private MethodDescData _mdData;
         private CodeHeaderData _codeHeaderData;
-        private IMethodHelpers? _helpers;
 
-        public bool Init(SOSDac sos, ulong mt, uint i, IMethodHelpers helpers)
+        public bool Init(SOSDac sos, ulong mt, uint i)
         {
             ulong slot = sos.GetMethodTableSlot(mt, i);
 
             if (!sos.GetCodeHeaderData(slot, out _codeHeaderData))
                 return false;
 
-            _helpers = helpers;
             MethodDesc = _codeHeaderData.MethodDesc;
             return sos.GetMethodDescData(_codeHeaderData.MethodDesc, 0, out _mdData);
         }
 
-        public bool Init(SOSDac sos, ulong methodDesc, IMethodHelpers helpers)
+        public bool Init(SOSDac sos, ulong methodDesc)
         {
             MethodDesc = methodDesc;
             if (!sos.GetMethodDescData(methodDesc, 0, out _mdData))
                 return false;
 
-            _helpers = helpers;
             ulong slot = sos.GetMethodTableSlot(_mdData.MethodTable, _mdData.SlotNumber);
             return sos.GetCodeHeaderData(slot, out _codeHeaderData);
         }
-
-        public ObjectPool<MethodBuilder>? Owner { get; set; }
-        public IMethodHelpers Helpers => _helpers!;
 
         public int Token => (int)_mdData.MDToken;
 
@@ -52,13 +46,5 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         public ulong ColdStart => _codeHeaderData.ColdRegionStart;
 
         public uint ColdSize => _codeHeaderData.ColdRegionSize;
-
-        public void Dispose()
-        {
-            _helpers = null;
-            var owner = Owner;
-            Owner = null;
-            owner?.Return(this);
-        }
     }
 }

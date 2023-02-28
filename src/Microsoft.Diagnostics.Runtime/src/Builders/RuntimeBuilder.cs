@@ -18,7 +18,7 @@ using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13;
 
 namespace Microsoft.Diagnostics.Runtime.Builders
 {
-    internal sealed unsafe class RuntimeBuilder : IRuntimeHelpers, ITypeFactory, IClrTypeHelpers, IModuleHelpers, IMethodHelpers, IFieldHelpers,
+    internal sealed unsafe class RuntimeBuilder : IRuntimeHelpers, ITypeFactory, ITypeHelpers, IModuleHelpers, IMethodHelpers, IFieldHelpers,
                                          IAppDomainHelpers, IThreadHelpers, IHeapHelpers
     {
         private bool _disposed;
@@ -1034,7 +1034,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             if (heap is not null)
                 return heap;
 
-            heap = new(GetOrCreateRuntime(), typeFactory, DataReader, new ClrHeapHelpers(_sos, _sos8, _sos12, DataReader));
+            heap = new(GetOrCreateRuntime(), DataReader, new ClrHeapHelpers(_sos, _sos8, _sos12, DataReader));
 
             // We can race with Flush.
             while (Interlocked.CompareExchange(ref _heap, heap, null) != null)
@@ -1071,181 +1071,6 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         public MetadataImport? GetMetadataImport(ClrModule module) => _sos.GetMetadataImport(module.Address);
 
-        bool IFieldHelpers.ReadProperties(ClrType type, int fieldToken, out string? name, out FieldAttributes attributes, out Utilities.SigParser sigParser)
-        {
-            CheckDisposed();
 
-            MetadataImport? import = type?.Module?.MetadataImport;
-            if (import is null || !import.GetFieldProps(fieldToken, out name, out attributes, out IntPtr fieldSig, out int sigLen, out _, out _))
-            {
-                name = null;
-                attributes = default;
-                sigParser = default;
-                return false;
-            }
-
-            sigParser = new Utilities.SigParser(fieldSig, sigLen);
-            return true;
-        }
-
-        ulong IFieldHelpers.GetStaticFieldAddress(ClrStaticField field, ClrAppDomain? appDomain)
-        {
-            CheckDisposed();
-
-            if (appDomain is null)
-                return 0;
-
-            ClrType type = field.ContainingType;
-            ClrModule? module = type.Module;
-            if (module is null)
-                return 0;
-
-            bool shared = type.IsShared;
-
-            // TODO: Perf and testing
-            if (shared)
-            {
-                if (!_sos.GetModuleData(module.Address, out ModuleData data))
-                    return 0;
-
-                if (!_sos.GetDomainLocalModuleDataFromAppDomain(appDomain.Address, (int)data.ModuleID, out DomainLocalModuleData dlmd))
-                    return 0;
-
-                if (!shared && !IsInitialized(dlmd, type.MetadataToken))
-                    return 0;
-
-                if (field.ElementType.IsPrimitive())
-                    return dlmd.NonGCStaticDataStart + (uint)field.Offset;
-                else
-                    return dlmd.GCStaticDataStart + (uint)field.Offset;
-            }
-            else
-            {
-                if (!_sos.GetDomainLocalModuleDataFromModule(module.Address, out DomainLocalModuleData dlmd))
-                    return 0;
-
-                if (field.ElementType.IsPrimitive())
-                    return dlmd.NonGCStaticDataStart + (uint)field.Offset;
-                else
-                    return dlmd.GCStaticDataStart + (uint)field.Offset;
-            }
-        }
-
-        private bool IsInitialized(in DomainLocalModuleData data, int token)
-        {
-            ulong flagsAddr = data.ClassData + (uint)(token & ~0x02000000u) - 1;
-            if (!DataReader.Read(flagsAddr, out byte flags))
-                return false;
-
-            return (flags & 1) != 0;
-        }
-
-        bool IClrTypeHelpers.GetTypeName(ulong mt, out string? name)
-        {
-            name = _sos.GetMethodTableName(mt);
-            if (string.IsNullOrWhiteSpace(name))
-                return true;
-
-            name = DACNameParser.Parse(name);
-            if (_options.CacheTypeNames == StringCaching.Intern)
-                name = string.Intern(name);
-
-            return _options.CacheTypeNames != StringCaching.None;
-        }
-
-        IClrObjectHelpers IClrTypeHelpers.ClrObjectHelpers => this;
-
-        ulong IClrTypeHelpers.GetLoaderAllocatorHandle(ulong mt)
-        {
-            CheckDisposed();
-
-            if (_sos6 != null && _sos6.GetMethodTableCollectibleData(mt, out MethodTableCollectibleData data) && data.Collectible != 0)
-                return data.LoaderAllocatorObjectHandle;
-
-            return 0;
-        }
-
-        ulong IClrTypeHelpers.GetAssemblyLoadContextAddress(ulong mt)
-        {
-            CheckDisposed();
-
-            if (_sos8 != null && _sos8.GetAssemblyLoadContext(mt, out ClrDataAddress assemblyLoadContext))
-                return assemblyLoadContext;
-
-            return 0;
-        }
-
-        IObjectData? IClrTypeHelpers.GetObjectData(ulong objRef)
-        {
-            CheckDisposed();
-
-            // todo remove
-            if (_sos.GetObjectData(objRef, out ObjectData data) == HResult.S_OK)
-                return data;
-
-            return null;
-        }
-
-        bool IMethodHelpers.GetSignature(ulong methodDesc, out string? signature)
-        {
-            signature = _sos.GetMethodDescName(methodDesc);
-
-            // Always cache an empty name, no reason to keep requesting it.
-            // Implementations may ignore this (ClrmdMethod doesn't cache null signatures).
-            if (string.IsNullOrWhiteSpace(signature))
-                return true;
-
-            if (_options.CacheMethodNames == StringCaching.Intern)
-                signature = string.Intern(signature);
-
-            return _options.CacheMethodNames != StringCaching.None;
-        }
-
-        ulong IMethodHelpers.GetILForModule(ulong address, uint rva) => _sos.GetILForModule(address, rva);
-
-        ImmutableArray<ILToNativeMap> IMethodHelpers.GetILMap(ulong ip, in HotColdRegions hotColdInfo)
-        {
-            CheckDisposed();
-
-            ImmutableArray<ILToNativeMap>.Builder result = ImmutableArray.CreateBuilder<ILToNativeMap>();
-
-            foreach (ClrDataMethod method in _dac.EnumerateMethodInstancesByAddress(ip))
-            {
-                ILToNativeMap[]? map = method.GetILToNativeMap();
-                if (map != null)
-                {
-                    for (int i = 0; i < map.Length; i++)
-                    {
-                        if (map[i].StartAddress > map[i].EndAddress)
-                        {
-                            if (i + 1 == map.Length)
-                                map[i].EndAddress = FindEnd(hotColdInfo, map[i].StartAddress);
-                            else
-                                map[i].EndAddress = map[i + 1].StartAddress - 1;
-                        }
-                    }
-
-                    result.AddRange(map);
-                }
-
-                method.Dispose();
-            }
-
-            return result.MoveOrCopyToImmutable();
-        }
-
-        private static ulong FindEnd(HotColdRegions reg, ulong address)
-        {
-            ulong hotEnd = reg.HotStart + reg.HotSize;
-            if (reg.HotStart <= address && address < hotEnd)
-                return hotEnd;
-
-            ulong coldEnd = reg.ColdStart + reg.ColdSize;
-            if (reg.ColdStart <= address && address < coldEnd)
-                return coldEnd;
-
-            // Shouldn't reach here, but give a sensible answer if we do.
-            return address + 0x20;
-        }
     }
 }

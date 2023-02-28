@@ -3,7 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Immutable;
-using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -40,17 +40,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ImmutableArray<ComInterfaceData> Interfaces { get; }
 
-        internal ComCallableWrapper(ICcwData data)
+        public ComCallableWrapper(in CcwData data, ImmutableArray<ComInterfaceData> interfaces)
         {
-            if (data is null)
-                throw new System.ArgumentNullException(nameof(data));
-
-            Address = data.Address;
-            IUnknown = data.IUnknown;
-            Object = data.Object;
+            Address = data.CCWAddress;
+            IUnknown = data.OuterIUnknown;
+            Object = data.ManagedObject;
             Handle = data.Handle;
             RefCount = data.RefCount + data.JupiterRefCount;
-            Interfaces = data.GetInterfaces();
+            Interfaces = interfaces;
         }
     }
 }

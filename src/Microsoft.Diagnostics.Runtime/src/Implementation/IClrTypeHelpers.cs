@@ -2,13 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Collections.Immutable;
+
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal interface IClrTypeHelpers
+    public interface IClrTypeHelpers
     {
+        CacheOptions CacheOptions { get; }
+        ClrHeap Heap { get; }
         IDataReader DataReader { get; }
-        ITypeFactory Factory { get; }
-        IClrObjectHelpers ClrObjectHelpers { get; }
 
         /// <summary>
         /// Gets the name for a type.
@@ -17,9 +19,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         /// <param name="name">The name for that type, note that this has already had FixGenerics called on it.</param>
         /// <returns>True if the value should be cached, false if the value should not be cached.  (This is controlled
         /// by the user's string cache settings.</returns>
-        bool GetTypeName(ulong mt, out string? name);
+        bool TryGetTypeName(ulong mt, out string? name);
         ulong GetLoaderAllocatorHandle(ulong mt);
         ulong GetAssemblyLoadContextAddress(ulong mt);
+
+        string? ReadString(ulong addr, int maxLength);
+        ComCallableWrapper? CreateCCWForObject(ulong obj);
+        RuntimeCallableWrapper? CreateRCWForObject(ulong obj);
+        ImmutableArray<ComInterfaceData> GetRCWInterfaces(ulong address, int interfaceCount);
+        ClrType? CreateRuntimeType(ClrObject obj);
 
         // TODO: Should not expose this:
         IObjectData? GetObjectData(ulong objRef);

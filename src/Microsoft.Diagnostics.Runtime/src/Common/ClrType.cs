@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -155,17 +156,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets all possible fields in this type.   It does not return dynamically typed fields.
         /// Returns an empty list if there are no fields.
         /// </summary>
-        public abstract ImmutableArray<ClrInstanceField> Fields { get; }
+        public abstract ReadOnlyCollection<ClrInstanceField> Fields { get; }
 
         /// <summary>
         /// Gets a list of static fields on this type.  Returns an empty list if there are no fields.
         /// </summary>
-        public abstract ImmutableArray<ClrStaticField> StaticFields { get; }
+        public abstract ReadOnlyCollection<ClrStaticField> StaticFields { get; }
 
         /// <summary>
         /// Gets the list of methods this type implements.
         /// </summary>
-        public abstract ImmutableArray<ClrMethod> Methods { get; }
+        public abstract ReadOnlyCollection<ClrMethod> Methods { get; }
 
         /// <summary>
         /// Returns the field given by <paramref name="name"/>, case sensitive. Returns <see langword="null" /> if no such field name exists (or on error).
@@ -261,7 +262,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Used to provide functionality to ClrObject.
         /// </summary>
-        internal abstract IClrObjectHelpers ClrObjectHelpers { get; }
+        public abstract IClrTypeHelpers Helpers { get; }
 
         public override bool Equals(object? obj) => Equals(obj as ClrType);
 

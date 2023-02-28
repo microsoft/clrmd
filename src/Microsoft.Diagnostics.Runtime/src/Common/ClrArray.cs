@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 if (_length == -1)
                 {
-                    _length = Type.ClrObjectHelpers.DataReader.Read<int>(Address + (ulong)IntPtr.Size);
+                    _length = Type.Helpers.DataReader.Read<int>(Address + (ulong)IntPtr.Size);
                 }
 
                 return _length;
@@ -211,12 +211,12 @@ namespace Microsoft.Diagnostics.Runtime
 
         private unsafe T ReadValue<T>(int index) where T : unmanaged
         {
-            return Type.ClrObjectHelpers.DataReader.Read<T>(GetElementAddress(sizeof(T), index));
+            return Type.Helpers.DataReader.Read<T>(GetElementAddress(sizeof(T), index));
         }
 
         private unsafe T ReadValue<T>(int[] indices) where T : unmanaged
         {
-            return Type.ClrObjectHelpers.DataReader.Read<T>(GetElementAddress(sizeof(T), indices));
+            return Type.Helpers.DataReader.Read<T>(GetElementAddress(sizeof(T), indices));
         }
 
         private unsafe ulong GetElementAddress(int elementSize, int index)
@@ -300,7 +300,7 @@ namespace Microsoft.Diagnostics.Runtime
         //                 ^
         //                 | Address
         private readonly int GetMultiDimensionalBound(int offset) =>
-            Type.ClrObjectHelpers.DataReader.Read<int>(Address + (ulong)(2 * IntPtr.Size) + (ulong)(offset * sizeof(int)));
+            Type.Helpers.DataReader.Read<int>(Address + (ulong)(2 * IntPtr.Size) + (ulong)(offset * sizeof(int)));
 
         /// <summary>
         /// Determines whether two specified <see cref="ClrArray"/> have the same value.

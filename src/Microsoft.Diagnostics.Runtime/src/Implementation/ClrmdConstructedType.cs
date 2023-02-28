@@ -4,7 +4,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 
@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 throw new ArgumentException($"{nameof(ranks)} must be 1 or greater.");
         }
 
-        internal override IClrObjectHelpers ClrObjectHelpers => ComponentType.ClrObjectHelpers;
+        public override IClrTypeHelpers Helpers => ComponentType.Helpers;
 
         public override bool IsEnum => false;
         public override ClrEnum AsEnum() => throw new InvalidOperationException();
@@ -60,9 +60,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong MethodTable => 0;
         public override bool IsFinalizeSuppressed(ulong obj) => false;
         public override bool IsPointer => ElementType != ClrElementType.SZArray && ElementType != ClrElementType.Array;
-        public override ImmutableArray<ClrInstanceField> Fields => ImmutableArray<ClrInstanceField>.Empty;
-        public override ImmutableArray<ClrStaticField> StaticFields => ImmutableArray<ClrStaticField>.Empty;
-        public override ImmutableArray<ClrMethod> Methods => ImmutableArray<ClrMethod>.Empty;
+        public override ReadOnlyCollection<ClrInstanceField> Fields => Array.AsReadOnly(Array.Empty<ClrInstanceField>());
+        public override ReadOnlyCollection<ClrStaticField> StaticFields => Array.AsReadOnly(Array.Empty<ClrStaticField>());
+        public override ReadOnlyCollection<ClrMethod> Methods => Array.AsReadOnly(Array.Empty<ClrMethod>());
         public override IEnumerable<ClrInterface> EnumerateInterfaces() => Enumerable.Empty<ClrInterface>();
         public override bool IsFinalizable => false;
         public override bool IsPublic => true;

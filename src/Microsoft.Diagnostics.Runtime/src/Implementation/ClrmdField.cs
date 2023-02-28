@@ -3,16 +3,15 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
-using Microsoft.Diagnostics.Runtime.Utilities;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ClrmdField : ClrInstanceField
     {
-        private readonly IFieldHelpers _helpers;
+        private readonly IClrFieldHelpers _helpers;
         private string? _name;
         private ClrType? _type;
         private FieldAttributes _attributes = FieldAttributes.ReservedMask;
@@ -53,23 +52,20 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ClrType ContainingType { get; }
 
-        public ClrmdField(ClrType containingType, IFieldData data)
+        public ClrmdField(ClrType containingType, ClrType? type, IClrFieldHelpers helpers, in FieldData data)
         {
             if (containingType is null)
                 throw new ArgumentNullException(nameof(containingType));
 
-            if (data is null)
-                throw new ArgumentNullException(nameof(data));
-
             ContainingType = containingType;
-            Token = data.Token;
-            ElementType = data.ElementType;
-            Offset = data.Offset;
+            Token = (int)data.FieldToken;
+            ElementType = (ClrElementType)data.ElementType;
+            Offset = (int)data.Offset;
 
-            _helpers = data.Helpers;
+            _helpers = helpers;
 
             // Must be the last use of 'data' in this constructor.
-            _type = _helpers.Factory.GetOrCreateType(data.TypeMethodTable, 0);
+            _type = type;
             if (ElementType == ClrElementType.Class && _type != null)
                 ElementType = _type.ElementType;
 
@@ -128,7 +124,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private string? ReadData()
         {
-            if (!_helpers.ReadProperties(ContainingType, Token, out string? name, out _attributes, out SigParser sigParser))
+            if (!_helpers.ReadProperties(ContainingType, Token, out string? name, out _attributes, ref _type))
                 return null;
 
             StringCaching options = ContainingType.Heap.Runtime.DataTarget?.CacheOptions.CacheFieldNames ?? StringCaching.Cache;
@@ -139,16 +135,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 if (options != StringCaching.None)
                     _name = name;
-            }
-
-            // We may have to try to construct a type from the sigParser if the method table was a bust in the constructor
-            if (_type == null)
-            {
-                if (sigParser.GetCallingConvInfo(out int sigType) && sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD)
-                {
-                    sigParser.SkipCustomModifiers();
-                    _type = _helpers.Factory.GetOrCreateTypeFromSignature(ContainingType.Module, sigParser, ContainingType.EnumerateGenericParameters(), Array.Empty<ClrGenericParameter>());
-                }
             }
 
             return name;
@@ -172,12 +158,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (address == 0 || !_helpers.DataReader.ReadPointer(address, out ulong obj) || obj == 0)
                 return default;
 
-            ulong mt = _helpers.DataReader.ReadPointer(obj);
-            ClrType? type = _helpers.Factory.GetOrCreateType(mt, obj);
-            if (type is null)
-                return default;
-
-            return new ClrObject(obj, type);
+            return ContainingType.Heap.GetObject(obj);
         }
 
         public override ClrValueType ReadStruct(ulong objRef, bool interior)
@@ -217,8 +198,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         return 1;
 
                     ClrField? last = null;
-                    ImmutableArray<ClrInstanceField> fields = type.Fields;
-                    foreach (ClrField field in fields)
+                    foreach (ClrField field in type.Fields)
                     {
                         if (last is null)
                             last = field;

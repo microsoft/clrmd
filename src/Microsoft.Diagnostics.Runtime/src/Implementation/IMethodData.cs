@@ -6,8 +6,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal interface IMethodData
     {
-        IMethodHelpers Helpers { get; }
-
         ulong MethodDesc { get; }
         int Token { get; }
         MethodCompilationType CompilationType { get; }

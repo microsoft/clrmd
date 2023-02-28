@@ -1,10 +1,8 @@
-﻿using Microsoft.Diagnostics.Runtime.Builders;
-using Microsoft.Diagnostics.Runtime.DacInterface;
+﻿using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -24,88 +22,71 @@ namespace Microsoft.Diagnostics.Runtime
         ClrType? GetOrCreateTypeFromToken(ClrModule module, int token);
         ClrType? GetOrCreateTypeFromSignature(ClrModule? module, SigParser parser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters);
         ClrType? GetOrCreatePointerType(ClrType innerType, int depth);
-
-        bool CreateMethodsForType(ClrType type, out ImmutableArray<ClrMethod> methods);
-        bool CreateFieldsForType(ClrType type, out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> staticFields);
     }
 
     internal class ClrTypeFactory : IClrTypeFactory
     {
         private readonly SOSDac _sos;
         private readonly CacheOptions _options;
-        private readonly ObjectPool<FieldBuilder> _fieldBuilders;
-        private readonly ObjectPool<TypeBuilder> _typeBuilders;
         private readonly ClrHeap _heap;
         private volatile ClrType?[]? _basicTypes;
         private readonly Dictionary<ulong, ClrType> _types = new();
         private readonly CommonMethodTables _commonMTs;
+        private readonly ClrType _objectType;
         private Dictionary<ulong, ClrModule>? _modules;
+        private readonly IClrTypeHelpers _objectHelpers;
 
-        public ClrTypeFactory(ClrHeap heap, SOSDac sos, CacheOptions options)
+        public ClrTypeFactory(ClrHeap heap, ClrDataProcess clrDataProcess, SOSDac sos, CacheOptions options)
         {
             _heap = heap;
             _sos = sos;
             _options = options;
-            _fieldBuilders = new ObjectPool<FieldBuilder>((owner, obj) => obj.Owner = owner);
-            _typeBuilders = new ObjectPool<TypeBuilder>((owner, obj) => obj.Owner = owner);
 
             _sos.GetCommonMethodTables(out _commonMTs);
+            _objectType = CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.FreeMethodTable, "System.ObjectType") ?? throw new InvalidDataException("Could not create Object type.");
+
+            _objectHelpers = new ClrTypeHelpers(clrDataProcess, sos, this, heap);
         }
 
-        public ClrType FreeType => CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.FreeMethodTable, "Free");
+        public ClrType FreeType =>
+            CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.FreeMethodTable, "Free") ?? throw new InvalidDataException("Could not create Free type.");
 
         public ClrType StringType
         {
             get
             {
-                try
-                {
-                    return CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.StringMethodTable, "System.String");
-                }
-                catch (System.IO.InvalidDataException)
+                ClrType? stringType = CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.StringMethodTable, "System.String");
+                if (stringType is null)
                 {
                     int token = 0;
                     if (_sos.GetMethodTableData(_commonMTs.StringMethodTable, out MethodTableData mtd))
                         token = (int)mtd.Token;
 
-                    return new ClrmdStringType((ITypeHelpers)_helpers, this, data.StringMethodTable, token);
+                    stringType = new ClrmdStringType(_objectHelpers, _heap, _commonMTs.StringMethodTable, token);
                 }
+
+                return stringType;
             }
         }
 
-        public ClrType ObjectType => CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.FreeMethodTable, "System.ObjectType");
+        public ClrType ObjectType => _objectType;
 
-        public ClrType ExceptionType
-        {
-            get
-            {
-                try
-                {
-                    ExceptionType = _helpers.Factory.CreateSystemType(this, data.ExceptionMethodTable, "System.Exception");
-                }
-                catch
-                {
-                    ExceptionType = ObjectType;
-                }
-            }
-        }
+        public ClrType ExceptionType => CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.ExceptionMethodTable, "System.Exception") ?? _objectType;
 
-        public ClrType CreateSystemType(ClrHeap heap, ClrModule? bcl, ulong mt, string typeName)
+        public ClrType? CreateSystemType(ClrHeap heap, ClrModule? bcl, ulong mt, string typeName)
         {
-            using TypeBuilder typeData = _typeBuilders.Rent();
-            if (!typeData.Init(_sos, mt, this))
-                throw new InvalidDataException($"Could not create well known type '{typeName}' from MethodTable {mt:x}.");
+            if (!_sos.GetMethodTableData(mt, out MethodTableData mtd))
+                return null;
 
             ClrType? baseType = null;
+            if (mtd.ParentMethodTable != 0)
+            {
+                lock (_types)
+                    if (!_types.TryGetValue(mtd.ParentMethodTable, out baseType))
+                        throw new InvalidOperationException($"Base type for '{typeName}' was not pre-created from MethodTable {mtd.ParentMethodTable:x}.");
+            }
 
-            if (typeData.ParentMethodTable != 0 && !_types.TryGetValue(typeData.ParentMethodTable, out baseType))
-                throw new InvalidOperationException($"Base type for '{typeName}' was not pre-created from MethodTable {typeData.ParentMethodTable:x}.");
-
-            ClrmdType result;
-            if (typeData.ComponentSize == 0)
-                result = new ClrmdType(heap, baseType, bcl, typeData, typeName);
-            else
-                result = new ClrmdArrayType(heap, baseType, bcl, typeData, typeName);
+            ClrmdType result = new(_objectHelpers, heap, baseType, null, bcl, mt, mtd, typeName);
 
             // Regardless of caching options, we always cache important system types and basic types
             lock (_types)
@@ -122,55 +103,33 @@ namespace Microsoft.Diagnostics.Runtime
             // Remove marking bit.
             mt &= ~1ul;
 
+            ClrType? existing = TryGetType(mt);
+            if (existing != null)
             {
-                ClrType? result = TryGetType(mt);
-                if (result != null)
-                {
-                    if (obj != 0 && result.ComponentType is null && result.IsArray && result is ClrmdArrayType type)
-                        TryGetComponentType(type, obj);
+                if (obj != 0 && existing.ComponentSize != 0 && existing.ComponentType is null && existing is ClrmdType type)
+                    type.SetComponentType(TryGetComponentType(obj));
 
-                    return result;
-                }
+                return existing;
             }
 
+            if (!_sos.GetMethodTableData(mt, out MethodTableData mtd))
+                return null;
+
+            ClrType? baseType = GetOrCreateType(mtd.ParentMethodTable, 0);
+            ClrModule? module = GetModule(mtd.Module);
+            ClrType? componentType = null;
+
+            if (obj != 0 && mtd.ComponentSize != 0)
+                componentType = TryGetComponentType(obj);
+
+            ClrType result = new ClrmdType(_objectHelpers, _heap, baseType, componentType, module, mt, mtd);
+            if (_options.CacheTypes)
             {
-                using TypeBuilder typeData = _typeBuilders.Rent();
-                if (!typeData.Init(_sos, mt, this))
-                    return null;
-
-                ClrType? baseType = GetOrCreateType(typeData.ParentMethodTable, 0);
-
-                ClrModule? module = GetModule(typeData.Module);
-                if (typeData.ComponentSize == 0)
-                {
-                    ClrmdType result = new ClrmdType(_heap, baseType, module, typeData);
-
-                    if (_options.CacheTypes)
-                    {
-                        lock (_types)
-                            _types[mt] = result;
-                    }
-
-                    return result;
-                }
-                else
-                {
-                    ClrmdArrayType result = new ClrmdArrayType(_heap, baseType, module, typeData);
-
-                    if (_options.CacheTypes)
-                    {
-                        lock (_types)
-                            _types[mt] = result;
-                    }
-
-                    if (obj != 0 && result.IsArray && result.ComponentType is null)
-                    {
-                        TryGetComponentType(result, obj);
-                    }
-
-                    return result;
-                }
+                lock (_types)
+                    _types[mt] = result;
             }
+
+            return result;
         }
         
         public ClrType? TryGetType(ulong mt)
@@ -273,7 +232,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (index < 0 || index >= param.Length)
                     return null;
 
-                return new ClrmdGenericType(this, _heap, module, param[index]);
+                return new ClrmdGenericType(_objectHelpers, _heap, module, param[index]);
             }
 
             if (etype == ClrElementType.Pointer)
@@ -281,10 +240,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!parser.SkipCustomModifiers())
                     return null;
 
-                ClrType? innerType = GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters);
-                if (innerType == null)
-                    innerType = GetOrCreateBasicType(ClrElementType.Void);
-
+                ClrType? innerType = GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters) ?? GetOrCreateBasicType(ClrElementType.Void);
                 return GetOrCreatePointerType(innerType, 1);
             }
 
@@ -293,10 +249,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!parser.SkipCustomModifiers())
                     return null;
 
-                ClrType? innerType = GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters);
-                if (innerType == null)
-                    innerType = GetOrCreateBasicType(ClrElementType.Void);
-
+                ClrType? innerType = GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters) ?? GetOrCreateBasicType(ClrElementType.Void);
                 return GetOrCreateArrayType(innerType, 1);
             }
 
@@ -309,7 +262,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrType? GetOrCreateArrayType(ClrType innerType, int ranks) => innerType != null ? new ClrmdConstructedType(innerType, ranks, pointer: false) : null;
         public ClrType? GetOrCreatePointerType(ClrType innerType, int depth) => innerType != null ? new ClrmdConstructedType(innerType, depth, pointer: true) : null;
 
-        private void TryGetComponentType(ClrmdArrayType type, ulong obj)
+        private ClrType? TryGetComponentType(ulong obj)
         {
             ClrType? result = null;
             if (_sos.GetObjectData(obj, out ObjectData data))
@@ -319,9 +272,9 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (result is null && data.ElementType != 0)
                     result = GetOrCreateBasicType((ClrElementType)data.ElementType);
-
-                type.SetComponentType(result);
             }
+
+            return result;
         }
 
         public ClrType GetOrCreateBasicType(ClrElementType basicType)
@@ -388,107 +341,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (result is not null)
                 return result;
 
-            return basicTypes[index] = new ClrmdPrimitiveType(this, bcl, _heap, basicType);
-        }
-
-        public bool CreateMethodsForType(ClrType type, out ImmutableArray<ClrMethod> methods)
-        {
-            ulong mt = type.MethodTable;
-            if (!_sos.GetMethodTableData(mt, out MethodTableData data) || data.NumMethods == 0)
-            {
-                methods = ImmutableArray<ClrMethod>.Empty;
-                return true;
-            }
-
-            using MethodBuilder builder = _methodBuilders.Rent();
-            ImmutableArray<ClrMethod>.Builder result = ImmutableArray.CreateBuilder<ClrMethod>(data.NumMethods);
-            result.Count = result.Capacity;
-
-            int curr = 0;
-            for (uint i = 0; i < data.NumMethods; i++)
-            {
-                if (builder.Init(_sos, mt, i, this))
-                    result[curr++] = new ClrmdMethod(type, builder);
-            }
-
-            if (curr == 0)
-            {
-                methods = ImmutableArray<ClrMethod>.Empty;
-                return true;
-            }
-
-            result.Capacity = result.Count = curr;
-            methods = result.MoveToImmutable();
-            return _options.CacheMethods;
-        }
-
-        public bool CreateFieldsForType(ClrType type, out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> staticFields)
-        {
-            CreateFieldsForMethodTableWorker(type, out fields, out staticFields);
-
-            if (fields.IsDefault)
-                fields = ImmutableArray<ClrInstanceField>.Empty;
-
-            if (staticFields.IsDefault)
-                staticFields = ImmutableArray<ClrStaticField>.Empty;
-
-            return _options.CacheFields;
-        }
-
-        private void CreateFieldsForMethodTableWorker(ClrType type, out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> statics)
-        {
-            fields = default;
-            statics = default;
-
-            // If "type.BaseType" is null then this is either System.Object which has no fields, or the parent MethodTable
-            // is invalid.  In this latter case, we actually get bogus field data from GetFieldInfo, leading to reporting
-            // incorrect fields from this type.
-            if (type.IsFree || type.BaseType is null)
-                return;
-
-            if (!_sos.GetFieldInfo(type.MethodTable, out DacInterface.FieldInfo fieldInfo) || fieldInfo.FirstFieldAddress == 0)
-            {
-                if (type.BaseType != null)
-                    fields = type.BaseType.Fields;
-                return;
-            }
-
-            ImmutableArray<ClrInstanceField>.Builder fieldsBuilder = ImmutableArray.CreateBuilder<ClrInstanceField>(fieldInfo.NumInstanceFields);
-            ImmutableArray<ClrStaticField>.Builder staticsBuilder = ImmutableArray.CreateBuilder<ClrStaticField>(fieldInfo.NumStaticFields);
-
-            fieldsBuilder.AddRange(type.BaseType.Fields);
-
-            using FieldBuilder fieldData = _fieldBuilders.Rent();
-
-            ulong nextField = fieldInfo.FirstFieldAddress;
-            int other = 0;
-            while (other + fieldsBuilder.Count + staticsBuilder.Count < fieldsBuilder.Capacity + staticsBuilder.Capacity && nextField != 0)
-            {
-                if (!fieldData.Init(_sos, nextField, this))
-                    break;
-
-                if (fieldData.IsContextLocal || fieldData.IsThreadLocal)
-                {
-                    other++;
-                }
-                else if (fieldData.IsStatic)
-                {
-                    ClrmdStaticField staticField = new(type, fieldData);
-                    staticsBuilder.Add(staticField);
-                }
-                else
-                {
-                    ClrmdField field = new(type, fieldData);
-                    fieldsBuilder.Add(field);
-                }
-
-                nextField = fieldData.NextField;
-            }
-
-            fieldsBuilder.Sort((a, b) => a.Offset.CompareTo(b.Offset));
-
-            fields = fieldsBuilder.MoveOrCopyToImmutable();
-            statics = staticsBuilder.MoveOrCopyToImmutable();
+            return basicTypes[index] = new ClrmdPrimitiveType(_objectHelpers, bcl, _heap, basicType);
         }
 
         private ClrModule? GetModule(ulong moduleAddress)

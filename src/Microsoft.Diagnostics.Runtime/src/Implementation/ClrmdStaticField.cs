@@ -4,13 +4,14 @@
 
 using System;
 using System.Reflection;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ClrmdStaticField : ClrStaticField
     {
-        private readonly IFieldHelpers _helpers;
+        private readonly IClrFieldHelpers _helpers;
         private string? _name;
         private ClrType? _type;
         private FieldAttributes _attributes = FieldAttributes.ReservedMask;
@@ -51,23 +52,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ClrType ContainingType { get; }
 
-        public ClrmdStaticField(ClrType containingType, IFieldData data)
+        public ClrmdStaticField(ClrType containingType, ClrType? type, IClrFieldHelpers helpers, in FieldData data)
         {
             if (containingType is null)
                 throw new ArgumentNullException(nameof(containingType));
 
-            if (data is null)
-                throw new ArgumentNullException(nameof(data));
-
             ContainingType = containingType;
-            Token = data.Token;
-            ElementType = data.ElementType;
-            Offset = data.Offset;
-
-            _helpers = data.Helpers;
-
-            // Must be the last use of 'data' in this constructor.
-            _type = _helpers.Factory.GetOrCreateType(data.TypeMethodTable, 0);
+            _type = type;
+            _helpers = helpers;
+            Token = (int)data.FieldToken;
+            ElementType = (ClrElementType)data.ElementType;
+            Offset = (int)data.Offset;
         }
 
         private void InitData()
@@ -80,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private string? ReadData()
         {
-            if (!_helpers.ReadProperties(ContainingType, Token, out string? name, out _attributes, out SigParser sigParser))
+            if (!_helpers.ReadProperties(ContainingType, Token, out string? name, out _attributes, ref _type))
                 return null;
 
             StringCaching options = ContainingType.Heap.Runtime.DataTarget?.CacheOptions.CacheFieldNames ?? StringCaching.Cache;
@@ -95,11 +90,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // We may have to try to construct a type from the sigParser if the method table was a bust in the constructor
             if (_type == null)
             {
-                if (sigParser.GetCallingConvInfo(out int sigType) && sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD)
-                {
-                    sigParser.SkipCustomModifiers();
-                    _type = _helpers.Factory.GetOrCreateTypeFromSignature(ContainingType.Module, sigParser, ContainingType.EnumerateGenericParameters(), Array.Empty<ClrGenericParameter>());
-                }
             }
 
             return name;
@@ -167,12 +157,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (address == 0 || !_helpers.DataReader.ReadPointer(address, out ulong obj) || obj == 0)
                 return default;
 
-            ulong mt = _helpers.DataReader.ReadPointer(obj);
-            ClrType? type = _helpers.Factory.GetOrCreateType(mt, obj);
-            if (type is null)
-                return default;
-
-            return new ClrObject(obj, type);
+            return ContainingType.Heap.GetObject(obj);
         }
 
         public override ClrValueType ReadStruct(ClrAppDomain appDomain)
