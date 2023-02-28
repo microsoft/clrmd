@@ -55,8 +55,7 @@ namespace Microsoft.Diagnostics.Runtime
             string? dbiTargetPlatform = GetDbiFileName(flavor, targetPlatform);
             if (IsSingleFile)
             {
-                ClrRuntimeInfo info = DataTarget.DataReader.Read<ClrRuntimeInfo>(runtimeInfo);
-                if (info.IsValid)
+                if (ClrRuntimeInfo.TryReadClrRuntimeInfo(DataTarget.DataReader, runtimeInfo, out ClrRuntimeInfo info, out Version version))
                 {
                     if (dt.DataReader.TargetPlatform == OSPlatform.Windows)
                     {
@@ -96,13 +95,7 @@ namespace Microsoft.Diagnostics.Runtime
                         }
                     }
                 }
-
-                Version = new Version();
-                if (info.IsClrRuntimeInfo2)
-                {
-                    ClrRuntimeInfo2 info2 = DataTarget.DataReader.Read<ClrRuntimeInfo2>(runtimeInfo);
-                    Version = info2.RuntimeVersion;
-                }
+                Version = version;
             }
             else
             {
