@@ -8,7 +8,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Threading;
+using System.Xml.Linq;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -20,8 +20,7 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly SOSDac6? _sos6;
         private readonly SOSDac8? _sos8;
         private readonly IClrTypeFactory _typeFactory;
-        private MethodBuilder? _methodBuilder;
-        private IClrMethodHelpers _methodHelpers;
+        private readonly IClrMethodHelpers _methodHelpers;
 
         public CacheOptions CacheOptions { get; }
 
@@ -82,16 +81,22 @@ namespace Microsoft.Diagnostics.Runtime
             if (!_sos.GetCCWData(data.CCW, out CcwData ccwData))
                 return null;
 
-            return new ComCallableWrapper(ccwData, GetComInterfaces(_sos.GetCCWInterfaces(data.CCW, ccwData.InterfaceCount) ?? Array.Empty<COMInterfacePointerData>()));
+            COMInterfacePointerData[]? ptrs = _sos.GetCCWInterfaces(data.CCW, ccwData.InterfaceCount);
+            ImmutableArray<ComInterfaceData> interfaces = ptrs != null ? GetComInterfaces(ptrs) : ImmutableArray<ComInterfaceData>.Empty;
+            return new(ccwData, interfaces);
         }
 
         public RuntimeCallableWrapper? CreateRCWForObject(ulong obj)
         {
-            RcwHelpers builder = new(_sos, _typeFactory);
-            if (!builder.Init(obj))
+            if (!_sos.GetObjectData(obj, out ObjectData objData) || objData.RCW == 0)
                 return null;
 
-            return new RuntimeCallableWrapper(builder);
+            if (!_sos.GetRCWData(objData.RCW, out RcwData rcw))
+                return null;
+
+            COMInterfacePointerData[]? ptrs = _sos.GetRCWInterfaces(objData.RCW, rcw.InterfaceCount);
+            ImmutableArray<ComInterfaceData> interfaces = ptrs != null ? GetComInterfaces(ptrs) : ImmutableArray<ComInterfaceData>.Empty;
+            return new RuntimeCallableWrapper(objData.RCW, rcw, interfaces);
         }
 
         public ImmutableArray<ComInterfaceData> GetRCWInterfaces(ulong address, int interfaceCount)
@@ -161,37 +166,40 @@ namespace Microsoft.Diagnostics.Runtime
             return 0;
         }
 
-        public IObjectData? GetObjectData(ulong objRef)
+        public ulong GetObjectDataPointer(ulong objRef)
         {
-            // todo remove
             if (_sos.GetObjectData(objRef, out ObjectData data))
-                return data;
+                return data.ArrayDataPointer;
 
-            return null;
+            return 0;
         }
 
-        public ClrMethod[] GetMethodsForType(ClrType type)
+        public ClrElementType GetObjectElementType(ulong objRef)
+        {
+            if (_sos.GetObjectData(objRef, out ObjectData data))
+                return (ClrElementType)data.ElementType;
+
+            return 0;
+        }
+
+        public ImmutableArray<ClrMethod> GetMethodsForType(ClrType type)
         {
             ulong mt = type.MethodTable;
             if (!_sos.GetMethodTableData(mt, out MethodTableData data) || data.NumMethods == 0)
-                return Array.Empty<ClrMethod>();
+                return ImmutableArray<ClrMethod>.Empty;
 
-            MethodBuilder builder = Interlocked.Exchange(ref _methodBuilder, null) ?? new MethodBuilder();
-
-            ClrMethod[] result = new ClrMethod[data.NumMethods];
-
-            int curr = 0;
+            var builder = ImmutableArray.CreateBuilder<ClrMethod>(data.NumMethods);
             for (uint i = 0; i < data.NumMethods; i++)
             {
-                if (builder.Init(_sos, mt, i))
-                    result[curr++] = new ClrmdMethod(type, builder, _methodHelpers);
+                ulong slot = _sos.GetMethodTableSlot(mt, i);
+                if (_sos.GetCodeHeaderData(slot, out CodeHeaderData chd) && _sos.GetMethodDescData(chd.MethodDesc, 0, out MethodDescData mdd))
+                {
+                    HotColdRegions regions = new(mdd.NativeCodeAddr, chd.HotRegionSize, chd.ColdRegionStart, chd.ColdRegionSize);
+                    builder.Add(new(_methodHelpers, type, chd.MethodDesc, (int)mdd.MDToken, (MethodCompilationType)chd.JITType, regions));
+                }
             }
 
-            if (curr < result.Length)
-                Array.Resize(ref result, curr);
-
-            _methodBuilder = builder;
-            return result;
+            return builder.MoveToImmutable();
         }
 
         public IEnumerable<ClrField> EnumerateFields(ClrType type)
@@ -219,13 +227,9 @@ namespace Microsoft.Diagnostics.Runtime
 
                 ClrType? fieldType = _typeFactory.GetOrCreateType(fieldData.TypeMethodTable, 0);
                 if (fieldData.IsStatic != 0)
-                {
                     yield return new ClrmdStaticField(type, fieldType, this, fieldData);
-                }
                 else
-                {
                     yield return new ClrmdField(type, fieldType, this, fieldData);
-                }
             }
         }
 

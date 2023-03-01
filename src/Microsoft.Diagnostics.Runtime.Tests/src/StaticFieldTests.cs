@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrSegment seg = runtime.Heap.GetSegmentByAddress(valueSlot);
             Assert.NotNull(seg);
 
-            ulong prev = seg.GetPreviousObjectAddress(valueSlot);
+            ulong prev = runtime.Heap.FindPreviousObjectOnSegment(valueSlot);
             Assert.NotEqual(0ul, prev);
 
             ClrObject staticsArray = runtime.Heap.GetObject(prev);

@@ -21,9 +21,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Module = module ?? throw new ArgumentNullException(nameof(module));
             Heap = heap ?? throw new ArgumentNullException(nameof(heap));
             ElementType = type;
+            _fields = ImmutableArray<ClrInstanceField>.Empty;
+            _staticFields = ImmutableArray<ClrStaticField>.Empty;
+            _methods = ImmutableArray<ClrMethod>.Empty;
         }
 
-        public override IClrTypeHelpers Helpers { get; }
+        internal override IClrTypeHelpers Helpers { get; }
         public override bool IsEnum => false;
         public override ClrEnum AsEnum() => throw new InvalidOperationException();
         public override ClrModule Module { get; }
@@ -74,12 +77,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsFinalizeSuppressed(ulong obj) => false;
 
         public override GCDesc GCDesc => default;
-
-        public override ReadOnlyCollection<ClrInstanceField> Fields => Array.AsReadOnly(Array.Empty<ClrInstanceField>());
-
-        public override ReadOnlyCollection<ClrStaticField> StaticFields => Array.AsReadOnly(Array.Empty<ClrStaticField>());
-
-        public override ReadOnlyCollection<ClrMethod> Methods => Array.AsReadOnly(Array.Empty<ClrMethod>());
 
         public override ClrType? ComponentType => null;
 

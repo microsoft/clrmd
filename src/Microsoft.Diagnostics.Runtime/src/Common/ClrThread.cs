@@ -59,7 +59,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns true if the thread is alive in the process, false if this thread was recently terminated.
         /// </summary>
-        public bool IsAlive => OSThreadId != 0 && (state & (ClrThreadState.TS_Unstarted | ClrThreadState.TS_Dead)) == 0;
+        public bool IsAlive => OSThreadId != 0 && (State & (ClrThreadState.TS_Unstarted | ClrThreadState.TS_Dead)) == 0;
 
         /// <summary>
         /// Gets the OS thread id for the thread.

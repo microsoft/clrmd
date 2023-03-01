@@ -23,6 +23,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Heap = heap ?? throw new ArgumentNullException(nameof(heap));
             Module = module;
             GenericParameter = clrGenericParameter;
+            _fields = ImmutableArray<ClrInstanceField>.Empty;
+            _staticFields = ImmutableArray<ClrStaticField>.Empty;
         }
 
         public override GCDesc GCDesc => default;
@@ -54,12 +56,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsSealed => false;
 
         public override bool IsInterface => false;
-
-        public override ImmutableArray<ClrInstanceField> Fields => ImmutableArray<ClrInstanceField>.Empty;
-
-        public override ImmutableArray<ClrStaticField> StaticFields => ImmutableArray<ClrStaticField>.Empty;
-
-        public override ImmutableArray<ClrMethod> Methods => ImmutableArray<ClrMethod>.Empty;
 
         public override ClrType? BaseType => null;
 

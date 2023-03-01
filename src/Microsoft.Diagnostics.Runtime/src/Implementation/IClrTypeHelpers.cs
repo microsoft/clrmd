@@ -7,7 +7,7 @@ using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IClrTypeHelpers
+    internal interface IClrTypeHelpers
     {
         CacheOptions CacheOptions { get; }
         ClrHeap Heap { get; }
@@ -23,9 +23,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ImmutableArray<ComInterfaceData> GetRCWInterfaces(ulong address, int interfaceCount);
         ClrType? CreateRuntimeType(ClrObject obj);
 
-        // TODO: Should not expose this:
-        IObjectData? GetObjectData(ulong objRef);
-        ClrMethod[] GetMethodsForType(ClrType type);
+        ulong GetObjectDataPointer(ulong objRef);
+        ClrElementType GetObjectElementType(ulong objRef);
+        ImmutableArray<ClrMethod> GetMethodsForType(ClrType type);
         IEnumerable<ClrField> EnumerateFields(ClrType type);
     }
 }

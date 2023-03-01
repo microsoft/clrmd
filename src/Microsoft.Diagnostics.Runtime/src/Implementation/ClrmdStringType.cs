@@ -12,7 +12,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ClrmdStringType : ClrType
     {
-        private IClrTypeHelpers Helpers { get; }
         private ImmutableArray<ClrMethod> _methods;
         private ImmutableArray<ClrInstanceField> _fields;
         private ImmutableArray<ClrStaticField> _statics;
@@ -25,6 +24,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             MetadataToken = token;
         }
+
+        internal override IClrTypeHelpers Helpers { get; }
 
         public override GCDesc GCDesc => default;
 
@@ -58,55 +59,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsInterface => false;
 
-        public override ImmutableArray<ClrInstanceField> Fields
-        {
-            get
-            {
-                if (!_fields.IsDefault)
-                    return _fields;
-
-                if (Helpers.Factory.CreateFieldsForType(this, out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> statics))
-                {
-                    _fields = fields;
-                    _statics = statics;
-                }
-
-                return fields;
-            }
-        }
-
-        public override ImmutableArray<ClrStaticField> StaticFields
-        {
-            get
-            {
-                if (!_statics.IsDefault)
-                    return _statics;
-
-                if (Helpers.Factory.CreateFieldsForType(this, out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> statics))
-                {
-                    _fields = fields;
-                    _statics = statics;
-                }
-
-                return statics;
-            }
-        }
-
-        public override ImmutableArray<ClrMethod> Methods
-        {
-            get
-            {
-                if (!_methods.IsDefault)
-                    return _methods;
-
-                // Returns whether or not we should cache methods or not
-                if (Helpers.Factory.CreateMethodsForType(this, out ImmutableArray<ClrMethod> methods))
-                    _methods = methods;
-
-                return methods;
-            }
-        }
-
         public override ClrType? BaseType => Heap.ObjectType;
 
         public override ClrType? ComponentType => null;
@@ -122,8 +74,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsShared => true;
 
         public override bool IsString => true;
-
-        internal override IClrTypeHelpers Helpers => Helpers.ClrObjectHelpers;
 
         public override ClrEnum AsEnum() => throw new InvalidOperationException($"{Name ?? nameof(ClrType)} is not an enum.  You must call {nameof(ClrType.IsEnum)} before using {nameof(AsEnum)}.");
 

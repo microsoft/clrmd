@@ -1,8 +1,11 @@
-﻿using Microsoft.Diagnostics.Runtime.DacInterface;
+﻿using Microsoft.Diagnostics.Runtime.Builders;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -16,6 +19,8 @@ namespace Microsoft.Diagnostics.Runtime
         ClrType ObjectType { get; }
         ClrType ExceptionType { get; }
 
+        string GetTypeName(ulong mt);
+        ClrType? TryGetType(ulong mt);
         ClrType? GetOrCreateType(ulong mt, ulong obj);
         ClrType GetOrCreateBasicType(ClrElementType basicType);
         ClrType? GetOrCreateArrayType(ClrType inner, int ranks);
@@ -26,6 +31,9 @@ namespace Microsoft.Diagnostics.Runtime
 
     internal class ClrTypeFactory : IClrTypeFactory
     {
+        private const int mdtTypeDef = 0x02000000;
+        private const int mdtTypeRef = 0x01000000;
+
         private readonly SOSDac _sos;
         private readonly CacheOptions _options;
         private readonly ClrHeap _heap;
@@ -36,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime
         private Dictionary<ulong, ClrModule>? _modules;
         private readonly IClrTypeHelpers _objectHelpers;
 
-        public ClrTypeFactory(ClrHeap heap, ClrDataProcess clrDataProcess, SOSDac sos, CacheOptions options)
+        public ClrTypeFactory(ClrHeap heap, ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, CacheOptions options)
         {
             _heap = heap;
             _sos = sos;
@@ -45,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime
             _sos.GetCommonMethodTables(out _commonMTs);
             _objectType = CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.FreeMethodTable, "System.ObjectType") ?? throw new InvalidDataException("Could not create Object type.");
 
-            _objectHelpers = new ClrTypeHelpers(clrDataProcess, sos, this, heap);
+            _objectHelpers = new ClrTypeHelpers(clrDataProcess, sos, sos6, sos8, this, heap, options);
         }
 
         public ClrType FreeType =>
@@ -68,6 +76,8 @@ namespace Microsoft.Diagnostics.Runtime
                 return stringType;
             }
         }
+
+        public string GetTypeName(ulong mt) => _sos.GetMethodTableName(mt);
 
         public ClrType ObjectType => _objectType;
 
@@ -219,7 +229,7 @@ namespace Microsoft.Diagnostics.Runtime
                 for (int i = 0; i < count; i++)
                     GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters);
 
-                ClrType? result = module?.ResolveToken(token);
+                ClrType? result = GetOrCreateTypeFromToken(module, token);
                 return result;
             }
 
@@ -257,7 +267,24 @@ namespace Microsoft.Diagnostics.Runtime
             return null;
         }
 
-        public ClrType? GetOrCreateTypeFromToken(ClrModule module, int token) => module.ResolveToken(token);
+        public ClrType? GetOrCreateTypeFromToken(ClrModule? module, int token)
+        {
+            if (module is null)
+                return null;
+
+            IEnumerable<(ulong MethodTable, int Token)> tokenMap;
+            (ulong MethodTable, int Token)[] map;
+            if ((token & mdtTypeDef) != 0)
+                tokenMap = module.EnumerateTypeDefToMethodTableMap();
+            else if ((token & mdtTypeRef) != 0)
+                tokenMap = module.EnumerateTypeRefToMethodTableMap();
+            else
+                return null;
+
+            ulong mt = tokenMap.FirstOrDefault(r => r.Token == (token & (int)~0xff000000)).MethodTable;
+
+            return GetOrCreateType(mt, 0);
+        }
 
         public ClrType? GetOrCreateArrayType(ClrType innerType, int ranks) => innerType != null ? new ClrmdConstructedType(innerType, ranks, pointer: false) : null;
         public ClrType? GetOrCreatePointerType(ClrType innerType, int depth) => innerType != null ? new ClrmdConstructedType(innerType, depth, pointer: true) : null;

@@ -7,7 +7,7 @@ using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ClrNativeHeapHelpers : INativeHeapHelpers
+    internal class ClrNativeHeapHelpers : IClrNativeHeapHelpers
     {
         private NativeHeapKind[]? _heapNativeTypes;
         private readonly ClrInfo _clrInfo;
@@ -184,8 +184,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             return Enumerable.Empty<ClrNativeHeapInfo>();
         }
-
-
 
         public IEnumerable<ClrNativeHeapInfo> EnumerateThunkHeaps(ulong thunkHeapAddress)
         {

@@ -3,8 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Immutable;
-using System.Linq;
-using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -57,19 +56,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ImmutableArray<ComInterfaceData> Interfaces { get; }
 
-        internal RuntimeCallableWrapper(IRcwHelpers data)
+        internal RuntimeCallableWrapper(ulong address, in RcwData rcw, ImmutableArray<ComInterfaceData> interfaces)
         {
-            if (data is null)
-                throw new System.ArgumentNullException(nameof(data));
-
-            Address = data.Address;
-            IUnknown = data.IUnknown;
-            VTablePointer = data.VTablePointer;
-            RefCount = data.RefCount;
-            Object = data.ManagedObject;
-            IsDisconnected = data.Disconnected;
-            CreatorThreadAddress = data.CreatorThread;
-            Interfaces = data.GetInterfaces();
+            Address = address;
+            IUnknown = rcw.IUnknownPointer;
+            VTablePointer = rcw.VTablePointer;
+            RefCount = rcw.RefCount;
+            Object = rcw.ManagedObject;
+            IsDisconnected = rcw.IsDisconnected != 0;
+            CreatorThreadAddress = rcw.CreatorThread;
+            Interfaces = interfaces;
         }
     }
 }

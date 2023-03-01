@@ -90,7 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 }
             }
 
-            ClrSegment large = heap.Segments.Single(s => s.Kind == SegmentKind.Large);
+            ClrSegment large = heap.Segments.Single(s => s.Kind == GCSegmentKind.Large);
             large.EnumerateObjects().ToArray();
 
             Assert.Equal(objs.Length, index);
@@ -109,11 +109,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 {
                     continue;
                 }
-                ulong nextObj = seg.GetNextObjectAddress(seg.FirstObjectAddress);
+                ulong nextObj = heap.FindNextObjectOnSegment(seg.FirstObjectAddress);
                 foreach (ClrObject obj in seg.EnumerateObjects().Skip(1))
                 {
                     Assert.Equal(nextObj, obj.Address);
-                    nextObj = seg.GetNextObjectAddress(obj);
+                    nextObj = heap.FindNextObjectOnSegment(obj);
                 }
             }
         }
@@ -132,11 +132,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     continue;
                 }
                 ClrObject prev = heap.GetObject(seg.FirstObjectAddress);
-                Assert.Equal(0ul, seg.GetPreviousObjectAddress(prev));
+                Assert.False(heap.FindPreviousObjectOnSegment(prev).IsValid);
 
                 foreach (ClrObject curr in seg.EnumerateObjects().Skip(1))
                 {
-                    Assert.Equal(prev.Address, seg.GetPreviousObjectAddress(curr));
+                    Assert.Equal(prev.Address, heap.FindPreviousObjectOnSegment(curr));
 
                     prev = curr;
                 }

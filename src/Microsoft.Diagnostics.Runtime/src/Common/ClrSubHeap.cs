@@ -12,8 +12,9 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public class ClrSubHeap
     {
-        public ClrSubHeap(IClrHeapHelpers helpers, int index, ulong address, in HeapDetails heap, IEnumerable<GenerationData> genData, IEnumerable<ulong> finalizationPointers)
+        internal ClrSubHeap(IClrHeapHelpers helpers, ClrHeap clrHeap, int index, ulong address, in HeapDetails heap, IEnumerable<GenerationData> genData, IEnumerable<ulong> finalizationPointers)
         {
+            Heap = clrHeap;
             Address = address;
             Index = index;
             Allocated = heap.Allocated;
@@ -41,6 +42,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             Segments = helpers.EnumerateSegments(this).ToImmutableArray();
         }
+
+        public ClrHeap Heap { get; }
 
         public ImmutableArray<ClrSegment> Segments { get; }
 

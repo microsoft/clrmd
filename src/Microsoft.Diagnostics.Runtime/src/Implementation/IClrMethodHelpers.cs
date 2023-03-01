@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         IDataReader DataReader { get; }
 
         bool GetSignature(ulong methodDesc, out string? signature);
-        ImmutableArray<ILToNativeMap> GetILMap(ulong nativeCode, in HotColdRegions hotColdInfo);
+        ImmutableArray<ILToNativeMap> GetILMap(ClrMethod method);
         ulong GetILForModule(ulong address, uint rva);
     }
 
@@ -49,11 +49,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public ulong GetILForModule(ulong address, uint rva) => _sos.GetILForModule(address, rva);
 
-        public ImmutableArray<ILToNativeMap> GetILMap(ulong ip, in HotColdRegions hotColdInfo)
+        public ImmutableArray<ILToNativeMap> GetILMap(ClrMethod inMethod)
         {
             ImmutableArray<ILToNativeMap>.Builder result = ImmutableArray.CreateBuilder<ILToNativeMap>();
 
-            foreach (ClrDataMethod method in _clrDataProcess.EnumerateMethodInstancesByAddress(ip))
+            foreach (ClrDataMethod method in _clrDataProcess.EnumerateMethodInstancesByAddress(inMethod.NativeCode))
             {
                 ILToNativeMap[]? map = method.GetILToNativeMap();
                 if (map != null)
@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         if (map[i].StartAddress > map[i].EndAddress)
                         {
                             if (i + 1 == map.Length)
-                                map[i].EndAddress = FindEnd(hotColdInfo, map[i].StartAddress);
+                                map[i].EndAddress = FindEnd(inMethod.HotColdInfo, map[i].StartAddress);
                             else
                                 map[i].EndAddress = map[i + 1].StartAddress - 1;
                         }

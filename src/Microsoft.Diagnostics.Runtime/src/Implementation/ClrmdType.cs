@@ -5,7 +5,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -23,10 +22,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private TypeAttributes _attributes;
         private ulong _loaderAllocatorHandle = ulong.MaxValue - 1;
         private ulong _assemblyLoadContextHandle = ulong.MaxValue - 1;
-
-        private ReadOnlyCollection<ClrMethod>? _methods;
-        private ReadOnlyCollection<ClrInstanceField>? _fields;
-        private ReadOnlyCollection<ClrStaticField>? _statics;
 
         private ClrElementType _elementType;
         private GCDesc _gcDesc;
@@ -75,7 +70,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override IClrTypeHelpers Helpers { get; }
+        internal override IClrTypeHelpers Helpers { get; }
         public override int StaticSize { get; }
         public override int ComponentSize { get; }
         public override ClrType? ComponentType => _componentType;
@@ -108,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             // If there are no methods, preempt the expensive work to create methods
             if (data.NumMethods == 0)
-                _methods = Array.AsReadOnly(Array.Empty<ClrMethod>());
+                _methods = ImmutableArray<ClrMethod>.Empty;
 
             DebugOnlyLoadLazyValues();
         }
@@ -288,7 +283,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return (value & FinalizationSuppressedFlag) == FinalizationSuppressedFlag;
         }
 
-        public override bool IsFinalizable => Methods.Any(method => method.IsVirtual && method.Name == "Finalize");
+        public override bool IsFinalizable => Methods.Any(method => (method.Attributes & MethodAttributes.Virtual) == MethodAttributes.Virtual && method.Name == "Finalize");
 
         public override bool IsArray => ComponentSize != 0 && !IsString && !IsFree;
         public override bool IsCollectible => LoaderAllocatorHandle != 0;
@@ -319,77 +314,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsString => this == Heap.StringType;
 
-        public override ReadOnlyCollection<ClrInstanceField> Fields
-        {
-            get
-            {
-                if (_fields is not null)
-                    return _fields;
-                if (Helpers.CacheOptions.CacheFields)
-                {
-                    CacheFields();
-
-                    if (_fields is not null)
-                        return _fields;
-                }
-
-                return Array.AsReadOnly(Helpers.EnumerateFields(this).OfType<ClrInstanceField>().ToArray());
-            }
-        }
-    
-
-        public override ReadOnlyCollection<ClrStaticField> StaticFields
-        {
-            get
-            {
-                if (_statics is not null)
-                    return _statics;
-
-                if (Helpers.CacheOptions.CacheFields)
-                {
-                    CacheFields();
-
-                    if (_statics is not null)
-                        return _statics;
-                }
-
-                return Array.AsReadOnly(Helpers.EnumerateFields(this).OfType<ClrStaticField>().ToArray());
-            }
-        }
-
-        private void CacheFields()
-        {
-            List<ClrInstanceField> fields = new();
-            List<ClrStaticField> staticFields = new();
-
-            foreach (ClrField field in Helpers.EnumerateFields(this))
-            {
-                if (field is ClrInstanceField instance)
-                    fields.Add(instance);
-                else if (field is ClrStaticField staticField)
-                    staticFields.Add(staticField);
-            }
-
-            _fields = fields.AsReadOnly();
-            _statics = staticFields.AsReadOnly();
-        }
-
-        public override ReadOnlyCollection<ClrMethod> Methods
-        {
-            get
-            {
-                ReadOnlyCollection<ClrMethod>? methods = _methods;
-                if (methods is null)
-                {
-                    methods = Array.AsReadOnly(Helpers.GetMethodsForType(this));
-                    if (methods.Count == 0 || Helpers.CacheOptions.CacheMethods)
-                        _methods = methods;
-                }
-
-                return methods;
-            }
-        }
-
         // TODO: remove
         public override ClrStaticField? GetStaticFieldByName(string name) => StaticFields.FirstOrDefault(f => f.Name == name);
 
@@ -405,10 +329,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 ClrType? componentType = ComponentType;
 
-                IObjectData? data = Helpers.GetObjectData(objRef);
-                if (data != null)
+                ulong dataPointer = Helpers.GetObjectDataPointer(objRef);
+                if (dataPointer > 0)
                 {
-                    _baseArrayOffset = (int)(data.DataPointer - objRef);
+                    _baseArrayOffset = (int)(dataPointer - objRef);
                     DebugOnly.Assert(_baseArrayOffset >= 0);
                 }
                 else if (componentType != null)
@@ -440,11 +364,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             else
             {
                 // Slow path, we need to get the element type of the array.
-                IObjectData? data = Helpers.GetObjectData(objRef);
-                if (data is null)
-                    return null;
-
-                cet = data.ElementType;
+                cet = Helpers.GetObjectElementType(objRef);
             }
 
             if (cet == ClrElementType.Unknown)

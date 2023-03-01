@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    public interface IClrRuntimeHelpers
+    internal interface IClrRuntimeHelpers
     {
         void Flush();
         IEnumerable<ClrThread> EnumerateThreads();
@@ -21,12 +21,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         string? GetJitHelperFunctionName(ulong address);
     }
 
-    public class ClrAppDomainData
+    internal class ClrAppDomainData
     {
         public ClrAppDomain? SystemDomain { get; set; }
         public ClrAppDomain? SharedDomain { get; set; }
         public ImmutableArray<ClrAppDomain> AppDomains { get; set; }
-        public Dictionary<ulong, ClrModule> Modules { get; set; }
+        public Dictionary<ulong, ClrModule> Modules { get; } = new();
         public ClrModule? BaseClassLibrary { get; set; }
 
         internal ClrAppDomain? GetDomainByAddress(ulong address)
@@ -51,12 +51,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly DacLibrary _library;
         private readonly ClrDataProcess _dac;
         private readonly SOSDac _sos;
+        private readonly SOSDac6? _sos6;
         private readonly SOSDac8? _sos8;
         private readonly SOSDac12? _sos12;
         private readonly SOSDac13? _sos13;
         private readonly CacheOptions _cacheOptions;
+        private readonly IClrModuleHelpers _moduleHelpers;
         private ClrAppDomainData? _domainData;
-        private INativeHeapHelpers? _nativeHeapHelpers;
+        private IClrNativeHeapHelpers? _nativeHeapHelpers;
 
         public ClrRuntimeHelpers(ClrInfo clrInfo, DacLibrary library, CacheOptions cacheOptions)
         {
@@ -65,10 +67,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _library = library;
             _dac = library.DacPrivateInterface;
             _sos = library.SOSDacInterface;
+            _sos6 = library.SOSDacInterface6;
             _sos8 = library.SOSDacInterface8;
             _sos12 = library.SOSDacInterface12;
             _sos13 = library.SOSDacInterface13;
             _cacheOptions = cacheOptions;
+            _moduleHelpers = new ClrModuleHelpers(_sos, _dataReader, this);
 
             int version = 0;
             if (!_dac.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))))
@@ -83,7 +87,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public ClrHeap CreateHeap()
         {
-            ClrHeapHelpers helpers = new(_dac, _sos, _sos8, _sos12, _dataReader, _cacheOptions);
+            ClrHeapHelpers helpers = new(_dac, _sos, _sos6, _sos8, _sos12, _dataReader, _cacheOptions);
             return new ClrHeap(Runtime, _dataReader, helpers);
         }
 
@@ -100,6 +104,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 if (_runtime is not null && _runtime != value)
                     throw new InvalidOperationException($"Cannot change {nameof(ClrRuntimeHelpers)}.{nameof(Runtime)}!");
+
+                _runtime = value;
             }
         }
 
@@ -109,9 +115,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _nativeHeapHelpers = null;
         }
 
-        public INativeHeapHelpers GetNativeHeapHelpers()
+        public IClrNativeHeapHelpers GetNativeHeapHelpers()
         {
-            INativeHeapHelpers? helpers = _nativeHeapHelpers;
+            IClrNativeHeapHelpers? helpers = _nativeHeapHelpers;
             if (helpers is null)
             {
                 // We don't care if this races
@@ -126,10 +132,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             if (_domainData is null)
             {
-                ClrAppDomainData domainData = new()
-                {
-                    Modules = new()
-                };
+                ClrAppDomainData domainData = new();
 
                 _sos.GetAppDomainStoreData(out AppDomainStoreData domainStore);
 
@@ -184,6 +187,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (!_sos.GetAppDomainData(domainAddress, out AppDomainData data))
                 return null;
 
+            name ??= _sos.GetAppDomainName(domainAddress);
+            ClrAppDomain result = new(Runtime, this, domainAddress, name, data.Id);
+
             var moduleBuilder = ImmutableArray.CreateBuilder<ClrModule>();
             foreach (ulong assembly in _sos.GetAssemblyList(domainAddress))
                 foreach (ulong moduleAddress in _sos.GetModuleList(assembly))
@@ -194,14 +200,18 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     }
                     else
                     {
+                        if (_sos.GetModuleData(moduleAddress, out ModuleData moduleData))
+                            module = new(result, moduleAddress, _moduleHelpers, moduleData);
+                        else
+                            module = new(result, _moduleHelpers, moduleAddress);
+
                         modules.Add(moduleAddress, module);
-                        moduleBuilder.Add(new ClrModule());
+                        moduleBuilder.Add(module);
                     }
                 }
 
-            name ??= _sos.GetAppDomainName(domainAddress);
-
-            return new ClrAppDomain(Runtime, this, domainAddress, name, data.Id, moduleBuilder.MoveToImmutable());
+            result.Modules = moduleBuilder.MoveToImmutable();
+            return result;
         }
 
         public ClrMethod? GetMethodByMethodDesc(ulong methodDesc)

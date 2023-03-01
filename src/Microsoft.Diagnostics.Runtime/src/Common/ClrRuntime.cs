@@ -20,10 +20,10 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private readonly IClrRuntimeHelpers _helpers;
         private volatile ClrAppDomainData? _appDomainData;
-        private volatile ReadOnlyCollection<ClrThread>? _threads;
         private volatile ClrHeap? _heap;
+        private ImmutableArray<ClrThread> _threads;
 
-        public ClrRuntime(ClrInfo clrInfo, DacLibrary library)
+        internal ClrRuntime(ClrInfo clrInfo, DacLibrary library)
         {
             ClrInfo = clrInfo;
             DataTarget = clrInfo.DataTarget;
@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime
             };
         }
 
-        public ClrRuntime(ClrInfo clrInfo, DacLibrary library, IClrRuntimeHelpers helpers)
+        internal ClrRuntime(ClrInfo clrInfo, DacLibrary library, IClrRuntimeHelpers helpers)
         {
             ClrInfo = clrInfo;
             DataTarget = clrInfo.DataTarget;
@@ -94,15 +94,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets all managed threads in the process.  Only threads which have previously run managed
         /// code will be enumerated.
         /// </summary>
-        public ReadOnlyCollection<ClrThread> Threads
+        public ImmutableArray<ClrThread> Threads
         {
             get
             {
-                if (_threads is not null)
+                if (!_threads.IsDefault)
                     return _threads;
 
-                ReadOnlyCollection<ClrThread> threads = Array.AsReadOnly(_helpers.EnumerateThreads().ToArray());
-                Interlocked.CompareExchange(ref _threads, threads, null);
+                ImmutableArray<ClrThread> threads = _helpers.EnumerateThreads().ToImmutableArray();
+                ImmutableInterlocked.InterlockedCompareExchange(ref _threads, threads, _threads);
+
                 return _threads;
             }
         }
@@ -236,7 +237,7 @@ namespace Microsoft.Diagnostics.Runtime
         public void FlushCachedData()
         {
             _appDomainData = null;
-            _threads = null;
+            _threads = default;
             _helpers.Flush();
         }
 

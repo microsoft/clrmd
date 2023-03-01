@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime
         private volatile SubHeapData? _subHeapData;
         private ulong _lastComFlags;
 
-        public ClrHeap(ClrRuntime runtime, IMemoryReader memoryReader, IClrHeapHelpers helpers)
+        internal ClrHeap(ClrRuntime runtime, IMemoryReader memoryReader, IClrHeapHelpers helpers)
         {
             Runtime = runtime;
             _memoryReader = memoryReader;
@@ -135,9 +135,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="segment"></param>
         /// <returns></returns>
-        public IEnumerable<ClrObject> EnumerateObjects(ClrSegment segment)
+        internal IEnumerable<ClrObject> EnumerateObjects(ClrSegment segment)
         {
-            bool isLargeOrPinned = segment.Kind == SegmentKind.Large || segment.Kind == SegmentKind.Pinned;
+            bool isLargeOrPinned = segment.Kind == GCSegmentKind.Large || segment.Kind == GCSegmentKind.Pinned;
             uint minObjSize = (uint)IntPtr.Size * 3;
             ulong obj = segment.FirstObjectAddress;
 
@@ -170,13 +170,6 @@ namespace Microsoft.Diagnostics.Runtime
                 ClrType? type = _typeFactory.GetOrCreateType(mt, obj);
                 if (type is null)
                     break;
-
-                int marker = segment.GetMarkerIndex(obj);
-                if (marker != lastMarker)
-                {
-                    segment.SetMarkerIndex(marker, obj);
-                    lastMarker = marker;
-                }
 
                 ClrObject result = new(obj, type);
                 yield return result;
@@ -212,9 +205,55 @@ namespace Microsoft.Diagnostics.Runtime
             ArrayPool<byte>.Shared.Return(buffer);
         }
 
+        /// <summary>
+        /// Finds the next ClrObject on the given segment.
+        /// </summary>
+        /// <param name="address">An address on any ClrSegment.</param>
+        /// <returns>An invalid ClrObject if address doesn't lie on any segment or if no objects exist after the given address on a segment.</returns>
+        public ClrObject FindNextObjectOnSegment(ulong address)
+        {
+            // TODO: This is a temporary implementation.  ClrHeap needs to maintain a jumplist to help find addresses, but
+            // that wasn't done in this checkin.
+
+            ClrSegment? seg = GetSegmentByAddress(address);
+            if (seg is null)
+                return default;
+
+            foreach (ClrObject obj in EnumerateObjects(seg))
+                if (obj < address)
+                    return obj;
+
+            return default;
+        }
+
+        /// <summary>
+        /// Finds the previous object on 
+        /// </summary>
+        /// <param name="address">An address on any ClrSegment.</param>
+        /// <returns>An invalid ClrObject if address doesn't lie on any segment or if address is the first object on a segment.</returns>
+        public ClrObject FindPreviousObjectOnSegment(ulong address)
+        {
+            // TODO: This is a temporary implementation.  ClrHeap needs to maintain a jumplist to help find addresses, but
+            // that wasn't done in this checkin.
+            ClrSegment? seg = GetSegmentByAddress(address);
+            if (seg is null)
+                return default;
+
+            ClrObject last = default;
+            foreach (ClrObject obj in EnumerateObjects(seg))
+            {
+                if (obj >= address)
+                    return last;
+
+                last = obj;
+            }
+
+            return default;
+        }
+
         private ulong SkipAllocationContext(ClrSegment seg, ulong address)
         {
-            if (seg.Kind == SegmentKind.Large || seg.Kind == SegmentKind.Frozen)
+            if (seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Frozen)
                 return address;
 
             var allocationContexts = GetAllocationContexts();
@@ -247,7 +286,7 @@ namespace Microsoft.Diagnostics.Runtime
             else
                 AlignConst = 7;
 
-            if (seg.Kind == SegmentKind.Large || seg.Kind == SegmentKind.Pinned)
+            if (seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Pinned)
                 return (size + AlignLargeConst) & ~AlignLargeConst;
 
             return (size + AlignConst) & ~AlignConst;
@@ -519,7 +558,7 @@ namespace Microsoft.Diagnostics.Runtime
                         if (seg is null)
                             yield break;
 
-                        bool large = seg.Kind == SegmentKind.Large || seg.Kind == SegmentKind.Pinned;
+                        bool large = seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Pinned;
                         if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
                             yield break;
                     }
@@ -589,7 +628,7 @@ namespace Microsoft.Diagnostics.Runtime
                         if (seg is null)
                             yield break;
 
-                        bool large = seg.Kind == SegmentKind.Large || seg.Kind == SegmentKind.Pinned;
+                        bool large = seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Pinned;
                         if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
                             yield break;
                     }
@@ -660,7 +699,7 @@ namespace Microsoft.Diagnostics.Runtime
                         if (seg is null)
                             yield break;
 
-                        bool large = seg.Kind == SegmentKind.Large || seg.Kind == SegmentKind.Pinned;
+                        bool large = seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Pinned;
                         if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
                             yield break;
                     }
@@ -733,7 +772,7 @@ namespace Microsoft.Diagnostics.Runtime
             SubHeapData? data = _subHeapData;
             if (data is null)
             {
-                data = new(_helpers.GetSubHeaps());
+                data = new(_helpers.GetSubHeaps(this));
                 Interlocked.CompareExchange(ref _subHeapData, data, null);
             }
 
@@ -741,6 +780,40 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         public ClrType? GetTypeByMethodTable(ulong methodTable) => _typeFactory.GetOrCreateType(methodTable, 0);
+
+
+        public ClrType? GetTypeByName(string name) => Runtime.EnumerateModules().OrderBy(m => m.Name ?? "").Select(m => GetTypeByName(m, name)).Where(r => r != null).FirstOrDefault();
+
+        public ClrType? GetTypeByName(ClrModule module, string name)
+        {
+            if (name is null)
+                throw new ArgumentNullException(nameof(name));
+
+            if (name.Length == 0)
+                throw new ArgumentException($"{nameof(name)} cannot be empty");
+
+            // First, look for already constructed types and see if their name matches.
+            List<ulong> lookup = new(256);
+            foreach ((ulong mt, _) in module.EnumerateTypeDefToMethodTableMap())
+            {
+                ClrType? type = _typeFactory.TryGetType(mt);
+                if (type is null)
+                    lookup.Add(mt);
+                else if (type.Name == name)
+                    return type;
+            }
+
+            // Since we didn't find pre-constructed types matching, look up the names for all
+            // remaining types without constructing them until we find the right one.
+            foreach (ulong mt in lookup)
+            {
+                string? typeName = _typeFactory.GetTypeName(mt);
+                if (typeName == name)
+                    return _typeFactory.GetOrCreateType(mt, 0);
+            }
+
+            return null;
+        }
 
         class SubHeapData
         {
@@ -782,7 +855,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
     }
 
-    public interface IClrHeapHelpers
+    internal interface IClrHeapHelpers
     {
         IClrTypeFactory CreateTypeFactory(ClrHeap heap);
 
@@ -791,7 +864,7 @@ namespace Microsoft.Diagnostics.Runtime
         IEnumerable<MemoryRange> EnumerateThreadAllocationContexts();
         IEnumerable<(ulong Source, ulong Target)> EnumerateDependentHandles();
         IEnumerable<SyncBlock> EnumerateSyncBlocks();
-        ImmutableArray<ClrSubHeap> GetSubHeaps();
+        ImmutableArray<ClrSubHeap> GetSubHeaps(ClrHeap heap);
         IEnumerable<ClrSegment> EnumerateSegments(ClrSubHeap heap);
     }
 
@@ -800,6 +873,7 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly ClrDataProcess _clrDataProcess;
         private readonly SOSDac _sos;
         private readonly SOSDac8? _sos8;
+        private readonly SOSDac6? _sos6;
         private readonly SOSDac12? _sos12;
         private readonly IMemoryReader _memoryReader;
         private readonly CacheOptions _cacheOptions;
@@ -809,11 +883,12 @@ namespace Microsoft.Diagnostics.Runtime
         public bool AreGCStructuresValid => _gcInfo.GCStructuresValid != 0;
         public ulong SizeOfPlugAndGap { get; }
 
-        public ClrHeapHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac8? sos8, SOSDac12? sos12, IMemoryReader reader, CacheOptions cacheOptions)
+        public ClrHeapHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, SOSDac12? sos12, IMemoryReader reader, CacheOptions cacheOptions)
         {
             _clrDataProcess = clrDataProcess;
             _sos = sos;
             _sos8 = sos8;
+            _sos6 = sos6;
             _sos12 = sos12;
             _memoryReader = reader;
             _cacheOptions = cacheOptions;
@@ -823,7 +898,7 @@ namespace Microsoft.Diagnostics.Runtime
                 _gcInfo = default; // Ensure _gcInfo.GCStructuresValid == false.
         }
 
-        public IClrTypeFactory CreateTypeFactory(ClrHeap heap) => new ClrTypeFactory(heap, _clrDataProcess, _sos, _cacheOptions);
+        public IClrTypeFactory CreateTypeFactory(ClrHeap heap) => new ClrTypeFactory(heap, _clrDataProcess, _sos, _sos6, _sos8, _cacheOptions);
 
         public IEnumerable<MemoryRange> EnumerateThreadAllocationContexts()
         {
@@ -912,7 +987,7 @@ namespace Microsoft.Diagnostics.Runtime
             } while (hr);
         }
 
-        public ImmutableArray<ClrSubHeap> GetSubHeaps()
+        public ImmutableArray<ClrSubHeap> GetSubHeaps(ClrHeap heap)
         {
             if (IsServerMode)
             {
@@ -931,7 +1006,7 @@ namespace Microsoft.Diagnostics.Runtime
                             finalization = _sos8.GetFinalizationFillPointers(heapAddresses[i]) ?? finalization;
                         }
 
-                        heapsBuilder.Add(new(this, i, heapAddresses[i], heapData, genData, finalization.Select(addr => (ulong)addr)));
+                        heapsBuilder.Add(new(this, heap, i, heapAddresses[i], heapData, genData, finalization.Select(addr => (ulong)addr)));
                     }
                 }
 
@@ -950,7 +1025,7 @@ namespace Microsoft.Diagnostics.Runtime
                         finalization = _sos8.GetFinalizationFillPointers() ?? finalization;
                     }
 
-                    return ImmutableArray.Create(new ClrSubHeap(this, 0, 0, heapData, genData, finalization.Select(addr => (ulong)addr)));
+                    return ImmutableArray.Create(new ClrSubHeap(this, heap, 0, 0, heapData, genData, finalization.Select(addr => (ulong)addr)));
                 }
             }
 
@@ -999,18 +1074,18 @@ namespace Microsoft.Diagnostics.Runtime
 
             bool ro = (data.Flags & heap_segment_flags_readonly) == heap_segment_flags_readonly;
 
-            SegmentKind kind = SegmentKind.Generation2;
+            GCSegmentKind kind = GCSegmentKind.Generation2;
             if (ro)
             {
-                kind = SegmentKind.Frozen;
+                kind = GCSegmentKind.Frozen;
             }
             else if (generation == 3)
             {
-                kind = SegmentKind.Large;
+                kind = GCSegmentKind.Large;
             }
             else if (generation == 4)
             {
-                kind = SegmentKind.Pinned;
+                kind = GCSegmentKind.Pinned;
             }
             else
             {
@@ -1018,18 +1093,18 @@ namespace Microsoft.Diagnostics.Runtime
                 if (subHeap.HasRegions)
                 {
                     if (generation == 0)
-                        kind = SegmentKind.Generation0;
+                        kind = GCSegmentKind.Generation0;
                     else if (generation == 1)
-                        kind = SegmentKind.Generation1;
+                        kind = GCSegmentKind.Generation1;
                     else if (generation == 2)
-                        kind = SegmentKind.Generation2;
+                        kind = GCSegmentKind.Generation2;
                 }
                 else
                 {
                     if (subHeap.EphemeralHeapSegment == address)
-                        kind = SegmentKind.Ephemeral;
+                        kind = GCSegmentKind.Ephemeral;
                     else
-                        kind = SegmentKind.Generation2;
+                        kind = GCSegmentKind.Generation2;
                 }
             }
 
@@ -1062,7 +1137,7 @@ namespace Microsoft.Diagnostics.Runtime
             else
             {
                 committed = new(allocated.Start, data.Committed);
-                if (kind == SegmentKind.Ephemeral)
+                if (kind == GCSegmentKind.Ephemeral)
                 {
                     gen0 = new(subHeap.GenerationTable[0].AllocationStart, allocated.End);
                     gen1 = new(subHeap.GenerationTable[1].AllocationStart, gen0.Start);
@@ -1079,10 +1154,9 @@ namespace Microsoft.Diagnostics.Runtime
             // The range of memory reserved
             MemoryRange reserved = new(committed.End, data.Reserved);
 
-            return new ClrSegment(_memoryReader)
+            return new ClrSegment(subHeap)
             {
                 Address = data.Address,
-                SubHeap = subHeap,
                 Kind = kind,
                 ObjectRange = allocated,
                 CommittedMemory = committed,

@@ -5,7 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Collections.ObjectModel;
+using System.Linq;
 using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -18,6 +18,10 @@ namespace Microsoft.Diagnostics.Runtime
         IEquatable<ClrType>
 #nullable restore
     {
+        protected ImmutableArray<ClrInstanceField> _fields;
+        protected ImmutableArray<ClrStaticField> _staticFields;
+        protected ImmutableArray<ClrMethod> _methods;
+
         /// <summary>
         /// Gets the <see cref="GCDesc"/> associated with this type.  Only valid if <see cref="ContainsPointers"/> is <see langword="true"/>.
         /// </summary>
@@ -156,17 +160,75 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets all possible fields in this type.   It does not return dynamically typed fields.
         /// Returns an empty list if there are no fields.
         /// </summary>
-        public abstract ReadOnlyCollection<ClrInstanceField> Fields { get; }
+        public virtual ImmutableArray<ClrInstanceField> Fields
+        {
+            get
+            {
+                if (!_fields.IsDefault)
+                    return _fields;
+
+                if (Helpers.CacheOptions.CacheFields)
+                    CacheFields();
+                else
+                    return Helpers.EnumerateFields(this).OfType<ClrInstanceField>().ToImmutableArray();
+
+                return _fields;
+            }
+        }
 
         /// <summary>
         /// Gets a list of static fields on this type.  Returns an empty list if there are no fields.
         /// </summary>
-        public abstract ReadOnlyCollection<ClrStaticField> StaticFields { get; }
+        public virtual ImmutableArray<ClrStaticField> StaticFields
+        {
+            get
+            {
+                if (!_staticFields.IsDefault)
+                    return _staticFields;
+
+                if (Helpers.CacheOptions.CacheFields)
+                    CacheFields();
+                else
+                    return Helpers.EnumerateFields(this).OfType<ClrStaticField>().ToImmutableArray();
+
+                return _staticFields;
+            }
+        }
+
+        private void CacheFields()
+        {
+            var instanceFields = ImmutableArray.CreateBuilder<ClrInstanceField>();
+            var staticFields = ImmutableArray.CreateBuilder<ClrStaticField>();
+            foreach (ClrField field in Helpers.EnumerateFields(this))
+            {
+                if (field is ClrInstanceField instanceField)
+                    instanceFields.Add(instanceField);
+                else if (field is ClrStaticField staticField)
+                    staticFields.Add(staticField);
+            }
+
+            _fields = instanceFields.ToImmutableArray();
+            _staticFields = staticFields.ToImmutableArray();
+        }
 
         /// <summary>
         /// Gets the list of methods this type implements.
         /// </summary>
-        public abstract ReadOnlyCollection<ClrMethod> Methods { get; }
+        public virtual ImmutableArray<ClrMethod> Methods
+        {
+            get
+            {
+                if (!_methods.IsDefault)
+                    return _methods;
+
+                ImmutableArray<ClrMethod> methods = Helpers.GetMethodsForType(this);
+                if (Helpers.CacheOptions.CacheMethods)
+                    _methods = methods;
+
+                return methods;
+                    
+            }
+        }
 
         /// <summary>
         /// Returns the field given by <paramref name="name"/>, case sensitive. Returns <see langword="null" /> if no such field name exists (or on error).
@@ -262,7 +324,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Used to provide functionality to ClrObject.
         /// </summary>
-        public abstract IClrTypeHelpers Helpers { get; }
+        internal abstract IClrTypeHelpers Helpers { get; }
 
         public override bool Equals(object? obj) => Equals(obj as ClrType);
 

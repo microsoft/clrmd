@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -16,14 +15,13 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private readonly IClrAppDomainHelpers _helpers;
 
-        public ClrAppDomain(ClrRuntime runtime, IClrAppDomainHelpers helpers, ulong address, string? name, int id, ImmutableArray<ClrModule> modules)
+        internal ClrAppDomain(ClrRuntime runtime, IClrAppDomainHelpers helpers, ulong address, string? name, int id)
         {
             Runtime = runtime;
             _helpers = helpers;
             Address = address;
             Id = id;
             Name = name;
-            Modules = modules;
         }
 
         /// <summary>
@@ -49,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets a list of modules loaded into this AppDomain.
         /// </summary>
-        public ImmutableArray<ClrModule> Modules { get; }
+        public ImmutableArray<ClrModule> Modules { get; internal set; }
 
         /// <summary>
         /// Gets the config file used for the AppDomain.  This may be <see langword="null"/> if there was no config file
@@ -75,7 +73,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// the same heaps as other domains if they share the same LoaderAllocator (especially SystemDomain).
         /// </summary>
         /// <returns>An enumerable of native heaps associated with this AppDomain.</returns>
-        public IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorHeaps() => _helpers.EnumerateLoaderAllocatorHeaps();
+        public IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorHeaps() => _helpers.GetNativeHeapHelpers().EnumerateLoaderAllocatorNativeHeaps(LoaderAllocator);
 
         /// <summary>
         /// To string override.
