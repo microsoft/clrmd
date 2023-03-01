@@ -84,12 +84,23 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public ClrHeap CreateHeap()
         {
             ClrHeapHelpers helpers = new(_dac, _sos, _sos8, _sos12, _dataReader, _cacheOptions);
-            return new ClrHeap(GetOrCreateRuntime(), _dataReader, helpers);
+            return new ClrHeap(Runtime, _dataReader, helpers);
         }
 
-        ClrRuntime GetOrCreateRuntime()
+        public ClrRuntime Runtime
         {
-            return _runtime ??= new ClrRuntime(_clrInfo, _library, this);
+            get
+            {
+                if (_runtime is null)
+                    throw new InvalidOperationException($"Must set {nameof(ClrRuntimeHelpers)}.{nameof(Runtime)} before using it!");
+
+                return _runtime;
+            }
+            set
+            {
+                if (_runtime is not null && _runtime != value)
+                    throw new InvalidOperationException($"Cannot change {nameof(ClrRuntimeHelpers)}.{nameof(Runtime)}!");
+            }
         }
 
         public void Flush()
@@ -190,7 +201,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             name ??= _sos.GetAppDomainName(domainAddress);
 
-            return new ClrAppDomain(GetOrCreateRuntime(), this, domainAddress, name, data.Id, moduleBuilder.MoveToImmutable());
+            return new ClrAppDomain(Runtime, this, domainAddress, name, data.Id, moduleBuilder.MoveToImmutable());
         }
 
         public ClrMethod? GetMethodByMethodDesc(ulong methodDesc)
@@ -198,7 +209,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (!_sos.GetMethodDescData(methodDesc, 0, out MethodDescData mdData))
                 return null;
 
-            ClrType? type = GetOrCreateRuntime().Heap.GetTypeByMethodTable(mdData.MethodTable);
+            ClrType? type = Runtime.Heap.GetTypeByMethodTable(mdData.MethodTable);
             if (type is null)
                 return null;
 
@@ -234,7 +245,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (!_sos.GetThreadData(addr, out ThreadData threadData))
                     break;
 
-                yield return new(helpers, GetOrCreateRuntime(), domainData.GetDomainByAddress(threadData.Domain), addr, threadData);
+                yield return new(helpers, Runtime, domainData.GetDomainByAddress(threadData.Domain), addr, threadData);
 
                 addr = threadData.NextThread;
             }
@@ -256,7 +267,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             JitManagerHelpers helpers = new(_sos, _sos13);
             foreach (JitManagerInfo jitMgr in _sos.GetJitManagers())
-                yield return new ClrJitManager(GetOrCreateRuntime(), jitMgr, helpers);
+                yield return new ClrJitManager(Runtime, jitMgr, helpers);
         }
 
         public IEnumerable<ClrHandle> EnumerateHandles()
@@ -265,7 +276,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // we loop below.  If we can fill the array without having to call back into
             // SOSHandleEnum.ReadHandles then we avoid that leak entirely.
             HandleData[] handles = new HandleData[0xc0000];
-            return EnumerateHandleTable(GetOrCreateRuntime(), handles);
+            return EnumerateHandleTable(Runtime, handles);
         }
 
         private IEnumerable<ClrHandle> EnumerateHandleTable(ClrRuntime runtime, HandleData[] handles)

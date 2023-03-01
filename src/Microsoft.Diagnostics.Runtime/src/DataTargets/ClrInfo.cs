@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Builders;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -423,16 +424,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (IntPtr.Size != DataTarget.DataReader.PointerSize)
                 throw new InvalidOperationException("Mismatched pointer size between this process and the dac.");
 
-            DacInterface.SOSDac? sos = dacLibrary.SOSDacInterface ?? throw new InvalidOperationException($"Could not create a ISOSDac pointer.");
-
-            var factory = new RuntimeBuilder(this, dacLibrary, sos);
-            if (Flavor == ClrFlavor.Core)
-                return factory.GetOrCreateRuntime();
-
-            if (Version.Major < 4 || (Version.Major == 4 && Version.Minor == 5 && Version.Revision < 10000))
-                throw new NotSupportedException($"CLR version '{Version}' is not supported by ClrMD.  For Desktop CLR, only CLR 4.6 and beyond are supported.");
-
-            return factory.GetOrCreateRuntime();
+            return new ClrRuntime(this, dacLibrary);
         }
 
         /// <summary>

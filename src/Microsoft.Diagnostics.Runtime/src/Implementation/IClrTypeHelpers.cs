@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Collections.Generic;
 using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -12,13 +13,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ClrHeap Heap { get; }
         IDataReader DataReader { get; }
 
-        /// <summary>
-        /// Gets the name for a type.
-        /// </summary>
-        /// <param name="mt">The MethodTable to request the name of.</param>
-        /// <param name="name">The name for that type, note that this has already had FixGenerics called on it.</param>
-        /// <returns>True if the value should be cached, false if the value should not be cached.  (This is controlled
-        /// by the user's string cache settings.</returns>
         bool TryGetTypeName(ulong mt, out string? name);
         ulong GetLoaderAllocatorHandle(ulong mt);
         ulong GetAssemblyLoadContextAddress(ulong mt);
@@ -32,5 +26,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         // TODO: Should not expose this:
         IObjectData? GetObjectData(ulong objRef);
         ClrMethod[] GetMethodsForType(ClrType type);
+        IEnumerable<ClrField> EnumerateFields(ClrType type);
     }
 }

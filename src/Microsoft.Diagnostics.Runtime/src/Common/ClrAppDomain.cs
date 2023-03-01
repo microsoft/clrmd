@@ -18,6 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ClrAppDomain(ClrRuntime runtime, IClrAppDomainHelpers helpers, ulong address, string? name, int id, ImmutableArray<ClrModule> modules)
         {
+            Runtime = runtime;
             _helpers = helpers;
             Address = address;
             Id = id;
@@ -43,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the name of the AppDomain, as specified when the domain was created.
         /// </summary>
-        public string Name { get; }
+        public string? Name { get; }
 
         /// <summary>
         /// Gets a list of modules loaded into this AppDomain.

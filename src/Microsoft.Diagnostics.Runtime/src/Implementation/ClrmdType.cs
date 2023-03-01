@@ -109,7 +109,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // If there are no methods, preempt the expensive work to create methods
             if (data.NumMethods == 0)
                 _methods = Array.AsReadOnly(Array.Empty<ClrMethod>());
-            
+
             DebugOnlyLoadLazyValues();
         }
 
@@ -323,34 +323,55 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             get
             {
-                if (!_fields.IsDefault)
+                if (_fields is not null)
                     return _fields;
-
-                if (Helpers.CreateFieldsForType(this, out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> statics))
+                if (Helpers.CacheOptions.CacheFields)
                 {
-                    _fields = fields;
-                    _statics = statics;
+                    CacheFields();
+
+                    if (_fields is not null)
+                        return _fields;
                 }
 
-                return fields;
+                return Array.AsReadOnly(Helpers.EnumerateFields(this).OfType<ClrInstanceField>().ToArray());
             }
         }
+    
 
         public override ReadOnlyCollection<ClrStaticField> StaticFields
         {
             get
             {
-                if (!_statics.IsDefault)
+                if (_statics is not null)
                     return _statics;
 
-                if (Helpers.CreateFieldsForType(this, out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> statics))
+                if (Helpers.CacheOptions.CacheFields)
                 {
-                    _fields = fields;
-                    _statics = statics;
+                    CacheFields();
+
+                    if (_statics is not null)
+                        return _statics;
                 }
 
-                return statics;
+                return Array.AsReadOnly(Helpers.EnumerateFields(this).OfType<ClrStaticField>().ToArray());
             }
+        }
+
+        private void CacheFields()
+        {
+            List<ClrInstanceField> fields = new();
+            List<ClrStaticField> staticFields = new();
+
+            foreach (ClrField field in Helpers.EnumerateFields(this))
+            {
+                if (field is ClrInstanceField instance)
+                    fields.Add(instance);
+                else if (field is ClrStaticField staticField)
+                    staticFields.Add(staticField);
+            }
+
+            _fields = fields.AsReadOnly();
+            _statics = staticFields.AsReadOnly();
         }
 
         public override ReadOnlyCollection<ClrMethod> Methods
