@@ -31,5 +31,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         // TODO: Should not expose this:
         IObjectData? GetObjectData(ulong objRef);
+        ClrMethod[] GetMethodsForType(ClrType type);
     }
 }

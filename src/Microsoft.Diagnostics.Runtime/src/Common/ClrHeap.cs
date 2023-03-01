@@ -740,6 +740,8 @@ namespace Microsoft.Diagnostics.Runtime
             return data;
         }
 
+        public ClrType? GetTypeByMethodTable(ulong methodTable) => _typeFactory.GetOrCreateType(methodTable, 0);
+
         class SubHeapData
         {
             public ImmutableArray<ClrSubHeap> SubHeaps { get; }

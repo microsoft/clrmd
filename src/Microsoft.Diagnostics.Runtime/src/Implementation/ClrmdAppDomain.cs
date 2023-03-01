@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ClrmdAppDomain : ClrAppDomain
     {
-        private readonly IAppDomainHelpers _helpers;
+        private readonly IClrAppDomainHelpers _helpers;
 
         public override ClrRuntime Runtime { get; }
         public override ulong Address { get; }
@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         /// <param name="runtime">The containing runtime.</param>
         /// <param name="helpers">Helpers for querying data</param>
         /// <param name="address">The address of the AppDomain</param>
-        public ClrmdAppDomain(ClrRuntime runtime, IAppDomainHelpers helpers, ulong address)
+        public ClrmdAppDomain(ClrRuntime runtime, IClrAppDomainHelpers helpers, ulong address)
         {
             if (runtime is null)
                 throw new ArgumentNullException(nameof(runtime));

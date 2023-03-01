@@ -12,7 +12,7 @@ using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class ClrTypeHelpers : IClrTypeHelpers, IClrFieldHelpers, IClrMethodHelpers
+    internal class ClrTypeHelpers : IClrTypeHelpers, IClrFieldHelpers
     {
         private readonly uint _firstChar = (uint)IntPtr.Size + 4;
         private readonly uint _stringLength = (uint)IntPtr.Size;
@@ -82,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!_sos.GetCCWData(data.CCW, out CcwData ccwData))
                 return null;
 
-            return new ComCallableWrapper(ccwData, GetComInterfaces(_sos.GetCCWInterfaces(data.CCW, ccwData.InterfaceCount)));
+            return new ComCallableWrapper(ccwData, GetComInterfaces(_sos.GetCCWInterfaces(data.CCW, ccwData.InterfaceCount) ?? Array.Empty<COMInterfacePointerData>()));
         }
 
         public RuntimeCallableWrapper? CreateRCWForObject(ulong obj)
@@ -103,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime
             return GetComInterfaces(ifs);
         }
 
-        private ImmutableArray<ComInterfaceData> GetComInterfaces(COMInterfacePointerData[]? ifs)
+        private ImmutableArray<ComInterfaceData> GetComInterfaces(COMInterfacePointerData[] ifs)
         {
             ImmutableArray<ComInterfaceData>.Builder result = ImmutableArray.CreateBuilder<ComInterfaceData>(ifs.Length);
             result.Count = result.Capacity;
@@ -184,7 +184,7 @@ namespace Microsoft.Diagnostics.Runtime
             for (uint i = 0; i < data.NumMethods; i++)
             {
                 if (builder.Init(_sos, mt, i))
-                    result[curr++] = new ClrmdMethod(type, builder, this);
+                    result[curr++] = new ClrmdMethod(type, builder, _methodHelpers);
             }
 
             if (curr < result.Length)

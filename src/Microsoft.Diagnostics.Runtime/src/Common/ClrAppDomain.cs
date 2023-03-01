@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
@@ -10,58 +12,69 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents an AppDomain in the target runtime.
     /// </summary>
-    public abstract class ClrAppDomain
+    public class ClrAppDomain
     {
+        private readonly IClrAppDomainHelpers _helpers;
+
+        public ClrAppDomain(ClrRuntime runtime, IClrAppDomainHelpers helpers, ulong address, string? name, int id, ImmutableArray<ClrModule> modules)
+        {
+            _helpers = helpers;
+            Address = address;
+            Id = id;
+            Name = name;
+            Modules = modules;
+        }
+
         /// <summary>
         /// Gets the runtime associated with this ClrAppDomain.
         /// </summary>
-        public abstract ClrRuntime Runtime { get; }
+        public ClrRuntime Runtime { get; }
 
         /// <summary>
         /// Gets address of the AppDomain.
         /// </summary>
-        public abstract ulong Address { get; }
+        public ulong Address { get; }
 
         /// <summary>
         /// Gets the AppDomain's ID.
         /// </summary>
-        public abstract int Id { get; }
+        public int Id { get; }
 
         /// <summary>
         /// Gets the name of the AppDomain, as specified when the domain was created.
         /// </summary>
-        public abstract string? Name { get; }
+        public string Name { get; }
 
         /// <summary>
         /// Gets a list of modules loaded into this AppDomain.
         /// </summary>
-        public abstract ImmutableArray<ClrModule> Modules { get; }
+        public ImmutableArray<ClrModule> Modules { get; }
 
         /// <summary>
         /// Gets the config file used for the AppDomain.  This may be <see langword="null"/> if there was no config file
         /// loaded, or if the targeted runtime does not support enumerating that data.
         /// </summary>
-        public abstract string? ConfigurationFile { get; }
+        public string? ConfigurationFile => _helpers.GetConfigFile(this);
 
         /// <summary>
         /// Gets the base directory for this AppDomain.  This may return <see langword="null"/> if the targeted runtime does
         /// not support enumerating this information.
         /// </summary>
-        public abstract string? ApplicationBase { get; }
+        public string? ApplicationBase => _helpers.GetApplicationBase(this);
 
         /// <summary>
         /// Returns the LoaderAllocator for this AppDomain.  This is used to debug some CLR internal state
         /// and isn't generally useful for most developers.  This field is only available when debugging
         /// .Net 8+ runtimes.
         /// </summary>
-        public abstract ulong LoaderAllocator { get; }
+        public ulong LoaderAllocator => _helpers.GetLoaderAllocator(this);
 
         /// <summary>
         /// Enumerates the native heaps associated with this AppDomain.  Note that this may also enumerate
         /// the same heaps as other domains if they share the same LoaderAllocator (especially SystemDomain).
         /// </summary>
         /// <returns>An enumerable of native heaps associated with this AppDomain.</returns>
-        public abstract IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorHeaps();
+        public IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorHeaps() => _helpers.EnumerateLoaderAllocatorHeaps();
 
         /// <summary>
         /// To string override.

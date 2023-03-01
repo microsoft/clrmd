@@ -6,7 +6,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal interface IThreadData
     {
-        IThreadHelpers Helpers { get; }
+        IClrThreadHelpers Helpers { get; }
         ulong Address { get; }
         bool IsFinalizer { get; }
         uint OSThreadID { get; }

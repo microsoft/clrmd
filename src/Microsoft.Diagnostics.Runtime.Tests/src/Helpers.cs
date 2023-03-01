@@ -92,7 +92,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public static ClrThread GetMainThread(this ClrRuntime runtime)
         {
-            ClrThread thread = runtime.Threads.Single(t => !t.IsBackground);
+            ClrThread thread = runtime.Threads.Single(t => (t.State & ClrThreadState.TS_Background) == 0);
             return thread;
         }
 
