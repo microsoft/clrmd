@@ -80,10 +80,7 @@ namespace Microsoft.Diagnostics.Runtime
             where T : unmanaged
         {
             ClrType type = GetTypeOrThrow();
-            ClrInstanceField? field = type.GetFieldByName(fieldName);
-            if (field is null)
-                throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
-
+            ClrInstanceField field = type.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
             object value = field.Read<T>(Address, _interior);
             return (T)value;
         }
@@ -95,9 +92,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrValueType ReadValueTypeField(string fieldName)
         {
             ClrType type = GetTypeOrThrow();
-            ClrInstanceField? field = type.GetFieldByName(fieldName);
-            if (field is null)
-                throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
+            ClrInstanceField? field = type.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
 
             if (!field.IsValueType)
                 throw new ArgumentException($"Field '{type.Name}.{fieldName}' is not a ValueClass.");
@@ -136,10 +131,7 @@ namespace Microsoft.Diagnostics.Runtime
         private ulong GetFieldAddress(string fieldName, ClrElementType element, string typeName)
         {
             ClrType type = GetTypeOrThrow();
-            ClrInstanceField? field = type.GetFieldByName(fieldName);
-            if (field is null)
-                throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
-
+            ClrInstanceField field = type.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
             if (field.ElementType != element)
                 throw new InvalidOperationException($"Field '{type.Name}.{fieldName}' is not of type '{typeName}'.");
 

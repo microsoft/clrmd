@@ -7,7 +7,6 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 
-#pragma warning disable CA2000 // Dispose objects before losing scope
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
     internal sealed class CachedMemoryReader : MinidumpMemoryReader
@@ -47,7 +46,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             if (CacheTechnology == CacheTechnology.AWE)
             {
-                CacheNativeMethods.Util.SYSTEM_INFO sysInfo = new CacheNativeMethods.Util.SYSTEM_INFO();
+                CacheNativeMethods.Util.SYSTEM_INFO sysInfo = new CacheNa
+                    tiveMethods.Util.SYSTEM_INFO();
                 CacheNativeMethods.Util.GetSystemInfo(ref sysInfo);
 
                 // The AWE cache allocates on VirtualAlloc sized pages, which are 64k, if the majority of heap segments in the dump are < 64k this can be wasteful

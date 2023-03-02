@@ -11,7 +11,6 @@ using System.Threading;
 // TODO:  This code wasn't written to consider nullable.
 #nullable disable
 
-#pragma warning disable CA1810 // Initialize reference type static fields inline
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
     /// <summary>
@@ -30,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         static AWEBasedCacheEntry()
         {
-            CacheNativeMethods.Util.SYSTEM_INFO sysInfo = new CacheNativeMethods.Util.SYSTEM_INFO();
+            CacheNativeMethods.Util.SYSTEM_INFO sysInfo = new();
             CacheNativeMethods.Util.GetSystemInfo(ref sysInfo);
 
             AWEBasedCacheEntry.VirtualAllocPageSize = sysInfo.dwAllocationGranularity;

@@ -80,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             int frameLen = FrameName?.Length ?? 0;
-            StringBuilder sb = new StringBuilder(frameLen + methodLen + methodTypeLen + 10);
+            StringBuilder sb = new(frameLen + methodLen + methodTypeLen + 10);
 
             sb.Append('[');
             sb.Append(FrameName);

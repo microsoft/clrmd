@@ -4,7 +4,6 @@
 
 using System.Runtime.InteropServices;
 
-#pragma warning disable CA1823
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>

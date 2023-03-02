@@ -195,11 +195,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return null;
 
                 ClrType? result = module != null ? GetOrCreateTypeFromToken(module, token) : null;
-                if (result == null)
-                {
-                    // todo, create a type from metadata instead of returning a basic type?
-                    result = GetOrCreateBasicType(etype);
-                }
+                result ??= GetOrCreateBasicType(etype);
 
                 return result;
             }
@@ -273,7 +269,6 @@ namespace Microsoft.Diagnostics.Runtime
                 return null;
 
             IEnumerable<(ulong MethodTable, int Token)> tokenMap;
-            (ulong MethodTable, int Token)[] map;
             if ((token & mdtTypeDef) != 0)
                 tokenMap = module.EnumerateTypeDefToMethodTableMap();
             else if ((token & mdtTypeRef) != 0)
