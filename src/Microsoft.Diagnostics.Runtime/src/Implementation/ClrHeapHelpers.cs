@@ -23,7 +23,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly GCInfo _gcInfo;
 
         public bool IsServerMode => _gcInfo.ServerMode != 0;
+
         public bool AreGCStructuresValid => _gcInfo.GCStructuresValid != 0;
+
         public ulong SizeOfPlugAndGap { get; }
 
         public ClrHeapHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, SOSDac12? sos12, IMemoryReader reader, CacheOptions cacheOptions)

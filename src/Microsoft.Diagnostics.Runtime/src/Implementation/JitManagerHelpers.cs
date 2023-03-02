@@ -5,11 +5,6 @@ using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    // Helpers to evaluate lazy fields.
-    public interface IJitManagerHelpers
-    {
-        IEnumerable<ClrNativeHeapInfo> EnumerateNativeHeaps(ClrJitManager clrJitManager);
-    }
 
     internal sealed class JitManagerHelpers : IJitManagerHelpers
     {

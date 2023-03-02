@@ -8,23 +8,6 @@ using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal interface IClrTypeFactory
-    {
-        ClrType FreeType { get; }
-        ClrType StringType { get; }
-        ClrType ObjectType { get; }
-        ClrType ExceptionType { get; }
-
-        string? GetTypeName(ulong mt);
-        ClrType? TryGetType(ulong mt);
-        ClrType? GetOrCreateType(ulong mt, ulong obj);
-        ClrType GetOrCreateBasicType(ClrElementType basicType);
-        ClrType? GetOrCreateArrayType(ClrType inner, int ranks);
-        ClrType? GetOrCreateTypeFromToken(ClrModule module, int token);
-        ClrType? GetOrCreateTypeFromSignature(ClrModule? module, SigParser parser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters);
-        ClrType? GetOrCreatePointerType(ClrType innerType, int depth);
-    }
-
     internal class ClrTypeFactory : IClrTypeFactory
     {
         private const int mdtTypeDef = 0x02000000;
@@ -278,6 +261,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         }
 
         public ClrType? GetOrCreateArrayType(ClrType innerType, int ranks) => innerType != null ? new ClrConstructedType(innerType, ranks, pointer: false) : null;
+
         public ClrType? GetOrCreatePointerType(ClrType innerType, int depth) => innerType != null ? new ClrConstructedType(innerType, depth, pointer: true) : null;
 
         private ClrType? TryGetComponentType(ulong obj)
