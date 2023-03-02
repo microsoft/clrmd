@@ -258,11 +258,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             // Account for different platform stack direction.
             if (low > high)
-            {
-                ulong tmp = low;
-                low = high;
-                high = tmp;
-            }
+                (high, low) = (low, high);
 
             foreach (IClrRoot localVarRoot in localVarRoots)
                 Assert.True(low <= localVarRoot.Address && localVarRoot.Address <= high);
@@ -505,7 +501,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             TestFieldNameAndValue(fooType, obj, "d", 8.4);
         }
 
-        public ClrInstanceField TestFieldNameAndValue(ClrType type, ulong obj, string name, string value)
+        public static ClrInstanceField TestFieldNameAndValue(ClrType type, ulong obj, string name, string value)
         {
             ClrInstanceField field = type.GetFieldByName(name);
             Assert.NotNull(field);
@@ -517,7 +513,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return field;
         }
 
-        public ClrInstanceField TestFieldNameAndValue<T>(ClrType type, ulong obj, string name, T value)
+        public static ClrInstanceField TestFieldNameAndValue<T>(ClrType type, ulong obj, string name, T value)
             where T : unmanaged
         {
             ClrInstanceField field = type.GetFieldByName(name);
@@ -577,7 +573,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [WindowsFact]
         public void CollectibleTypeTest()
         {
-            CollectibleAssemblyLoadContext context = new CollectibleAssemblyLoadContext();
+            CollectibleAssemblyLoadContext context = new();
 
             RuntimeHelpers.RunClassConstructor(context.LoadFromAssemblyPath(Assembly.GetExecutingAssembly().Location)
                 .GetType(typeof(CollectibleUnmanagedStruct).FullName).TypeHandle);
@@ -585,7 +581,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             RuntimeHelpers.RunClassConstructor(Assembly.GetExecutingAssembly()
                 .GetType(typeof(UncollectibleUnmanagedStruct).FullName).TypeHandle);
 
-            using DataTarget dataTarget = DataTarget.CreateSnapshotAndAttach(Process.GetCurrentProcess().Id);
+            using DataTarget dataTarget = DataTarget.CreateSnapshotAndAttach(Environment.ProcessId);
 
             ClrHeap heap = dataTarget.ClrVersions.Single(v => v.ModuleInfo.FileName.EndsWith("coreclr.dll", true, null)).CreateRuntime().Heap;
 
@@ -731,7 +727,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ClrType arrayType = heap.GetObjectType(s_array);
 
-            List<ulong> objs = new List<ulong>();
+            List<ulong> objs = new();
             ClrObject obj = heap.GetObject(s_array);
             objs.AddRange(obj.EnumerateReferences().Select(o => o.Address));
 

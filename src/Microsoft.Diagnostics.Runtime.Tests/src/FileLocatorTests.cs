@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static readonly int WellKnownDacImageSize = 0x006a8000;
 
         public static readonly string WellKnownNativePdb = "clr.pdb";
-        public static readonly Guid WellKnownNativePdbGuid = new Guid("0350aa66-2d49-4425-ab28-9b43a749638d");
+        public static readonly Guid WellKnownNativePdbGuid = new("0350aa66-2d49-4425-ab28-9b43a749638d");
         public static readonly int WellKnownNativePdbAge = 2;
 
         internal static IFileLocator GetLocator()
