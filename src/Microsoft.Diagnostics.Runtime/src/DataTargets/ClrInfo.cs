@@ -445,7 +445,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 DataTarget.PlatformFunctions.GetFileVersion(dacPath, out int major, out int minor, out int revision, out int patch);
                 if (major != Version.Major || minor != Version.Minor || revision != Version.Build || patch != Version.Revision)
-                    throw new InvalidOperationException($"Mismatched dac. Dac version: {major}.{minor}.{revision}.{patch}, expected: {Version}.");
+                    throw new ClrDiagnosticsException($"Mismatched dac. Dac version: {major}.{minor}.{revision}.{patch}, expected: {Version}.");
             }
 
             DacLibrary dacLibrary = new DacLibrary(DataTarget, dacPath, ModuleInfo.ImageBase);
