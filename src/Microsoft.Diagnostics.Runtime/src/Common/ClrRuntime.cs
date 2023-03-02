@@ -238,8 +238,8 @@ namespace Microsoft.Diagnostics.Runtime
         {
             _appDomainData = null;
             _threads = default;
-            _helpers.Flush();
             _heap = null;
+            _helpers.Flush();
         }
 
         /// <summary>
@@ -256,6 +256,7 @@ namespace Microsoft.Diagnostics.Runtime
         public void Dispose()
         {
             FlushCachedData();
+            _helpers.Dispose();
         }
     }
 }

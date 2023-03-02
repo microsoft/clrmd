@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal interface IClrRuntimeHelpers
+    internal interface IClrRuntimeHelpers : IDisposable
     {
         void Flush();
         IEnumerable<ClrThread> EnumerateThreads();
@@ -83,6 +83,18 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             if (!_sos.GetThreadStoreData(out _threadStore))
                 throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data.    Failed to request ThreadStoreData.");
+        }
+
+        public void Dispose()
+        {
+            Flush();
+            _dac.Dispose();
+            _sos.Dispose();
+            _sos6?.Dispose();
+            _sos8?.Dispose();
+            _sos12?.Dispose();
+            _sos13?.Dispose();
+            _library.Dispose();
         }
 
         public ClrHeap CreateHeap()
