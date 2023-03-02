@@ -62,7 +62,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 long position = stream.Position;
                 LoadCommandHeader loadCommand = new LoadCommandHeader();
                 stream.Read(new Span<byte>(&loadCommand, sizeof(LoadCommandHeader)));
-                
+
                 long next = position + loadCommand.Size;
 
                 switch (loadCommand.Kind)
@@ -94,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                             segments.Add(new MachOSegment(seg));
                         }
                         break;
-                    
+
                     case LoadCommandType.Thread:
                         thread_state_t threadState = default;
                         uint flavor = Read<uint>(stream);
@@ -152,7 +152,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             Threads = threadContexts.ToImmutableDictionary();
         }
 
-        private static T Read<T>(Stream stream) where T: unmanaged
+        private static T Read<T>(Stream stream) where T : unmanaged
         {
             T value;
             stream.Read(new Span<byte>(&value, sizeof(T)));
@@ -173,7 +173,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         }
 
         public T ReadMemory<T>(ulong address)
-            where T: unmanaged
+            where T : unmanaged
         {
             T t = default;
 
@@ -204,7 +204,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                     int count = _stream.Read(buffer.Slice(0, len));
                     if (count == 0)
                         break;
-                    
+
                     read += count;
                     address += (uint)count;
                     buffer = buffer.Slice(count);

@@ -523,7 +523,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (considerDependantHandles)
             {
                 var dependent = GetDependentHandles();
-                
+
                 if (dependent.Length > 0)
                 {
                     int index = dependent.Search(obj, (x, y) => x.Source.CompareTo(y));
@@ -573,7 +573,7 @@ namespace Microsoft.Diagnostics.Runtime
                         foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
                             yield return new(reference, GetObjectType(reference));
                     }
-                    
+
                     ArrayPool<byte>.Shared.Return(buffer);
                 }
             }
@@ -944,7 +944,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 handles = new HandleData[256];
             }
-            
+
             int fetched;
             while ((fetched = handleEnum.ReadHandles(handles)) != 0)
             {

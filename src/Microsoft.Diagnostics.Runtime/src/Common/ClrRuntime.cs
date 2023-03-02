@@ -6,8 +6,6 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Collections.ObjectModel;
-using System.Linq;
 using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime

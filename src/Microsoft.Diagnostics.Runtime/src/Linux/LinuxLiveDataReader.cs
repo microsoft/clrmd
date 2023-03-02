@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -10,8 +12,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
-using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -71,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     // no point in handling errors here as the user can do nothing with them
                     // also if Dispose is called from the finalizer we could crash the process
-                    var status = (int)ptrace(PTRACE_DETACH, (int) tid, IntPtr.Zero, IntPtr.Zero);
+                    var status = (int)ptrace(PTRACE_DETACH, (int)tid, IntPtr.Zero, IntPtr.Zero);
                 }
                 _suspended = false;
             }

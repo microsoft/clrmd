@@ -2,11 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -67,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the address of the <c>AssemblyLoadContext</c> object.
         /// </summary>
         public virtual ulong AssemblyLoadContextAddress => 0;
-        
+
         /// <summary>
         /// Gets the <see cref="ClrHeap"/> this type belongs to.
         /// </summary>
@@ -231,7 +231,7 @@ namespace Microsoft.Diagnostics.Runtime
                     _methods = methods;
 
                 return methods;
-                    
+
             }
         }
 

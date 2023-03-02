@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return GetProperties(ptr);
             }
         }
-        private (int TimeStamp, int FileSize) GetProperties(byte *ptr)
+        private (int TimeStamp, int FileSize) GetProperties(byte* ptr)
         {
             if (ptr[0] < 2 * sizeof(int))
                 return (0, 0);
@@ -95,7 +95,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
 
-        private ImmutableArray<byte> GetBuildId(byte *ptr)
+        private ImmutableArray<byte> GetBuildId(byte* ptr)
         {
             Span<byte> buffer = new Span<byte>(ptr + 1, ptr[0]);
             return buffer.ToArray().ToImmutableArray();

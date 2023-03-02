@@ -2,17 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Threading;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using Microsoft.Diagnostics.Runtime.DbgEng;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading;
 
 #pragma warning disable CA2213 // Disposable fields should be disposed
 
@@ -184,7 +183,7 @@ namespace Microsoft.Diagnostics.Runtime
                 for (int i = 0; i < bases.Length; ++i)
                 {
                     string? fn = _symbols.GetModuleNameStringWide(DebugModuleName.Image, i, bases[i]) ?? "";
-                    
+
                     ModuleInfo info = new PEModuleInfo(this, bases[i], fn, true, mods[i].Size, mods[i].TimeDateStamp, GetVersionInfo(bases[i]));
                     modules.Add(info);
                 }

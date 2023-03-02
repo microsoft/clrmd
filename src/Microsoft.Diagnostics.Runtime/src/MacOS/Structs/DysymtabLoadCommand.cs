@@ -1,5 +1,4 @@
-﻿using Microsoft.Diagnostics.Runtime.MacOS;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS.Structs
 {

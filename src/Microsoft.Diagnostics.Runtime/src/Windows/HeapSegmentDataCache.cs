@@ -93,8 +93,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     _cacheLock.ExitReadLock();
             }
 
-            if(res)
-            { 
+            if (res)
+            {
                 entry?.UpdateLastAccessTimstamp();
             }
 
@@ -235,7 +235,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             bool acquiredReadLock = false;
 
             if (!_cacheIsComplete)
-            { 
+            {
                 _cacheLock.EnterReadLock();
                 acquiredReadLock = true;
             }

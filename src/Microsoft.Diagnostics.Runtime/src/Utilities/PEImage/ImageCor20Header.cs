@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public ImageDataDirectory StrongNameSignature;
 
         public ImageDataDirectory CodeManagerTable; // Depricated, not used
-                                                      // Used for manged codee that has unmaanaged code inside it (or exports methods as unmanaged entry points)
+                                                    // Used for manged codee that has unmaanaged code inside it (or exports methods as unmanaged entry points)
         public ImageDataDirectory VTableFixups;
         public ImageDataDirectory ExportAddressTableJumps;
 

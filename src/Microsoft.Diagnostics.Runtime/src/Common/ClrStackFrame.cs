@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the stack pointer of this frame.
         /// </summary>
-        public  ulong StackPointer { get; }
+        public ulong StackPointer { get; }
 
         /// <summary>
         /// Gets the type of frame (managed or internal).

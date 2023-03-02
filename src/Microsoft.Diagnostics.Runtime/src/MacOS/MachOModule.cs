@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         }
 
         public MachOModule(MachOCoreDump parent, ulong address, string path)
-            :this(parent, parent.Parent, parent.ReadMemory<MachHeader64>(address), address, path)
+            : this(parent, parent.Parent, parent.ReadMemory<MachHeader64>(address), address, path)
         {
         }
 
@@ -193,7 +193,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             foreach (var seg in _segments)
                 if (seg.FileOffset <= fileOffset && fileOffset < seg.FileOffset + seg.FileSize)
                     return LoadBias + fileOffset + seg.Address - seg.FileOffset;
-            
+
             return LoadBias + fileOffset;
         }
 

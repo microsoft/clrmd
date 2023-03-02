@@ -53,12 +53,12 @@ namespace Microsoft.Diagnostics.Runtime
 
         public int Index { get; }
 
-        public bool HasPinnedObjectHeap { get;  }
+        public bool HasPinnedObjectHeap { get; }
         public bool HasRegions { get; }
         public bool HasBackgroundGC { get; }
 
         public ulong Address { get; }
-        
+
         public ulong Allocated { get; }
         public ulong MarkArray { get; }
 

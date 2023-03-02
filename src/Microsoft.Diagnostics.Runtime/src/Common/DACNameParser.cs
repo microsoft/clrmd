@@ -32,10 +32,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         [return: NotNullIfNotNull("name")]
         public static string? Parse(string? name)
         {
-            if(name == null)
+            if (name == null)
                 return null;
 
-            if(name.Length == 0)
+            if (name.Length == 0)
                 return name;
 
             try
@@ -278,7 +278,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
         private static (ParsingState State, int CurrentPosition) ResolveParsedGenericList(string name, int currentPosition, int parsingGenericArgListDepth, List<TypeNameSegment>? nameSegments, List<TypeNameSegment>? genericArgs)
         {
-            if(genericArgs == null)
+            if (genericArgs == null)
             {
                 return (ParsingState.Error, currentPosition);
             }
@@ -350,7 +350,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
             // back into the top level type list, so find the appropriate type entry in that list and propagate args back to it to fulfill missing generics.
             if (!propagatedTypesToGenericArgs || (parsingGenericArgListDepth == 0))
             {
-                if(nameSegments == null)
+                if (nameSegments == null)
                 {
                     Debug.Fail("Ended resolving generic arg list but no top-level types to propagate them to.");
                     return (ParsingState.Error, currentPosition);
@@ -360,9 +360,9 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 // generic with a nested generic (so WeakKeyDictionary<T1,T2>+<WeakReference<T1>), unlike the special casing for such a situation we need to do while fixing up 
                 // the generic args list.
                 int targetSegmentIndex = -1;
-                for(int i = 0; i < nameSegments.Count; i++)
+                for (int i = 0; i < nameSegments.Count; i++)
                 {
-                    if(nameSegments[i].HasUnfulfilledGenericArgs)
+                    if (nameSegments[i].HasUnfulfilledGenericArgs)
                     {
                         targetSegmentIndex = i;
                         break;
@@ -724,7 +724,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 // name segment', we just pile them all into the original TypeNameSegment and differentiate when we are printing
                 // out the names at the end (to either print [,] or [][]).
 
-                if(_arrayDimensions == 0)
+                if (_arrayDimensions == 0)
                     _arrayDimensions = dimensions;
                 else
                     _arrayOfArraysCount++;
@@ -781,10 +781,10 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 }
 
                 // See comment in SetArrayDimensions on what this is :)
-                if(_arrayOfArraysCount != 0)
+                if (_arrayOfArraysCount != 0)
                 {
                     destination.Append("[]");
-                    for(int i = 0; i < _arrayOfArraysCount; i++)
+                    for (int i = 0; i < _arrayOfArraysCount; i++)
                         destination.Append("[]");
                 }
                 else if (_arrayDimensions != 0)

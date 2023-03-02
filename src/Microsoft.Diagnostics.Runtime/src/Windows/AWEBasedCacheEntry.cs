@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private readonly static int SystemPageSize = Environment.SystemPageSize;
 
         private UIntPtr _pageFrameArray;
-        private int _pageFrameArrayItemCount;
+        private readonly int _pageFrameArrayItemCount;
 
         static AWEBasedCacheEntry()
         {
@@ -188,7 +188,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     numberOfPages,
                     new UIntPtr((ulong)_pageFrameArray + (startingMemoryPageNumber * (ulong)UIntPtr.Size))
                 );
-                
+
                 if (!mapPhysicalPagesResult)
                     throw new Win32Exception(Marshal.GetLastWin32Error());
 

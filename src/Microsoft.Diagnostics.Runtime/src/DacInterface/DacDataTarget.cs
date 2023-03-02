@@ -2,13 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.DbgEng;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
-using Microsoft.Diagnostics.Runtime.DbgEng;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public IMAGE_FILE_MACHINE MachineType
         {
-            get =>_dataReader.Architecture switch
+            get => _dataReader.Architecture switch
             {
                 Architecture.X64 => IMAGE_FILE_MACHINE.AMD64,
                 Architecture.X86 => IMAGE_FILE_MACHINE.I386,

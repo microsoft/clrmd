@@ -123,10 +123,10 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             internal enum HeapFlags : uint
             {
-                None               = 0x00000000,
-                NoSerialize        = 0x00000001,
+                None = 0x00000000,
+                NoSerialize = 0x00000001,
                 GenerateExceptions = 0x00000004,
-                ZeroMemory         = 0x00000008
+                ZeroMemory = 0x00000008
             }
 
             internal static UIntPtr HeapAlloc(uint bytesRequested)

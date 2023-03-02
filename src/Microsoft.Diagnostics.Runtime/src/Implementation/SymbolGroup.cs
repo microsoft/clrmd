@@ -90,7 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             bool first = false;
             SymbolServer? single = null;
-            
+
             foreach ((string? Cache, string[] Servers) in symbolPath.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(EnumerateEntries))
             {
                 if (Servers.Length == 0)
@@ -163,7 +163,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (split.Length < 3)
                     return (null, new string[] { part });
 
-                split = new string[] {"srv"}.Concat(split.Skip(2)).ToArray();                
+                split = new string[] { "srv" }.Concat(split.Skip(2)).ToArray();
             }
 
 

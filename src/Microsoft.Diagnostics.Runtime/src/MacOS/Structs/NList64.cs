@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Microsoft.Diagnostics.Runtime.MacOS.Structs
+﻿namespace Microsoft.Diagnostics.Runtime.MacOS.Structs
 {
     readonly struct NList64
     {

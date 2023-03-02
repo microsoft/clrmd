@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public ulong SymbolTableVA { get; }
 
-        public ElfSymbolTable? SymbolTable {get; }
+        public ElfSymbolTable? SymbolTable { get; }
 
         public bool TryLookupSymbol(string symbolName, out ElfSymbol? symbol)
         {

@@ -3,9 +3,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -77,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public string? GetTypeName(ulong mt) => DACNameParser.Parse( _sos.GetMethodTableName(mt));
+        public string? GetTypeName(ulong mt) => DACNameParser.Parse(_sos.GetMethodTableName(mt));
 
         public ClrType ObjectType => _objectType;
 
@@ -141,7 +139,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             return result;
         }
-        
+
         public ClrType? TryGetType(ulong mt)
         {
             lock (_types)
@@ -276,7 +274,7 @@ namespace Microsoft.Diagnostics.Runtime
             else
                 return null;
 
-            ulong mt = tokenMap.FirstOrDefault(r => r.Token == token ).MethodTable;
+            ulong mt = tokenMap.FirstOrDefault(r => r.Token == token).MethodTable;
 
             return GetOrCreateType(mt, 0);
         }

@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (SharedDomain is not null && SharedDomain.Address == address)
                 return SharedDomain;
 
-            return AppDomains.FirstOrDefault(x =>  x.Address == address);
+            return AppDomains.FirstOrDefault(x => x.Address == address);
         }
     }
 

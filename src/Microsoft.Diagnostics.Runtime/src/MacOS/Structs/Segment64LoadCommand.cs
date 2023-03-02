@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS.Structs
@@ -25,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS.Structs
         {
             get
             {
-                fixed (byte *ptr = SegName)
+                fixed (byte* ptr = SegName)
                     return Encoding.ASCII.GetString(ptr, 16).TrimEnd((char)0);
             }
         }

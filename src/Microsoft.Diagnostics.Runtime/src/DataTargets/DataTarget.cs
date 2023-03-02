@@ -14,7 +14,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -238,7 +237,7 @@ namespace Microsoft.Diagnostics.Runtime
                     _ => throw new InvalidDataException($"Stream '{displayName}' is in an unknown or unsupported file format."),
                 };
 
-                return new DataTarget(new CustomDataTarget(reader) {CacheOptions = cacheOptions});
+                return new DataTarget(new CustomDataTarget(reader) { CacheOptions = cacheOptions });
             }
             catch
             {

@@ -42,7 +42,7 @@
         public override string ToString()
         {
             if (Size is ulong size)
-                return $"[{Address:x},{Address+size:x}] - {Kind}";
+                return $"[{Address:x},{Address + size:x}] - {Kind}";
 
             return $"{Address:x} - {Kind}";
         }
