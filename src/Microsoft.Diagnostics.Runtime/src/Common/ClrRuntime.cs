@@ -239,6 +239,7 @@ namespace Microsoft.Diagnostics.Runtime
             _appDomainData = null;
             _threads = default;
             _helpers.Flush();
+            _heap = null;
         }
 
         /// <summary>
