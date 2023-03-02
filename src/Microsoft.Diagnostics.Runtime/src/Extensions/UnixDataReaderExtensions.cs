@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime
     internal static class UnixDataReaderExtensions
     {
 
-        [return: NotNullIfNotNull("version")]
+        [return: NotNullIfNotNull(nameof(version))]
         internal static bool GetVersionInfo(this IDataReader dataReader, ulong baseAddress, ElfFile loadedFile, out System.Version? version)
         {
             foreach (ElfProgramHeader programHeader in loadedFile.ProgramHeaders)
@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        [return: NotNullIfNotNull("version")]
+        [return: NotNullIfNotNull(nameof(version))]
         internal static bool GetVersionInfo(this IDataReader dataReader, ulong startAddress, ulong size, out System.Version? version)
         {
             // (int)size underflow will result in returning 0 here, so this is acceptable

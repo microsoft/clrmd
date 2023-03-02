@@ -300,9 +300,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         {
             if (_threadActs.Count == 0)
             {
-                uint* threads;
-                uint threadsCount;
-                int kr = Native.task_threads(_task, &threads, out threadsCount);
+                uint* threads = null;
+                int kr = Native.task_threads(_task, &threads, out uint threadsCount);
                 if (kr != 0)
                     throw new ClrDiagnosticsException($"task_threads failed with status code 0x{kr:x}");
 

@@ -64,16 +64,16 @@ namespace Microsoft.Diagnostics.Runtime
 
                         if (dacTargetPlatform is not null)
                         {
-                            var dacProp = info.DacPEProperties;
-                            if (dacProp.TimeStamp != 0 && dacProp.FileSize != 0)
-                                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, SymbolProperties.Self, dacProp.FileSize, dacProp.TimeStamp));
+                            (int timeStamp, int fileSize) = info.DacPEProperties;
+                            if (timeStamp != 0 && fileSize != 0)
+                                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, SymbolProperties.Self, fileSize, timeStamp));
                         }
 
                         if (dbiTargetPlatform is not null)
                         {
-                            var dbiProp = info.DbiPEProperties;
-                            if (dbiProp.TimeStamp != 0 && dbiProp.FileSize != 0)
-                                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, SymbolProperties.Self, dbiProp.FileSize, dbiProp.TimeStamp));
+                            (int timeStamp, int fileSize) = info.DbiPEProperties;
+                            if (timeStamp != 0 && fileSize != 0)
+                                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, SymbolProperties.Self, fileSize, timeStamp));
                         }
                     }
                     else
@@ -237,7 +237,7 @@ namespace Microsoft.Diagnostics.Runtime
             DebuggingLibraries = ordered.ToImmutableArray();
         }
 
-        private IEnumerable<DebugLibraryInfo> EnumerateUnique(List<DebugLibraryInfo> artifacts)
+        private static IEnumerable<DebugLibraryInfo> EnumerateUnique(List<DebugLibraryInfo> artifacts)
         {
             HashSet<DebugLibraryInfo> seen = new();
 
@@ -508,9 +508,7 @@ namespace Microsoft.Diagnostics.Runtime
                     }
                     catch (Exception ex)
                     {
-                        if (exception is null)
-                            exception = ex;
-
+                        exception ??= ex;
                         dacPath = null;
                     }
                 }
@@ -543,14 +541,6 @@ namespace Microsoft.Diagnostics.Runtime
         private void ThrowCrossDebugError(OSPlatform current)
         {
             throw new InvalidOperationException($"Debugging a '{DataTarget.DataReader.TargetPlatform}' crash is not supported on '{current}'.");
-        }
-
-        private static T Read<T>(IDataReader reader, ref ulong address)
-            where T : unmanaged
-        {
-            T t = reader.Read<T>(address);
-            address += (uint)Marshal.SizeOf<T>();
-            return t;
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]

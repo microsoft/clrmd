@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
         private const char GenericArgListOrArrayStartSpecifier = '[';
         private const char GenericArgListOrArrayEndSpecifier = ']';
 
-        [return: NotNullIfNotNull("name")]
+        [return: NotNullIfNotNull(nameof(name))]
         public static string? Parse(string? name)
         {
             if (name == null)
@@ -62,14 +62,12 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 // Local helper methods to help minimize code duplication
                 void EnsureNameSegmentList()
                 {
-                    if (nameSegments == null)
-                        nameSegments = new List<TypeNameSegment>();
+                    nameSegments ??= new List<TypeNameSegment>();
                 }
 
                 void EnsureGenericArgList()
                 {
-                    if (genericArgs == null)
-                        genericArgs = new List<TypeNameSegment>();
+                    genericArgs ??= new List<TypeNameSegment>();
                 }
 
                 int curPos = 0;
@@ -742,9 +740,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 if (_expectedGenericArgCount == 0)
                     return;
 
-                if (_typeArgSegments == null)
-                    _typeArgSegments = new TypeNameSegment[_expectedGenericArgCount];
-
+                _typeArgSegments ??= new TypeNameSegment[_expectedGenericArgCount];
                 _typeArgSegments[_nextUnfulfilledGenericArgSlot++] = arg;
             }
 
@@ -775,10 +771,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                     OutputTypeArguments(destination, _nextUnfulfilledGenericArgSlot, _expectedGenericArgCount, _typeArgSegments);
                 }
 
-                if (_nestedClass != null)
-                {
-                    _nestedClass[0].ToString(destination);
-                }
+                _nestedClass?[0].ToString(destination);
 
                 // See comment in SetArrayDimensions on what this is :)
                 if (_arrayOfArraysCount != 0)

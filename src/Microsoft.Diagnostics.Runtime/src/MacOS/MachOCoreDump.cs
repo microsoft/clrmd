@@ -242,10 +242,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             if (_modules != null)
                 return _modules;
 
-            if (_dylinker == null)
-            {
-                _dylinker = FindDylinker(firstPass: true) ?? FindDylinker(firstPass: false);
-            }
+            _dylinker ??= FindDylinker(firstPass: true) ?? FindDylinker(firstPass: false);
 
             if (_dylinker != null && _dylinker.TryLookupSymbol("dyld_all_image_infos", out ulong dyld_allImage_address))
             {

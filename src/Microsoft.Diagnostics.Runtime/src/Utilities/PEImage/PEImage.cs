@@ -637,8 +637,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         internal unsafe T Read<T>(ref int offset) where T : unmanaged
         {
-            T t = default;
-            TryRead(ref offset, out t);
+            TryRead(ref offset, out T t);
             return t;
         }
 

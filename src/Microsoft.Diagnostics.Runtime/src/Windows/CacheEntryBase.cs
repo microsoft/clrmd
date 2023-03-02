@@ -366,10 +366,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 byte* pDataEnd = ((byte*)data + inPageOffset + availableDataOnPage);
 
                 byte* pDataCur = (pDataEnd - leftoverByteCount);
-                if (trailingBytes == null)
-                {
-                    trailingBytes = new List<byte>((int)leftoverByteCount);
-                }
+                trailingBytes ??= new List<byte>((int)leftoverByteCount);
 
                 while (pDataCur != pDataEnd)
                 {

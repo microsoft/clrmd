@@ -7,7 +7,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents a range of memory in the target process.
     /// </summary>
-    public struct MemoryRange
+    public readonly struct MemoryRange
     {
         /// <summary>
         /// Creates a memory range from an address and its length.

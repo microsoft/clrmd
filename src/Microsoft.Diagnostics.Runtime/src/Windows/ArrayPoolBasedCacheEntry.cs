@@ -32,18 +32,18 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             ThrowIfDisposed();
 
-            var data = TryRemoveAllPagesFromCache(disposeLocks: false);
+            (ulong dataRemoved, uint _) = TryRemoveAllPagesFromCache(disposeLocks: false);
 
             int oldCurrent;
             int newCurrent;
             do
             {
                 oldCurrent = _entrySize;
-                newCurrent = Math.Max(MinSize, oldCurrent - (int)data.DataRemoved);
+                newCurrent = Math.Max(MinSize, oldCurrent - (int)dataRemoved);
             }
             while (Interlocked.CompareExchange(ref _entrySize, newCurrent, oldCurrent) != oldCurrent);
 
-            return (long)data.DataRemoved;
+            return (long)dataRemoved;
         }
 
         protected override uint EntryPageSize => SystemPageSize;

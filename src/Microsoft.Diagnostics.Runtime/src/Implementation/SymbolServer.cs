@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        private bool IsSymweb(string server)
+        private static bool IsSymweb(string server)
         {
             try
             {

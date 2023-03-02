@@ -53,10 +53,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrObject ReadObjectField(string fieldName)
         {
             ClrType type = GetTypeOrThrow();
-            ClrInstanceField? field = type.GetFieldByName(fieldName);
-            if (field is null)
-                throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
-
+            ClrInstanceField field = type.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
             if (!field.IsObjectReference)
                 throw new ArgumentException($"Field '{type.Name}.{fieldName}' is not an object reference.");
 

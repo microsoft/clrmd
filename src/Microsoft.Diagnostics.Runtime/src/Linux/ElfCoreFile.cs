@@ -119,10 +119,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (_auxvEntries.Count != 0)
                 return;
 
-            ElfNote? auxvNote = GetNotes(ElfNoteType.Aux).SingleOrDefault();
-            if (auxvNote is null)
-                throw new BadImageFormatException($"No auxv entries in coredump");
-
+            ElfNote auxvNote = GetNotes(ElfNoteType.Aux).SingleOrDefault() ?? throw new BadImageFormatException($"No auxv entries in coredump");
             ulong position = 0;
             while (true)
             {

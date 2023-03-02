@@ -77,9 +77,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
             try
             {
-                foreach (uint possibleLocation in GnuHash.GetPossibleSymbolIndex(symbolName))
+                foreach (int possibleLocation in GnuHash.GetPossibleSymbolIndex(symbolName))
                 {
-                    ElfSymbol s = SymbolTable.GetSymbol(possibleLocation);
+                    ElfSymbol s = SymbolTable.GetSymbol((uint)possibleLocation);
                     if (s.Name == symbolName)
                     {
                         symbol = s;

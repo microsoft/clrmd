@@ -95,9 +95,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             lock (_rvaLock)
             {
-                if (_rvaStream is null)
-                    _rvaStream = File.OpenRead(DumpPath);
-
+                _rvaStream ??= File.OpenRead(DumpPath);
                 _rvaStream.Position = (long)rva;
                 return _rvaStream.Read(buffer);
             }
