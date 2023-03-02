@@ -230,9 +230,9 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     ClrType? fieldType = _typeFactory.GetOrCreateType(fieldData.TypeMethodTable, 0);
                     if (fieldData.IsStatic != 0)
-                        yield return new ClrmdStaticField(type, fieldType, this, fieldData);
+                        yield return new ClrStaticField(type, fieldType, this, fieldData);
                     else
-                        yield return new ClrmdField(type, fieldType, this, fieldData);
+                        yield return new ClrInstanceField(type, fieldType, this, fieldData);
                 }
 
                 nextField = fieldData.NextField;

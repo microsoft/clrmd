@@ -327,12 +327,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         switch (handleKind)
                         {
                             default:
-                                yield return new ClrmdHandle(domain, handles[i].Handle, clrObj, handleKind);
+                                yield return new ClrHandle(domain, handles[i].Handle, clrObj, handleKind);
                                 break;
 
                             case ClrHandleKind.Dependent:
                                 ClrObject dependent = heap.GetObject(handles[i].Secondary);
-                                yield return new ClrmdDependentHandle(domain, handles[i].Handle, clrObj, dependent);
+                                yield return new ClrDependentHandle(domain, handles[i].Handle, clrObj, dependent);
                                 break;
 
                             case ClrHandleKind.RefCounted:
@@ -359,7 +359,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                     }
                                 }
 
-                                yield return new ClrmdRefCountedHandle(domain, handles[i].Handle, clrObj, refCount);
+                                yield return new ClrRefCountedHandle(domain, handles[i].Handle, clrObj, refCount);
                                 break;
                         }
                     }

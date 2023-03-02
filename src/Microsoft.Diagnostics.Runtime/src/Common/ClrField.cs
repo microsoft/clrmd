@@ -2,6 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
+using System.Reflection;
+
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
@@ -57,27 +60,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the size of this field.
         /// </summary>
-        public abstract int Size { get; }
+        public int Size => GetSize(Type, ElementType);
 
         /// <summary>
-        /// Gets a value indicating whether this field is public.
+        /// Attributes of this field;
         /// </summary>
-        public abstract bool IsPublic { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether this field is private.
-        /// </summary>
-        public abstract bool IsPrivate { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether this field is internal.
-        /// </summary>
-        public abstract bool IsInternal { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether this field is protected.
-        /// </summary>
-        public abstract bool IsProtected { get; }
+        public abstract FieldAttributes Attributes { get; }
 
         /// <summary>
         /// For instance fields, this is the offset of the field within the object.
@@ -96,6 +84,67 @@ namespace Microsoft.Diagnostics.Runtime
                 return Name;
 
             return $"{type.Name} {Name}";
+        }
+
+        internal static int GetSize(ClrType? type, ClrElementType cet)
+        {
+            // todo:  What if we have a struct which is not fully constructed (null MT,
+            //        null type) and need to get the size of the field?
+            switch (cet)
+            {
+                case ClrElementType.Struct:
+                    if (type is null)
+                        return 1;
+
+                    ClrField? last = null;
+                    foreach (ClrField field in type.Fields)
+                    {
+                        if (last is null)
+                            last = field;
+                        else if (field.Offset > last.Offset)
+                            last = field;
+                        else if (field.Offset == last.Offset && field.Size > last.Size)
+                            last = field;
+                    }
+
+                    if (last is null)
+                        return 0;
+
+                    return last.Offset + last.Size;
+
+                case ClrElementType.Int8:
+                case ClrElementType.UInt8:
+                case ClrElementType.Boolean:
+                    return 1;
+
+                case ClrElementType.Float:
+                case ClrElementType.Int32:
+                case ClrElementType.UInt32:
+                    return 4;
+
+                case ClrElementType.Double: // double
+                case ClrElementType.Int64:
+                case ClrElementType.UInt64:
+                    return 8;
+
+                case ClrElementType.String:
+                case ClrElementType.Class:
+                case ClrElementType.Array:
+                case ClrElementType.SZArray:
+                case ClrElementType.Object:
+                case ClrElementType.NativeInt: // native int
+                case ClrElementType.NativeUInt: // native unsigned int
+                case ClrElementType.Pointer:
+                case ClrElementType.FunctionPointer:
+                    return IntPtr.Size;
+
+                case ClrElementType.UInt16:
+                case ClrElementType.Int16:
+                case ClrElementType.Char: // u2
+                    return 2;
+            }
+
+            throw new Exception("Unexpected element type.");
         }
     }
 }

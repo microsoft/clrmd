@@ -312,7 +312,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                     if (address != 0 && m_userObject.IsValid)
                     {
-                        yield return new ClrmdHandle(handle.AppDomain, address, m_userObject, handle.HandleKind);
+                        yield return new ClrHandle(handle.AppDomain, address, m_userObject, handle.HandleKind);
 
                         ClrElementType? arrayElementType = m_userObject.Type?.ComponentType?.ElementType;
                         if (m_userObject.IsArray && arrayElementType.HasValue && arrayElementType.Value.IsObjectReference())
@@ -324,7 +324,7 @@ namespace Microsoft.Diagnostics.Runtime
                                 ClrObject innerObj = array.GetObjectValue(i);
 
                                 if (innerObj.IsValid)
-                                    yield return new ClrmdHandle(handle.AppDomain, innerAddress, innerObj, handle.HandleKind);
+                                    yield return new ClrHandle(handle.AppDomain, innerAddress, innerObj, handle.HandleKind);
                             }
                         }
                     }
