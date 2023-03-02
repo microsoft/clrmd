@@ -12,14 +12,14 @@ using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public interface IClrTypeFactory
+    internal interface IClrTypeFactory
     {
         ClrType FreeType { get; }
         ClrType StringType { get; }
         ClrType ObjectType { get; }
         ClrType ExceptionType { get; }
 
-        string GetTypeName(ulong mt);
+        string? GetTypeName(ulong mt);
         ClrType? TryGetType(ulong mt);
         ClrType? GetOrCreateType(ulong mt, ulong obj);
         ClrType GetOrCreateBasicType(ClrElementType basicType);
@@ -77,7 +77,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public string GetTypeName(ulong mt) => _sos.GetMethodTableName(mt);
+        public string? GetTypeName(ulong mt) => DACNameParser.Parse( _sos.GetMethodTableName(mt));
 
         public ClrType ObjectType => _objectType;
 
