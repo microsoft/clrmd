@@ -204,20 +204,24 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IEnumerable<ClrField> EnumerateFields(ClrType type)
         {
+            int baseFieldCount = 0;
             IEnumerable<ClrField> result = Enumerable.Empty<ClrField>();
             if (type.BaseType is not null)
+            {
                 result = result.Concat(type.BaseType.Fields);
+                baseFieldCount = type.BaseType.Fields.Length;
+            }
 
-            return result.Concat(EnumerateFieldsWorker(type));
+            return result.Concat(EnumerateFieldsWorker(type, baseFieldCount));
         }
 
-        private IEnumerable<ClrField> EnumerateFieldsWorker(ClrType type)
+        private IEnumerable<ClrField> EnumerateFieldsWorker(ClrType type, int baseFieldCount)
         {
             if (!_sos.GetFieldInfo(type.MethodTable, out DacInterface.FieldInfo fieldInfo) || fieldInfo.FirstFieldAddress == 0)
                 yield break;
 
             ulong nextField = fieldInfo.FirstFieldAddress;
-            for (int i = 0; i < fieldInfo.NumInstanceFields + fieldInfo.NumStaticFields; i++)
+            for (int i = baseFieldCount; i < fieldInfo.NumInstanceFields + fieldInfo.NumStaticFields; i++)
             {
                 if (!_sos.GetFieldData(nextField, out FieldData fieldData))
                     break;
