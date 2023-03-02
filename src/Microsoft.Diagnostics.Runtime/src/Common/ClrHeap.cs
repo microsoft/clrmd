@@ -220,7 +220,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return default;
 
             foreach (ClrObject obj in EnumerateObjects(seg))
-                if (obj < address)
+                if (address < obj)
                     return obj;
 
             return default;
@@ -466,8 +466,10 @@ namespace Microsoft.Diagnostics.Runtime
             if ((lastComFlags & mask) == obj)
                 return (SyncBlockComFlags)(lastComFlags >> 61);
 
-            SyncBlockComFlags flags = GetComFlags(obj);
+            SyncBlock? syncBlk = GetSyncBlock(obj);
+            SyncBlockComFlags flags = syncBlk?.ComFlags ?? SyncBlockComFlags.None;
             _lastComFlags = ((ulong)flags << 61) | (obj & mask);
+
             return flags;
         }
 
