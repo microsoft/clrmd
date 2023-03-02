@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="start">The start address.</param>
         /// <param name="length">The length of the range.</param>
         /// <returns></returns>
-        public static MemoryRange CreateFromLength(ulong start, ulong length) => new MemoryRange(start, start + length);
+        public static MemoryRange CreateFromLength(ulong start, ulong length) => new(start, start + length);
 
         /// <summary>
         /// Constructor.

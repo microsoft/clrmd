@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal class FileSymbolCache : FileLocatorBase
     {
-        private Dictionary<string, Task> _writingTo = new Dictionary<string, Task>(GetEqualityComparer());
+        private readonly Dictionary<string, Task> _writingTo = new(GetEqualityComparer());
 
         public static bool IsCaseInsensitiveFileSystem => RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 
@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (!checkProperties || buildId.IsDefaultOrEmpty)
                     return fileName;
 
-                using ElfFile elf = new ElfFile(fileName);
+                using ElfFile elf = new(fileName);
                 if (elf.BuildId.SequenceEqual(buildId))
                     return fileName;
             }
@@ -73,7 +73,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 if (checkProperties)
                 {
-                    using PEImage peImage = new PEImage(File.OpenRead(fileName), leaveOpen: false);
+                    using PEImage peImage = new(File.OpenRead(fileName), leaveOpen: false);
                     if (peImage.IndexFileSize == imageSize && peImage.IndexTimeStamp == buildTimeStamp)
                         return fileName;
                 }
@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             if (checkProperties && image != null)
             {
-                using PEImage peImage = new PEImage(File.OpenRead(image), leaveOpen: false);
+                using PEImage peImage = new(File.OpenRead(image), leaveOpen: false);
                 if (peImage.IndexFileSize != imageSize || peImage.IndexTimeStamp != buildTimeStamp)
                     image = null;
             }
@@ -123,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             string fullPath = Path.Combine(Location, key);
 
-            TaskCompletionSource<int> source = new TaskCompletionSource<int>();
+            TaskCompletionSource<int> source = new();
             Task? currentWrite = null;
             lock (_writingTo)
             {

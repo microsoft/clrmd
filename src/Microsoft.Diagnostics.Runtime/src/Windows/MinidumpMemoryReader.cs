@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             {
                 int count;
 
-                Span<byte> span = new Span<byte>(buffer);
+                Span<byte> span = new(buffer);
                 if (ReadFromRva(rva, span.Slice(0, sizeof(int))) != sizeof(int))
                     return null;
 

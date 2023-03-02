@@ -74,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return hr;
             }
 
-            string nameResult = new string('\0', needed - 1);
+            string nameResult = new('\0', needed - 1);
             fixed (char* nameResultPtr = nameResult)
                 hr = VTable.GetTypeDefProps(Self, token, nameResultPtr, needed, out needed, out attributes, out mdParent);
 
@@ -99,7 +99,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return hr;
             }
 
-            string nameResult = new string('\0', needed - 1);
+            string nameResult = new('\0', needed - 1);
             fixed (char* nameResultPtr = nameResult)
                 hr = VTable.GetFieldProps(Self, token, out typeDef, nameResultPtr, needed, out needed, out attrs, out ppvSigBlob, out pcbSigBlob, out pdwCPlusTypeFlag, out ppValue, out pcchValue);
 
@@ -146,7 +146,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (!hr.IsOK)
                 return null;
 
-            string nameResult = new string('\0', needed - 1);
+            string nameResult = new('\0', needed - 1);
             fixed (char* nameResultPtr = nameResult)
             {
                 hr = VTable.GetTypeRefProps(Self, token, out scope, nameResultPtr, needed, out needed);
@@ -213,7 +213,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (hr < 0)
                 return false;
 
-            string nameResult = new string('\0', needed - 1);
+            string nameResult = new('\0', needed - 1);
             fixed (char* nameResultPtr = nameResult)
                 hr = VTable.GetGenericParamProps(Self, token, out index, out attributes, out owner, out _, nameResultPtr, nameResult.Length + 1, out needed);
 

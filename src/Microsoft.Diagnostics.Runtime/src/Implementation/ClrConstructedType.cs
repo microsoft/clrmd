@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             get
             {
-                StringBuilder sb = new StringBuilder();
+                StringBuilder sb = new();
                 sb.Append(ComponentType.Name);
                 if (IsPointer)
                 {

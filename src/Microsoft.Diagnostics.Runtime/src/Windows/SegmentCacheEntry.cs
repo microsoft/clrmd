@@ -6,7 +6,7 @@ using System;
 
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
-    abstract class SegmentCacheEntry
+    internal abstract class SegmentCacheEntry
     {
         public abstract int CurrentSize { get; }
 

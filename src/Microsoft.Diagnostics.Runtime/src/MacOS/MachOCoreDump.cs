@@ -11,8 +11,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 {
     internal unsafe sealed class MachOCoreDump : IDisposable
     {
-        const uint X86_THREAD_STATE64 = 4;
-        const uint ARM_THREAD_STATE64 = 6;
+        private const uint X86_THREAD_STATE64 = 4;
+        private const uint ARM_THREAD_STATE64 = 6;
 
         private readonly object _sync = new();
         private readonly Stream _stream;
@@ -53,14 +53,14 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             _stream = stream;
             _leaveOpen = leaveOpen;
 
-            Dictionary<ulong, uint> threadIds = new Dictionary<ulong, uint>();
-            List<thread_state_t> contexts = new List<thread_state_t>();
-            List<MachOSegment> segments = new List<MachOSegment>((int)_header.NumberCommands);
+            Dictionary<ulong, uint> threadIds = new();
+            List<thread_state_t> contexts = new();
+            List<MachOSegment> segments = new((int)_header.NumberCommands);
 
             for (int i = 0; i < _header.NumberCommands; i++)
             {
                 long position = stream.Position;
-                LoadCommandHeader loadCommand = new LoadCommandHeader();
+                LoadCommandHeader loadCommand = new();
                 stream.Read(new Span<byte>(&loadCommand, sizeof(LoadCommandHeader)));
 
                 long next = position + loadCommand.Size;
@@ -216,7 +216,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         internal string ReadAscii(ulong address)
         {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
 
             int read = 0;
             Span<byte> buffer = new byte[32];
@@ -256,7 +256,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 {
                     int count = ReadMemory(allImageInfo.infoArray.ToUInt64(), new Span<byte>(ptr, sizeof(DyldImageInfo) * allImages.Length)) / sizeof(DyldImageInfo);
 
-                    Dictionary<ulong, MachOModule> modules = new Dictionary<ulong, MachOModule>(count);
+                    Dictionary<ulong, MachOModule> modules = new(count);
                     for (int i = 0; i < count; i++)
                     {
                         ref DyldImageInfo image = ref allImages[i];

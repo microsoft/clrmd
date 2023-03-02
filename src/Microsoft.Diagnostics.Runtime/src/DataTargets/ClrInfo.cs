@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime
             ModuleInfo = module ?? throw new ArgumentNullException(nameof(module));
             IsSingleFile = runtimeInfo != 0;
 
-            List<DebugLibraryInfo> artifacts = new List<DebugLibraryInfo>(8);
+            List<DebugLibraryInfo> artifacts = new(8);
 
             OSPlatform currentPlatform = GetCurrentPlatform();
             OSPlatform targetPlatform = dt.DataReader.TargetPlatform;
@@ -129,7 +129,7 @@ namespace Microsoft.Diagnostics.Runtime
                         {
                             try
                             {
-                                using PEImage peimage = new PEImage(File.OpenRead(potentialClr));
+                                using PEImage peimage = new(File.OpenRead(potentialClr));
                                 if (peimage.IndexFileSize == IndexFileSize && peimage.IndexTimeStamp == IndexTimeStamp)
                                 {
                                     string dacFound = Path.Combine(directory, dacCurrentPlatform);
@@ -239,7 +239,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private IEnumerable<DebugLibraryInfo> EnumerateUnique(List<DebugLibraryInfo> artifacts)
         {
-            HashSet<DebugLibraryInfo> seen = new HashSet<DebugLibraryInfo>();
+            HashSet<DebugLibraryInfo> seen = new();
 
             foreach (DebugLibraryInfo library in artifacts)
                 if (seen.Add(library))
@@ -446,7 +446,7 @@ namespace Microsoft.Diagnostics.Runtime
                     throw new ClrDiagnosticsException($"Mismatched dac. Dac version: {major}.{minor}.{revision}.{patch}, expected: {Version}.");
             }
 
-            DacLibrary dacLibrary = new DacLibrary(DataTarget, dacPath, ModuleInfo.ImageBase);
+            DacLibrary dacLibrary = new(DataTarget, dacPath, ModuleInfo.ImageBase);
             return CreateRuntime(dacLibrary);
         }
 

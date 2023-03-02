@@ -13,8 +13,6 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-#pragma warning disable CA2213 // Disposable fields should be disposed
-
 namespace Microsoft.Diagnostics.Runtime
 {
     [Obsolete]
@@ -157,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             int count = _symbols.GetNumberModules();
 
-            List<ulong> bases = new List<ulong>(count);
+            List<ulong> bases = new(count);
             for (int i = 0; i < count; ++i)
             {
                 ulong image = _symbols.GetModuleByIndex(i);
@@ -177,7 +175,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (bases.Length == 0)
                 return Enumerable.Empty<ModuleInfo>();
 
-            List<ModuleInfo> modules = new List<ModuleInfo>();
+            List<ModuleInfo> modules = new();
             if (_symbols.GetModuleParameters(bases, out DEBUG_MODULE_PARAMETERS[] mods))
             {
                 for (int i = 0; i < bases.Length; ++i)
@@ -195,7 +193,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private static IntPtr CreateIDebugClient()
         {
-            Guid guid = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
+            Guid guid = new("27fe5639-8407-4f47-8364-ee118fb08ac8");
             int hr = DebugCreate(guid, out IntPtr ptr);
             DebugOnly.Assert(hr == 0);
 

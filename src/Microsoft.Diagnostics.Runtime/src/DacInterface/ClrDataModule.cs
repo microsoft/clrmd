@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (!hr)
                 return null;
 
-            string name = new string('\0', nameLength - 1);
+            string name = new('\0', nameLength - 1);
             fixed (char* namePtr = name)
                 hr = VTable.GetName(Self, nameLength, out _, namePtr);
 

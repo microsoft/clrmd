@@ -187,7 +187,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         #region ReadThreadData
         private async Task<ThreadReadResult> ReadThreadData(Stream stream)
         {
-            Dictionary<uint, (uint Rva, uint Size, ulong Teb)> threadContextLocations = new Dictionary<uint, (uint Rva, uint Size, ulong Teb)>();
+            Dictionary<uint, (uint Rva, uint Size, ulong Teb)> threadContextLocations = new();
 
             // This will select ThreadListStread, ThreadExListStream, and ThreadInfoListStream in that order.
             // We prefer to pull contexts from the *ListStreams but if those don't exist or are missing threads
@@ -305,7 +305,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         private ImmutableArray<MinidumpSegment> GetSegments(Stream stream)
         {
-            List<MinidumpSegment> segments = new List<MinidumpSegment>();
+            List<MinidumpSegment> segments = new();
 
             byte[]? buffer = ArrayPool<byte>.Shared.Rent(128);
             try

@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             Heap = heap ?? throw new ArgumentNullException(nameof(heap));
 
-            List<HeapHashSegment> segments = new List<HeapHashSegment>(heap.Segments.Length);
+            List<HeapHashSegment> segments = new(heap.Segments.Length);
             foreach (ClrSegment seg in heap.Segments)
             {
                 ulong start = seg.Start;

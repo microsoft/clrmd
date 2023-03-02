@@ -46,11 +46,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             vtable->QueryInterface = (delegate* unmanaged[Stdcall]<IntPtr, in Guid, out IntPtr, int>)Marshal.GetFunctionPointerForDelegate(qi);
             _delegates.Add(qi);
 
-            AddRefDelegate addRef = new AddRefDelegate(AddRefImpl);
+            AddRefDelegate addRef = new(AddRefImpl);
             vtable->AddRef = (delegate* unmanaged[Stdcall]<IntPtr, int>)Marshal.GetFunctionPointerForDelegate(addRef);
             _delegates.Add(addRef);
 
-            ReleaseDelegate release = new ReleaseDelegate(ReleaseImpl);
+            ReleaseDelegate release = new(ReleaseImpl);
             vtable->Release = (delegate* unmanaged[Stdcall]<IntPtr, int>)Marshal.GetFunctionPointerForDelegate(release);
             _delegates.Add(release);
 

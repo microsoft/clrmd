@@ -87,7 +87,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             bool parallel = Heap.Runtime.IsThreadSafe && maxDegreeOfParallelism > 1;
 
-            Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints = new Dictionary<ulong, LinkedListNode<ClrObject>>()
+            Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints = new()
             {
                 { target, new LinkedListNode<ClrObject>(Heap.GetObject(target)) }
             };
@@ -96,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 int count = 0;
 
-                ObjectSet processedObjects = new ObjectSet(Heap);
+                ObjectSet processedObjects = new(Heap);
                 foreach (IClrRoot root in roots)
                 {
                     LinkedList<ClrObject>? path = PathsTo(processedObjects, knownEndPoints, root.Object, target, returnOnlyFullyUniquePaths, cancellationToken).FirstOrDefault();
@@ -112,9 +112,9 @@ namespace Microsoft.Diagnostics.Runtime
             }
             else
             {
-                ParallelObjectSet processedObjects = new ParallelObjectSet(Heap);
-                ConcurrentQueue<GCRootPath> results = new ConcurrentQueue<GCRootPath>();
-                using BlockingCollection<IClrRoot?> queue = new BlockingCollection<IClrRoot?>();
+                ParallelObjectSet processedObjects = new(Heap);
+                ConcurrentQueue<GCRootPath> results = new();
+                using BlockingCollection<IClrRoot?> queue = new();
 
                 Thread[] threads = new Thread[Math.Min(maxDegreeOfParallelism, Environment.ProcessorCount)];
                 for (int i = 0; i < threads.Length; i++)
@@ -275,8 +275,8 @@ namespace Microsoft.Diagnostics.Runtime
                because it will directly affect other threads walking these paths.
             */
 
-            HashSet<ulong> processing = new HashSet<ulong>() { source.Address };
-            LinkedList<PathEntry> path = new LinkedList<PathEntry>();
+            HashSet<ulong> processing = new() { source.Address };
+            LinkedList<PathEntry> path = new();
 
             if (knownEndPoints != null)
             {
@@ -377,7 +377,7 @@ namespace Microsoft.Diagnostics.Runtime
                         // value when adding refs below.
                         DebugOnly.Assert(next.Address != target);
 
-                        PathEntry nextPathEntry = new PathEntry
+                        PathEntry nextPathEntry = new()
                         {
                             Object = next,
                             Todo = GetRefs(next, out foundTarget, out foundEnding)
@@ -457,7 +457,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             LinkedList<ClrObject> GetResult(LinkedListNode<ClrObject>? end = null)
             {
-                LinkedList<ClrObject> result = new LinkedList<ClrObject>(path.Select(p => p.Object));
+                LinkedList<ClrObject> result = new(path.Select(p => p.Object));
 
                 for (; end != null; end = end.Next)
                     result.AddLast(end.Value);
@@ -497,7 +497,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private static List<string> NodeToList(LinkedListNode<ClrObject> tmp)
         {
-            List<string> list = new List<string>();
+            List<string> list = new();
             for (LinkedListNode<ClrObject>? node = tmp; node != null; node = node.Next)
                 list.Add(node.Value.ToString());
 

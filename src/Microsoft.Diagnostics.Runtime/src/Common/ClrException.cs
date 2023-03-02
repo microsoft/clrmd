@@ -158,7 +158,7 @@ namespace Microsoft.Diagnostics.Runtime
             return result == uint.MaxValue ? 0 : result + (uint)IntPtr.Size;
         }
 
-        uint GetInnerExceptionOffset(ClrType? type)
+        private uint GetInnerExceptionOffset(ClrType? type)
         {
             ClrField? field = type?.Fields.FirstOrDefault(f => f.Name == "_innerException");
 
@@ -187,7 +187,7 @@ namespace Microsoft.Diagnostics.Runtime
             return result == uint.MaxValue ? 0 : result + (uint)IntPtr.Size;
         }
 
-        uint GetHResultOffset(ClrType? type)
+        private uint GetHResultOffset(ClrType? type)
         {
             ClrField? field = type?.Fields.FirstOrDefault(f => f.Name == "_HResult");
 
@@ -216,7 +216,7 @@ namespace Microsoft.Diagnostics.Runtime
             return result == uint.MaxValue ? 0 : result + (uint)IntPtr.Size;
         }
 
-        uint GetMessageOffset(ClrType? type)
+        private uint GetMessageOffset(ClrType? type)
         {
             ClrField? field = type?.Fields.FirstOrDefault(f => f.Name == "_message");
 
@@ -245,7 +245,7 @@ namespace Microsoft.Diagnostics.Runtime
             return result == uint.MaxValue ? 0 : result + (uint)IntPtr.Size;
         }
 
-        ImmutableArray<ClrStackFrame> GetExceptionStackTrace(ClrThread? thread, ClrObject obj)
+        private ImmutableArray<ClrStackFrame> GetExceptionStackTrace(ClrThread? thread, ClrObject obj)
         {
             uint offset = GetStackTraceOffset(obj.Type);
             DebugOnly.Assert(offset != uint.MaxValue);

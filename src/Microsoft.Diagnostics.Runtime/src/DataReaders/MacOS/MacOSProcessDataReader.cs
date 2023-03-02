@@ -149,7 +149,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             unsafe string ReadNullTerminatedAscii(ulong address)
             {
-                StringBuilder builder = new StringBuilder(64);
+                StringBuilder builder = new(64);
                 byte* bytes = stackalloc byte[64];
 
                 bool done = false;

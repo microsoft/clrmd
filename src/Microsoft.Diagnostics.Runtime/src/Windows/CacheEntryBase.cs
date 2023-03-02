@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         protected volatile int _entrySize;
         private int _lastAccessTimestamp;
         private readonly int _minSize;
-        private Action<uint> _updateOwningCacheForAddedChunk;
+        private readonly Action<uint> _updateOwningCacheForAddedChunk;
 
         internal CacheEntryBase(MinidumpSegment segmentData, int derivedMinSize, Action<uint> updateOwningCacheForAddedChunk)
         {
@@ -114,7 +114,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             uint offset = (uint)(address - _segmentData.VirtualAddress);
 
-            List<byte> bytesRead = new List<byte>();
+            List<byte> bytesRead = new();
             bool res = ReadPageDataFromOffsetUntil(offset, terminatingSequence, bytesRead);
 
             result = bytesRead.ToArray();

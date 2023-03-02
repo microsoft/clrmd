@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             // Since MachO segments are not contiguous the image size is just the headers/commands
             ImageSize = MachHeader64.Size + _header.SizeOfCommands;
 
-            List<MachOSegment> segments = new List<MachOSegment>((int)_header.NumberCommands);
+            List<MachOSegment> segments = new((int)_header.NumberCommands);
 
             uint offset = (uint)sizeof(MachHeader64);
             for (int i = 0; i < _header.NumberCommands; i++)

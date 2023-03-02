@@ -78,7 +78,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     {
                         // It's possible that heap.GetObjectType could return null and we construct a bad ClrObject, but this should
                         // only happen in the case of heap corruption and obj.IsValidObject will return null, so this is fine.
-                        ClrObject obj = new ClrObject(refs[i].Object, heap.GetObjectType(refs[i].Object));
+                        ClrObject obj = new(refs[i].Object, heap.GetObjectType(refs[i].Object));
                         yield return new ClrStackRoot(refs[i].Address, obj, frame, pinned);
                     }
                 }

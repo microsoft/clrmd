@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.DataReaders.Windows
         private int[] SuspendThreads()
         {
             bool permissionFailure = false;
-            HashSet<int>? suspendedThreads = new HashSet<int>();
+            HashSet<int>? suspendedThreads = new();
 
             // A thread may create more threads while we are in the process of walking the list.  We will keep looping through
             // the thread list over and over until we find that we haven't found any new threads to suspend.

@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public static IFileLocator CreateFromSymbolPath(string symbolPath)
         {
             FileSymbolCache defaultCache = GetDefaultCache();
-            List<IFileLocator> locators = new List<IFileLocator>();
+            List<IFileLocator> locators = new();
 
             bool first = false;
             SymbolServer? single = null;
@@ -110,7 +110,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 {
                     if (server.StartsWith("http:", StringComparison.OrdinalIgnoreCase) || server.StartsWith("https:", StringComparison.OrdinalIgnoreCase))
                     {
-                        SymbolServer symSvr = new SymbolServer(cache, server);
+                        SymbolServer symSvr = new(cache, server);
                         locators.Add(symSvr);
 
                         if (first)

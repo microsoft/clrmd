@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             try
             {
-                PEImage image = new PEImage(new ReadVirtualStream(_dataReader, (long)ImageBase, int.MaxValue), leaveOpen: false, isVirtual: _isVirtual);
+                PEImage image = new(new ReadVirtualStream(_dataReader, (long)ImageBase, int.MaxValue), leaveOpen: false, isVirtual: _isVirtual);
                 if (!image.IsValid)
                 {
                     image.Dispose();

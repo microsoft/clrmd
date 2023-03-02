@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             if (!hr)
                 return null;
 
-            string nameResult = new string('\0', needed - 1);
+            string nameResult = new('\0', needed - 1);
             fixed (char* nameResultPtr = nameResult)
             {
                 hr = VTable.GetModuleNameStringWide(Self, which, index, imageBase, nameResultPtr, needed, out _);

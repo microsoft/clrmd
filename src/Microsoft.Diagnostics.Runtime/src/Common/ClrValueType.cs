@@ -124,7 +124,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (str == 0)
                 return null;
 
-            ClrObject obj = new ClrObject(str, GetTypeOrThrow().Heap.StringType);
+            ClrObject obj = new(str, GetTypeOrThrow().Heap.StringType);
             return obj.AsString(maxLength);
         }
 

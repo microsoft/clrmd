@@ -44,14 +44,14 @@ namespace Microsoft.Diagnostics.Runtime
                 uint header = Unsafe.As<byte, uint>(ref buffer[0]);
                 if (header == ElfHeaderCommon.Magic)
                 {
-                    ElfFile elf = new ElfFile(reader, baseAddress);
+                    ElfFile elf = new(reader, baseAddress);
                     long size = elf.ProgramHeaders.Max(r => (long)r.VirtualAddress + (long)r.VirtualSize);
                     return new ElfModuleInfo(reader, elf, baseAddress, size, name);
                 }
 
                 if (header == MacOS.MachHeader64.Magic64)
                 {
-                    MacOS.MachOModule module = new MacOS.MachOModule(reader, baseAddress, name);
+                    MacOS.MachOModule module = new(reader, baseAddress, name);
                     return new MacOS.MachOModuleInfo(module, baseAddress, name, null, module.ImageSize);
                 }
             }
@@ -118,7 +118,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The version of this module.
         /// </summary>
-        public virtual Version Version => new Version();
+        public virtual Version Version => new();
 
         /// <summary>
         /// Gets the Linux BuildId or Mach-O UUID of this module.

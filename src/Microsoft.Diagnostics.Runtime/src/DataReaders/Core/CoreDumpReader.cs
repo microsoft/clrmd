@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 _modules = new List<ModuleInfo>();
                 foreach (ElfLoadedImage image in _core.LoadedImages.Values)
-                    if ((ulong)image.BaseAddress != interpreter && !image.FileName.StartsWith("/dev", StringComparison.Ordinal))
+                    if (image.BaseAddress != interpreter && !image.FileName.StartsWith("/dev", StringComparison.Ordinal))
                         _modules.Add(CreateModuleInfo(image));
             }
 
@@ -78,13 +78,9 @@ namespace Microsoft.Diagnostics.Runtime
             using ElfFile? file = image.Open();
 
             // We suppress the warning because the function it wants us to use is not available on all ClrMD platforms
-#pragma warning disable CA1307 // Specify StringComparison
 
             // This substitution is for unloaded modules for which Linux appends " (deleted)" to the module name.
             string path = image.FileName.Replace(" (deleted)", "");
-
-#pragma warning restore CA1307 // Specify StringComparison
-
             if (file is not null)
             {
                 long size = image.Size > long.MaxValue ? long.MaxValue : unchecked((long)image.Size);

@@ -12,9 +12,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ClrStringType : ClrType
     {
-        private ImmutableArray<ClrMethod> _methods;
-        private ImmutableArray<ClrInstanceField> _fields;
-        private ImmutableArray<ClrStaticField> _statics;
+        private readonly ImmutableArray<ClrMethod> _methods;
+        private readonly ImmutableArray<ClrInstanceField> _fields;
+        private readonly ImmutableArray<ClrStaticField> _statics;
 
         public ClrStringType(IClrTypeHelpers helpers, ClrHeap heap, ulong mt, int token)
             : base(helpers)

@@ -143,13 +143,13 @@ namespace Microsoft.Diagnostics.Runtime
             if (!EnumProcessModules(_process, modules, needed, out _))
                 throw new InvalidOperationException("Unable to get process modules.");
 
-            List<ModuleInfo> result = new List<ModuleInfo>(modules.Length);
+            List<ModuleInfo> result = new(modules.Length);
 
             for (int i = 0; i < modules.Length; i++)
             {
                 IntPtr ptr = modules[i];
 
-                StringBuilder sb = new StringBuilder(1024);
+                StringBuilder sb = new(1024);
                 uint res = GetModuleFileNameEx(_process, ptr, sb, sb.Capacity);
                 DebugOnly.Assert(res != 0);
 

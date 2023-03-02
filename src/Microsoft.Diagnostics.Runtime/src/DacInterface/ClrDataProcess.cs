@@ -132,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (!hr)
                 return null;
 
-            using ClrDataTask dataTask = new ClrDataTask(_library, pUnkTask);
+            using ClrDataTask dataTask = new(_library, pUnkTask);
             // There's a bug in certain runtimes where we will fail to release data deep in the runtime
             // when a C++ exception occurs while constructing a ClrDataStackWalk.  This is a workaround
             // for the largest of the leaks caused by this issue.
@@ -147,7 +147,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public IEnumerable<ClrDataMethod> EnumerateMethodInstancesByAddress(ClrDataAddress addr)
         {
-            List<ClrDataMethod> result = new List<ClrDataMethod>(1);
+            List<ClrDataMethod> result = new(1);
 
             HResult hr = VTable.StartEnumMethodInstancesByAddress(Self, addr, IntPtr.Zero, out ClrDataAddress handle);
             if (!hr)

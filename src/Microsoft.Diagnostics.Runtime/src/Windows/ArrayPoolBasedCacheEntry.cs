@@ -38,8 +38,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             int newCurrent;
             do
             {
-                oldCurrent = (int)_entrySize;
-                newCurrent = Math.Max((int)MinSize, oldCurrent - (int)data.DataRemoved);
+                oldCurrent = _entrySize;
+                newCurrent = Math.Max(MinSize, oldCurrent - (int)data.DataRemoved);
             }
             while (Interlocked.CompareExchange(ref _entrySize, newCurrent, oldCurrent) != oldCurrent);
 

@@ -176,7 +176,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 // reserved 64k of memory, making that memory unusable for anyone else. If you do this a lot (say across an entire dump heap) you easily fragment memory to the point
                 // of seeing sporadic allocation failures due to not being able to find enough contiguous memory. VMMAP (from SysInternals) is good for showing this kind of 
                 // fragmentation, it marks the excess space as 'Unusable Space'
-                UIntPtr vmPtr = CacheNativeMethods.Memory.VirtualAlloc((uint)EntryPageSize, CacheNativeMethods.Memory.VirtualAllocType.Reserve | CacheNativeMethods.Memory.VirtualAllocType.Physical, CacheNativeMethods.Memory.MemoryProtection.ReadWrite);
+                UIntPtr vmPtr = CacheNativeMethods.Memory.VirtualAlloc(EntryPageSize, CacheNativeMethods.Memory.VirtualAllocType.Reserve | CacheNativeMethods.Memory.VirtualAllocType.Physical, CacheNativeMethods.Memory.MemoryProtection.ReadWrite);
                 if (vmPtr == UIntPtr.Zero)
                     throw new Win32Exception(Marshal.GetLastWin32Error());
 

@@ -10,8 +10,8 @@ namespace Microsoft.Diagnostics.Runtime
 {
     public readonly struct ClrReference
     {
-        const ulong OffsetFlag = 0x8000000000000000ul;
-        const ulong DependentFlag = 0x4000000000000000ul;
+        private const ulong OffsetFlag = 0x8000000000000000ul;
+        private const ulong DependentFlag = 0x4000000000000000ul;
 
         private readonly ulong _offsetOrHandle;
 
@@ -95,7 +95,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// so we don't accept the value here.
         /// </summary>
         /// <param name="reference">The object referenced.</param>
-        public static ClrReference CreateFromDependentHandle(ClrObject reference) => new ClrReference(reference, null, DependentFlag);
+        public static ClrReference CreateFromDependentHandle(ClrObject reference) => new(reference, null, DependentFlag);
 
         /// <summary>
         /// Creates a ClrFieldReference from an actual field.
@@ -158,7 +158,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (IsField)
             {
-                StringBuilder sb = new StringBuilder();
+                StringBuilder sb = new();
                 sb.Append(Field?.Name);
 
                 ClrReference? inner = InnerField;

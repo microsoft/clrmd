@@ -28,6 +28,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public readonly uint FileDateMS;           /* e.g. 0 */
         public readonly uint FileDateLS;           /* e.g. 0 */
 
-        public Version AsVersionInfo() => new Version(Major, Minor, Revision, Patch);
+        public Version AsVersionInfo() => new(Major, Minor, Revision, Patch);
     }
 }

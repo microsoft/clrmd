@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private (string Name, object? Value)[] EnumerateValues(MetadataImport import, out ClrElementType elementType)
         {
-            List<(string Name, object? Value)> values = new List<(string Name, object? Value)>();
+            List<(string Name, object? Value)> values = new();
             elementType = ClrElementType.Unknown;
 
             foreach (int token in import.EnumerateFields(Type.MetadataToken))
@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                     if ((int)attr == 0x606 && name == "value__")
                     {
-                        SigParser parser = new SigParser(ppvSigBlob, pcbSigBlob);
+                        SigParser parser = new(ppvSigBlob, pcbSigBlob);
                         if (parser.GetCallingConvInfo(out _) && parser.GetElemType(out int elemType))
                             elementType = (ClrElementType)elemType;
                     }
@@ -71,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime
                     // public, static, literal, has default
                     if ((int)attr == 0x8056)
                     {
-                        SigParser parser = new SigParser(ppvSigBlob, pcbSigBlob);
+                        SigParser parser = new(ppvSigBlob, pcbSigBlob);
                         parser.GetCallingConvInfo(out _);
                         parser.GetElemType(out int _);
 

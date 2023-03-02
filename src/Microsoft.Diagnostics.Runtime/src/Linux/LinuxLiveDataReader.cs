@@ -290,7 +290,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             ImmutableArray<MemoryMapEntry>.Builder result = ImmutableArray.CreateBuilder<MemoryMapEntry>();
             string mapsFilePath = $"/proc/{ProcessId}/maps";
-            using StreamReader reader = new StreamReader(mapsFilePath);
+            using StreamReader reader = new(mapsFilePath);
             while (true)
             {
                 string? line = reader.ReadLine();
@@ -318,7 +318,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 address = parts[0];
                 permission = parts[1];
                 string[] addressBeginEnd = address.Split('-');
-                MemoryMapEntry entry = new MemoryMapEntry()
+                MemoryMapEntry entry = new()
                 {
                     BeginAddress = Convert.ToUInt64(addressBeginEnd[0], 16),
                     EndAddress = Convert.ToUInt64(addressBeginEnd[1], 16),

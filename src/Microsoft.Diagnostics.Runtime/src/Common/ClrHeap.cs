@@ -149,8 +149,6 @@ namespace Microsoft.Diagnostics.Runtime
             // The large object heap
             if (!isLargeOrPinned)
                 memoryReader.EnsureRangeInCache(obj);
-
-            int lastMarker = -1;
             while (segment.ObjectRange.Contains(obj))
             {
                 ulong mt;
@@ -817,7 +815,7 @@ namespace Microsoft.Diagnostics.Runtime
             return null;
         }
 
-        class SubHeapData
+        private class SubHeapData
         {
             public ImmutableArray<ClrSubHeap> SubHeaps { get; }
             public ImmutableArray<ClrSegment> Segments { get; }

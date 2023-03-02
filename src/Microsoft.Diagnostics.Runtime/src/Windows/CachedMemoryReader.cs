@@ -46,8 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             if (CacheTechnology == CacheTechnology.AWE)
             {
-                CacheNativeMethods.Util.SYSTEM_INFO sysInfo = new CacheNa
-                    tiveMethods.Util.SYSTEM_INFO();
+                CacheNativeMethods.Util.SYSTEM_INFO sysInfo = new();
                 CacheNativeMethods.Util.GetSystemInfo(ref sysInfo);
 
                 // The AWE cache allocates on VirtualAlloc sized pages, which are 64k, if the majority of heap segments in the dump are < 64k this can be wasteful
@@ -67,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                 // Create a a single large page, the size of the largest heap segment, we will read each in turn into this one large segment before
                 // splitting them into (potentially) multiple VirtualAlloc pages.
-                AWEBasedCacheEntryFactory cacheEntryFactory = new AWEBasedCacheEntryFactory(stream.SafeFileHandle.DangerousGetHandle());
+                AWEBasedCacheEntryFactory cacheEntryFactory = new(stream.SafeFileHandle.DangerousGetHandle());
                 cacheEntryFactory.CreateSharedSegment(largestSegment);
 
                 _cachedMemorySegments = new HeapSegmentDataCache(cacheEntryFactory, entryCountWhenFull: (uint)_segments.Length, cacheIsFullyPopulatedBeforeUse: true, MaxCacheSize);

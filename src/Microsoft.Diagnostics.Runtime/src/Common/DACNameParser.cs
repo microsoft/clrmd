@@ -263,7 +263,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
                 }
 
                 //Build the final result from all the type name segments we have
-                StringBuilder result = new StringBuilder();
+                StringBuilder result = new();
                 foreach (TypeNameSegment segment in nameSegments)
                     segment.ToString(result);
 
@@ -595,7 +595,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             for (int i = curPos - 1; i >= digitSpanStart; i--)
             {
-                value += (((int)input[i] - (int)'0') * multAmt);
+                value += ((input[i] - '0') * multAmt);
                 multAmt *= 10;
             }
 
@@ -756,7 +756,7 @@ namespace Microsoft.Diagnostics.Runtime.Builders
 
             public override string ToString()
             {
-                StringBuilder result = new StringBuilder();
+                StringBuilder result = new();
 
                 ToString(result);
 
