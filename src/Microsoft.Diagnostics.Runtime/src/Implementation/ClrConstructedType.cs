@@ -5,13 +5,12 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal sealed class ClrmdConstructedType : ClrType
+    internal sealed class ClrConstructedType : ClrType
     {
         private readonly int _ranks;
         public override ClrHeap Heap => ComponentType.Heap;
@@ -41,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public ClrmdConstructedType(ClrType componentType, int ranks, bool pointer)
+        public ClrConstructedType(ClrType componentType, int ranks, bool pointer)
             : base(componentType.Helpers)
         {
             ComponentType = componentType ?? throw new ArgumentNullException(nameof(componentType));

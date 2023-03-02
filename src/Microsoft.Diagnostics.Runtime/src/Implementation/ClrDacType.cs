@@ -14,7 +14,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ClrmdType : ClrType
+    internal class ClrDacType : ClrType
     {
         protected IDataReader DataReader => Helpers.DataReader;
 
@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool ContainsPointers { get; }
         public override bool IsShared { get; }
 
-        public ClrmdType(IClrTypeHelpers helpers, ClrHeap heap, ClrType? baseType, ClrType? componentType, ClrModule? module, ulong methodTable, in MethodTableData data, string? name = null)
+        public ClrDacType(IClrTypeHelpers helpers, ClrHeap heap, ClrType? baseType, ClrType? componentType, ClrModule? module, ulong methodTable, in MethodTableData data, string? name = null)
             : base(helpers)
         {
             MethodTable = methodTable;

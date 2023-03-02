@@ -70,7 +70,7 @@ namespace Microsoft.Diagnostics.Runtime
                     if (_sos.GetMethodTableData(_commonMTs.StringMethodTable, out MethodTableData mtd))
                         token = (int)mtd.Token;
 
-                    stringType = new ClrmdStringType(_objectHelpers, _heap, _commonMTs.StringMethodTable, token);
+                    stringType = new ClrStringType(_objectHelpers, _heap, _commonMTs.StringMethodTable, token);
                 }
 
                 return stringType;
@@ -96,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime
                         throw new InvalidOperationException($"Base type for '{typeName}' was not pre-created from MethodTable {mtd.ParentMethodTable:x}.");
             }
 
-            ClrmdType result = new(_objectHelpers, heap, baseType, null, bcl, mt, mtd, typeName);
+            ClrDacType result = new(_objectHelpers, heap, baseType, null, bcl, mt, mtd, typeName);
 
             // Regardless of caching options, we always cache important system types and basic types
             lock (_types)
@@ -116,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrType? existing = TryGetType(mt);
             if (existing != null)
             {
-                if (obj != 0 && existing.ComponentSize != 0 && existing.ComponentType is null && existing is ClrmdType type)
+                if (obj != 0 && existing.ComponentSize != 0 && existing.ComponentType is null && existing is ClrDacType type)
                     type.SetComponentType(TryGetComponentType(obj));
 
                 return existing;
@@ -132,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (obj != 0 && mtd.ComponentSize != 0)
                 componentType = TryGetComponentType(obj);
 
-            ClrType result = new ClrmdType(_objectHelpers, _heap, baseType, componentType, module, mt, mtd);
+            ClrType result = new ClrDacType(_objectHelpers, _heap, baseType, componentType, module, mt, mtd);
             if (_options.CacheTypes)
             {
                 lock (_types)
@@ -242,7 +242,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (index < 0 || index >= param.Length)
                     return null;
 
-                return new ClrmdGenericType(_objectHelpers, _heap, module, param[index]);
+                return new ClrGenericType(_objectHelpers, _heap, module, param[index]);
             }
 
             if (etype == ClrElementType.Pointer)
@@ -286,8 +286,8 @@ namespace Microsoft.Diagnostics.Runtime
             return GetOrCreateType(mt, 0);
         }
 
-        public ClrType? GetOrCreateArrayType(ClrType innerType, int ranks) => innerType != null ? new ClrmdConstructedType(innerType, ranks, pointer: false) : null;
-        public ClrType? GetOrCreatePointerType(ClrType innerType, int depth) => innerType != null ? new ClrmdConstructedType(innerType, depth, pointer: true) : null;
+        public ClrType? GetOrCreateArrayType(ClrType innerType, int ranks) => innerType != null ? new ClrConstructedType(innerType, ranks, pointer: false) : null;
+        public ClrType? GetOrCreatePointerType(ClrType innerType, int depth) => innerType != null ? new ClrConstructedType(innerType, depth, pointer: true) : null;
 
         private ClrType? TryGetComponentType(ulong obj)
         {
@@ -368,7 +368,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (result is not null)
                 return result;
 
-            return basicTypes[index] = new ClrmdPrimitiveType(_objectHelpers, bcl, _heap, basicType);
+            return basicTypes[index] = new ClrPrimitiveType(_objectHelpers, bcl, _heap, basicType);
         }
 
         private ClrModule? GetModule(ulong moduleAddress)
