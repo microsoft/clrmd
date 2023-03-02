@@ -231,6 +231,6 @@ namespace Microsoft.Diagnostics.Runtime
 
         public static bool operator !=(ClrMethod? left, ClrMethod? right) => !(left == right);
 
-        public override string ToString() => Signature;
+        public override string? ToString() => Signature;
     }
 }

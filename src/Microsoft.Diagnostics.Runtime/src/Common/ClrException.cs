@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the <see cref="ClrType"/> for this exception object.
         /// </summary>
-        public ClrType? Type => _object.Type;
+        public ClrType Type => _object.Type!;  // We check _object.Type is not null
 
         /// <summary>
         /// Gets the exception message.

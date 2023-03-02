@@ -310,7 +310,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 basicTypes = new ClrType[(int)ClrElementType.SZArray];
                 int count = 0;
-                if (bcl != null && bcl.MetadataImport != null)
+                if (bcl.MetadataImport != null)
                 {
                     foreach ((ulong mt, int _) in bcl.EnumerateTypeDefToMethodTableMap())
                     {

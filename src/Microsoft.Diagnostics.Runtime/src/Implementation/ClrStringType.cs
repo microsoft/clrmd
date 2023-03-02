@@ -5,17 +5,12 @@
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ClrStringType : ClrType
     {
-        private readonly ImmutableArray<ClrMethod> _methods;
-        private readonly ImmutableArray<ClrInstanceField> _fields;
-        private readonly ImmutableArray<ClrStaticField> _statics;
-
         public ClrStringType(IClrTypeHelpers helpers, ClrHeap heap, ulong mt, int token)
             : base(helpers)
         {
