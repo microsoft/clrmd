@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ClrAppDomain? SharedDomain => GetAppDomainData().SharedDomain;
 
-        public ClrModule BaseClassLibrary => GetAppDomainData().BaseClassLibrary;
+        public ClrModule BaseClassLibrary => GetAppDomainData().BaseClassLibrary!;
 
         /// <summary>
         /// Gets all managed threads in the process.  Only threads which have previously run managed
