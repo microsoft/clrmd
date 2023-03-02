@@ -112,7 +112,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ulong nextObj = heap.FindNextObjectOnSegment(seg.FirstObjectAddress);
                 foreach (ClrObject obj in seg.EnumerateObjects().Skip(1))
                 {
-                    Assert.Equal(nextObj, obj.Address);
+                    Assert.Equal(obj.Address, nextObj);
                     nextObj = heap.FindNextObjectOnSegment(obj);
                 }
             }
