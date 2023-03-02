@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the original thread this exception was thrown from.  This may be <see langword="null"/> if we do not know.
         /// </summary>
-        public ClrThread? Thread { get; }
+        public ClrThread? Thread { get; internal set; }
 
         internal ClrException(IClrTypeHelpers helpers, ClrThread? thread, ClrObject obj)
         {
