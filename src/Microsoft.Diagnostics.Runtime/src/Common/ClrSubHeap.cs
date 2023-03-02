@@ -1,4 +1,5 @@
 ﻿using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;

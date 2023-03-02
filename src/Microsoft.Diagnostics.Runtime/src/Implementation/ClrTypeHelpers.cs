@@ -1,5 +1,4 @@
-﻿using Microsoft.Diagnostics.Runtime.Builders;
-using Microsoft.Diagnostics.Runtime.DacInterface;
+﻿using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.Buffers;

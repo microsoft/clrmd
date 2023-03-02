@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents an AppDomain in the target runtime.
     /// </summary>
-    public class ClrAppDomain
+    public sealed class ClrAppDomain
     {
         private readonly IClrAppDomainHelpers _helpers;
 

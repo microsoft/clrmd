@@ -2,14 +2,14 @@
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public class ClrGenerationData
+    public sealed class ClrGenerationData
     {
         public ulong StartSegment { get; }
         public ulong AllocationStart { get; }
         public ulong AllocationContextPointer { get; }
         public ulong AllocationContextLimit { get; }
 
-        public ClrGenerationData(in GenerationData generationData)
+        internal ClrGenerationData(in GenerationData generationData)
         {
             StartSegment = generationData.StartSegment;
             AllocationStart = generationData.AllocationStart;

@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ImmutableArray<ComInterfaceData> Interfaces { get; }
 
-        public ComCallableWrapper(in CcwData data, ImmutableArray<ComInterfaceData> interfaces)
+        internal ComCallableWrapper(in CcwData data, ImmutableArray<ComInterfaceData> interfaces)
         {
             Address = data.CCWAddress;
             IUnknown = data.OuterIUnknown;

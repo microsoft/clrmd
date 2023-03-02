@@ -5,7 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 
-namespace Microsoft.Diagnostics.Runtime.Builders
+namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     // This class handles stateless, non-recursive parsing of DAC names, converting things like this:
     //

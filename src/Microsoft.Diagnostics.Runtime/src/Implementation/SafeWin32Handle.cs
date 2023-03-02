@@ -6,7 +6,7 @@ using Microsoft.Win32.SafeHandles;
 using System;
 using System.Runtime.InteropServices;
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class SafeWin32Handle : SafeHandleZeroOrMinusOneIsInvalid
     {

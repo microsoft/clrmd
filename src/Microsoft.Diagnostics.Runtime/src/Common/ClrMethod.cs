@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents a method on a class.
     /// </summary>
-    public class ClrMethod :
+    public sealed class ClrMethod :
 #nullable disable // to enable use with both T and T? for reference types due to IEquatable<T> being invariant
         IEquatable<ClrMethod>
 #nullable restore
@@ -195,12 +195,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets a value indicating whether this method is an instance constructor.
         /// </summary>
-        public virtual bool IsConstructor => Name == ".ctor";
+        public bool IsConstructor => Name == ".ctor";
 
         /// <summary>
         /// Gets a value indicating whether this method is a static constructor.
         /// </summary>
-        public virtual bool IsClassConstructor => Name == ".cctor";
+        public bool IsClassConstructor => Name == ".cctor";
 
         public override bool Equals(object? obj) => Equals(obj as ClrMethod);
 

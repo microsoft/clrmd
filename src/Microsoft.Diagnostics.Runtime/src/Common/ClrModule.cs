@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents a managed module in the target process.
     /// </summary>
-    public class ClrModule :
+    public sealed class ClrModule :
 #nullable disable // to enable use with both T and T? for reference types due to IEquatable<T> being invariant
         IEquatable<ClrModule>
 #nullable restore

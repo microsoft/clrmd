@@ -35,7 +35,9 @@ namespace Microsoft.Diagnostics.Runtime
         public override ClrElementType ElementType { get; }
 
         public override bool IsObjectReference => ElementType.IsObjectReference();
+        
         public override bool IsValueType => ElementType.IsValueType();
+        
         public override bool IsPrimitive => ElementType.IsPrimitive();
 
         public override string? Name
@@ -105,7 +107,6 @@ namespace Microsoft.Diagnostics.Runtime
 
             return name;
         }
-
 
         /// <summary>
         /// Returns whether this static field has been initialized in a particular AppDomain

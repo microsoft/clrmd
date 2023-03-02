@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private readonly (string Name, object? Value)[] _values;
 
-        public ClrEnum(ClrType type)
+        internal ClrEnum(ClrType type)
         {
             Type = type ?? throw new ArgumentNullException(nameof(type));
 

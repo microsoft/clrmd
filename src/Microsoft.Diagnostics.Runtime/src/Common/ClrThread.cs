@@ -12,12 +12,12 @@ namespace Microsoft.Diagnostics.Runtime
     /// Represents a managed thread in the target process.  Note this does not wrap purely native threads
     /// in the target process (that is, threads which have never run managed code before).
     /// </summary>
-    public class ClrThread
+    public sealed class ClrThread
     {
         private readonly IClrThreadHelpers _helpers;
         private readonly ulong _exceptionHandle;
 
-        public ClrThread(IClrThreadHelpers helpers, ClrRuntime runtime, ClrAppDomain? currentDomain, ulong address, in ThreadData data)
+        internal ClrThread(IClrThreadHelpers helpers, ClrRuntime runtime, ClrAppDomain? currentDomain, ulong address, in ThreadData data)
         {
             _helpers = helpers;
             Runtime = runtime;

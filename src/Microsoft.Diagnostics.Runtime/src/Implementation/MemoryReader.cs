@@ -5,7 +5,7 @@
 using System;
 using System.Buffers;
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class MemoryReader : IDisposable
     {

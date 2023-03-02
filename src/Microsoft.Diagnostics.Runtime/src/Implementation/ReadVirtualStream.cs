@@ -5,7 +5,7 @@
 using System;
 using System.IO;
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal class ReadVirtualStream : Stream
     {

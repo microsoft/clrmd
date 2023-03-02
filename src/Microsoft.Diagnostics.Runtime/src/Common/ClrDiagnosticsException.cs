@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// exception subclass.
     /// </summary>
     [Serializable]
-    public class ClrDiagnosticsException : Exception
+    public sealed class ClrDiagnosticsException : Exception
     {
         /// <summary>
         /// Constructor.

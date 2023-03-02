@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// Create this using <see cref="ClrObject.AsException"/>. You may call that when <see cref="ClrObject.IsException"/>
     /// is <see langword="true"/>.
     /// </summary>
-    public class ClrException
+    public sealed class ClrException
     {
         private readonly IClrTypeHelpers _helpers;
         private readonly ClrObject _object;

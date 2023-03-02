@@ -1,6 +1,4 @@
-﻿using Microsoft.Diagnostics.Runtime.Builders;
-using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Implementation;
+﻿using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
@@ -8,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal interface IClrTypeFactory
     {

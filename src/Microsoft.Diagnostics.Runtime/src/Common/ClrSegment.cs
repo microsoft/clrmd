@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrSegment
     {
-        public ClrSegment(ClrSubHeap subHeap)
+        internal ClrSegment(ClrSubHeap subHeap)
         {
             SubHeap = subHeap;
         }
