@@ -103,6 +103,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrType type = obj.Type;
                 Assert.True(!type.IsArray || type.ComponentType != null);
 
+                var generics = type.EnumerateGenericParameters().ToArray();
+
                 foreach (ClrInstanceField field in type.Fields)
                 {
                     Assert.NotNull(field.Type);

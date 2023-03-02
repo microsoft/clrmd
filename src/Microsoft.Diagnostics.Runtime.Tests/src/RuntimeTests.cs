@@ -149,6 +149,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private void CheckTypeNotSame(ClrType oldType, ClrType newType)
         {
+            // Don't check that the basic types are different, it's ok to cache those
+            if (oldType.IsFree || oldType.IsArray || oldType.IsException || oldType.BaseType == null || oldType.IsString)
+                return;
+
             Assert.Equal(oldType.MethodTable, newType.MethodTable);
 
             AssertEqualNotSame(oldType.Name, newType.Name);

@@ -29,6 +29,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
     internal class ClrModuleHelpers : IClrModuleHelpers
     {
+        private const int mdtTypeDef = 0x02000000;
+        private const int mdtTypeRef = 0x01000000;
         private readonly SOSDac _sos;
         private readonly IClrAppDomainHelpers _appDomainHelpers;
 
@@ -65,10 +67,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private List<(ulong MethodTable, int Token)> GetModuleMap(ClrModule module, SOSDac.ModuleMapTraverseKind kind)
         {
-            List<(ulong MethodTable, int Token)> result = new List<(ulong MethodTable, int Token)>();
+            int tokenType = kind == SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable ? mdtTypeDef : mdtTypeRef;
+            List<(ulong MethodTable, int Token)> result = new();
             _sos.TraverseModuleMap(kind, module.Address, (token, mt, _) =>
             {
-                result.Add((mt, token));
+                result.Add((mt, token | tokenType));
             });
 
             return result;

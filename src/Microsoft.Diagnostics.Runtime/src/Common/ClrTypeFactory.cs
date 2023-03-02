@@ -281,7 +281,7 @@ namespace Microsoft.Diagnostics.Runtime
             else
                 return null;
 
-            ulong mt = tokenMap.FirstOrDefault(r => r.Token == (token & (int)~0xff000000)).MethodTable;
+            ulong mt = tokenMap.FirstOrDefault(r => r.Token == token ).MethodTable;
 
             return GetOrCreateType(mt, 0);
         }

@@ -199,7 +199,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
             }
 
-            return builder.MoveToImmutable();
+            return builder.MoveOrCopyToImmutable();
         }
 
         public IEnumerable<ClrField> EnumerateFields(ClrType type)

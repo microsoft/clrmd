@@ -437,7 +437,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (container is null)
             {
                 container = new SyncBlockContainer(_helpers.EnumerateSyncBlocks());
-                Interlocked.CompareExchange(ref container, container, null);
+                Interlocked.CompareExchange(ref _syncBlocks, container, null);
             }
 
             return container;

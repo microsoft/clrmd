@@ -215,9 +215,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     Assert.True(seg.ObjectRange.Contains(seg.Generation2));
 
                 Assert.True(seg.Generation2.Start == seg.Start);
-                Assert.True(seg.Generation2.Start + seg.Generation2.Length == seg.Generation1.Start);
-                Assert.True(seg.Generation1.Start + seg.Generation1.Length == seg.Generation0.Start);
-                Assert.True(seg.Generation0.Start + seg.Generation0.Length == seg.End);
+                if (seg.Kind == GCSegmentKind.Ephemeral)
+                {
+                    Assert.True(seg.Generation2.End == seg.Generation1.Start);
+                    Assert.True(seg.Generation1.End == seg.Generation0.Start);
+                    Assert.True(seg.Generation0.End == seg.ObjectRange.End);
+                }
 
                 if (seg.Length == 0)
                 {
