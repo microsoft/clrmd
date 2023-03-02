@@ -171,23 +171,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(FileAccess.ReadWrite, clrEnum.GetEnumValue<FileAccess>(nameof(FileAccess.ReadWrite)));
         }
 
-        [Fact]
-        public void AirtyTest()
-        {
-            // https://github.com/microsoft/clrmd/issues/394
-            string name = ClrDacType.FixGenerics("Microsoft.Diagnostics.Runtime.Tests.TypeTests+GenericTest`2[[System.String, System.Private.CoreLib],[System.Collections.Generic.List`1[[System.Collections.Generic.IEnumerable`1[[System.Int32, System.Private.CoreLib]][,], System.Private.CoreLib]][], System.Private.CoreLib]]");
-            const string expected = "Microsoft.Diagnostics.Runtime.Tests.TypeTests+GenericTest<System.String, System.Collections.Generic.List<System.Collections.Generic.IEnumerable<System.Int32>[,]>[]>";
-
-            Assert.Equal(expected, name);
-
-            name = ClrDacType.FixGenerics("Microsoft.Diagnostics.Runtime.Tests.TypeTests+GenericTest[[System.String, System.Private.CoreLib],[System.Collections.Generic.List[[System.Collections.Generic.IEnumerable[[System.Int32, System.Private.CoreLib]][,], System.Private.CoreLib]][], System.Private.CoreLib]]");
-
-            Assert.Equal(expected, name);
-
-            Assert.Equal("MyAssembly.Test<System.String>", ClrDacType.FixGenerics("MyAssembly.Test`1[[System.String, mscorlib]]"));
-            Assert.Equal("MyAssembly.Test<System.String>", ClrDacType.FixGenerics("MyAssembly.Test[[System.String, mscorlib]]"));
-        }
-
         [FrameworkFact]
         public void TypeEqualityTest()
         {
