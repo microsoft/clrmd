@@ -22,6 +22,11 @@ namespace Microsoft.Diagnostics.Runtime
         protected ImmutableArray<ClrStaticField> _staticFields;
         protected ImmutableArray<ClrMethod> _methods;
 
+        internal ClrType(IClrTypeHelpers helpers)
+        {
+            Helpers = helpers ?? throw new ArgumentNullException(nameof(helpers));
+        }
+
         /// <summary>
         /// Gets the <see cref="GCDesc"/> associated with this type.  Only valid if <see cref="ContainsPointers"/> is <see langword="true"/>.
         /// </summary>
@@ -324,7 +329,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Used to provide functionality to ClrObject.
         /// </summary>
-        internal abstract IClrTypeHelpers Helpers { get; }
+        internal IClrTypeHelpers Helpers { get; }
 
         public override bool Equals(object? obj) => Equals(obj as ClrType);
 

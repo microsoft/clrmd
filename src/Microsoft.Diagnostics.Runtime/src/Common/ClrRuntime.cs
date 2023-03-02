@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the Shared AppDomain for Desktop CLR (<see langword="null"/> on .NET Core).
         /// </summary>
-        public ClrAppDomain? SharedDomain => GetAppDomainData().SystemDomain;
+        public ClrAppDomain? SharedDomain => GetAppDomainData().SharedDomain;
 
         public ClrModule BaseClassLibrary => GetAppDomainData().BaseClassLibrary;
 

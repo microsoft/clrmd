@@ -222,14 +222,16 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!_sos.GetFieldData(nextField, out FieldData fieldData))
                     break;
 
-                if (fieldData.IsContextLocal != 0 || fieldData.IsThreadLocal != 0)
-                    continue;
+                if (fieldData.IsContextLocal == 0 && fieldData.IsThreadLocal == 0)
+                {
+                    ClrType? fieldType = _typeFactory.GetOrCreateType(fieldData.TypeMethodTable, 0);
+                    if (fieldData.IsStatic != 0)
+                        yield return new ClrmdStaticField(type, fieldType, this, fieldData);
+                    else
+                        yield return new ClrmdField(type, fieldType, this, fieldData);
+                }
 
-                ClrType? fieldType = _typeFactory.GetOrCreateType(fieldData.TypeMethodTable, 0);
-                if (fieldData.IsStatic != 0)
-                    yield return new ClrmdStaticField(type, fieldType, this, fieldData);
-                else
-                    yield return new ClrmdField(type, fieldType, this, fieldData);
+                nextField = fieldData.NextField;
             }
         }
 

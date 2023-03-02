@@ -13,11 +13,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     internal sealed class ClrmdPrimitiveType : ClrType
     {
         public ClrmdPrimitiveType(IClrTypeHelpers helpers, ClrModule module, ClrHeap heap, ClrElementType type)
+            : base(helpers)
         {
             if (helpers is null)
                 throw new ArgumentNullException(nameof(helpers));
 
-            Helpers = helpers;
             Module = module ?? throw new ArgumentNullException(nameof(module));
             Heap = heap ?? throw new ArgumentNullException(nameof(heap));
             ElementType = type;
@@ -26,7 +26,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _methods = ImmutableArray<ClrMethod>.Empty;
         }
 
-        internal override IClrTypeHelpers Helpers { get; }
         public override bool IsEnum => false;
         public override ClrEnum AsEnum() => throw new InvalidOperationException();
         public override ClrModule Module { get; }

@@ -210,7 +210,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     }
                 }
 
-            result.Modules = moduleBuilder.MoveToImmutable();
+            result.Modules = moduleBuilder.MoveOrCopyToImmutable();
             return result;
         }
 

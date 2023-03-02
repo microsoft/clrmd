@@ -49,11 +49,11 @@ namespace Microsoft.Diagnostics.Runtime
             _heap = heap;
             _sos = sos;
             _options = options;
+            _objectHelpers = new ClrTypeHelpers(clrDataProcess, sos, sos6, sos8, this, heap, options);
 
             _sos.GetCommonMethodTables(out _commonMTs);
             _objectType = CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.FreeMethodTable, "System.ObjectType") ?? throw new InvalidDataException("Could not create Object type.");
-
-            _objectHelpers = new ClrTypeHelpers(clrDataProcess, sos, sos6, sos8, this, heap, options);
+            _types = new() { { (ulong)_commonMTs.ObjectMethodTable, _objectType } };
         }
 
         public ClrType FreeType =>

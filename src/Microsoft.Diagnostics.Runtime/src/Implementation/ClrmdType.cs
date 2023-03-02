@@ -70,7 +70,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        internal override IClrTypeHelpers Helpers { get; }
         public override int StaticSize { get; }
         public override int ComponentSize { get; }
         public override ClrType? ComponentType => _componentType;
@@ -88,8 +87,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsShared { get; }
 
         public ClrmdType(IClrTypeHelpers helpers, ClrHeap heap, ClrType? baseType, ClrType? componentType, ClrModule? module, ulong methodTable, in MethodTableData data, string? name = null)
+            : base(helpers)
         {
-            Helpers = helpers;
             MethodTable = methodTable;
             Heap = heap;
             BaseType = baseType;
@@ -97,6 +96,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Module = module;
             MetadataToken = unchecked((int)data.Token);
             StaticSize = unchecked((int)data.BaseSize);
+            ComponentSize = unchecked((int)data.ComponentSize);
             ContainsPointers = data.ContainsPointers != 0;
             IsShared = data.Shared != 0;
             _name = name;

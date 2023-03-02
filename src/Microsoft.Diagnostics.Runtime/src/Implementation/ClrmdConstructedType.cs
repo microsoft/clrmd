@@ -42,6 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         }
 
         public ClrmdConstructedType(ClrType componentType, int ranks, bool pointer)
+            : base(componentType.Helpers)
         {
             ComponentType = componentType ?? throw new ArgumentNullException(nameof(componentType));
             ElementType = pointer ? ClrElementType.Pointer : ClrElementType.SZArray;
@@ -54,8 +55,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _staticFields = ImmutableArray<ClrStaticField>.Empty;
             _methods = ImmutableArray<ClrMethod>.Empty;
         }
-
-        internal override IClrTypeHelpers Helpers => ComponentType.Helpers;
 
         public override bool IsEnum => false;
         public override ClrEnum AsEnum() => throw new InvalidOperationException();

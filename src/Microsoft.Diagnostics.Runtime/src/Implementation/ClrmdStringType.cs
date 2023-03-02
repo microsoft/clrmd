@@ -17,15 +17,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private ImmutableArray<ClrStaticField> _statics;
 
         public ClrmdStringType(IClrTypeHelpers helpers, ClrHeap heap, ulong mt, int token)
+            : base(helpers)
         {
-            Helpers = helpers;
             Heap = heap;
             MethodTable = mt;
 
             MetadataToken = token;
         }
-
-        internal override IClrTypeHelpers Helpers { get; }
 
         public override GCDesc GCDesc => default;
 
