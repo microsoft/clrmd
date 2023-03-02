@@ -13,11 +13,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     /// type, but in practice there are fields which do not report a type.  This allows us to provide a non-null, semi
     /// meaningful type even though it's not as accurate or specific as we wish it would be.
     /// </summary>
-    internal sealed class ClrmdGenericType : ClrType
+    internal sealed class ClrGenericType : ClrType
     {
         public ClrGenericParameter GenericParameter { get; }
 
-        public ClrmdGenericType(IClrTypeHelpers helpers, ClrHeap heap, ClrModule? module, ClrGenericParameter clrGenericParameter)
+        public ClrGenericType(IClrTypeHelpers helpers, ClrHeap heap, ClrModule? module, ClrGenericParameter clrGenericParameter)
             : base(helpers)
         {
             Heap = heap ?? throw new ArgumentNullException(nameof(heap));

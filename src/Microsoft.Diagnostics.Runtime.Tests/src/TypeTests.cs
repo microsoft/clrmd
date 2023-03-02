@@ -175,17 +175,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void AirtyTest()
         {
             // https://github.com/microsoft/clrmd/issues/394
-            string name = ClrmdType.FixGenerics("Microsoft.Diagnostics.Runtime.Tests.TypeTests+GenericTest`2[[System.String, System.Private.CoreLib],[System.Collections.Generic.List`1[[System.Collections.Generic.IEnumerable`1[[System.Int32, System.Private.CoreLib]][,], System.Private.CoreLib]][], System.Private.CoreLib]]");
+            string name = ClrDacType.FixGenerics("Microsoft.Diagnostics.Runtime.Tests.TypeTests+GenericTest`2[[System.String, System.Private.CoreLib],[System.Collections.Generic.List`1[[System.Collections.Generic.IEnumerable`1[[System.Int32, System.Private.CoreLib]][,], System.Private.CoreLib]][], System.Private.CoreLib]]");
             const string expected = "Microsoft.Diagnostics.Runtime.Tests.TypeTests+GenericTest<System.String, System.Collections.Generic.List<System.Collections.Generic.IEnumerable<System.Int32>[,]>[]>";
 
             Assert.Equal(expected, name);
 
-            name = ClrmdType.FixGenerics("Microsoft.Diagnostics.Runtime.Tests.TypeTests+GenericTest[[System.String, System.Private.CoreLib],[System.Collections.Generic.List[[System.Collections.Generic.IEnumerable[[System.Int32, System.Private.CoreLib]][,], System.Private.CoreLib]][], System.Private.CoreLib]]");
+            name = ClrDacType.FixGenerics("Microsoft.Diagnostics.Runtime.Tests.TypeTests+GenericTest[[System.String, System.Private.CoreLib],[System.Collections.Generic.List[[System.Collections.Generic.IEnumerable[[System.Int32, System.Private.CoreLib]][,], System.Private.CoreLib]][], System.Private.CoreLib]]");
 
             Assert.Equal(expected, name);
 
-            Assert.Equal("MyAssembly.Test<System.String>", ClrmdType.FixGenerics("MyAssembly.Test`1[[System.String, mscorlib]]"));
-            Assert.Equal("MyAssembly.Test<System.String>", ClrmdType.FixGenerics("MyAssembly.Test[[System.String, mscorlib]]"));
+            Assert.Equal("MyAssembly.Test<System.String>", ClrDacType.FixGenerics("MyAssembly.Test`1[[System.String, mscorlib]]"));
+            Assert.Equal("MyAssembly.Test<System.String>", ClrDacType.FixGenerics("MyAssembly.Test[[System.String, mscorlib]]"));
         }
 
         [FrameworkFact]
@@ -400,9 +400,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     // We are hoping that creating a type through a MT will result in a real ClrmdType and
                     // not a ClrmdPrimitiveType.  A ClrmdPrimitiveType is there to mock up a type we cannot
                     // find.
-                    Assert.IsType<ClrmdType>(type);
+                    Assert.IsType<ClrDacType>(type);
 
-                    ClrmdType ct = (ClrmdType)type;
+                    ClrDacType ct = (ClrDacType)type;
 
                     ClrPrimitiveType prim = new(type.Helpers, runtime.BaseClassLibrary, runtime.Heap, ct.ElementType);
                     Assert.True(ct == prim);

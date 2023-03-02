@@ -10,9 +10,9 @@ using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal sealed class ClrmdPrimitiveType : ClrType
+    internal sealed class ClrPrimitiveType : ClrType
     {
-        public ClrmdPrimitiveType(IClrTypeHelpers helpers, ClrModule module, ClrHeap heap, ClrElementType type)
+        public ClrPrimitiveType(IClrTypeHelpers helpers, ClrModule module, ClrHeap heap, ClrElementType type)
             : base(helpers)
         {
             if (helpers is null)

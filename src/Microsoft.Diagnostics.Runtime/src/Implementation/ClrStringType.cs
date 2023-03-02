@@ -10,13 +10,13 @@ using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal sealed class ClrmdStringType : ClrType
+    internal sealed class ClrStringType : ClrType
     {
         private ImmutableArray<ClrMethod> _methods;
         private ImmutableArray<ClrInstanceField> _fields;
         private ImmutableArray<ClrStaticField> _statics;
 
-        public ClrmdStringType(IClrTypeHelpers helpers, ClrHeap heap, ulong mt, int token)
+        public ClrStringType(IClrTypeHelpers helpers, ClrHeap heap, ulong mt, int token)
             : base(helpers)
         {
             Heap = heap;
