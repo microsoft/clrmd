@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -10,43 +11,96 @@ namespace Microsoft.Diagnostics.Runtime
     /// A frame in a managed stack trace.  Note you can call ToString on an instance of this object to get the
     /// function name (or clr!Frame name) similar to SOS's !clrstack output.
     /// </summary>
-    public abstract class ClrStackFrame
+    public sealed class ClrStackFrame
     {
+        private readonly byte[]? _context;
+
         /// <summary>
         /// The thread parent of this frame.  Note that this may be null when inspecting the stack of ClrExceptions.
         /// </summary>
-        public abstract ClrThread? Thread { get; }
+        public ClrThread? Thread { get; }
 
         /// <summary>
         /// Gets this stack frame context.
         /// </summary>
-        public abstract ReadOnlySpan<byte> Context { get; }
+        public ReadOnlySpan<byte> Context => _context;
 
         /// <summary>
         /// Gets the instruction pointer of this frame.
         /// </summary>
-        public abstract ulong InstructionPointer { get; }
+        public ulong InstructionPointer { get; }
 
         /// <summary>
         /// Gets the stack pointer of this frame.
         /// </summary>
-        public abstract ulong StackPointer { get; }
+        public  ulong StackPointer { get; }
 
         /// <summary>
         /// Gets the type of frame (managed or internal).
         /// </summary>
-        public abstract ClrStackFrameKind Kind { get; }
+        public ClrStackFrameKind Kind { get; }
 
         /// <summary>
         /// Gets the <see cref="ClrMethod"/> which corresponds to the current stack frame.  This may be <see langword="null"/> if the
         /// current frame is actually a CLR "Internal Frame" representing a marker on the stack, and that
         /// stack marker does not have a managed method associated with it.
         /// </summary>
-        public abstract ClrMethod? Method { get; }
+        public ClrMethod? Method { get; }
 
         /// <summary>
         /// Gets the helper method frame name if <see cref="Kind"/> is <see cref="ClrStackFrameKind.Runtime"/>, <see langword="null"/> otherwise.
         /// </summary>
-        public abstract string? FrameName { get; }
+        public string? FrameName { get; }
+
+        internal ClrStackFrame(ClrThread? thread, byte[]? context, ulong ip, ulong sp, ClrStackFrameKind kind, ClrMethod? method, string? frameName)
+        {
+            _context = context;
+            Thread = thread;
+            InstructionPointer = ip;
+            StackPointer = sp;
+            Kind = kind;
+            Method = method;
+            FrameName = frameName;
+        }
+
+
+        public override string? ToString()
+        {
+            if (Kind == ClrStackFrameKind.ManagedMethod)
+                return Method?.Signature;
+
+            int methodLen = 0;
+            int methodTypeLen = 0;
+
+            if (Method != null)
+            {
+                methodLen = Method?.Name?.Length ?? 0;
+                if (Method?.Type?.Name != null)
+                    methodTypeLen = Method.Type.Name.Length;
+            }
+
+            int frameLen = FrameName?.Length ?? 0;
+            StringBuilder sb = new StringBuilder(frameLen + methodLen + methodTypeLen + 10);
+
+            sb.Append('[');
+            sb.Append(FrameName);
+            sb.Append(']');
+
+            if (Method != null)
+            {
+                sb.Append(" (");
+
+                if (Method.Type != null)
+                {
+                    sb.Append(Method.Type.Name);
+                    sb.Append('.');
+                }
+
+                sb.Append(Method.Name);
+                sb.Append(')');
+            }
+
+            return sb.ToString();
+        }
     }
 }

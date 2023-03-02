@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     bool pinned = (refs[i].Flags & GCPinnedFlag) == GCPinnedFlag;
 
                     ClrStackFrame? frame = stack.SingleOrDefault(f => f.StackPointer == refs[i].Source || f.StackPointer == refs[i].StackPointer && f.InstructionPointer == refs[i].Source);
-                    frame ??= new ClrmdStackFrame(thread, null, refs[i].Source, refs[i].StackPointer, ClrStackFrameKind.Unknown, null, null);
+                    frame ??= new ClrStackFrame(thread, null, refs[i].Source, refs[i].StackPointer, ClrStackFrameKind.Unknown, null, null);
 
                     if (interior)
                     {
@@ -171,12 +171,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (md != 0)
                     innerMethod = runtime.GetMethodByHandle(md);
 
-                return new ClrmdStackFrame(thread, context, ip, sp, ClrStackFrameKind.Runtime, innerMethod, frameName);
+                return new ClrStackFrame(thread, context, ip, sp, ClrStackFrameKind.Runtime, innerMethod, frameName);
             }
             else
             {
                 ClrMethod? method = runtime.GetMethodByInstructionPointer(ip);
-                return new ClrmdStackFrame(thread, context, ip, sp, ClrStackFrameKind.ManagedMethod, method, null);
+                return new ClrStackFrame(thread, context, ip, sp, ClrStackFrameKind.ManagedMethod, method, null);
             }
         }
     }

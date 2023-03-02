@@ -280,7 +280,7 @@ namespace Microsoft.Diagnostics.Runtime
                 ulong md = _helpers.DataReader.ReadPointer(dataPtr + (ulong)IntPtr.Size + (ulong)IntPtr.Size);
 
                 ClrMethod? method = _helpers.Heap.Runtime.GetMethodByHandle(md);
-                result[i] = new ClrmdStackFrame(thread, null, ip, sp, ClrStackFrameKind.ManagedMethod, method, frameName: null);
+                result[i] = new ClrStackFrame(thread, null, ip, sp, ClrStackFrameKind.ManagedMethod, method, frameName: null);
                 dataPtr += (ulong)elementSize;
             }
 
