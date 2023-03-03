@@ -2,10 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
-
-using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using Xunit;
 
@@ -106,15 +102,22 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             foreach (ClrSegment seg in heap.Segments)
             {
                 if (seg.Length == 0)
-                {
                     continue;
-                }
-                ulong nextObj = heap.FindNextObjectOnSegment(seg.FirstObjectAddress);
-                foreach (ClrObject obj in seg.EnumerateObjects().Skip(1))
-                {
-                    Assert.Equal(obj.Address, nextObj);
-                    nextObj = heap.FindNextObjectOnSegment(obj);
-                }
+
+                // Once without markers, once with
+                NextObjectWorker(heap, seg);
+                Assert.True(CheckMarkersValid(seg));
+                NextObjectWorker(heap, seg);
+            }
+        }
+
+        private static void NextObjectWorker(ClrHeap heap, ClrSegment seg)
+        {
+            ulong nextObj = heap.FindNextObjectOnSegment(seg.FirstObjectAddress);
+            foreach (ClrObject obj in seg.EnumerateObjects().Skip(1))
+            {
+                Assert.Equal(obj.Address, nextObj);
+                nextObj = heap.FindNextObjectOnSegment(obj);
             }
         }
 
@@ -131,15 +134,55 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 {
                     continue;
                 }
+
                 ClrObject prev = heap.GetObject(seg.FirstObjectAddress);
                 Assert.False(heap.FindPreviousObjectOnSegment(prev).IsValid);
 
-                foreach (ClrObject curr in seg.EnumerateObjects().Skip(1))
-                {
-                    Assert.Equal(prev.Address, heap.FindPreviousObjectOnSegment(curr));
+                // Once without markers, once with
+                PrevObjectWorker(heap, seg, prev);
+                Assert.True(CheckMarkersValid(seg));
+                PrevObjectWorker(heap, seg, prev);
+            }
+        }
 
-                    prev = curr;
+
+        [Fact]
+        public void EnumerateRange()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+
+            foreach (ClrSegment seg in heap.Segments)
+            {
+                ClrObject[] all = seg.EnumerateObjects().ToArray();
+
+                for (int i = all.Length / 2 - 1; i > 0; i--)
+                {
+                    ClrObject[] slice = all[i..^i];
+
+                    // Ensure the slice will be enumerated
+                    Assert.Equal(all[i..^i], heap.EnumerateObjects(new MemoryRange(slice.First().Address, slice.Last().Address + 1)));
+
+                    // Ensure we don't enumerate the last object when it equals the end
+                    Assert.Equal(slice[..^1], heap.EnumerateObjects(new MemoryRange(slice.First().Address - 1, slice.Last().Address)));
                 }
+
+                if (all.Length > 2)
+                {
+                    var range = new MemoryRange(seg.FirstObjectAddress - 0x10u, seg.CommittedMemory.End + 0x10);
+                    Assert.Equal(all, heap.EnumerateObjects(range));
+                }
+            }
+        }
+
+        private static void PrevObjectWorker(ClrHeap heap, ClrSegment seg, ClrObject prev)
+        {
+            foreach (ClrObject curr in seg.EnumerateObjects().Skip(1))
+            {
+                Assert.Equal(prev.Address, heap.FindPreviousObjectOnSegment(curr));
+
+                prev = curr;
             }
         }
 
@@ -238,6 +281,43 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
+        [Fact]
+        public void MarkerCreation()
+        {
+            using DataTarget dt = TestTargets.GCRoot.LoadFullDump(GCMode.Workstation);
+            using ClrRuntime rt = dt.ClrVersions.Single().CreateRuntime();
+
+            foreach (ClrSegment seg in rt.Heap.Segments)
+            {
+                // Ensure we haven't touched this segment yet.
+                for (int i = 0; i < seg.ObjectMarkers.Length; i++)
+                    Assert.Equal(0u, seg.ObjectMarkers[i]);
+
+                // Walk the whole heap.
+                _ = seg.EnumerateObjects().Count();
+
+                Assert.True(CheckMarkersValid(seg));
+            }
+        }
+
+        private static bool CheckMarkersValid(ClrSegment seg)
+        {
+            bool any = false;
+            uint last = 0;
+            for (int i = 0; i < seg.ObjectMarkers.Length && seg.ObjectMarkers[i] != 0; i++)
+            {
+                any = true;
+
+                Assert.True(last < seg.ObjectMarkers[i]);
+
+                ClrObject obj = seg.SubHeap.Heap.GetObject(seg.FirstObjectAddress + seg.ObjectMarkers[i]);
+                Assert.True(obj.IsValid);
+
+                last = seg.ObjectMarkers[i];
+            }
+
+            return any;
+        }
 
         [WindowsFact]
         public void DbgEngHeapEnumeration()

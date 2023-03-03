@@ -13,6 +13,10 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrSegment
     {
+        const ulong MinSegmentSizeForMarkers = MarkerMax * 128;
+        const int MarkerMax = 64;
+        private uint[]? _markers;
+
         internal ClrSegment(ClrSubHeap subHeap)
         {
             SubHeap = subHeap;
@@ -125,6 +129,28 @@ namespace Microsoft.Diagnostics.Runtime
         public override string ToString()
         {
             return $"[{Start:x12}, {End:x12}]";
+        }
+
+        internal uint[] ObjectMarkers
+        {
+            get
+            {
+                uint[]? markers = _markers;
+                if (markers is not null)
+                    return markers;
+                
+                var len = ObjectRange.Length switch
+                {
+                    < 8 * 1024 => 0,
+                    < 64 * 1024 * 1024 => 64,
+                    < 256 * 1024 * 1024 => 128,
+                    _ => 256,
+                };
+
+                markers = new uint[len];
+                _markers = markers;
+                return markers;
+            }
         }
 
         /// <summary>
