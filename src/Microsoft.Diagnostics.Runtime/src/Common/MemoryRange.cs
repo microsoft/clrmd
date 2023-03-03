@@ -67,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="other">The other memory range to compare this to.</param>
         /// <returns>True if memory ranges overlap at all.</returns>
-        public bool Overlaps(MemoryRange other) => other.Length > 0 && (Contains(other.Start) || Contains(other.End - 1));
+        public bool Overlaps(MemoryRange other) => other.Length > 0 && (Contains(other.Start) || Contains(other.End - 1) || other.Contains(Start) || other.Contains(End - 1));
 
         /// <summary>
         /// Returns whether this memory range contains all of <paramref name="other"/>.

@@ -129,6 +129,25 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Enumerates objects within the given memory range.
+        /// </summary>
+        public IEnumerable<ClrObject> EnumerateObjects(MemoryRange range)
+        {
+            // TODO: This is a temporary implementation.
+            foreach (ClrSegment seg in Segments)
+            {
+                if (!range.Overlaps(seg.ObjectRange))
+                    continue;
+
+                foreach (ClrObject obj in EnumerateObjects(seg))
+                {
+                    if (range.Contains(obj.Address))
+                        yield return obj;
+                }
+            }
+        }
+
+        /// <summary>
         /// Enumerates all objects on the given segment.
         /// </summary>
         /// <param name="segment"></param>
