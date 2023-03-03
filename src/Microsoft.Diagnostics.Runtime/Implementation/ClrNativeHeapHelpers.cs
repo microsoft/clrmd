@@ -154,26 +154,47 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             if (loaderHeap != 0)
             {
+                List<ClrNativeHeapInfo>? result = null;
+
                 // The basic ISOSDacInterface doesn't understand the difference between the different kinds of runtime
                 // loader heaps.  We have to adjust certain loader heap kinds based on the version of dac we are
-                // targeting.
-                if (_clrInfo.Flavor == ClrFlavor.Core && _clrInfo.Version.Major == 7)
+                // targeting.  This includes .Net 7, and .Net 8 before ISOSDacInterface13 was implemented.  Additionally,
+                // we don't know the version info for a lot of versions of single-file compilation.  In all of those
+                // cases, we need to adjust the pointer.
+
+                bool normalNeedsAdjustment = false;
+                if (_clrInfo.Flavor == ClrFlavor.Core)
                 {
-                    if (loaderHeapKind == LoaderHeapKind.LoaderHeapKindNormal)
-                        loaderHeap += (uint)_dataReader.PointerSize;
-                }
-                else
-                {
-                    if (loaderHeapKind == LoaderHeapKind.LoaderHeapKindExplicitControl)
-                        loaderHeap -= (uint)_dataReader.PointerSize;
+                    int versionMajor = _clrInfo.Version.Major;
+                    normalNeedsAdjustment = versionMajor == 7 || (versionMajor == 8 && _sos13 is null) || versionMajor == 0;
                 }
 
-                List<ClrNativeHeapInfo>? result = null;
-                HResult hr = _sos.TraverseLoaderHeap(loaderHeap, (address, size, current) =>
+                ulong fixedHeapAddress = FixupHeapAddress(loaderHeap, loaderHeapKind, normalNeedsAdjustment);
+
+                HResult hr = _sos.TraverseLoaderHeap(fixedHeapAddress, (address, size, current) =>
                 {
                     result ??= new(8);
                     result.Add(new(address, SanitizeSize(size), nativeHeapKind, current != 0));
                 });
+
+                if (result is not null &&  result.Count > 0 && normalNeedsAdjustment)
+                {
+                    // If we adjusted the pointer and we can't read the resulting addresses, try again with the
+                    // opposite setting.
+                    byte[] buffer = new byte[1];
+
+                    if (result.Any(entry => _dataReader.Read(entry.Address, buffer) == 0))
+                    {
+                        result.Clear();
+                        fixedHeapAddress = FixupHeapAddress(loaderHeap, loaderHeapKind, !normalNeedsAdjustment);
+
+                        hr = _sos.TraverseLoaderHeap(fixedHeapAddress, (address, size, current) =>
+                        {
+                            result ??= new(8);
+                            result.Add(new(address, SanitizeSize(size), nativeHeapKind, current != 0));
+                        });
+                    }
+                }
 
                 // If TraverseLoaderHeap returns a failing HRESULT, it means that it encountered a bad block.
                 // This likely means that loaderHeap points to bad memory and we should ignore this entire
@@ -183,6 +204,22 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
 
             return Enumerable.Empty<ClrNativeHeapInfo>();
+        }
+
+        private ulong FixupHeapAddress(ulong loaderHeap, LoaderHeapKind loaderHeapKind, bool normalNeedsAdjustment)
+        {
+            if (normalNeedsAdjustment)
+            {
+                if (loaderHeapKind == LoaderHeapKind.LoaderHeapKindNormal)
+                    loaderHeap += (uint)_dataReader.PointerSize;
+            }
+            else
+            {
+                if (loaderHeapKind == LoaderHeapKind.LoaderHeapKindExplicitControl)
+                    loaderHeap -= (uint)_dataReader.PointerSize;
+            }
+
+            return loaderHeap;
         }
 
         public IEnumerable<ClrNativeHeapInfo> EnumerateThunkHeaps(ulong thunkHeapAddress)
