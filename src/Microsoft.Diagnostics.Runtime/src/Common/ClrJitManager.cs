@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public class ClrJitManager
+    public sealed class ClrJitManager
     {
         private readonly IJitManagerHelpers _helpers;
 
@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong Address { get; }
         public CodeHeapKind Kind { get; }
 
-        public ClrJitManager(ClrRuntime runtime, in JitManagerInfo info, IJitManagerHelpers helpers)
+        internal ClrJitManager(ClrRuntime runtime, in JitManagerInfo info, IJitManagerHelpers helpers)
         {
             Runtime = runtime;
             Address = info.Address;

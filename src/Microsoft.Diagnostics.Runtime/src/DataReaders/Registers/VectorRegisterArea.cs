@@ -24,8 +24,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (other.VectorRegister is null)
                 throw new ArgumentException("Cannot have empty VectorRegister.", nameof(other));
 
-            if (VectorRegister == null)
-                VectorRegister = new M128A[other.VectorRegister.Length];
+            VectorRegister ??= new M128A[other.VectorRegister.Length];
 
             for (int i = 0; i < VectorRegisterSize; ++i)
                 VectorRegister[i] = other.VectorRegister[i];

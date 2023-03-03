@@ -86,11 +86,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public static IFileLocator CreateFromSymbolPath(string symbolPath)
         {
             FileSymbolCache defaultCache = GetDefaultCache();
-            List<IFileLocator> locators = new List<IFileLocator>();
+            List<IFileLocator> locators = new();
 
             bool first = false;
             SymbolServer? single = null;
-            
+
             foreach ((string? Cache, string[] Servers) in symbolPath.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(EnumerateEntries))
             {
                 if (Servers.Length == 0)
@@ -110,7 +110,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 {
                     if (server.StartsWith("http:", StringComparison.OrdinalIgnoreCase) || server.StartsWith("https:", StringComparison.OrdinalIgnoreCase))
                     {
-                        SymbolServer symSvr = new SymbolServer(cache, server);
+                        SymbolServer symSvr = new(cache, server);
                         locators.Add(symSvr);
 
                         if (first)
@@ -163,7 +163,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (split.Length < 3)
                     return (null, new string[] { part });
 
-                split = new string[] {"srv"}.Concat(split.Skip(2)).ToArray();                
+                split = new string[] { "srv" }.Concat(split.Skip(2)).ToArray();
             }
 
 

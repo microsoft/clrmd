@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -57,12 +58,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         public PEImage(ReadVirtualStream stream, bool leaveOpen, bool isVirtual)
-            : this((Stream)stream, leaveOpen, isVirtual, 0)
+            : this(stream, leaveOpen, isVirtual, 0)
         {
         }
 
         public PEImage(ReaderStream stream, bool leaveOpen, bool isVirtual)
-            : this((Stream)stream, leaveOpen, isVirtual, 0)
+            : this(stream, leaveOpen, isVirtual, 0)
         {
         }
 
@@ -133,7 +134,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             int readingCursor = RvaToOffset(RelocationDataDirectory.VirtualAddress);
             int readingLimit = readingCursor + RelocationDataDirectory.Size;
 
-            List<int> relocations = new List<int>();
+            List<int> relocations = new();
             while (readingCursor < readingLimit)
             {
                 ImageRelocation relocation = Read<ImageRelocation>(ref readingCursor);
@@ -143,7 +144,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 for (int i = 0; i < numRelocationsInBlock; i++)
                 {
                     ushort reloc = Read<ushort>(ref readingCursor);
-                    int withinPageOffset = (reloc & (ushort)0x0fff);
+                    int withinPageOffset = (reloc & 0x0fff);
                     int type = reloc >> 12;
                     int rva = relocation.pageRVA + withinPageOffset;
                     int fileOffset = RvaToOffset(rva);
@@ -440,7 +441,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             int headShift = offset - beginRead;
 
             byte[] rawBuffer = ArrayPool<byte>.Shared.Rent(readSize);
-            Span<byte> buffer = new Span<byte>(rawBuffer, 0, readSize);
+            Span<byte> buffer = new(rawBuffer, 0, readSize);
 
             SeekTo(beginRead);
 
@@ -630,15 +631,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private ResourceEntry CreateResourceRoot()
         {
-            return new ResourceEntry(this, null, "root", false, RvaToOffset((int)ResourceVirtualAddress));
+            return new ResourceEntry(this, null, "root", false, RvaToOffset(ResourceVirtualAddress));
         }
 
         internal T Read<T>(int offset) where T : unmanaged => Read<T>(ref offset);
 
         internal unsafe T Read<T>(ref int offset) where T : unmanaged
         {
-            T t = default;
-            TryRead(ref offset, out t);
+            TryRead(ref offset, out T t);
             return t;
         }
 
@@ -722,7 +722,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 ImageDataDirectory debugDirectory = DebugDataDirectory;
                 if (debugDirectory.VirtualAddress != 0 && debugDirectory.Size != 0)
                 {
-                    int count = (int)(debugDirectory.Size / sizeof(ImageDebugDirectory));
+                    int count = debugDirectory.Size / sizeof(ImageDebugDirectory);
                     int offset = RvaToOffset(debugDirectory.VirtualAddress);
                     if (offset == -1)
                         return ImmutableArray<PdbInfo>.Empty;
@@ -748,7 +748,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                                 if (path != null)
                                 {
-                                    PdbInfo pdb = new PdbInfo(path, guid, age);
+                                    PdbInfo pdb = new(path, guid, age);
                                     result.Add(pdb);
                                 }
                             }

@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public const string Msdl = "https://msdl.microsoft.com/download/symbols";
 
         private readonly FileSymbolCache _cache;
-        private readonly HttpClient _http = new HttpClient();
+        private readonly HttpClient _http = new();
 
         public bool SupportsCompression { get; private set; } = true;
         public bool SupportsRedirection { get; private set; } = false;
@@ -36,11 +36,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        private bool IsSymweb(string server)
+        private static bool IsSymweb(string server)
         {
             try
             {
-                Uri uri = new Uri(server);
+                Uri uri = new(server);
                 return uri.Host.Equals("symweb", StringComparison.OrdinalIgnoreCase) || uri.Host.Equals("symweb.corp.microsoft.com", StringComparison.OrdinalIgnoreCase);
             }
             catch
@@ -172,7 +172,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 string output = Path.Combine(Path.GetTempPath(), Path.GetFileNameWithoutExtension(fullPath));
 
                 Command.Run("Expand " + Command.Quote(tmpPath) + " " + Command.Quote(output));
-                MemoryStream ms = new MemoryStream();
+                MemoryStream ms = new();
                 using (var fs = File.OpenRead(output))
                     await fs.CopyToAsync(ms).ConfigureAwait(false);
 

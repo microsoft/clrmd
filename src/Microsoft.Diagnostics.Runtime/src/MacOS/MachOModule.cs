@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         }
 
         public MachOModule(MachOCoreDump parent, ulong address, string path)
-            :this(parent, parent.Parent, parent.ReadMemory<MachHeader64>(address), address, path)
+            : this(parent, parent.Parent, parent.ReadMemory<MachHeader64>(address), address, path)
         {
         }
 
@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             // Since MachO segments are not contiguous the image size is just the headers/commands
             ImageSize = MachHeader64.Size + _header.SizeOfCommands;
 
-            List<MachOSegment> segments = new List<MachOSegment>((int)_header.NumberCommands);
+            List<MachOSegment> segments = new((int)_header.NumberCommands);
 
             uint offset = (uint)sizeof(MachHeader64);
             for (int i = 0; i < _header.NumberCommands; i++)
@@ -193,7 +193,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             foreach (var seg in _segments)
                 if (seg.FileOffset <= fileOffset && fileOffset < seg.FileOffset + seg.FileSize)
                     return LoadBias + fileOffset + seg.Address - seg.FileOffset;
-            
+
             return LoadBias + fileOffset;
         }
 

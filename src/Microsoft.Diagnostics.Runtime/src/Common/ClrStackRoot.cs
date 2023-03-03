@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public override string ToString()
         {
-            StringBuilder builder = new StringBuilder();
+            StringBuilder builder = new();
 
             ClrThread? thread = StackFrame.Thread;
             if (thread != null)

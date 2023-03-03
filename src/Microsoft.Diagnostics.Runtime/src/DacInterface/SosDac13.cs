@@ -1,8 +1,7 @@
-﻿using System;
-using System.Linq;
+﻿using Microsoft.Diagnostics.Runtime.Utilities;
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
@@ -109,7 +108,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             public readonly delegate* unmanaged[Stdcall]<nint, ClrDataAddress, LoaderHeapKind, nint, int> TraverseLoaderHeap;
             public readonly delegate* unmanaged[Stdcall]<nint, ClrDataAddress, out ClrDataAddress, int> GetDomainLoaderAllocator;
-            public readonly delegate* unmanaged[Stdcall]<nint, int, nint *, out int, int> GetLoaderAllocatorHeapNames;
+            public readonly delegate* unmanaged[Stdcall]<nint, int, nint*, out int, int> GetLoaderAllocatorHeapNames;
             public readonly delegate* unmanaged[Stdcall]<nint, ClrDataAddress, int, ClrDataAddress*, LoaderHeapKind*, out int, int> GetLoaderAllocatorHeaps;
         }
     }

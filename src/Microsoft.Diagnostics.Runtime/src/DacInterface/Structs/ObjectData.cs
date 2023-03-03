@@ -3,12 +3,11 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct ObjectData : IObjectData
+    public readonly struct ObjectData
     {
         public readonly ClrDataAddress MethodTable;
         public readonly uint ObjectType;
@@ -23,11 +22,5 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly ClrDataAddress ArrayLowerBoundsPointer;
         public readonly ClrDataAddress RCW;
         public readonly ClrDataAddress CCW;
-
-        ClrElementType IObjectData.ElementType => (ClrElementType)ElementType;
-        ulong IObjectData.ElementTypeHandle => ElementTypeHandle;
-        ulong IObjectData.RCW => RCW;
-        ulong IObjectData.CCW => CCW;
-        ulong IObjectData.DataPointer => ArrayDataPointer;
     }
 }

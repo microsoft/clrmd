@@ -2,10 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -14,9 +14,9 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public readonly struct ClrObject : IAddressableTypedEntity, IEquatable<ClrObject>
     {
-        private const string RuntimeType = "System.RuntimeType";
+        internal const string RuntimeTypeName = "System.RuntimeType";
 
-        private IClrObjectHelpers Helpers => GetTypeOrThrow().ClrObjectHelpers;
+        private IClrTypeHelpers Helpers => GetTypeOrThrow().Helpers;
 
         /// <summary>
         /// Constructor.
@@ -102,7 +102,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The value read.</returns>
         public T ReadBoxedValue<T>() where T : unmanaged
         {
-            IClrObjectHelpers? helpers = Helpers;
+            IClrTypeHelpers? helpers = Helpers;
             if (helpers is null)
                 return default;
 
@@ -119,7 +119,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (Type is null || !Type.IsException)
                 return null;
 
-            return new ClrException(Helpers.ExceptionHelpers, null, this);
+            return new ClrException(Helpers, null, this);
         }
 
         /// <summary>
@@ -181,7 +181,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsNull || !IsValid || !HasComCallableWrapper)
                 return null;
 
-            return Helpers.Factory.CreateCCWForObject(Address);
+            return Helpers.CreateCCWForObject(Address);
         }
 
         /// <summary>
@@ -193,7 +193,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsNull || !IsValid)
                 return null;
 
-            return Helpers.Factory.CreateRCWForObject(Address);
+            return Helpers.CreateRCWForObject(Address);
         }
 
         /// <summary>
@@ -260,7 +260,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrHeap heap = type.Heap;
 
             ulong addr = field.GetAddress(Address);
-            if (!type.ClrObjectHelpers.DataReader.ReadPointer(addr, out ulong obj))
+            if (!type.Helpers.DataReader.ReadPointer(addr, out ulong obj))
                 return false;
 
             result = heap.GetObject(obj);
@@ -278,17 +278,14 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrObject ReadObjectField(string fieldName)
         {
             ClrType type = GetTypeOrThrow();
-            ClrInstanceField? field = type.GetFieldByName(fieldName);
-            if (field is null)
-                throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
-
+            ClrInstanceField? field = type.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
             if (!field.IsObjectReference)
                 throw new ArgumentException($"Field '{type.Name}.{fieldName}' is not an object reference.");
 
             ClrHeap heap = type.Heap;
 
             ulong addr = field.GetAddress(Address);
-            if (!type.ClrObjectHelpers.DataReader.ReadPointer(addr, out ulong obj))
+            if (!type.Helpers.DataReader.ReadPointer(addr, out ulong obj))
                 return default;
 
             return heap.GetObject(obj);
@@ -298,10 +295,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ClrType type = GetTypeOrThrow();
 
-            ClrInstanceField? field = type.GetFieldByName(fieldName);
-            if (field is null)
-                throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
-
+            ClrInstanceField field = type.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
             if (!field.IsValueType)
                 throw new ArgumentException($"Field '{type.Name}.{fieldName}' is not a ValueClass.");
 
@@ -345,10 +339,7 @@ namespace Microsoft.Diagnostics.Runtime
             where T : unmanaged
         {
             ClrType type = GetTypeOrThrow();
-            ClrInstanceField? field = type.GetFieldByName(fieldName);
-            if (field is null)
-                throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
-
+            ClrInstanceField field = type.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
             object value = field.Read<T>(Address, interior: false);
             return (T)value;
         }
@@ -382,26 +373,8 @@ namespace Microsoft.Diagnostics.Runtime
             return true;
         }
 
-        public bool IsRuntimeType => Type?.Name == RuntimeType;
-        public ClrType? AsRuntimeType()
-        {
-            ClrType type = GetTypeOrThrow();
-
-            if (!IsRuntimeType)
-                throw new InvalidOperationException($"Object {Address:x} is of type '{Type?.Name ?? "null" }', expected '{RuntimeType}'.");
-
-            ClrInstanceField? field = type.Fields.Where(f => f.Name == "m_handle").FirstOrDefault();
-            if (field is null)
-                return null;
-
-            ulong mt;
-            if (field.ElementType == ClrElementType.NativeInt)
-                mt = (ulong)ReadField<IntPtr>("m_handle");
-            else
-                mt = (ulong)ReadValueTypeField("m_handle").ReadField<IntPtr>("m_ptr");
-
-            return type.ClrObjectHelpers.Factory.GetOrCreateType(mt, 0);
-        }
+        public bool IsRuntimeType => Type?.Name == RuntimeTypeName;
+        public ClrType? AsRuntimeType() => Helpers.CreateRuntimeType(this);
 
         /// <summary>
         /// Returns true if this object is a delegate, false otherwise.
@@ -478,10 +451,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsNull)
                 throw new InvalidOperationException($"Cannot get field from null object.");
 
-            ClrInstanceField? field = type.GetFieldByName(fieldName);
-            if (field is null)
-                throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
-
+            ClrInstanceField field = type.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
             if (field.ElementType != element)
                 throw new InvalidOperationException($"Field '{type.Name}.{fieldName}' is not of type '{typeName}'.");
 

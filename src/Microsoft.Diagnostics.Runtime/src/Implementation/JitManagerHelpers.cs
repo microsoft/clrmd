@@ -1,16 +1,10 @@
-﻿using Microsoft.Diagnostics.Runtime.Builders;
-using Microsoft.Diagnostics.Runtime.DacInterface;
+﻿using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System.Collections.Generic;
 using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    // Helpers to evaluate lazy fields.
-    public interface IJitManagerHelpers
-    {
-        IEnumerable<ClrNativeHeapInfo> EnumerateNativeHeaps(ClrJitManager clrJitManager);
-    }
 
     internal sealed class JitManagerHelpers : IJitManagerHelpers
     {
@@ -25,25 +19,25 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public IEnumerable<ClrNativeHeapInfo> EnumerateNativeHeaps(ClrJitManager jitMgr)
         {
+            List<ClrNativeHeapInfo>? codeLoaderHeaps = null;
+
             foreach (var mem in _sos.GetCodeHeapList(jitMgr.Address))
             {
                 if (mem.Kind == CodeHeapKind.Loader)
                 {
-                    List<ClrNativeHeapInfo>? codeLoaderHeaps = null;
+                    codeLoaderHeaps?.Clear();
 
                     ClrRuntime runtime = jitMgr.Runtime;
                     uint pointerSize = (uint)runtime.DataTarget.DataReader.PointerSize;
-                    HResult hr = RuntimeBuilder.TraverseLoaderHeap(runtime.ClrInfo, _sos, _sos13, mem.Address, LoaderHeapKind.LoaderHeapKindExplicitControl, pointerSize, (address, size, isCurrent) =>
+                    HResult hr = ClrNativeHeapHelpers.TraverseLoaderHeap(runtime.ClrInfo, _sos, _sos13, mem.Address, LoaderHeapKind.LoaderHeapKindExplicitControl, pointerSize, (address, size, isCurrent) =>
                     {
                         codeLoaderHeaps ??= new(16);
-                        codeLoaderHeaps.Add(new ClrNativeHeapInfo(address, RuntimeBuilder.SanitizeSize(size), NativeHeapKind.LoaderCodeHeap, isCurrent != 0));
+                        codeLoaderHeaps.Add(new ClrNativeHeapInfo(address, ClrNativeHeapHelpers.SanitizeSize(size), NativeHeapKind.LoaderCodeHeap, isCurrent != 0));
                     });
 
                     if (codeLoaderHeaps is not null)
                         foreach (ClrNativeHeapInfo result in codeLoaderHeaps)
                             yield return result;
-
-                    codeLoaderHeaps?.Clear();
                 }
                 else if (mem.Kind == CodeHeapKind.Host)
                 {

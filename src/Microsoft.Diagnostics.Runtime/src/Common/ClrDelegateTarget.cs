@@ -5,7 +5,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// The "target" method and object that a delegate points to.
     /// </summary>
-    public class ClrDelegateTarget
+    public sealed class ClrDelegateTarget
     {
         /// <summary>
         /// Constructor.
@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="del">The parent delgate that this target came from.</param>
         /// <param name="target">The "target" of this delegate.</param>
         /// <param name="method">The method this delegate will call.</param>
-        public ClrDelegateTarget(ClrDelegate del, ClrObject target, ClrMethod method)
+        internal ClrDelegateTarget(ClrDelegate del, ClrObject target, ClrMethod method)
         {
             if (method is null)
                 throw new ArgumentNullException(nameof(method));

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -10,7 +11,6 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
@@ -74,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return hr;
             }
 
-            string nameResult = new string('\0', needed - 1);
+            string nameResult = new('\0', needed - 1);
             fixed (char* nameResultPtr = nameResult)
                 hr = VTable.GetTypeDefProps(Self, token, nameResultPtr, needed, out needed, out attributes, out mdParent);
 
@@ -99,7 +99,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return hr;
             }
 
-            string nameResult = new string('\0', needed - 1);
+            string nameResult = new('\0', needed - 1);
             fixed (char* nameResultPtr = nameResult)
                 hr = VTable.GetFieldProps(Self, token, out typeDef, nameResultPtr, needed, out needed, out attrs, out ppvSigBlob, out pcbSigBlob, out pdwCPlusTypeFlag, out ppValue, out pcchValue);
 
@@ -146,7 +146,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (!hr.IsOK)
                 return null;
 
-            string nameResult = new string('\0', needed - 1);
+            string nameResult = new('\0', needed - 1);
             fixed (char* nameResultPtr = nameResult)
             {
                 hr = VTable.GetTypeRefProps(Self, token, out scope, nameResultPtr, needed, out needed);
@@ -187,7 +187,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
                 bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count)
                 {
-                    fixed (int *ptr = tokens)
+                    fixed (int* ptr = tokens)
                     {
                         HResult hr = VTable.EnumGenericParams(Self, ref handle, token, ptr, length, out count);
                         return hr;
@@ -213,7 +213,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (hr < 0)
                 return false;
 
-            string nameResult = new string('\0', needed - 1);
+            string nameResult = new('\0', needed - 1);
             fixed (char* nameResultPtr = nameResult)
                 hr = VTable.GetGenericParamProps(Self, token, out index, out attributes, out owner, out _, nameResultPtr, nameResult.Length + 1, out needed);
 

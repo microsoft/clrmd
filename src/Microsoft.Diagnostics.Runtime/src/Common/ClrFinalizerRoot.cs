@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool IsInterior => false;
         public bool IsPinned => false;
 
-        public ClrFinalizerRoot(ulong address, ClrObject obj)
+        internal ClrFinalizerRoot(ulong address, ClrObject obj)
         {
             Address = address;
             Object = obj;

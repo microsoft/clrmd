@@ -2,7 +2,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
-    internal struct MachOSegment
+    internal readonly struct MachOSegment
     {
         public ulong Address { get; }
         public ulong Size { get; }

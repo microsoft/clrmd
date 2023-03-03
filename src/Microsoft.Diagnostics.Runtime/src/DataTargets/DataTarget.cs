@@ -9,12 +9,10 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -194,7 +192,7 @@ namespace Microsoft.Diagnostics.Runtime
         public static PlatformFunctions PlatformFunctions { get; } =
             RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? new LinuxFunctions() :
             RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? new MacOSFunctions() :
-            (PlatformFunctions)new WindowsFunctions();
+            new WindowsFunctions();
 
         /// <summary>
         /// Loads a dump stream. Currently supported formats are ELF coredump and Windows Minidump formats.
@@ -238,7 +236,7 @@ namespace Microsoft.Diagnostics.Runtime
                     _ => throw new InvalidDataException($"Stream '{displayName}' is in an unknown or unsupported file format."),
                 };
 
-                return new DataTarget(new CustomDataTarget(reader) {CacheOptions = cacheOptions});
+                return new DataTarget(new CustomDataTarget(reader) { CacheOptions = cacheOptions });
             }
             catch
             {
@@ -260,10 +258,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ArgumentNullException(nameof(filePath));
             if (!File.Exists(filePath))
                 throw new FileNotFoundException($"Could not open dump file '{filePath}'.", filePath);
-
-#pragma warning disable CA2000 // Dispose objects before losing scope - LoadDump(Stream) will take ownership
             FileStream stream = File.OpenRead(filePath);
-#pragma warning restore CA2000 // Dispose objects before losing scope
             return LoadDump(filePath, stream, cacheOptions, leaveOpen: false);
         }
 
@@ -309,7 +304,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="processId">The ID of the process to attach to.</param> 
         /// <param name="suspend">Whether or not to suspend the process.</param>
         /// <returns>A <see cref="DataTarget"/> instance.</returns>
-        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
         public static DataTarget AttachToProcess(int processId, bool suspend)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -343,12 +337,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <exception cref="PlatformNotSupportedException">
         /// The current platform is not Windows.
         /// </exception>
-        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope")]
         public static DataTarget CreateSnapshotAndAttach(int processId)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                CustomDataTarget customTarget = new CustomDataTarget(new WindowsProcessDataReader(processId, WindowsProcessDataReaderMode.Snapshot));
+                CustomDataTarget customTarget = new(new WindowsProcessDataReader(processId, WindowsProcessDataReaderMode.Snapshot));
                 return new DataTarget(customTarget);
             }
 
@@ -372,7 +365,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 throw GetPlatformException();
 
-            CustomDataTarget customTarget = new CustomDataTarget(new DbgEngDataReader(pDebugClient));
+            CustomDataTarget customTarget = new(new DbgEngDataReader(pDebugClient));
             return new DataTarget(customTarget);
         }
 

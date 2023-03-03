@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public uint LocalVarSignatureToken { get; }
 
-        public ILInfo(ulong address, int len, uint flags, uint localVarSignatureToken)
+        internal ILInfo(ulong address, int len, uint flags, uint localVarSignatureToken)
         {
             Address = address;
             Length = len;

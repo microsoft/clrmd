@@ -8,6 +8,6 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal static class PointerHelpers
     {
-        public static IntPtr AsIntPtr(this ulong address) => new IntPtr((nint)address);
+        public static IntPtr AsIntPtr(this ulong address) => new((nint)address);
     }
 }

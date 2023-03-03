@@ -2,9 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using System.Collections.Immutable;
-using System.Linq;
-using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -45,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the thread which created this RCW.
         /// </summary>
-        public ClrThread? CreatorThread { get; }
+        public ulong CreatorThreadAddress { get; }
 
         /// <summary>
         /// Gets the internal WinRT object associated with this RCW (if one exists).
@@ -57,19 +56,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ImmutableArray<ComInterfaceData> Interfaces { get; }
 
-        internal RuntimeCallableWrapper(ClrRuntime runtime, IRcwData data)
+        internal RuntimeCallableWrapper(ulong address, in RcwData rcw, ImmutableArray<ComInterfaceData> interfaces)
         {
-            if (data is null)
-                throw new System.ArgumentNullException(nameof(data));
-
-            Address = data.Address;
-            IUnknown = data.IUnknown;
-            VTablePointer = data.VTablePointer;
-            RefCount = data.RefCount;
-            Object = data.ManagedObject;
-            IsDisconnected = data.Disconnected;
-            CreatorThread = runtime?.Threads.FirstOrDefault(t => t.Address == data.CreatorThread);
-            Interfaces = data.GetInterfaces();
+            Address = address;
+            IUnknown = rcw.IUnknownPointer;
+            VTablePointer = rcw.VTablePointer;
+            RefCount = rcw.RefCount;
+            Object = rcw.ManagedObject;
+            IsDisconnected = rcw.IsDisconnected != 0;
+            CreatorThreadAddress = rcw.CreatorThread;
+            Interfaces = interfaces;
         }
     }
 }

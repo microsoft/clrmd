@@ -88,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>A Command structure that can be queried to determine ExitCode, Output, etc.</returns>
         public static Command Run(string commandLine, CommandOptions options)
         {
-            Command run = new Command(commandLine, options);
+            Command run = new(commandLine, options);
             run.Wait();
             return run;
         }
@@ -116,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!m.Success)
                 m = Regex.Match(commandLine, @"\s*(\S*)\s*(.*)"); // thing before first space is command
 
-            ProcessStartInfo startInfo = new ProcessStartInfo(m.Groups[1].Value, m.Groups[2].Value)
+            ProcessStartInfo startInfo = new(m.Groups[1].Value, m.Groups[2].Value)
             {
                 UseShellExecute = false,
                 RedirectStandardError = true,

@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.NETCore.Client;
 using System;
 using System.IO;
-using Microsoft.Diagnostics.NETCore.Client;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 try
                 {
-                    DiagnosticsClient client = new DiagnosticsClient(pid);
+                    DiagnosticsClient client = new(pid);
                     client.WriteDump(DumpType.Full, dumpPath, logDumpGeneration: false);
                 }
                 catch (ServerErrorException sxe)
@@ -49,11 +49,9 @@ namespace Microsoft.Diagnostics.Runtime
                     throw new ArgumentException($"Unable to create a snapshot of process {pid:x}.", sxe);
                 }
 
-#pragma warning disable CA2000 // Dispose objects before losing scope
-                LinuxSnapshotTarget result = new LinuxSnapshotTarget(new CoredumpReader(dumpPath, File.OpenRead(dumpPath), leaveOpen: false), pid, dumpPath);
+                LinuxSnapshotTarget result = new(new CoredumpReader(dumpPath, File.OpenRead(dumpPath), leaveOpen: false), pid, dumpPath);
                 dumpPath = null;
                 return result;
-#pragma warning restore CA2000 // Dispose objects before losing scope
             }
             finally
             {

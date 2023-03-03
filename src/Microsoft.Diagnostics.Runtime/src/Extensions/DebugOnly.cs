@@ -26,8 +26,6 @@ namespace Microsoft.Diagnostics.Runtime
         }
     }
 
-#pragma warning disable CA1032 // Implement standard exception constructors
-#pragma warning disable CA1064 // Exceptions should be public
     internal sealed class AssertionException : Exception
     {
         public AssertionException(string msg)

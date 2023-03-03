@@ -96,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool GetElemTypeSlow(out int etype)
         {
-            SigParser sigTemp = new SigParser(this);
+            SigParser sigTemp = new(this);
             if (sigTemp.SkipCustomModifiers())
             {
                 if (sigTemp.GetByte(out byte elemType))
@@ -176,7 +176,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool PeekElemTypeSlow(out int etype)
         {
-            SigParser sigTemp = new SigParser(this);
+            SigParser sigTemp = new(this);
             return sigTemp.GetElemType(out etype);
         }
 
@@ -210,7 +210,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private bool PeekElemTypeSize(out int pSize)
         {
             pSize = 0;
-            SigParser sigTemp = new SigParser(this);
+            SigParser sigTemp = new(this);
 
             if (!sigTemp.SkipAnyVASentinel())
                 return false;
@@ -297,7 +297,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public bool SkipCustomModifiers()
         {
-            SigParser sigTemp = new SigParser(this);
+            SigParser sigTemp = new(this);
 
             if (!sigTemp.SkipAnyVASentinel())
                 return false;
@@ -334,7 +334,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool SkipFunkyAndCustomModifiers()
         {
-            SigParser sigTemp = new SigParser(this);
+            SigParser sigTemp = new(this);
             if (!sigTemp.SkipAnyVASentinel())
                 return false;
 
@@ -607,7 +607,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return true;
         }
 
-#pragma warning disable CA1823
         private const int mdtModule = 0x00000000;
         private const int mdtTypeRef = 0x01000000;
         private const int mdtTypeDef = 0x02000000;

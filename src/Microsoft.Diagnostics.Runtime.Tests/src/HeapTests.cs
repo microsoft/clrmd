@@ -90,7 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 }
             }
 
-            ClrSegment large = heap.Segments.Single(s => s.IsLargeObjectSegment);
+            ClrSegment large = heap.Segments.Single(s => s.Kind == GCSegmentKind.Large);
             large.EnumerateObjects().ToArray();
 
             Assert.Equal(objs.Length, index);
@@ -109,11 +109,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 {
                     continue;
                 }
-                ulong nextObj = seg.GetNextObjectAddress(seg.FirstObjectAddress);
+                ulong nextObj = heap.FindNextObjectOnSegment(seg.FirstObjectAddress);
                 foreach (ClrObject obj in seg.EnumerateObjects().Skip(1))
                 {
-                    Assert.Equal(nextObj, obj.Address);
-                    nextObj = seg.GetNextObjectAddress(obj);
+                    Assert.Equal(obj.Address, nextObj);
+                    nextObj = heap.FindNextObjectOnSegment(obj);
                 }
             }
         }
@@ -132,11 +132,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     continue;
                 }
                 ClrObject prev = heap.GetObject(seg.FirstObjectAddress);
-                Assert.Equal(0ul, seg.GetPreviousObjectAddress(prev));
+                Assert.False(heap.FindPreviousObjectOnSegment(prev).IsValid);
 
                 foreach (ClrObject curr in seg.EnumerateObjects().Skip(1))
                 {
-                    Assert.Equal(prev.Address, seg.GetPreviousObjectAddress(curr));
+                    Assert.Equal(prev.Address, heap.FindPreviousObjectOnSegment(curr));
 
                     prev = curr;
                 }
@@ -215,9 +215,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     Assert.True(seg.ObjectRange.Contains(seg.Generation2));
 
                 Assert.True(seg.Generation2.Start == seg.Start);
-                Assert.True(seg.Generation2.Start + seg.Generation2.Length == seg.Generation1.Start);
-                Assert.True(seg.Generation1.Start + seg.Generation1.Length == seg.Generation0.Start);
-                Assert.True(seg.Generation0.Start + seg.Generation0.Length == seg.End);
+                if (seg.Kind == GCSegmentKind.Ephemeral)
+                {
+                    Assert.True(seg.Generation2.End == seg.Generation1.Start);
+                    Assert.True(seg.Generation1.End == seg.Generation0.Start);
+                    Assert.True(seg.Generation0.End == seg.ObjectRange.End);
+                }
 
                 if (seg.Length == 0)
                 {

@@ -103,6 +103,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrType type = obj.Type;
                 Assert.True(!type.IsArray || type.ComponentType != null);
 
+                var generics = type.EnumerateGenericParameters().ToArray();
+
                 foreach (ClrInstanceField field in type.Fields)
                 {
                     Assert.NotNull(field.Type);
@@ -167,23 +169,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(FileAccess.Read, clrEnum.GetEnumValue<FileAccess>(nameof(FileAccess.Read)));
             Assert.Equal(FileAccess.Write, clrEnum.GetEnumValue<FileAccess>(nameof(FileAccess.Write)));
             Assert.Equal(FileAccess.ReadWrite, clrEnum.GetEnumValue<FileAccess>(nameof(FileAccess.ReadWrite)));
-        }
-
-        [Fact]
-        public void AirtyTest()
-        {
-            // https://github.com/microsoft/clrmd/issues/394
-            string name = ClrmdType.FixGenerics("Microsoft.Diagnostics.Runtime.Tests.TypeTests+GenericTest`2[[System.String, System.Private.CoreLib],[System.Collections.Generic.List`1[[System.Collections.Generic.IEnumerable`1[[System.Int32, System.Private.CoreLib]][,], System.Private.CoreLib]][], System.Private.CoreLib]]");
-            const string expected = "Microsoft.Diagnostics.Runtime.Tests.TypeTests+GenericTest<System.String, System.Collections.Generic.List<System.Collections.Generic.IEnumerable<System.Int32>[,]>[]>";
-
-            Assert.Equal(expected, name);
-
-            name = ClrmdType.FixGenerics("Microsoft.Diagnostics.Runtime.Tests.TypeTests+GenericTest[[System.String, System.Private.CoreLib],[System.Collections.Generic.List[[System.Collections.Generic.IEnumerable[[System.Int32, System.Private.CoreLib]][,], System.Private.CoreLib]][], System.Private.CoreLib]]");
-
-            Assert.Equal(expected, name);
-
-            Assert.Equal("MyAssembly.Test<System.String>", ClrmdType.FixGenerics("MyAssembly.Test`1[[System.String, mscorlib]]"));
-            Assert.Equal("MyAssembly.Test<System.String>", ClrmdType.FixGenerics("MyAssembly.Test[[System.String, mscorlib]]"));
         }
 
         [FrameworkFact]
@@ -273,11 +258,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             // Account for different platform stack direction.
             if (low > high)
-            {
-                ulong tmp = low;
-                low = high;
-                high = tmp;
-            }
+                (high, low) = (low, high);
 
             foreach (IClrRoot localVarRoot in localVarRoots)
                 Assert.True(low <= localVarRoot.Address && localVarRoot.Address <= high);
@@ -398,11 +379,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     // We are hoping that creating a type through a MT will result in a real ClrmdType and
                     // not a ClrmdPrimitiveType.  A ClrmdPrimitiveType is there to mock up a type we cannot
                     // find.
-                    Assert.IsType<ClrmdType>(type);
+                    Assert.IsType<ClrDacType>(type);
 
-                    ClrmdType ct = (ClrmdType)type;
+                    ClrDacType ct = (ClrDacType)type;
 
-                    ClrmdPrimitiveType prim = new ClrmdPrimitiveType((ITypeHelpers)type.ClrObjectHelpers, runtime.BaseClassLibrary, runtime.Heap, ct.ElementType);
+                    ClrPrimitiveType prim = new(type.Helpers, runtime.BaseClassLibrary, runtime.Heap, ct.ElementType);
                     Assert.True(ct == prim);
                     Assert.True(prim == ct);
                 }
@@ -520,7 +501,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             TestFieldNameAndValue(fooType, obj, "d", 8.4);
         }
 
-        public ClrInstanceField TestFieldNameAndValue(ClrType type, ulong obj, string name, string value)
+        public static ClrInstanceField TestFieldNameAndValue(ClrType type, ulong obj, string name, string value)
         {
             ClrInstanceField field = type.GetFieldByName(name);
             Assert.NotNull(field);
@@ -532,7 +513,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return field;
         }
 
-        public ClrInstanceField TestFieldNameAndValue<T>(ClrType type, ulong obj, string name, T value)
+        public static ClrInstanceField TestFieldNameAndValue<T>(ClrType type, ulong obj, string name, T value)
             where T : unmanaged
         {
             ClrInstanceField field = type.GetFieldByName(name);
@@ -564,7 +545,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            ClrType genericType = runtime.GetModule("sharedlibrary.dll").GetTypeByName("GenericClass<T1, T2, T3, T4, T5>");
+            ClrModule sharedlibrary = runtime.GetModule("sharedlibrary.dll");
+            Assert.NotNull(sharedlibrary);
+
+            ClrType genericType = sharedlibrary.GetTypeByName("GenericClass<T1, T2, T3, T4, T5>");
+            Assert.NotNull(genericType);
 
             ClrGenericParameter[] genericParameters = genericType.EnumerateGenericParameters().ToArray();
             Assert.Equal(5, genericParameters.Length);
@@ -588,7 +573,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [WindowsFact]
         public void CollectibleTypeTest()
         {
-            CollectibleAssemblyLoadContext context = new CollectibleAssemblyLoadContext();
+            CollectibleAssemblyLoadContext context = new();
 
             RuntimeHelpers.RunClassConstructor(context.LoadFromAssemblyPath(Assembly.GetExecutingAssembly().Location)
                 .GetType(typeof(CollectibleUnmanagedStruct).FullName).TypeHandle);
@@ -596,7 +581,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             RuntimeHelpers.RunClassConstructor(Assembly.GetExecutingAssembly()
                 .GetType(typeof(UncollectibleUnmanagedStruct).FullName).TypeHandle);
 
-            using DataTarget dataTarget = DataTarget.CreateSnapshotAndAttach(Process.GetCurrentProcess().Id);
+            using DataTarget dataTarget = DataTarget.CreateSnapshotAndAttach(Environment.ProcessId);
 
             ClrHeap heap = dataTarget.ClrVersions.Single(v => v.ModuleInfo.FileName.EndsWith("coreclr.dll", true, null)).CreateRuntime().Heap;
 
@@ -742,7 +727,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ClrType arrayType = heap.GetObjectType(s_array);
 
-            List<ulong> objs = new List<ulong>();
+            List<ulong> objs = new();
             ClrObject obj = heap.GetObject(s_array);
             objs.AddRange(obj.EnumerateReferences().Select(o => o.Address));
 

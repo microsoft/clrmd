@@ -1,9 +1,7 @@
 ﻿using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
-using Microsoft.Diagnostics.Runtime.MacOS.Structs;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -30,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             _core = new MachOCoreDump(this, stream, leaveOpen, DisplayName);
         }
 
-        public IEnumerable<ModuleInfo> EnumerateModules() =>_core.EnumerateModules().Select(m => new MachOModuleInfo(m, m.BaseAddress, m.FileName, null, m.ImageSize));
+        public IEnumerable<ModuleInfo> EnumerateModules() => _core.EnumerateModules().Select(m => new MachOModuleInfo(m, m.BaseAddress, m.FileName, null, m.ImageSize));
 
         public void FlushCachedData()
         {

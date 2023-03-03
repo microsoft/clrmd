@@ -2,16 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Text;
 using Microsoft.Diagnostics.Runtime.DataReaders.Windows;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -145,13 +143,13 @@ namespace Microsoft.Diagnostics.Runtime
             if (!EnumProcessModules(_process, modules, needed, out _))
                 throw new InvalidOperationException("Unable to get process modules.");
 
-            List<ModuleInfo> result = new List<ModuleInfo>(modules.Length);
+            List<ModuleInfo> result = new(modules.Length);
 
             for (int i = 0; i < modules.Length; i++)
             {
                 IntPtr ptr = modules[i];
 
-                StringBuilder sb = new StringBuilder(1024);
+                StringBuilder sb = new(1024);
                 uint res = GetModuleFileNameEx(_process, ptr, sb, sb.Capacity);
                 DebugOnly.Assert(res != 0);
 

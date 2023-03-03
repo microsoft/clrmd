@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             IUnknownVTable* vtable = *(IUnknownVTable**)pUnk;
 
-            return (HResult) vtable->QueryInterface(pUnk, riid, out result);
+            return (HResult)vtable->QueryInterface(pUnk, riid, out result);
         }
     }
 }

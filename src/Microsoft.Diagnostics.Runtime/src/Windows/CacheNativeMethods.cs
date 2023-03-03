@@ -123,10 +123,10 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             internal enum HeapFlags : uint
             {
-                None               = 0x00000000,
-                NoSerialize        = 0x00000001,
+                None = 0x00000000,
+                NoSerialize = 0x00000001,
                 GenerateExceptions = 0x00000004,
-                ZeroMemory         = 0x00000008
+                ZeroMemory = 0x00000008
             }
 
             internal static UIntPtr HeapAlloc(uint bytesRequested)
@@ -166,7 +166,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             internal static bool AllocateUserPhysicalPages(ref uint numberOfPages, UIntPtr pageArray)
             {
-                UIntPtr numberOfPagesRequested = new UIntPtr(numberOfPages);
+                UIntPtr numberOfPagesRequested = new(numberOfPages);
                 bool res = AllocateUserPhysicalPages(Process.GetCurrentProcess().Handle, ref numberOfPagesRequested, pageArray);
                 numberOfPages = numberOfPagesRequested.ToUInt32();
 
@@ -179,7 +179,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             internal static bool MapUserPhysicalPages(UIntPtr virtualAddress, ulong numberOfPages, UIntPtr pageArray)
             {
-                UIntPtr numberOfPagesToMap = new UIntPtr(numberOfPages);
+                UIntPtr numberOfPagesToMap = new(numberOfPages);
                 return MapUserPhysicalPages(virtualAddress, numberOfPagesToMap, pageArray);
             }
 
@@ -189,7 +189,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             internal static bool FreeUserPhysicalPages(ref uint numberfOfPages, UIntPtr pageArray)
             {
-                UIntPtr numberOfPagesToFree = new UIntPtr(numberfOfPages);
+                UIntPtr numberOfPagesToFree = new(numberfOfPages);
                 bool res = FreeUserPhysicalPages(Process.GetCurrentProcess().Handle, ref numberOfPagesToFree, pageArray);
                 numberfOfPages = numberOfPagesToFree.ToUInt32();
 
@@ -231,7 +231,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 if (!OpenProcessToken(Process.GetCurrentProcess().Handle, TokenAccessLevels.AdjustPrivileges | TokenAccessLevels.Query, out IntPtr processToken))
                     return false;
 
-                TOKEN_PRIVILEGES tokenPrivleges = new TOKEN_PRIVILEGES { PrivilegeCount = 1 };
+                TOKEN_PRIVILEGES tokenPrivleges = new() { PrivilegeCount = 1 };
 
                 if (!LookupPrivilegeValue(lpSystemName: null, PrivilegeName, out LUID luid))
                     return false;

@@ -2,12 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private readonly (string Name, object? Value)[] _values;
 
-        public ClrEnum(ClrType type)
+        internal ClrEnum(ClrType type)
         {
             Type = type ?? throw new ArgumentNullException(nameof(type));
 
@@ -40,10 +40,7 @@ namespace Microsoft.Diagnostics.Runtime
         public T GetEnumValue<T>(string name) where T : unmanaged
         {
             object? value = _values.Single(v => v.Name == name).Value;
-            if (value is null)
-                throw new InvalidOperationException($"Enum {Type.Name} had null '{name}' value.");
-
-            return (T)value;
+            return value is null ? throw new InvalidOperationException($"Enum {Type.Name} had null '{name}' value.") : (T)value;
         }
 
         public IEnumerable<string> GetEnumNames() => _values.Select(v => v.Name);
@@ -51,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private (string Name, object? Value)[] EnumerateValues(MetadataImport import, out ClrElementType elementType)
         {
-            List<(string Name, object? Value)> values = new List<(string Name, object? Value)>();
+            List<(string Name, object? Value)> values = new();
             elementType = ClrElementType.Unknown;
 
             foreach (int token in import.EnumerateFields(Type.MetadataToken))
@@ -63,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                     if ((int)attr == 0x606 && name == "value__")
                     {
-                        SigParser parser = new SigParser(ppvSigBlob, pcbSigBlob);
+                        SigParser parser = new(ppvSigBlob, pcbSigBlob);
                         if (parser.GetCallingConvInfo(out _) && parser.GetElemType(out int elemType))
                             elementType = (ClrElementType)elemType;
                     }
@@ -71,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime
                     // public, static, literal, has default
                     if ((int)attr == 0x8056)
                     {
-                        SigParser parser = new SigParser(ppvSigBlob, pcbSigBlob);
+                        SigParser parser = new(ppvSigBlob, pcbSigBlob);
                         parser.GetCallingConvInfo(out _);
                         parser.GetElemType(out int _);
 

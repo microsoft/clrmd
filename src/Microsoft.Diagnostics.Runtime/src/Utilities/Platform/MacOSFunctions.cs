@@ -2,11 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.MacOS;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
-using Microsoft.Diagnostics.Runtime.MacOS;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime
         internal override unsafe bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch)
         {
             using FileStream stream = File.OpenRead(dll);
-            MachOFileReader reader = new MachOFileReader(stream);
+            MachOFileReader reader = new(stream);
 
             MachOHeader64 header = reader.Read<MachOHeader64>();
             if (header.Magic != MachOHeader64.ExpectedMagic)
@@ -91,7 +91,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 // TODO:  This should be cleaned up to not read byte by byte in the future.  Leaving it here
                 // until we decide whether to rewrite the Linux coredumpreader or not.
-                StringBuilder builder = new StringBuilder();
+                StringBuilder builder = new();
                 while (address < endAddress)
                 {
                     read = reader.Read(address, bytes);

@@ -2,13 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.DbgEng;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
-using Microsoft.Diagnostics.Runtime.DbgEng;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public IMAGE_FILE_MACHINE MachineType
         {
-            get =>_dataReader.Architecture switch
+            get => _dataReader.Architecture switch
             {
                 Architecture.X64 => IMAGE_FILE_MACHINE.AMD64,
                 Architecture.X86 => IMAGE_FILE_MACHINE.I386,
@@ -114,7 +114,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public bool ReadVirtual(ClrDataAddress cda, IntPtr buffer, int bytesRequested, out int bytesRead)
         {
             ulong address = cda;
-            Span<byte> span = new Span<byte>(buffer.ToPointer(), bytesRequested);
+            Span<byte> span = new(buffer.ToPointer(), bytesRequested);
 
             if (address == MagicCallbackConstant && _callbackContext > 0)
             {
@@ -157,7 +157,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public bool GetThreadContext(uint threadID, uint contextFlags, int contextSize, IntPtr context)
         {
-            Span<byte> span = new Span<byte>(context.ToPointer(), contextSize);
+            Span<byte> span = new(context.ToPointer(), contextSize);
             if (_dataReader.GetThreadContext(threadID, contextFlags, span))
                 return true;
 
@@ -192,7 +192,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     return HResult.E_FAIL;
 
                 rva = metadata.VirtualAddress;
-                size = Math.Min(size, (int)metadata.Size);
+                size = Math.Min(size, metadata.Size);
             }
 
             checked

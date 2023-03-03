@@ -1,10 +1,9 @@
-﻿using Microsoft.Diagnostics.Runtime.MacOS;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS.Structs
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    readonly struct DysymtabLoadCommand
+    internal readonly struct DysymtabLoadCommand
     {
         public LoadCommandHeader Header { get; }
         public uint ilocalsym { get; }

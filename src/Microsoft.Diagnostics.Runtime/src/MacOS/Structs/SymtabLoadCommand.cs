@@ -3,7 +3,7 @@
 namespace Microsoft.Diagnostics.Runtime.MacOS.Structs
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    readonly struct SymtabLoadCommand
+    internal readonly struct SymtabLoadCommand
     {
         public LoadCommandHeader Header { get; }
         public uint SymOff { get; }

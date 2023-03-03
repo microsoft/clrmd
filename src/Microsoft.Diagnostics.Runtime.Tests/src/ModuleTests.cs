@@ -149,11 +149,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     }
 
                     Assert.NotNull(type);
-
-                    ClrType typeFromToken = module.ResolveToken(token);
-                    Assert.NotNull(typeFromToken);
-
-                    Assert.Same(type, typeFromToken);
                 }
             }
 

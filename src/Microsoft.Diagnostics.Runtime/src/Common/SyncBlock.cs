@@ -8,6 +8,7 @@ namespace Microsoft.Diagnostics.Runtime
     {
         public ulong Object { get; }
 
+        public virtual SyncBlockComFlags ComFlags => SyncBlockComFlags.None;
         public virtual bool IsComCallWrapper => false;
         public virtual bool IsRuntimeCallWrapper => false;
         public virtual bool IsComClassFactory => false;

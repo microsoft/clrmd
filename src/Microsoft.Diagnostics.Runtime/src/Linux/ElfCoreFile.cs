@@ -119,10 +119,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (_auxvEntries.Count != 0)
                 return;
 
-            ElfNote? auxvNote = GetNotes(ElfNoteType.Aux).SingleOrDefault();
-            if (auxvNote is null)
-                throw new BadImageFormatException($"No auxv entries in coredump");
-
+            ElfNote auxvNote = GetNotes(ElfNoteType.Aux).SingleOrDefault() ?? throw new BadImageFormatException($"No auxv entries in coredump");
             ulong position = 0;
             while (true)
             {
@@ -168,7 +165,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             ElfFileTableEntryPointers64[] fileTable = new ElfFileTableEntryPointers64[entryCount];
-            Dictionary<string, ElfLoadedImage> lookup = new Dictionary<string, ElfLoadedImage>(fileTable.Length);
+            Dictionary<string, ElfLoadedImage> lookup = new(fileTable.Length);
 
             for (int i = 0; i < fileTable.Length; i++)
             {
@@ -189,7 +186,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             byte[] bytes = ArrayPool<byte>.Shared.Rent(size);
             try
             {
-                int read = fileNote.ReadContents((ulong)position, bytes);
+                int read = fileNote.ReadContents(position, bytes);
                 int start = 0;
                 for (int i = 0; i < fileTable.Length; i++)
                 {

@@ -2,11 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -59,12 +59,12 @@ namespace Microsoft.Diagnostics.Runtime
         internal override unsafe bool GetFileVersion(string dll, out int major, out int minor, out int revision, out int patch)
         {
             using FileStream stream = File.OpenRead(dll);
-            StreamAddressSpace streamAddressSpace = new StreamAddressSpace(stream);
-            Reader streamReader = new Reader(streamAddressSpace);
-            using ElfFile file = new ElfFile(streamReader);
+            StreamAddressSpace streamAddressSpace = new(stream);
+            Reader streamReader = new(streamAddressSpace);
+            using ElfFile file = new(streamReader);
             IElfHeader header = file.Header;
 
-            ElfSectionHeader headerStringHeader = new ElfSectionHeader(streamReader, header.Is64Bit, header.SectionHeaderOffset + (ulong)header.SectionHeaderStringIndex * header.SectionHeaderEntrySize);
+            ElfSectionHeader headerStringHeader = new(streamReader, header.Is64Bit, header.SectionHeaderOffset + (ulong)header.SectionHeaderStringIndex * header.SectionHeaderEntrySize);
             ulong headerStringOffset = headerStringHeader.FileOffset;
 
             ulong dataOffset = 0;
@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime
                     continue;
                 }
 
-                ElfSectionHeader sectionHeader = new ElfSectionHeader(streamReader, header.Is64Bit, header.SectionHeaderOffset + i * header.SectionHeaderEntrySize);
+                ElfSectionHeader sectionHeader = new(streamReader, header.Is64Bit, header.SectionHeaderOffset + i * header.SectionHeaderEntrySize);
                 if (sectionHeader.Type == ElfSectionHeaderType.ProgBits)
                 {
                     string sectionName = streamReader.ReadNullTerminatedAscii(headerStringOffset + sectionHeader.NameIndex * sizeof(byte));
@@ -117,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 // TODO:  This should be cleaned up to not read byte by byte in the future.  Leaving it here
                 // until we decide whether to rewrite the Linux coredumpreader or not.
-                StringBuilder builder = new StringBuilder();
+                StringBuilder builder = new();
                 while (address < endAddress)
                 {
                     read = streamAddressSpace.Read(address, bytes);

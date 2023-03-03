@@ -5,7 +5,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -77,10 +76,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             // be slower to determine that a missing symbol isn't in the table.
             uint hash = Hash(symbolName);
             int i = Buckets[hash % BucketCount] - SymbolOffset;
-            for (;; i++)
+            for (; ; i++)
             {
                 int chainVal = GetChain(i);
-                if((chainVal & 0xfffffffe) == (hash & 0xfffffffe))
+                if ((chainVal & 0xfffffffe) == (hash & 0xfffffffe))
                 {
                     yield return i + SymbolOffset;
                 }

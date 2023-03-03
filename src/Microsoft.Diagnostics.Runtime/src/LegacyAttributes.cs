@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
+using System.ComponentModel;
 
 #if NETSTANDARD2_0
 namespace System.Diagnostics.CodeAnalysis
@@ -53,5 +53,13 @@ namespace System.Diagnostics.CodeAnalysis
     {
         public RequiresDynamicCodeAttribute(string message) { }
     }
+}
+#endif
+
+#if !NET5_0_OR_GREATER
+namespace System.Runtime.CompilerServices
+{
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    internal class IsExternalInit { }
 }
 #endif

@@ -11,33 +11,37 @@ namespace Microsoft.Diagnostics.Runtime
     /// Segments.  It has a start and end and knows what heap it belongs to.   Segments can
     /// optional have regions for Gen 0, 1 and 2, and Large properties.
     /// </summary>
-    public abstract class ClrSegment
+    public sealed class ClrSegment
     {
+        internal ClrSegment(ClrSubHeap subHeap)
+        {
+            SubHeap = subHeap;
+        }
+
         /// <summary>
-        /// Gets the GC heap associated with this segment.  There's only one GCHeap per process, so this is
-        /// only a convenience method to keep from having to pass the heap along with a segment.
+        /// The address of the CLR segment object.
         /// </summary>
-        public abstract ClrHeap Heap { get; }
+        public ulong Address { get; internal set; }
 
         /// <summary>
         /// The memory range of the segment on which objects are allocated.  All objects in this segment fall within this range.
         /// </summary>
-        public abstract MemoryRange ObjectRange { get; }
+        public MemoryRange ObjectRange { get; internal set; }
 
         /// <summary>
         /// Gets the start address of the segment.  Equivalent to <see cref="ObjectRange"/>.<see cref="Start"/>.
         /// </summary>
-        public virtual ulong Start => ObjectRange.Start;
+        public ulong Start => ObjectRange.Start;
 
         /// <summary>
         /// Gets the end address of the segment.  Equivalent to <see cref="ObjectRange"/>.<see cref="Length"/>.
         /// </summary>
-        public virtual ulong End => ObjectRange.End;
+        public ulong End => ObjectRange.End;
 
         /// <summary>
         /// Equivalent to <see cref="ObjectRange"/>.<see cref="Length"/>.
         /// </summary>
-        public virtual ulong Length => ObjectRange.Length;
+        public ulong Length => ObjectRange.Length;
 
         /// <summary>
         /// Gets the processor that this heap is affinitized with.  In a workstation GC, there is no processor
@@ -45,75 +49,52 @@ namespace Microsoft.Diagnostics.Runtime
         /// has a logical processor in the PC associated with it.  This property returns that logical
         /// processor number (starting at 0).
         /// </summary>
-        public abstract int LogicalHeap { get; }
+        public ClrSubHeap SubHeap { get; }
 
         /// <summary>
         /// Gets the range of memory reserved (but not committed) for this segment.
         /// </summary>
-        public abstract MemoryRange ReservedMemory { get; }
+        public MemoryRange ReservedMemory { get; internal set; }
 
         /// <summary>
         /// Gets the range of memory committed for the segment (this may be larger than MemoryRange).
         /// </summary>
-        public abstract MemoryRange CommittedMemory { get; }
+        public MemoryRange CommittedMemory { get; internal set; }
 
         /// <summary>
         /// Gets the first object on this segment or 0 if this segment contains no objects.
         /// </summary>
-        public abstract ulong FirstObjectAddress { get; }
+        public ulong FirstObjectAddress => ObjectRange.Start;
 
         /// <summary>
-        /// Returns true if this is a segment for the Large Object Heap.  False otherwise.
-        /// Large objects (greater than 85,000 bytes in size), are stored in their own segments and
-        /// only collected on full (gen 2) collections.
+        /// The kind of segment this is.
         /// </summary>
-        public abstract bool IsLargeObjectSegment { get; }
+        public GCSegmentKind Kind { get; internal set; }
 
         /// <summary>
-        /// Returns true if this is a segment for the Pinned Object Heap.  False otherwise.
+        /// Returns true if the objects in this segment are pinned and cannot be relocated.
         /// </summary>
-        public abstract bool IsPinnedObjectSegment { get; }
+        public bool IsPinned => Kind == GCSegmentKind.Pinned || Kind == GCSegmentKind.Large || Kind == GCSegmentKind.Frozen;
 
         /// <summary>
-        /// Returns true if this segment is the ephemeral segment (meaning it contains gen0 and gen1
-        /// objects).
+        /// The memory range for Generation 0 on this segment.  This will be empty if this is not an ephemeral segment.
         /// </summary>
-        public abstract bool IsEphemeralSegment { get; }
+        public MemoryRange Generation0 { get; internal set; }
 
         /// <summary>
-        /// The memory range for Generation 0 on this segment.  This will be empty if <see cref="IsEphemeralSegment"/> is false.
+        /// The memory range for Generation 1 on this segment.  This will be empty if this is not an ephemeral segment.
         /// </summary>
-        public abstract MemoryRange Generation0 { get; }
+        public MemoryRange Generation1 { get; internal set; }
 
         /// <summary>
-        /// The memory range for Generation 1 on this segment.  This will be empty if <see cref="IsEphemeralSegment"/> is false.
+        /// The memory range for Generation 2 on this segment.  This will be empty if this is not an ephemeral segment.
         /// </summary>
-        public abstract MemoryRange Generation1 { get; }
-
-        /// <summary>
-        /// The memory range for Generation 2 on this segment.  This will be equivalent to ObjectRange if <see cref="IsEphemeralSegment"/> is false.
-        /// </summary>
-        public abstract MemoryRange Generation2 { get; }
+        public MemoryRange Generation2 { get; internal set; }
 
         /// <summary>
         /// Enumerates all objects on the segment.
         /// </summary>
-        public abstract IEnumerable<ClrObject> EnumerateObjects();
-
-        /// <summary>
-        /// Returns the object after the given object.
-        /// </summary>
-        /// <param name="obj">A valid object address that resides on this segment.</param>
-        /// <returns>The next object on this segment, or 0 if <paramref name="obj"/> is the last object on the segment.</returns>
-        public abstract ulong GetNextObjectAddress(ulong obj);
-
-        /// <summary>
-        /// Returns the object before the given object.  Note that this function may take a while because in the worst case
-        /// scenario we have to linearly walk all the way from the beginning of the segment to the object.
-        /// </summary>
-        /// <param name="obj">An address that resides on this segment.  This does not need to point directly to a good object.</param>
-        /// <returns>The previous object on this segment, or 0 if <paramref name="obj"/> is the first object on the segment.</returns>
-        public abstract ulong GetPreviousObjectAddress(ulong obj);
+        public IEnumerable<ClrObject> EnumerateObjects() => SubHeap.Heap.EnumerateObjects(this);
 
         /// <summary>
         /// Returns the generation of an object in this segment.
@@ -123,7 +104,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// The generation of the given object if that object lies in this segment.  The return
         /// value is undefined if the object does not lie in this segment.
         /// </returns>
-        public virtual int GetGeneration(ulong obj)
+        public int GetGeneration(ulong obj)
         {
             if (Generation2.Contains(obj))
                 return 2;
@@ -143,7 +124,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A string representation of this object.</returns>
         public override string ToString()
         {
-            return $"HeapSegment {Length / 1000000.0:n2}mb [{Start:X8}, {End:X8}]";
+            return $"[{Start:x12}, {End:x12}]";
         }
+
+        /// <summary>
+        /// The next segment in the heap.
+        /// </summary>
+        internal ulong Next { get; set; }
     }
 }

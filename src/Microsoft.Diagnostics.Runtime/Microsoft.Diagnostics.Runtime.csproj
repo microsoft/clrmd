@@ -22,15 +22,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Roslyn.Diagnostics.Analyzers" Version="3.3.3" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Diagnostics.NETCore.Client" Version="0.2.251802" />
     <PackageReference Include="System.Collections.Immutable" Version="5.0.0" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="5.0.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <AdditionalFiles Include="PublicAPI/$(TargetFramework)/PublicAPI.Shipped.txt" />
-    <AdditionalFiles Include="PublicAPI/$(TargetFramework)/PublicAPI.Unshipped.txt" />
-  </ItemGroup>
-  
 </Project>

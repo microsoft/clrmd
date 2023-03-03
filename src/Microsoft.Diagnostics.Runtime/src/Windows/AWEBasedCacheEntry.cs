@@ -11,7 +11,6 @@ using System.Threading;
 // TODO:  This code wasn't written to consider nullable.
 #nullable disable
 
-#pragma warning disable CA1810 // Initialize reference type static fields inline
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
     /// <summary>
@@ -26,11 +25,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private readonly static int SystemPageSize = Environment.SystemPageSize;
 
         private UIntPtr _pageFrameArray;
-        private int _pageFrameArrayItemCount;
+        private readonly int _pageFrameArrayItemCount;
 
         static AWEBasedCacheEntry()
         {
-            CacheNativeMethods.Util.SYSTEM_INFO sysInfo = new CacheNativeMethods.Util.SYSTEM_INFO();
+            CacheNativeMethods.Util.SYSTEM_INFO sysInfo = new();
             CacheNativeMethods.Util.GetSystemInfo(ref sysInfo);
 
             AWEBasedCacheEntry.VirtualAllocPageSize = sysInfo.dwAllocationGranularity;
@@ -177,7 +176,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 // reserved 64k of memory, making that memory unusable for anyone else. If you do this a lot (say across an entire dump heap) you easily fragment memory to the point
                 // of seeing sporadic allocation failures due to not being able to find enough contiguous memory. VMMAP (from SysInternals) is good for showing this kind of 
                 // fragmentation, it marks the excess space as 'Unusable Space'
-                UIntPtr vmPtr = CacheNativeMethods.Memory.VirtualAlloc((uint)EntryPageSize, CacheNativeMethods.Memory.VirtualAllocType.Reserve | CacheNativeMethods.Memory.VirtualAllocType.Physical, CacheNativeMethods.Memory.MemoryProtection.ReadWrite);
+                UIntPtr vmPtr = CacheNativeMethods.Memory.VirtualAlloc(EntryPageSize, CacheNativeMethods.Memory.VirtualAllocType.Reserve | CacheNativeMethods.Memory.VirtualAllocType.Physical, CacheNativeMethods.Memory.MemoryProtection.ReadWrite);
                 if (vmPtr == UIntPtr.Zero)
                     throw new Win32Exception(Marshal.GetLastWin32Error());
 
@@ -189,7 +188,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     numberOfPages,
                     new UIntPtr((ulong)_pageFrameArray + (startingMemoryPageNumber * (ulong)UIntPtr.Size))
                 );
-                
+
                 if (!mapPhysicalPagesResult)
                     throw new Win32Exception(Marshal.GetLastWin32Error());
 

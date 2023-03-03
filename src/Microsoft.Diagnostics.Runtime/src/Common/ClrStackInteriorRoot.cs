@@ -39,28 +39,16 @@ namespace Microsoft.Diagnostics.Runtime
                 return _object.Value;
 
             // It's possible that ObjectPointer points the beginning of an object, though that's rare.  Check that first.
-            ClrType? type = _segment.Heap.GetObjectType(ObjectPointer);
-            if (!(type is null))
+            ClrHeap heap = _segment.SubHeap.Heap;
+            ClrType? type = heap.GetObjectType(ObjectPointer);
+            if (type is not null)
             {
                 _object = new ClrObject(ObjectPointer, type);
                 return _object.Value;
             }
 
             // ObjectPointer is pointing in the middle of an object, get the previous object for the address.
-            ulong obj = _segment.GetPreviousObjectAddress(ObjectPointer);
-            if (obj == 0)
-                return null;
-
-            type = _segment.Heap.GetObjectType(obj);
-            if (type is null)
-            {
-                // This is heap corruption, or an inconsistent dump.  We should have found a real object here.
-                return null;
-            }
-
-            ClrObject result = new ClrObject(obj, type);
-            _object = result;
-            return result;
+            return heap.FindPreviousObjectOnSegment(ObjectPointer);
         }
 
         /// <summary>

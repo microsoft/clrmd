@@ -4,11 +4,9 @@
 
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using Microsoft.Diagnostics.Runtime.Implementation;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using Microsoft.Diagnostics.Runtime.Windows;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -70,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime
             // We set buildId to "Empty" since only PEImages exist where minidumps are created, and we do not
             // want to try to lazily evaluate the buildId later
             return from module in _minidump.EnumerateModuleInfo()
-                   select new PEModuleInfo(this,  module.BaseOfImage, module.ModuleName ??"", true, module.DateTimeStamp, module.SizeOfImage);
+                   select new PEModuleInfo(this, module.BaseOfImage, module.ModuleName ?? "", true, module.DateTimeStamp, module.SizeOfImage);
         }
 
         public void FlushCachedData()

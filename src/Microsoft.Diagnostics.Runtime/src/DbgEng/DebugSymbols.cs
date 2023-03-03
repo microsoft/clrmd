@@ -2,11 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             if (!hr)
                 return null;
 
-            string nameResult = new string('\0', needed - 1);
+            string nameResult = new('\0', needed - 1);
             fixed (char* nameResultPtr = nameResult)
             {
                 hr = VTable.GetModuleNameStringWide(Self, which, index, imageBase, nameResultPtr, needed, out _);

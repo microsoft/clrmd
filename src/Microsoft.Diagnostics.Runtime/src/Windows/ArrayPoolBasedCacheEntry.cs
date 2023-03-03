@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
     {
         private static readonly uint SystemPageSize = (uint)Environment.SystemPageSize;
 
-        private MemoryMappedFile _mappedFile;
+        private readonly MemoryMappedFile _mappedFile;
 
         internal ArrayPoolBasedCacheEntry(MemoryMappedFile mappedFile, MinidumpSegment segmentData, Action<uint> updateOwningCacheForAddedChunk) : base(segmentData, derivedMinSize: 2 * IntPtr.Size, updateOwningCacheForAddedChunk)
         {
@@ -32,18 +32,18 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             ThrowIfDisposed();
 
-            var data = TryRemoveAllPagesFromCache(disposeLocks: false);
+            (ulong dataRemoved, uint _) = TryRemoveAllPagesFromCache(disposeLocks: false);
 
             int oldCurrent;
             int newCurrent;
             do
             {
-                oldCurrent = (int)_entrySize;
-                newCurrent = Math.Max((int)MinSize, oldCurrent - (int)data.DataRemoved);
+                oldCurrent = _entrySize;
+                newCurrent = Math.Max(MinSize, oldCurrent - (int)dataRemoved);
             }
             while (Interlocked.CompareExchange(ref _entrySize, newCurrent, oldCurrent) != oldCurrent);
 
-            return (long)data.DataRemoved;
+            return (long)dataRemoved;
         }
 
         protected override uint EntryPageSize => SystemPageSize;
@@ -66,56 +66,54 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
 
             bool pageInFailed = false;
-            using (MemoryMappedViewAccessor view = _mappedFile.CreateViewAccessor((long)_segmentData.FileOffset + (long)pageAlignedOffset, size: readSize, MemoryMappedFileAccess.Read))
+            using MemoryMappedViewAccessor view = _mappedFile.CreateViewAccessor((long)_segmentData.FileOffset + (long)pageAlignedOffset, size: readSize, MemoryMappedFileAccess.Read);
+            try
             {
-                try
+                ulong viewOffset = (ulong)view.PointerOffset;
+
+                unsafe
                 {
-                    ulong viewOffset = (ulong)view.PointerOffset;
-
-                    unsafe
+                    byte* pViewLoc = null;
+                    try
                     {
-                        byte* pViewLoc = null;
-                        try
+                        view.SafeMemoryMappedViewHandle.AcquirePointer(ref pViewLoc);
+                        if (pViewLoc == null)
+                            throw new InvalidOperationException("Failed to acquire the underlying memory mapped view pointer. This is unexpected");
+
+                        pViewLoc += viewOffset;
+
+                        // Grab a shared buffer to use if there is one, or create one for the pool
+                        byte[] data = ArrayPool<byte>.Shared.Rent((int)readSize);
+
+                        // NOTE: This looks sightly ridiculous but view.ReadArray<T> is TERRIBLE for primitive types like byte, it calls Marshal.PtrToStructure for EVERY item in the 
+                        // array, the overhead of that call SWAMPS all access costs to the memory, and it is called N times (where N here is 4k), whereas memcpy just blasts the bits
+                        // from one location to the other, it is literally a couple of orders of magnitude faster.
+                        fixed (byte* pData = data)
                         {
-                            view.SafeMemoryMappedViewHandle.AcquirePointer(ref pViewLoc);
-                            if (pViewLoc == null)
-                                throw new InvalidOperationException("Failed to acquire the underlying memory mapped view pointer. This is unexpected");
-
-                            pViewLoc += viewOffset;
-
-                            // Grab a shared buffer to use if there is one, or create one for the pool
-                            byte[] data = ArrayPool<byte>.Shared.Rent((int)readSize);
-
-                            // NOTE: This looks sightly ridiculous but view.ReadArray<T> is TERRIBLE for primitive types like byte, it calls Marshal.PtrToStructure for EVERY item in the 
-                            // array, the overhead of that call SWAMPS all access costs to the memory, and it is called N times (where N here is 4k), whereas memcpy just blasts the bits
-                            // from one location to the other, it is literally a couple of orders of magnitude faster.
-                            fixed (byte* pData = data)
-                            {
-                                CacheNativeMethods.Memory.memcpy(new UIntPtr(pData), new UIntPtr(pViewLoc), new UIntPtr(readSize));
-                            }
-
-                            return (data, readSize);
+                            CacheNativeMethods.Memory.memcpy(new UIntPtr(pData), new UIntPtr(pViewLoc), new UIntPtr(readSize));
                         }
-                        finally
-                        {
-                            if (pViewLoc != null)
-                                view.SafeMemoryMappedViewHandle.ReleasePointer();
-                        }
+
+                        return (data, readSize);
+                    }
+                    finally
+                    {
+                        if (pViewLoc != null)
+                            view.SafeMemoryMappedViewHandle.ReleasePointer();
                     }
                 }
-                catch (Exception ex)
-                {
-                    if (HeapSegmentCacheEventSource.Instance.IsEnabled())
-                        HeapSegmentCacheEventSource.Instance.PageInDataFailed(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                if (HeapSegmentCacheEventSource.Instance.IsEnabled())
+                    HeapSegmentCacheEventSource.Instance.PageInDataFailed(ex.Message);
 
-                    pageInFailed = true;
-                    throw;
-                }
-                finally
-                {
-                    if (!pageInFailed && HeapSegmentCacheEventSource.Instance.IsEnabled())
-                        HeapSegmentCacheEventSource.Instance.PageInDataEnd((int)readSize);
-                }
+                pageInFailed = true;
+                throw;
+            }
+            finally
+            {
+                if (!pageInFailed && HeapSegmentCacheEventSource.Instance.IsEnabled())
+                    HeapSegmentCacheEventSource.Instance.PageInDataEnd((int)readSize);
             }
         }
 

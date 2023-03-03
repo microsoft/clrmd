@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -11,8 +13,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
@@ -149,7 +149,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             unsafe string ReadNullTerminatedAscii(ulong address)
             {
-                StringBuilder builder = new StringBuilder(64);
+                StringBuilder builder = new(64);
                 byte* bytes = stackalloc byte[64];
 
                 bool done = false;
@@ -300,9 +300,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         {
             if (_threadActs.Count == 0)
             {
-                uint* threads;
-                uint threadsCount;
-                int kr = Native.task_threads(_task, &threads, out threadsCount);
+                uint* threads = null;
+                int kr = Native.task_threads(_task, &threads, out uint threadsCount);
                 if (kr != 0)
                     throw new ClrDiagnosticsException($"task_threads failed with status code 0x{kr:x}");
 

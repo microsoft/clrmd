@@ -2,16 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     internal static class UnixDataReaderExtensions
     {
 
-        [return: NotNullIfNotNull("version")]
+        [return: NotNullIfNotNull(nameof(version))]
         internal static bool GetVersionInfo(this IDataReader dataReader, ulong baseAddress, ElfFile loadedFile, out System.Version? version)
         {
             foreach (ElfProgramHeader programHeader in loadedFile.ProgramHeaders)
@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        [return: NotNullIfNotNull("version")]
+        [return: NotNullIfNotNull(nameof(version))]
         internal static bool GetVersionInfo(this IDataReader dataReader, ulong startAddress, ulong size, out System.Version? version)
         {
             // (int)size underflow will result in returning 0 here, so this is acceptable

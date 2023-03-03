@@ -11,8 +11,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// Exception thrown by Microsoft.Diagnostics.Runtime unless there is a more appropriate
     /// exception subclass.
     /// </summary>
-    [Serializable]
-    public class ClrDiagnosticsException : Exception
+    public sealed class ClrDiagnosticsException : Exception
     {
         /// <summary>
         /// Constructor.
@@ -42,13 +41,6 @@ namespace Microsoft.Diagnostics.Runtime
             : base(message)
         {
             HResult = hr;
-        }
-
-        protected ClrDiagnosticsException(SerializationInfo info, StreamingContext context)
-            : base(info, context)
-        {
-            if (info is null)
-                throw new ArgumentNullException(nameof(info));
         }
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)

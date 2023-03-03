@@ -6,7 +6,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal interface IAppDomainData
     {
-        IAppDomainHelpers Helpers { get; }
+        IClrAppDomainHelpers Helpers { get; }
         string? Name { get; }
         int Id { get; }
         ulong Address { get; }

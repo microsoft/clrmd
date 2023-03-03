@@ -7,38 +7,46 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents a CLR handle in the target process.
     /// </summary>
-    public abstract class ClrHandle : IClrRoot
+    public class ClrHandle : IClrRoot
     {
+        internal ClrHandle(ClrAppDomain parent, ulong address, ClrObject obj, ClrHandleKind kind)
+        {
+            AppDomain = parent;
+            Address = address;
+            Object = obj;
+            HandleKind = kind;
+        }
+
         /// <summary>
         /// Gets the address of the handle itself.  That is, *ulong == Object.
         /// </summary>
-        public abstract ulong Address { get; }
+        public ulong Address { get; }
 
         /// <summary>
         /// Gets the Object the handle roots.
         /// </summary>
-        public abstract ClrObject Object { get; }
+        public ClrObject Object { get; }
 
         /// <summary>
         /// Gets the type of handle.
         /// </summary>
-        public abstract ClrHandleKind HandleKind { get; }
+        public ClrHandleKind HandleKind { get; }
 
         /// <summary>
         /// If this handle is a RefCount handle, this returns the reference count.
         /// RefCount handles with a RefCount > 0 are strong.
         /// </summary>
-        public abstract uint ReferenceCount { get; }
+        public virtual uint ReferenceCount => 0;
 
         /// <summary>
         /// Gets the dependent handle target if this is a dependent handle.
         /// </summary>
-        public abstract ClrObject Dependent { get; }
+        public virtual ClrObject Dependent => default;
 
         /// <summary>
         /// Gets the AppDomain the handle resides in.
         /// </summary>
-        public abstract ClrAppDomain AppDomain { get; }
+        public ClrAppDomain AppDomain { get; }
 
         /// <summary>
         /// Gets a value indicating whether the handle is strong (roots the object).

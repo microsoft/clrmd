@@ -2,19 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Threading;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using Microsoft.Diagnostics.Runtime.DbgEng;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
-
-#pragma warning disable CA2213 // Disposable fields should be disposed
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -158,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             int count = _symbols.GetNumberModules();
 
-            List<ulong> bases = new List<ulong>(count);
+            List<ulong> bases = new(count);
             for (int i = 0; i < count; ++i)
             {
                 ulong image = _symbols.GetModuleByIndex(i);
@@ -178,13 +175,13 @@ namespace Microsoft.Diagnostics.Runtime
             if (bases.Length == 0)
                 return Enumerable.Empty<ModuleInfo>();
 
-            List<ModuleInfo> modules = new List<ModuleInfo>();
+            List<ModuleInfo> modules = new();
             if (_symbols.GetModuleParameters(bases, out DEBUG_MODULE_PARAMETERS[] mods))
             {
                 for (int i = 0; i < bases.Length; ++i)
                 {
                     string? fn = _symbols.GetModuleNameStringWide(DebugModuleName.Image, i, bases[i]) ?? "";
-                    
+
                     ModuleInfo info = new PEModuleInfo(this, bases[i], fn, true, mods[i].Size, mods[i].TimeDateStamp, GetVersionInfo(bases[i]));
                     modules.Add(info);
                 }
@@ -196,7 +193,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private static IntPtr CreateIDebugClient()
         {
-            Guid guid = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
+            Guid guid = new("27fe5639-8407-4f47-8364-ee118fb08ac8");
             int hr = DebugCreate(guid, out IntPtr ptr);
             DebugOnly.Assert(hr == 0);
 

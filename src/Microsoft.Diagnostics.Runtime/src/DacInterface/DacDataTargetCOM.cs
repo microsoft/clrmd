@@ -3,12 +3,12 @@
 // See the LICENSE file in the project root for more information.
 
 #if NET6_0_OR_GREATER
-using System;
-using System.Runtime.InteropServices;
-using System.Collections;
-using System.Runtime.CompilerServices;
 using Microsoft.Diagnostics.Runtime.DbgEng;
 using Microsoft.Diagnostics.Runtime.Utilities;
+using System;
+using System.Collections;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {

@@ -26,10 +26,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             using DataTarget dt = TestTargets.NestedException.LoadFullDump();
             ClrInfo info = dt.ClrVersions.Single();
-            DebugLibraryInfo dac = Assert.Single(info.DebuggingLibraries.Where(r => Path.GetFileName(r.FileName) != r.FileName));
-
-            using ClrRuntime runtime = info.CreateRuntime(dac.FileName);
-            Assert.NotNull(runtime);
+            foreach (DebugLibraryInfo dac in info.DebuggingLibraries.Where(r => Path.GetFileName(r.FileName) != r.FileName))
+            {
+                using ClrRuntime runtime = info.CreateRuntime(dac.FileName);
+                Assert.NotNull(runtime);
+            }
         }
 
         [Fact]
@@ -149,6 +150,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private void CheckTypeNotSame(ClrType oldType, ClrType newType)
         {
+            // Don't check that the basic types are different, it's ok to cache those
+            if (oldType.IsFree || oldType.IsArray || oldType.IsException || oldType.BaseType == null || oldType.IsString)
+                return;
+
             Assert.Equal(oldType.MethodTable, newType.MethodTable);
 
             AssertEqualNotSame(oldType.Name, newType.Name);

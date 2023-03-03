@@ -2,12 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
@@ -148,7 +148,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public COMInterfacePointerData[]? GetCCWInterfaces(ulong ccw, int count)
         {
             COMInterfacePointerData[] data = new COMInterfacePointerData[count];
-            fixed (COMInterfacePointerData*ptr = data)
+            fixed (COMInterfacePointerData* ptr = data)
             {
                 HResult hr = VTable.GetCCWInterfaces(Self, ccw, count, ptr, out int pNeeded);
                 if (hr)
@@ -615,7 +615,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 HResult hr = VTable.GetHandleEnumForTypes(Self, ptr, types.Length, out IntPtr ptrEnum);
                 if (hr)
                 {
-                    SOSHandleEnum result = new SOSHandleEnum(_library, ptrEnum);
+                    SOSHandleEnum result = new(_library, ptrEnum);
                     int count = result.Release();
                     if (count == 0)
                         throw new InvalidOperationException($"We expected to borrow a reference from GetHandleEnumForTypes, but instead fully released the object!");
@@ -632,7 +632,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             HResult hr = VTable.GetHandleEnum(Self, out IntPtr ptrEnum);
             if (hr)
             {
-                SOSHandleEnum result = new SOSHandleEnum(_library, ptrEnum);
+                SOSHandleEnum result = new(_library, ptrEnum);
                 int count = result.Release();
                 if (count == 0)
                     throw new InvalidOperationException($"We expected to borrow a reference from GetHandleEnum, but instead fully released the object!");
@@ -649,7 +649,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             if (hr)
             {
-                SOSStackRefEnum result = new SOSStackRefEnum(_library, ptrEnum);
+                SOSStackRefEnum result = new(_library, ptrEnum);
                 int count = result.Release();
                 if (count == 0)
                     throw new InvalidOperationException($"We expected to borrow a reference from GetStackReferences, but instead fully released the object!");

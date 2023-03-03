@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public HResult(int hr) => Value = hr;
 
-        public static implicit operator HResult(int hr) => new HResult(hr);
+        public static implicit operator HResult(int hr) => new(hr);
 
         /// <summary>
         /// Helper to convert to int for comparisons.

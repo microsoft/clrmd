@@ -2,14 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.Builders;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -42,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime
             ModuleInfo = module ?? throw new ArgumentNullException(nameof(module));
             IsSingleFile = runtimeInfo != 0;
 
-            List<DebugLibraryInfo> artifacts = new List<DebugLibraryInfo>(8);
+            List<DebugLibraryInfo> artifacts = new(8);
 
             OSPlatform currentPlatform = GetCurrentPlatform();
             OSPlatform targetPlatform = dt.DataReader.TargetPlatform;
@@ -64,16 +63,16 @@ namespace Microsoft.Diagnostics.Runtime
 
                         if (dacTargetPlatform is not null)
                         {
-                            var dacProp = info.DacPEProperties;
-                            if (dacProp.TimeStamp != 0 && dacProp.FileSize != 0)
-                                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, SymbolProperties.Self, dacProp.FileSize, dacProp.TimeStamp));
+                            (int timeStamp, int fileSize) = info.DacPEProperties;
+                            if (timeStamp != 0 && fileSize != 0)
+                                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, SymbolProperties.Self, fileSize, timeStamp));
                         }
 
                         if (dbiTargetPlatform is not null)
                         {
-                            var dbiProp = info.DbiPEProperties;
-                            if (dbiProp.TimeStamp != 0 && dbiProp.FileSize != 0)
-                                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, SymbolProperties.Self, dbiProp.FileSize, dbiProp.TimeStamp));
+                            (int timeStamp, int fileSize) = info.DbiPEProperties;
+                            if (timeStamp != 0 && fileSize != 0)
+                                artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, SymbolProperties.Self, fileSize, timeStamp));
                         }
                     }
                     else
@@ -126,7 +125,7 @@ namespace Microsoft.Diagnostics.Runtime
                         {
                             try
                             {
-                                using PEImage peimage = new PEImage(File.OpenRead(potentialClr));
+                                using PEImage peimage = new(File.OpenRead(potentialClr));
                                 if (peimage.IndexFileSize == IndexFileSize && peimage.IndexTimeStamp == IndexTimeStamp)
                                 {
                                     string dacFound = Path.Combine(directory, dacCurrentPlatform);
@@ -234,9 +233,9 @@ namespace Microsoft.Diagnostics.Runtime
             DebuggingLibraries = ordered.ToImmutableArray();
         }
 
-        private IEnumerable<DebugLibraryInfo> EnumerateUnique(List<DebugLibraryInfo> artifacts)
+        private static IEnumerable<DebugLibraryInfo> EnumerateUnique(List<DebugLibraryInfo> artifacts)
         {
-            HashSet<DebugLibraryInfo> seen = new HashSet<DebugLibraryInfo>();
+            HashSet<DebugLibraryInfo> seen = new();
 
             foreach (DebugLibraryInfo library in artifacts)
                 if (seen.Add(library))
@@ -419,16 +418,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (IntPtr.Size != DataTarget.DataReader.PointerSize)
                 throw new InvalidOperationException("Mismatched pointer size between this process and the dac.");
 
-            DacInterface.SOSDac? sos = dacLibrary.SOSDacInterface ?? throw new InvalidOperationException($"Could not create a ISOSDac pointer.");
-
-            var factory = new RuntimeBuilder(this, dacLibrary, sos);
-            if (Flavor == ClrFlavor.Core)
-                return factory.GetOrCreateRuntime();
-
-            if (Version.Major < 4 || (Version.Major == 4 && Version.Minor == 5 && Version.Revision < 10000))
-                throw new NotSupportedException($"CLR version '{Version}' is not supported by ClrMD.  For Desktop CLR, only CLR 4.6 and beyond are supported.");
-
-            return factory.GetOrCreateRuntime();
+            return new ClrRuntime(this, dacLibrary);
         }
 
         /// <summary>
@@ -449,10 +439,10 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 DataTarget.PlatformFunctions.GetFileVersion(dacPath, out int major, out int minor, out int revision, out int patch);
                 if (major != Version.Major || minor != Version.Minor || revision != Version.Build || patch != Version.Revision)
-                    throw new InvalidOperationException($"Mismatched dac. Dac version: {major}.{minor}.{revision}.{patch}, expected: {Version}.");
+                    throw new ClrDiagnosticsException($"Mismatched dac. Dac version: {major}.{minor}.{revision}.{patch}, expected: {Version}.");
             }
 
-            DacLibrary dacLibrary = new DacLibrary(DataTarget, dacPath, ModuleInfo.ImageBase);
+            DacLibrary dacLibrary = new(DataTarget, dacPath, ModuleInfo.ImageBase);
             return CreateRuntime(dacLibrary);
         }
 
@@ -514,9 +504,7 @@ namespace Microsoft.Diagnostics.Runtime
                     }
                     catch (Exception ex)
                     {
-                        if (exception is null)
-                            exception = ex;
-
+                        exception ??= ex;
                         dacPath = null;
                     }
                 }
@@ -549,14 +537,6 @@ namespace Microsoft.Diagnostics.Runtime
         private void ThrowCrossDebugError(OSPlatform current)
         {
             throw new InvalidOperationException($"Debugging a '{DataTarget.DataReader.TargetPlatform}' crash is not supported on '{current}'.");
-        }
-
-        private static T Read<T>(IDataReader reader, ref ulong address)
-            where T : unmanaged
-        {
-            T t = reader.Read<T>(address);
-            address += (uint)Marshal.SizeOf<T>();
-            return t;
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]

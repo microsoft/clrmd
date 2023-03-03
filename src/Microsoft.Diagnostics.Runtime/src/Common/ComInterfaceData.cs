@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ulong InterfacePointer { get; }
 
-        public ComInterfaceData(ClrType? type, ulong pointer)
+        internal ComInterfaceData(ClrType? type, ulong pointer)
         {
             Type = type;
             InterfacePointer = pointer;

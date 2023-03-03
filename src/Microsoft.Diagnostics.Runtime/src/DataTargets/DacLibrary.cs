@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using System;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal ClrDataProcess InternalDacPrivateInterface { get; }
 
-        public ClrDataProcess DacPrivateInterface => new ClrDataProcess(this, InternalDacPrivateInterface);
+        public ClrDataProcess DacPrivateInterface => new(this, InternalDacPrivateInterface);
 
         private SOSDac GetSOSInterfaceNoAddRef()
         {
@@ -105,7 +105,7 @@ namespace Microsoft.Diagnostics.Runtime
             DacDataTarget = new DacDataTarget(dataTarget, runtimeBaseAddress);
 
             var func = (delegate* unmanaged[Stdcall]<in Guid, IntPtr, out IntPtr, int>)addr;
-            Guid guid = new Guid("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
+            Guid guid = new("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
 
 #if NET6_0_OR_GREATER
             IntPtr iDacDataTarget = DacDataTargetCOM.CreateIDacDataTarget(DacDataTarget);

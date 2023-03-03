@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             Heap = heap ?? throw new ArgumentNullException(nameof(heap));
 
-            List<HeapHashSegment> segments = new List<HeapHashSegment>(heap.Segments.Length);
+            List<HeapHashSegment> segments = new(heap.Segments.Length);
             foreach (ClrSegment seg in heap.Segments)
             {
                 ulong start = seg.Start;
@@ -138,7 +138,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="obj">The object.</param>
         /// <param name="seg">The segment.</param>
         /// <returns>The index into seg.Objects.</returns>
-        protected int GetOffset(ulong obj, HeapHashSegment seg)
+        protected static int GetOffset(ulong obj, HeapHashSegment seg)
         {
             return checked((int)((uint)(obj - seg.StartAddress) / MinObjSize));
         }

@@ -201,7 +201,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             char[] buffer = ArrayPool<char>.Shared.Rent(len);
             try
             {
-                Span<char> span = new Span<char>(buffer, 0, len);
+                Span<char> span = new(buffer, 0, len);
                 int count = Image.ReadFromOffset(offset, MemoryMarshal.AsBytes(span)) >> 1;
 
                 int i = 0;

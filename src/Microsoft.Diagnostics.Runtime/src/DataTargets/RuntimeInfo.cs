@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime
         public const int SignatureValueLength = 18;
 
         private fixed byte _signature[18];
-        private int _version;
+        private readonly int _version;
         private fixed byte _runtimeModuleIndex[24];
         private fixed byte _dacModuleIndex[24];
         private fixed byte _dbiModuleIndex[24];
@@ -79,7 +79,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return GetProperties(ptr);
             }
         }
-        private (int TimeStamp, int FileSize) GetProperties(byte *ptr)
+        private (int TimeStamp, int FileSize) GetProperties(byte* ptr)
         {
             if (ptr[0] < 2 * sizeof(int))
                 return (0, 0);
@@ -117,9 +117,9 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
 
-        private ImmutableArray<byte> GetBuildId(byte *ptr)
+        private ImmutableArray<byte> GetBuildId(byte* ptr)
         {
-            Span<byte> buffer = new Span<byte>(ptr + 1, ptr[0]);
+            Span<byte> buffer = new(ptr + 1, ptr[0]);
             return buffer.ToArray().ToImmutableArray();
         }
     }

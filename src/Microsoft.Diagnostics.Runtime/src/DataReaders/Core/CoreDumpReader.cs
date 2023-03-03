@@ -2,13 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
+using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
-using Microsoft.Diagnostics.Runtime.Implementation;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -29,10 +29,10 @@ namespace Microsoft.Diagnostics.Runtime
             ElfMachine architecture = _core.ElfFile.Header.Architecture;
             (PointerSize, Architecture) = architecture switch
             {
-                ElfMachine.EM_X86_64  => (8, Architecture.X64),
-                ElfMachine.EM_386     => (4, Architecture.X86),
+                ElfMachine.EM_X86_64 => (8, Architecture.X64),
+                ElfMachine.EM_386 => (4, Architecture.X86),
                 ElfMachine.EM_AARCH64 => (8, Architecture.Arm64),
-                ElfMachine.EM_ARM     => (4, Architecture.Arm),
+                ElfMachine.EM_ARM => (4, Architecture.Arm),
                 _ => throw new NotImplementedException($"Support for {architecture} not yet implemented."),
             };
         }
@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 _modules = new List<ModuleInfo>();
                 foreach (ElfLoadedImage image in _core.LoadedImages.Values)
-                    if ((ulong)image.BaseAddress != interpreter && !image.FileName.StartsWith("/dev", StringComparison.Ordinal))
+                    if (image.BaseAddress != interpreter && !image.FileName.StartsWith("/dev", StringComparison.Ordinal))
                         _modules.Add(CreateModuleInfo(image));
             }
 
@@ -78,13 +78,9 @@ namespace Microsoft.Diagnostics.Runtime
             using ElfFile? file = image.Open();
 
             // We suppress the warning because the function it wants us to use is not available on all ClrMD platforms
-#pragma warning disable CA1307 // Specify StringComparison
 
             // This substitution is for unloaded modules for which Linux appends " (deleted)" to the module name.
             string path = image.FileName.Replace(" (deleted)", "");
-
-#pragma warning restore CA1307 // Specify StringComparison
-
             if (file is not null)
             {
                 long size = image.Size > long.MaxValue ? long.MaxValue : unchecked((long)image.Size);
