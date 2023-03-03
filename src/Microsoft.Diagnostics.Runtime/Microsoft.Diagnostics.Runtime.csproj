@@ -12,12 +12,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="License-Stable.rtf">
-      <Pack>true</Pack>
-
-      <!-- Put this file in the root of the package -->
-      <PackagePath></PackagePath>
-    </Content>
     <AdditionalFiles Include="stylecop.json" />
   </ItemGroup>
 
