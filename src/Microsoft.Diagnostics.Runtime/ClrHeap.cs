@@ -7,6 +7,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -133,30 +134,48 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public IEnumerable<ClrObject> EnumerateObjects(MemoryRange range)
         {
-            // TODO: This is a temporary implementation.
             foreach (ClrSegment seg in Segments)
             {
                 if (!range.Overlaps(seg.ObjectRange))
                     continue;
 
-                foreach (ClrObject obj in EnumerateObjects(seg))
+                ulong start = seg.FirstObjectAddress;
+                if (seg.ObjectRange.Contains(range.Start))
+                    start = range.Start;
+
+                foreach (ClrObject obj in EnumerateObjects(seg, start))
                 {
                     if (range.Contains(obj.Address))
                         yield return obj;
+                    else if (range.End < obj)
+                        break;
                 }
             }
         }
 
-        /// <summary>
-        /// Enumerates all objects on the given segment.
-        /// </summary>
-        /// <param name="segment"></param>
-        /// <returns></returns>
         internal IEnumerable<ClrObject> EnumerateObjects(ClrSegment segment)
         {
+            return EnumerateObjects(segment, segment.FirstObjectAddress);
+        }
+
+        internal IEnumerable<ClrObject> EnumerateObjects(ClrSegment segment, ulong startAddress)
+        {
+            if (!segment.ObjectRange.Contains(startAddress))
+                yield break;
+
+            ulong markerStep = GetMarkerStep(segment);
+
+            uint currStep = (uint)((startAddress - segment.FirstObjectAddress) / markerStep);
+
             bool isLargeOrPinned = segment.Kind == GCSegmentKind.Large || segment.Kind == GCSegmentKind.Pinned;
             uint minObjSize = (uint)IntPtr.Size * 3;
-            ulong obj = segment.FirstObjectAddress;
+
+
+            ulong obj;
+            if (startAddress == segment.FirstObjectAddress)
+                obj = segment.FirstObjectAddress;
+            else
+                obj = segment.ObjectMarkers.Select(m => segment.FirstObjectAddress + m).Where(m => m <= startAddress).Max();
 
             // C# isn't smart enough to understand that !large means memoryReader is non-null.  We will just be
             // careful here.
@@ -166,6 +185,7 @@ namespace Microsoft.Diagnostics.Runtime
             // The large object heap
             if (!isLargeOrPinned)
                 memoryReader.EnsureRangeInCache(obj);
+
             while (segment.ObjectRange.Contains(obj))
             {
                 ulong mt;
@@ -183,11 +203,14 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 ClrType? type = _typeFactory.GetOrCreateType(mt, obj);
+                ClrObject result = new(obj, type);
+                yield return result;
                 if (type is null)
                     break;
 
-                ClrObject result = new(obj, type);
-                yield return result;
+                ulong segmentOffset = obj - segment.ObjectRange.Start;
+                if (segmentOffset >= (currStep + 1) * markerStep && currStep < segment.ObjectMarkers.Length && segmentOffset <= uint.MaxValue)
+                    segment.ObjectMarkers[currStep++] = (uint)segmentOffset;
 
                 ulong size;
                 if (type.ComponentSize == 0)
@@ -220,6 +243,17 @@ namespace Microsoft.Diagnostics.Runtime
             ArrayPool<byte>.Shared.Return(buffer);
         }
 
+        private static ulong GetMarkerStep(ClrSegment segment)
+        {
+            ulong markerStep;
+            if (segment.ObjectMarkers.Length == 0)
+                markerStep = segment.ObjectRange.Length + 1;
+            else
+                markerStep = segment.ObjectRange.Length / ((uint)segment.ObjectMarkers.Length + 2);
+
+            return markerStep;
+        }
+
         /// <summary>
         /// Finds the next ClrObject on the given segment.
         /// </summary>
@@ -227,14 +261,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An invalid ClrObject if address doesn't lie on any segment or if no objects exist after the given address on a segment.</returns>
         public ClrObject FindNextObjectOnSegment(ulong address)
         {
-            // TODO: This is a temporary implementation.  ClrHeap needs to maintain a jumplist to help find addresses, but
-            // that wasn't done in this checkin.
-
             ClrSegment? seg = GetSegmentByAddress(address);
             if (seg is null)
                 return default;
 
-            foreach (ClrObject obj in EnumerateObjects(seg))
+            ulong start = seg.ObjectMarkers.Select(m => seg.FirstObjectAddress + m).Where(m => m <= address).Max();
+            foreach (ClrObject obj in EnumerateObjects(seg, start))
                 if (address < obj)
                     return obj;
 
@@ -251,11 +283,13 @@ namespace Microsoft.Diagnostics.Runtime
             // TODO: This is a temporary implementation.  ClrHeap needs to maintain a jumplist to help find addresses, but
             // that wasn't done in this checkin.
             ClrSegment? seg = GetSegmentByAddress(address);
-            if (seg is null)
+            if (seg is null || address <= seg.FirstObjectAddress)
                 return default;
 
+            ulong start = seg.ObjectMarkers.Select(m => seg.FirstObjectAddress + m).Where(m => m < address).Max();
+
             ClrObject last = default;
-            foreach (ClrObject obj in EnumerateObjects(seg))
+            foreach (ClrObject obj in EnumerateObjects(seg, start))
             {
                 if (obj >= address)
                     return last;
