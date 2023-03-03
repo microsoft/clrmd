@@ -73,7 +73,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// the same heaps as other domains if they share the same LoaderAllocator (especially SystemDomain).
         /// </summary>
         /// <returns>An enumerable of native heaps associated with this AppDomain.</returns>
-        public IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorHeaps() => _helpers.GetNativeHeapHelpers().EnumerateLoaderAllocatorNativeHeaps(LoaderAllocator);
+        public IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorHeaps() => _helpers.GetNativeHeapHelpers().EnumerateNativeHeaps(this);
 
         /// <summary>
         /// To string override.
