@@ -111,12 +111,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             if (_domainData is null)
             {
+
+                bool res = _sos.GetAppDomainStoreData(out AppDomainStoreData domainStore);
+
                 ClrAppDomainData domainData = new();
-
-                _sos.GetAppDomainStoreData(out AppDomainStoreData domainStore);
-
-                if (domainStore.SystemDomain != 0)
-                    domainData.SystemDomain = CreateAppDomain(domainStore.SystemDomain, "System Domain", domainData.Modules);
+                domainData.SystemDomain = CreateAppDomain(domainStore.SystemDomain, "System Domain", domainData.Modules);
 
                 if (domainStore.SharedDomain != 0)
                     domainData.SharedDomain = CreateAppDomain(domainStore.SharedDomain, "Shared Domain", domainData.Modules);
@@ -152,7 +151,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                             break;
                         }
                     }
+
+                    bcl ??= new(domainData.SystemDomain!, _moduleHelpers, 0);
                 }
+
+
 
                 domainData.BaseClassLibrary = bcl;
                 Interlocked.CompareExchange(ref _domainData, domainData, null);
@@ -163,11 +166,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private ClrAppDomain? CreateAppDomain(ulong domainAddress, string? name, Dictionary<ulong, ClrModule> modules)
         {
-            if (!_sos.GetAppDomainData(domainAddress, out AppDomainData data))
-                return null;
+            int id = -1;
+            if (_sos.GetAppDomainData(domainAddress, out AppDomainData data))
+                id = data.Id;
 
             name ??= _sos.GetAppDomainName(domainAddress);
-            ClrAppDomain result = new(Runtime, this, domainAddress, name, data.Id);
+            ClrAppDomain result = new(Runtime, this, domainAddress, name, id);
 
             var moduleBuilder = ImmutableArray.CreateBuilder<ClrModule>();
             foreach (ulong assembly in _sos.GetAssemblyList(domainAddress))
