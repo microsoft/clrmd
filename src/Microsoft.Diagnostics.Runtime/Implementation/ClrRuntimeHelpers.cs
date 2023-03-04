@@ -254,9 +254,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public IEnumerable<ClrJitManager> EnumerateClrJitManagers()
         {
-            JitManagerHelpers helpers = new(_sos, _sos13);
             foreach (JitManagerInfo jitMgr in _sos.GetJitManagers())
-                yield return new ClrJitManager(Runtime, jitMgr, helpers);
+                yield return new ClrJitManager(Runtime, jitMgr, GetNativeHeapHelpers());
         }
 
         public IEnumerable<ClrHandle> EnumerateHandles()

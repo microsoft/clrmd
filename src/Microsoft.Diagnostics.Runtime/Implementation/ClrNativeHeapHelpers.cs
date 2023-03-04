@@ -49,6 +49,31 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }).ToArray();
         }
 
+        public IEnumerable<ClrNativeHeapInfo> EnumerateNativeHeaps(ClrJitManager jitManager)
+        {
+            List<ClrNativeHeapInfo>? codeLoaderHeaps = null;
+
+            foreach (var mem in _sos.GetCodeHeapList(jitManager.Address))
+            {
+                if (mem.Kind == CodeHeapKind.Loader)
+                {
+                    codeLoaderHeaps?.Clear();
+
+                    foreach (ClrNativeHeapInfo heap in LegacyEnumerateLoaderAllocatorHeaps(mem.Address, LoaderHeapKind.LoaderHeapKindExplicitControl, NativeHeapKind.LoaderCodeHeap))
+                        yield return heap;
+                }
+                else if (mem.Kind == CodeHeapKind.Host)
+                {
+                    ulong? size = mem.CurrentAddress >= mem.Address ? mem.CurrentAddress - mem.Address : null;
+                    yield return new ClrNativeHeapInfo(mem.Address, size, NativeHeapKind.HostCodeHeap, true);
+                }
+                else
+                {
+                    yield return new ClrNativeHeapInfo(mem.Address, null, NativeHeapKind.Unknown, false);
+                }
+            }
+        }
+
         public IEnumerable<ClrNativeHeapInfo> EnumerateNativeHeaps(ClrAppDomain domain)
         {
             if (domain is null)
@@ -253,7 +278,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private HResult TraverseLoaderHeap(ulong address, LoaderHeapKind kind, SOSDac.LoaderHeapTraverse callback)
             => TraverseLoaderHeap(_clrInfo, _sos, _sos13, address, kind, (uint)_dataReader.PointerSize, callback);
 
-        internal static HResult TraverseLoaderHeap(ClrInfo clrInfo, SOSDac sos, SOSDac13? sos13, ulong address, LoaderHeapKind kind, uint pointerSize, SOSDac.LoaderHeapTraverse callback)
+        private static HResult TraverseLoaderHeap(ClrInfo clrInfo, SOSDac sos, SOSDac13? sos13, ulong address, LoaderHeapKind kind, uint pointerSize, SOSDac.LoaderHeapTraverse callback)
         {
             if (address == 0)
                 return HResult.E_INVALIDARG;
