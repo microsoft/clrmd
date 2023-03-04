@@ -6,13 +6,13 @@ namespace Microsoft.Diagnostics.Runtime
 {
     public sealed class ClrJitManager
     {
-        private readonly IJitManagerHelpers _helpers;
+        private readonly IClrNativeHeapHelpers _helpers;
 
         public ClrRuntime Runtime { get; }
         public ulong Address { get; }
         public CodeHeapKind Kind { get; }
 
-        internal ClrJitManager(ClrRuntime runtime, in JitManagerInfo info, IJitManagerHelpers helpers)
+        internal ClrJitManager(ClrRuntime runtime, in JitManagerInfo info, IClrNativeHeapHelpers helpers)
         {
             Runtime = runtime;
             Address = info.Address;
