@@ -125,9 +125,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return null;
 
                 ulong obj = _helpers.DataReader.ReadPointer(ptr);
-                ClrException? ex = Runtime.Heap.GetObject(obj).AsException();
-                if (ex is not null)
-                    ex.Thread = this;
+                ClrException? ex = Runtime.Heap.GetExceptionObject(obj, this);
                 return ex;
             }
         }

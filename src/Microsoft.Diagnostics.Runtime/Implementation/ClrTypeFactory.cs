@@ -64,8 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public ClrType? CreateSystemType(ClrHeap heap, ClrModule? bcl, ulong mt, string typeName)
         {
-            if (!_sos.GetMethodTableData(mt, out MethodTableData mtd))
-                return null;
+            _sos.GetMethodTableData(mt, out MethodTableData mtd);
 
             ClrType? baseType = null;
             if (mtd.ParentMethodTable != 0)

@@ -866,6 +866,17 @@ namespace Microsoft.Diagnostics.Runtime
             return null;
         }
 
+        internal ClrException? GetExceptionObject(ulong objAddress, ClrThread? thread)
+        {
+            if (objAddress == 0)
+                return null;
+
+            ClrObject obj = GetObject(objAddress);
+            if (obj.IsValid && !obj.IsException)
+                return null;
+            return new ClrException(obj.Type?.Helpers ?? FreeType.Helpers, thread, obj);
+        }
+
         private class SubHeapData
         {
             public ImmutableArray<ClrSubHeap> SubHeaps { get; }

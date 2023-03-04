@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime
             _object = obj;
             Thread = thread;
 
-            DebugOnly.Assert(obj.IsException);
+            DebugOnly.Assert(!obj.IsValid || obj.IsException);
         }
 
         /// <summary>
@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the <see cref="ClrType"/> for this exception object.
         /// </summary>
-        public ClrType Type => _object.Type!;  // We check _object.Type is not null
+        public ClrType? Type => _object.Type;  // We check _object.Type is not null
 
         /// <summary>
         /// Gets the exception message.
@@ -67,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (address == 0)
                     return null;
 
-                ClrObject obj = Type.Heap.GetObject(address);
+                ClrObject obj = _helpers.Heap.GetObject(address);
                 if (obj.IsValid)
                     return obj.AsString();
 
@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return null;
 
                 ulong address = _helpers.DataReader.ReadPointer(Address + offset);
-                ClrObject obj = Type.Heap.GetObject(address);
+                ClrObject obj = _helpers.Heap.GetObject(address);
                 if (obj.IsNull)
                     return null;
 
