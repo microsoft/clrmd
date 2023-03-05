@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -11,10 +12,8 @@ namespace Microsoft.Diagnostics.Runtime
     /// Segments.  It has a start and end and knows what heap it belongs to.   Segments can
     /// optional have regions for Gen 0, 1 and 2, and Large properties.
     /// </summary>
-    public sealed class ClrSegment
+    public sealed class ClrSegment : IClrSegment
     {
-        const ulong MinSegmentSizeForMarkers = MarkerMax * 128;
-        const int MarkerMax = 64;
         private uint[]? _markers;
 
         internal ClrSegment(ClrSubHeap subHeap)
@@ -48,10 +47,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong Length => ObjectRange.Length;
 
         /// <summary>
-        /// Gets the processor that this heap is affinitized with.  In a workstation GC, there is no processor
-        /// affinity (and the return value of this property is undefined).  In a server GC each segment
-        /// has a logical processor in the PC associated with it.  This property returns that logical
-        /// processor number (starting at 0).
+        /// Gets the SubHeap this segment lives on.
         /// </summary>
         public ClrSubHeap SubHeap { get; }
 
@@ -131,6 +127,8 @@ namespace Microsoft.Diagnostics.Runtime
             return $"[{Start:x12}, {End:x12}]";
         }
 
+        IEnumerable<IClrValue> IClrSegment.EnumerateObjects() =>EnumerateObjects().Cast<IClrValue>();
+
         internal uint[] ObjectMarkers
         {
             get
@@ -138,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime
                 uint[]? markers = _markers;
                 if (markers is not null)
                     return markers;
-                
+
                 var len = ObjectRange.Length switch
                 {
                     < 8 * 1024 => 0,
@@ -157,5 +155,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// The next segment in the heap.
         /// </summary>
         internal ulong Next { get; set; }
+
+        IClrSubHeap IClrSegment.SubHeap => SubHeap;
     }
 }

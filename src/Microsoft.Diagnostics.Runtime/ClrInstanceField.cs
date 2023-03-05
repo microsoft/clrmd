@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents an instance field of a type.   Fundamentally it represents a name and a type
     /// </summary>
-    public sealed class ClrInstanceField : ClrField
+    public sealed class ClrInstanceField : ClrField, IClrInstanceField
     {
         private FieldAttributes _attributes = FieldAttributes.ReservedMask;
 
@@ -150,6 +150,8 @@ namespace Microsoft.Diagnostics.Runtime
             return ContainingType.Heap.GetObject(obj);
         }
 
+        IClrValue IClrInstanceField.ReadObject(ulong objRef, bool interior) => ReadObject(objRef, interior);
+
         /// <summary>
         /// Reads a ValueType struct from the instance field.
         /// </summary>
@@ -164,6 +166,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             return new ClrValueType(address, Type, interior: true);
         }
+
+        IClrValue IClrInstanceField.ReadStruct(ulong objRef, bool interior) => ReadStruct(objRef, interior);
 
         /// <summary>
         /// Reads a string from the instance field.

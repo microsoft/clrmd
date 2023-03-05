@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// A crash dump or live process to read out of.
     /// </summary>
-    public sealed class DataTarget : IDisposable
+    public sealed class DataTarget : IDisposable, IDataTarget
     {
         private readonly CustomDataTarget _target;
         private bool _disposed;
@@ -145,6 +145,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the list of CLR versions loaded into the process.
         /// </summary>
         public ImmutableArray<ClrInfo> ClrVersions => GetOrCreateClrVersions();
+        ImmutableArray<IClrInfo> IDataTarget.ClrVersions => ClrVersions.CastArray<IClrInfo>();
 
         private ImmutableArray<ClrInfo> GetOrCreateClrVersions()
         {

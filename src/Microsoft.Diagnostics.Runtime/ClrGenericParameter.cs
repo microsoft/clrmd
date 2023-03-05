@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Constructor.
         /// </summary>
-        internal ClrGenericParameter(int metadataToken, int index, GenericParameterAttributes attributes, string name)
+        public ClrGenericParameter(int metadataToken, int index, GenericParameterAttributes attributes, string name)
         {
             MetadataToken = metadataToken;
             Index = index;

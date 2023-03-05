@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override SyncBlockComFlags ComFlags { get; }
 
         public override bool IsComCallWrapper => (ComFlags & SyncBlockComFlags.ComCallableWrapper) == SyncBlockComFlags.ComCallableWrapper;
-        public override bool IsRuntimeCallWrapper => (ComFlags & SyncBlockComFlags.ComCallableWrapper) == SyncBlockComFlags.ComCallableWrapper;
+        public override bool IsRuntimeCallWrapper => (ComFlags & SyncBlockComFlags.RuntimeCallableWrapper) == SyncBlockComFlags.RuntimeCallableWrapper;
         public override bool IsComClassFactory => (ComFlags & SyncBlockComFlags.ComClassFactory) == SyncBlockComFlags.ComClassFactory;
 
         public override bool IsMonitorHeld { get; }

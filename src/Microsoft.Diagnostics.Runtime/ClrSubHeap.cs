@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// Workstation GC, the managed heap has only one logical "heap".  When using Server GC,
     /// there can be many of them.  This class tracks information about logical heaps.
     /// </summary>
-    public class ClrSubHeap
+    public class ClrSubHeap : IClrSubHeap
     {
         internal ClrSubHeap(IClrHeapHelpers helpers, ClrHeap clrHeap, int index, ulong address, in HeapDetails heap, IEnumerable<GenerationData> genData, IEnumerable<ulong> finalizationPointers)
         {
@@ -79,6 +79,8 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong LowestAddress { get; }
         public ulong HighestAddress { get; }
         public ulong CardTable { get; }
+
+        ImmutableArray<IClrSegment> IClrSubHeap.Segments => Segments.CastArray<IClrSegment>();
 
         internal enum GCState
         {

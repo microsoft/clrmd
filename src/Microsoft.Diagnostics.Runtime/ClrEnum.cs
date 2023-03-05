@@ -11,9 +11,11 @@ using System.Reflection;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public sealed class ClrEnum
+    public sealed class ClrEnum : IClrEnum
     {
         public ClrType Type { get; }
+        IClrType IClrEnum.Type => Type;
+
         public ClrElementType ElementType { get; }
 
         private readonly (string Name, object? Value)[] _values;

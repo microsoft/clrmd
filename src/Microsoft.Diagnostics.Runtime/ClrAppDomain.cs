@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents an AppDomain in the target runtime.
     /// </summary>
-    public sealed class ClrAppDomain
+    public sealed class ClrAppDomain : IClrAppDomain
     {
         private readonly IClrAppDomainHelpers _helpers;
 
@@ -80,5 +80,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <returns>The name of this AppDomain.</returns>
         public override string? ToString() => Name;
+
+        ImmutableArray<IClrModule> IClrAppDomain.Modules => Modules.CastArray<IClrModule>();
     }
 }

@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public string? FrameName { get; }
 
-        internal ClrStackFrame(ClrThread? thread, byte[]? context, ulong ip, ulong sp, ClrStackFrameKind kind, ClrMethod? method, string? frameName)
+        public ClrStackFrame(ClrThread? thread, byte[]? context, ulong ip, ulong sp, ClrStackFrameKind kind, ClrMethod? method, string? frameName)
         {
             _context = context;
             Thread = thread;

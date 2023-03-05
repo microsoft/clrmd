@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// Create this using <see cref="ClrObject.AsException"/>. You may call that when <see cref="ClrObject.IsException"/>
     /// is <see langword="true"/>.
     /// </summary>
-    public sealed class ClrException
+    public sealed class ClrException : IClrException
     {
         private readonly IClrTypeHelpers _helpers;
         private readonly ClrObject _object;
@@ -40,6 +40,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns this exception's ClrObject representation.
         /// </summary>
         public ClrObject AsObject() => _object;
+
+        IClrValue IClrException.AsObject() => AsObject();
 
         /// <summary>
         /// Gets the address of the exception object.
@@ -123,6 +125,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ImmutableArray<ClrStackFrame> StackTrace => GetExceptionStackTrace(Thread, _object);
 
+        IClrException? IClrException.Inner => Inner;
+
+        IClrThread? IClrException.Thread => Thread;
+
+        IClrType? IClrException.Type => Type;
 
         public override string ToString()
         {

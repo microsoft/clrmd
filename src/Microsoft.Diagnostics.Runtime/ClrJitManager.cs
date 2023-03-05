@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public sealed class ClrJitManager
+    public sealed class ClrJitManager : IClrJitManager
     {
         private readonly IClrNativeHeapHelpers _helpers;
 

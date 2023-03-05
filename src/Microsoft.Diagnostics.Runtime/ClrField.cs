@@ -10,12 +10,14 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// A representation of a field in the target process.
     /// </summary>
-    public abstract class ClrField
+    public abstract class ClrField : IClrField
     {
         /// <summary>
         /// Gets the <see cref="ClrType"/> containing this field.
         /// </summary>
         public abstract ClrType ContainingType { get; }
+
+        IClrType IClrField.ContainingType => ContainingType;
 
         /// <summary>
         /// Gets the name of the field.
@@ -32,6 +34,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// of our debugging layer which causes this.  You should always null-check the return value of this field.
         /// </summary>
         public abstract ClrType? Type { get; }
+
+        IClrType? IClrField.Type => Type;
 
         /// <summary>
         /// Gets the element type of this field.  Note that even when Type is <see langword="null"/>, this should still tell you
