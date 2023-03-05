@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public uint ColdSize { get; }
 
-        internal HotColdRegions(ulong hotStart, uint hotSize, ulong coldStart, uint coldSize)
+        public HotColdRegions(ulong hotStart, uint hotSize, ulong coldStart, uint coldSize)
         {
             HotStart = hotStart;
             HotSize = hotSize;

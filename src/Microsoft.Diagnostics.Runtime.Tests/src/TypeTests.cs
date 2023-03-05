@@ -30,33 +30,33 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ClrModule module = runtime.GetModule(NestedTypesModuleName);
             ClrType program = module.GetTypeByName("Program");
-            Assert.True(program.IsPublic);
-            Assert.False(program.IsAbstract);
-            Assert.False(program.IsSealed);
+            Assert.True((program.TypeAttributes & (TypeAttributes.Public | TypeAttributes.NestedPublic)) != 0);
+            Assert.False((program.TypeAttributes & TypeAttributes.Abstract) == TypeAttributes.Abstract);
+            Assert.False((program.TypeAttributes & TypeAttributes.Sealed) == TypeAttributes.Sealed);
 
             ClrType publicClass = module.GetTypeByName("Program+PublicClass");
-            Assert.True(publicClass.IsPublic);
+            Assert.True((publicClass.TypeAttributes & (TypeAttributes.Public | TypeAttributes.NestedPublic)) != 0);
 
             ClrType privateClass = module.GetTypeByName("Program+PrivateClass");
-            Assert.True(privateClass.IsPrivate);
+            Assert.True((privateClass.TypeAttributes & TypeAttributes.VisibilityMask) == TypeAttributes.NestedPrivate);
 
             ClrType internalClass = module.GetTypeByName("Program+InternalClass");
-            Assert.True(internalClass.IsInternal);
+            Assert.True(((internalClass.TypeAttributes & (TypeAttributes.NestedAssembly | TypeAttributes.NotPublic)) != 0));
 
             ClrType protectedClass = module.GetTypeByName("Program+ProtectedClass");
-            Assert.True(protectedClass.IsProtected);
+            Assert.True((protectedClass.TypeAttributes & TypeAttributes.NestedFamily) != 0);
 
             ClrType abstractClass = module.GetTypeByName("Program+AbstractClass");
-            Assert.True(abstractClass.IsAbstract);
-            Assert.False(abstractClass.IsSealed);
+            Assert.True((abstractClass.TypeAttributes & TypeAttributes.Abstract) == TypeAttributes.Abstract);
+            Assert.False((abstractClass.TypeAttributes & TypeAttributes.Sealed) == TypeAttributes.Sealed);
 
             ClrType sealedClass = module.GetTypeByName("Program+SealedClass");
-            Assert.True(sealedClass.IsSealed);
-            Assert.False(sealedClass.IsAbstract);
+            Assert.True((sealedClass.TypeAttributes & TypeAttributes.Sealed) == TypeAttributes.Sealed);
+            Assert.False((sealedClass.TypeAttributes & TypeAttributes.Abstract) == TypeAttributes.Abstract);
 
             ClrType staticClass = module.GetTypeByName("Program+StaticClass");
-            Assert.True(staticClass.IsAbstract);
-            Assert.True(staticClass.IsSealed);
+            Assert.True((staticClass.TypeAttributes & TypeAttributes.Abstract) == TypeAttributes.Abstract);
+            Assert.True((staticClass.TypeAttributes & TypeAttributes.Sealed) == TypeAttributes.Sealed);
         }
 
         [Fact]

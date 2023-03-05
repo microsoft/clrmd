@@ -3,11 +3,11 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// A representation of the CLR heap.
     /// </summary>
-    public sealed class ClrHeap
+    public sealed class ClrHeap : IClrHeap
     {
         private const int MaxGen2ObjectSize = 85000;
 
@@ -92,6 +92,20 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets a value indicating whether the GC heap is in Server mode.
         /// </summary>
         public bool IsServer => _helpers.IsServerMode;
+
+        IClrType IClrHeap.ExceptionType => ExceptionType;
+
+        IClrType IClrHeap.FreeType => FreeType;
+
+        IClrType IClrHeap.ObjectType => ObjectType;
+
+        IClrRuntime IClrHeap.Runtime => Runtime;
+
+        ImmutableArray<IClrSegment> IClrHeap.Segments => Segments.CastArray<IClrSegment>();
+
+        IClrType IClrHeap.StringType => StringType;
+
+        ImmutableArray<IClrSubHeap> IClrHeap.SubHeaps => SubHeaps.CastArray<IClrSubHeap>();
 
         /// <summary>
         /// Gets a <see cref="ClrObject"/> for the given address on this heap.
@@ -280,8 +294,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An invalid ClrObject if address doesn't lie on any segment or if address is the first object on a segment.</returns>
         public ClrObject FindPreviousObjectOnSegment(ulong address)
         {
-            // TODO: This is a temporary implementation.  ClrHeap needs to maintain a jumplist to help find addresses, but
-            // that wasn't done in this checkin.
             ClrSegment? seg = GetSegmentByAddress(address);
             if (seg is null || address <= seg.FirstObjectAddress)
                 return default;
@@ -505,7 +517,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// This is an implementation helper.  Use ClrObject.IsComCallWrapper and ClrObject.IsRuntimeCallWrapper instead.
         /// </summary>
-        public SyncBlockComFlags GetComFlags(ulong obj)
+        internal SyncBlockComFlags GetComFlags(ulong obj)
         {
             if (obj == 0)
                 return SyncBlockComFlags.None;
@@ -525,7 +537,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// This is an implementation helper.  Use ClrObject.Size instead.
         /// </summary>
-        public ulong GetObjectSize(ulong objRef, ClrType type)
+        internal ulong GetObjectSize(ulong objRef, ClrType type)
         {
             ulong size;
             if (type.ComponentSize == 0)
@@ -564,7 +576,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Whether to bounds check along the way (useful in cases where
         /// the heap may be in an inconsistent state.)
         /// </param>
-        public IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, bool considerDependantHandles)
+        internal IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, bool considerDependantHandles)
         {
             if (type is null)
                 throw new ArgumentNullException(nameof(type));
@@ -640,7 +652,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Whether to bounds check along the way (useful in cases where
         /// the heap may be in an inconsistent state.)
         /// </param>
-        public IEnumerable<ClrReference> EnumerateReferencesWithFields(ulong obj, ClrType type, bool carefully, bool considerDependantHandles)
+        internal IEnumerable<ClrReference> EnumerateReferencesWithFields(ulong obj, ClrType type, bool carefully, bool considerDependantHandles)
         {
             if (type is null)
                 throw new ArgumentNullException(nameof(type));
@@ -714,7 +726,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Whether to bounds check along the way (useful in cases where
         /// the heap may be in an inconsistent state.)
         /// </param>
-        public IEnumerable<ulong> EnumerateReferenceAddresses(ulong obj, ClrType type, bool carefully, bool considerDependantHandles)
+        internal IEnumerable<ulong> EnumerateReferenceAddresses(ulong obj, ClrType type, bool carefully, bool considerDependantHandles)
         {
 
             if (type is null)
@@ -876,6 +888,31 @@ namespace Microsoft.Diagnostics.Runtime
                 return null;
             return new ClrException(obj.Type?.Helpers ?? FreeType.Helpers, thread, obj);
         }
+
+        IEnumerable<IClrValue> IClrHeap.EnumerateFinalizableObjects()
+        {
+            throw new NotImplementedException();
+        }
+
+        IEnumerable<IClrValue> IClrHeap.EnumerateObjects() => EnumerateObjects().Cast<IClrValue>();
+
+        IEnumerable<IClrValue> IClrHeap.EnumerateObjects(MemoryRange range) => EnumerateObjects(range).Cast<IClrValue>();
+
+        IClrValue IClrHeap.FindNextObjectOnSegment(ulong address) => FindNextObjectOnSegment(address);
+
+        IClrValue IClrHeap.FindPreviousObjectOnSegment(ulong address) => FindPreviousObjectOnSegment(address);
+
+        IClrValue IClrHeap.GetObject(ulong objRef) => GetObject(objRef);
+
+        IClrType? IClrHeap.GetObjectType(ulong objRef) => GetObjectType(objRef);
+
+        IClrSegment? IClrHeap.GetSegmentByAddress(ulong address) => GetSegmentByAddress(address);
+
+        IClrType? IClrHeap.GetTypeByMethodTable(ulong methodTable) => GetTypeByMethodTable(methodTable);
+
+        IClrType? IClrHeap.GetTypeByName(ClrModule module, string name) => GetTypeByName(module, name);
+
+        IClrType? IClrHeap.GetTypeByName(string name) => GetTypeByName(name);
 
         private class SubHeapData
         {

@@ -101,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime
             return $"{FileName} {string.Join("", IndexBuildId.Select(x => x.ToString("x")))}";
         }
 
-        internal DebugLibraryInfo(DebugLibraryKind kind, string fileName, Architecture targetArch, OSPlatform platform, SymbolProperties archivedUnder, ImmutableArray<byte> clrBuildId)
+        public DebugLibraryInfo(DebugLibraryKind kind, string fileName, Architecture targetArch, OSPlatform platform, SymbolProperties archivedUnder, ImmutableArray<byte> clrBuildId)
         {
             Kind = kind;
             FileName = fileName;
@@ -111,13 +111,13 @@ namespace Microsoft.Diagnostics.Runtime
             Platform = platform;
         }
 
-        internal DebugLibraryInfo(DebugLibraryKind kind, string fileName, Architecture targetArch, SymbolProperties archivedUnder, int filesize, int timestamp)
+        public DebugLibraryInfo(DebugLibraryKind kind, string fileName, Architecture targetArch, SymbolProperties archivedUnder, int fileSize, int timestamp)
         {
             Kind = kind;
             FileName = fileName;
             TargetArchitecture = targetArch;
             ArchivedUnder = archivedUnder;
-            IndexFileSize = filesize;
+            IndexFileSize = fileSize;
             IndexTimeStamp = timestamp;
             IndexBuildId = ImmutableArray<byte>.Empty;
             Platform = OSPlatform.Windows;

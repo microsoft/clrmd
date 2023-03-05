@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
@@ -11,9 +12,11 @@ using System.Reflection;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public sealed class ClrEnum
+    public sealed class ClrEnum : IClrEnum
     {
         public ClrType Type { get; }
+        IClrType IClrEnum.Type => Type;
+
         public ClrElementType ElementType { get; }
 
         private readonly (string Name, object? Value)[] _values;

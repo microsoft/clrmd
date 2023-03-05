@@ -4,6 +4,7 @@
 
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
@@ -18,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrModule :
 #nullable disable // to enable use with both T and T? for reference types due to IEquatable<T> being invariant
-        IEquatable<ClrModule>
+        IEquatable<ClrModule>, IClrModule
 #nullable restore
     {
         private readonly IClrModuleHelpers _helpers;

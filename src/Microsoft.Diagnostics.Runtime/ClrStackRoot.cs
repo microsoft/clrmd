@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Text;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
 {

@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 using System.Collections.Immutable;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -11,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// Helper for COM Callable Wrapper objects.  (CCWs are CLR objects exposed to native code as COM
     /// objects).
     /// </summary>
-    public sealed class ComCallableWrapper
+    public sealed class ComCallableWrapper : IComCallableWrapper
     {
         public ulong Address { get; }
 

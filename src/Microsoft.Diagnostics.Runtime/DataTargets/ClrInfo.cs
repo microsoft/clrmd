@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Interfaces;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents information about a single CLR in a process.
     /// </summary>
-    public sealed class ClrInfo
+    public sealed class ClrInfo : IClrInfo
     {
         private const string c_desktopModuleName = "clr.dll";
         private const string c_coreModuleName = "coreclr.dll";
@@ -422,12 +423,20 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Creates a runtime from the given DAC file on disk.  This is equivalent to
+        /// CreateRuntime(dacPath, ignoreMismatch: false).
+        /// </summary>
+        /// <param name="dacPath">A full path to the matching DAC dll for this process.</param>
+        /// <returns>The runtime associated with this CLR.</returns>
+        public ClrRuntime CreateRuntime(string dacPath) => CreateRuntime(dacPath, ignoreMismatch: false);
+
+        /// <summary>
         /// Creates a runtime from the given DAC file on disk.
         /// </summary>
         /// <param name="dacPath">A full path to the matching DAC dll for this process.</param>
         /// <param name="ignoreMismatch">Whether or not to ignore mismatches between. </param>
         /// <returns>The runtime associated with this CLR.</returns>
-        public ClrRuntime CreateRuntime(string dacPath, bool ignoreMismatch = false)
+        public ClrRuntime CreateRuntime(string dacPath, bool ignoreMismatch)
         {
             if (string.IsNullOrEmpty(dacPath))
                 throw new ArgumentNullException(nameof(dacPath));

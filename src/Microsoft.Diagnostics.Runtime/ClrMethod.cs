@@ -4,6 +4,7 @@
 
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 using System;
 using System.Collections.Immutable;
 using System.Reflection;
@@ -15,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrMethod :
 #nullable disable // to enable use with both T and T? for reference types due to IEquatable<T> being invariant
-        IEquatable<ClrMethod>
+        IEquatable<ClrMethod>, IClrMethod
 #nullable restore
     {
         private readonly IClrMethodHelpers _helpers;
@@ -180,6 +181,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the enclosing type of this method.
         /// </summary>
         public ClrType Type { get; }
+        
+        IClrType IClrMethod.Type => Type;
 
         public MethodAttributes Attributes
         {

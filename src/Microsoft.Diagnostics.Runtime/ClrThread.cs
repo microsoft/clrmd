@@ -4,6 +4,7 @@
 
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -12,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// Represents a managed thread in the target process.  Note this does not wrap purely native threads
     /// in the target process (that is, threads which have never run managed code before).
     /// </summary>
-    public sealed class ClrThread
+    public sealed class ClrThread : IClrThread
     {
         private readonly IClrThreadHelpers _helpers;
         private readonly ulong _exceptionHandle;
@@ -42,6 +43,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the runtime associated with this thread.
         /// </summary>
         public ClrRuntime Runtime { get; }
+
+        IClrRuntime IClrThread.Runtime => Runtime;
 
         /// <summary>
         /// Gets the suspension state of the thread according to the runtime.
@@ -76,6 +79,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the AppDomain the thread is running in.
         /// </summary>
         public ClrAppDomain? CurrentAppDomain { get; }
+
+        IClrAppDomain? IClrThread.CurrentAppDomain => CurrentAppDomain;
 
         /// <summary>
         /// Gets the number of managed locks (Monitors) the thread has currently entered but not left.
@@ -129,5 +134,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return ex;
             }
         }
+
+        IClrException? IClrThread.CurrentException => CurrentException;
     }
 }

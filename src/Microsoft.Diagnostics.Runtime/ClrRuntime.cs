@@ -3,18 +3,21 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime
+
 {
     /// <summary>
     /// Represents a single runtime in a target process or crash dump.  This serves as the primary
     /// entry point for getting diagnostic information.
     /// </summary>
-    public sealed class ClrRuntime : IDisposable
+    public sealed class ClrRuntime : IClrRuntime
     {
         private readonly IClrRuntimeHelpers _helpers;
         private volatile ClrAppDomainData? _appDomainData;
@@ -146,6 +149,20 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
+        ImmutableArray<IClrAppDomain> IClrRuntime.AppDomains => AppDomains.CastArray<IClrAppDomain>();
+
+        IClrAppDomain? IClrRuntime.SharedDomain => SharedDomain;
+
+        IClrAppDomain? IClrRuntime.SystemDomain => SystemDomain;
+
+        ImmutableArray<IClrThread> IClrRuntime.Threads => Threads.CastArray<IClrThread>();
+
+        IClrInfo IClrRuntime.ClrInfo => ClrInfo;
+
+        IDataTarget IClrRuntime.DataTarget => DataTarget;
+
+        IClrModule IClrRuntime.BaseClassLibrary => BaseClassLibrary;
+
         /// <summary>
         /// Attempts to get a ClrMethod for the given instruction pointer.  This will return NULL if the
         /// given instruction pointer is not within any managed method.
@@ -256,5 +273,17 @@ namespace Microsoft.Diagnostics.Runtime
             FlushCachedData();
             _helpers.Dispose();
         }
+
+        IEnumerable<IClrRoot> IClrRuntime.EnumerateHandles() => EnumerateHandles().Cast<IClrRoot>();
+
+        IEnumerable<IClrJitManager> IClrRuntime.EnumerateJitManagers() => EnumerateJitManagers().Cast<IClrJitManager>();
+
+        IEnumerable<IClrModule> IClrRuntime.EnumerateModules() => EnumerateModules().Cast<IClrModule>();
+
+        IClrMethod? IClrRuntime.GetMethodByHandle(ulong methodHandle) => GetMethodByHandle(methodHandle);
+
+        IClrMethod? IClrRuntime.GetMethodByInstructionPointer(ulong ip) => GetMethodByInstructionPointer(ip);
+
+        IClrType? IClrRuntime.GetTypeByMethodTable(ulong methodTable) => GetTypeByMethodTable(methodTable);
     }
 }

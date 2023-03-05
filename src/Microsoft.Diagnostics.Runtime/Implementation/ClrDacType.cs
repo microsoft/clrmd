@@ -400,83 +400,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 _attributes = (TypeAttributes)0x70000000;
         }
 
-        public override bool IsInternal
+        public override TypeAttributes TypeAttributes
         {
             get
             {
                 if (_attributes == 0)
                     InitFlags();
-
-                TypeAttributes visibility = _attributes & TypeAttributes.VisibilityMask;
-                return visibility == TypeAttributes.NestedAssembly || visibility == TypeAttributes.NotPublic;
-            }
-        }
-
-        public override bool IsPublic
-        {
-            get
-            {
-                if (_attributes == 0)
-                    InitFlags();
-
-                TypeAttributes visibility = _attributes & TypeAttributes.VisibilityMask;
-                return visibility == TypeAttributes.Public || visibility == TypeAttributes.NestedPublic;
-            }
-        }
-
-        public override bool IsPrivate
-        {
-            get
-            {
-                if (_attributes == 0)
-                    InitFlags();
-
-                TypeAttributes visibility = _attributes & TypeAttributes.VisibilityMask;
-                return visibility == TypeAttributes.NestedPrivate;
-            }
-        }
-
-        public override bool IsProtected
-        {
-            get
-            {
-                if (_attributes == 0)
-                    InitFlags();
-
-                TypeAttributes visibility = _attributes & TypeAttributes.VisibilityMask;
-                return visibility == TypeAttributes.NestedFamily;
-            }
-        }
-
-        public override bool IsAbstract
-        {
-            get
-            {
-                if (_attributes == 0)
-                    InitFlags();
-
-                return (_attributes & TypeAttributes.Abstract) == TypeAttributes.Abstract;
-            }
-        }
-
-        public override bool IsSealed
-        {
-            get
-            {
-                if (_attributes == 0)
-                    InitFlags();
-
-                return (_attributes & TypeAttributes.Sealed) == TypeAttributes.Sealed;
-            }
-        }
-
-        public override bool IsInterface
-        {
-            get
-            {
-                if (_attributes == 0)
-                    InitFlags();
-                return (_attributes & TypeAttributes.Interface) == TypeAttributes.Interface;
+                return _attributes;
             }
         }
     }

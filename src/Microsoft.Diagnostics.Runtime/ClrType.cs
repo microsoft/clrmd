@@ -3,10 +3,12 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -15,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public abstract class ClrType :
 #nullable disable // to enable use with both T and T? for reference types due to IEquatable<T> being invariant
-        IEquatable<ClrType>
+        IEquatable<ClrType>, IClrType
 #nullable restore
     {
         protected ImmutableArray<ClrInstanceField> _fields;
@@ -123,43 +125,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public abstract bool IsFinalizable { get; }
 
-        // Visibility:
         /// <summary>
-        /// Gets a value indicating whether this type is marked Public.
+        /// Type attributes
         /// </summary>
-        public abstract bool IsPublic { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether this type is marked Private.
-        /// </summary>
-        public abstract bool IsPrivate { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether this type is accessible only by items in its own assembly.
-        /// </summary>
-        public abstract bool IsInternal { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether this nested type is accessible only by subtypes of its outer type.
-        /// </summary>
-        public abstract bool IsProtected { get; }
-
-        // Other attributes:
-
-        /// <summary>
-        /// Gets a value indicating whether this class is abstract.
-        /// </summary>
-        public abstract bool IsAbstract { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether this class is sealed.
-        /// </summary>
-        public abstract bool IsSealed { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether this type is an interface.
-        /// </summary>
-        public abstract bool IsInterface { get; }
+        public abstract TypeAttributes TypeAttributes { get; }
 
         /// <summary>
         /// Gets all possible fields in this type.   It does not return dynamically typed fields.
@@ -331,6 +300,20 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         internal IClrTypeHelpers Helpers { get; }
 
+        IClrType? IClrType.BaseType => throw new NotImplementedException();
+
+        IClrType? IClrType.ComponentType => throw new NotImplementedException();
+
+        ImmutableArray<IClrInstanceField> IClrType.Fields => throw new NotImplementedException();
+
+        IClrHeap IClrType.Heap => throw new NotImplementedException();
+
+        ImmutableArray<IClrMethod> IClrType.Methods => throw new NotImplementedException();
+
+        IClrModule? IClrType.Module => throw new NotImplementedException();
+
+        ImmutableArray<IClrStaticField> IClrType.StaticFields => throw new NotImplementedException();
+
         public override bool Equals(object? obj) => Equals(obj as ClrType);
 
         public bool Equals(ClrType? other)
@@ -359,6 +342,35 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         public override int GetHashCode() => MethodTable.GetHashCode();
+
+        IClrInstanceField? IClrType.GetFieldByName(string name) => GetFieldByName(name);
+
+        IClrStaticField? IClrType.GetStaticFieldByName(string name) => GetStaticFieldByName(name);
+
+        bool IEquatable<IClrType>.Equals(IClrType? other)
+        {
+            if (ReferenceEquals(this, other))
+                return true;
+
+            if (other is null)
+                return false;
+
+            if (MethodTable != 0 && other.MethodTable != 0)
+                return MethodTable == other.MethodTable;
+
+            if (other.IsPointer && ComponentType != null && ComponentType != this)
+                return ComponentType.Equals(other.ComponentType);
+
+            if (IsPrimitive && other.IsPrimitive && ElementType != ClrElementType.Unknown)
+                return ElementType == other.ElementType;
+
+            // Ok we aren't a primitive type, or a pointer, and our MethodTables are 0.  Last resort is to
+            // check if we resolved from the same token out of the same module.
+            if (Module != null && MetadataToken != 0)
+                return Module.Equals(other.Module) && MetadataToken == other.MetadataToken;
+
+            return false;
+        }
 
         public static bool operator ==(ClrType? left, ClrType? right)
         {

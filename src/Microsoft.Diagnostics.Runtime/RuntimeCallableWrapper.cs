@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// Helper for Runtime Callable Wrapper objects.  (RCWs are COM objects which are exposed to the runtime
     /// as managed objects.)
     /// </summary>
-    public sealed class RuntimeCallableWrapper
+    public sealed class RuntimeCallableWrapper : IRuntimeCallableWrapper
     {
         public ulong Address { get; }
 

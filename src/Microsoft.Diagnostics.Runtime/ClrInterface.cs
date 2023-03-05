@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>Display string for this interface.</returns>
         public override string ToString() => Name;
 
-        internal ClrInterface(string name, ClrInterface? baseInterface)
+        public ClrInterface(string name, ClrInterface? baseInterface)
         {
             Name = name;
             BaseInterface = baseInterface;

@@ -3,8 +3,10 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -12,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents an object in the target process.
     /// </summary>
-    public readonly struct ClrObject : IAddressableTypedEntity, IEquatable<ClrObject>
+    public readonly struct ClrObject : IEquatable<ClrObject>, IClrValue
     {
         internal const string RuntimeTypeName = "System.RuntimeType";
 
@@ -128,6 +130,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the type of the object.
         /// </summary>
         public ClrType? Type { get; }
+
+        IClrType? IClrValue.Type => Type;
 
         /// <summary>
         /// Returns whether this is free space on the GC heap and not a real object.
@@ -400,7 +404,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>Returns this object in a <see cref="ClrDelegate"/> view.</returns>
         public ClrDelegate AsDelegate()
         {
-            DebugOnly.Assert(IsDelegate);
+            if (!IsDelegate)
+                throw new InvalidOperationException($"Object {Address:x} is not a delegate, type is '{Type?.Name}'.");
+
             return new ClrDelegate(this);
         }
 
@@ -494,7 +500,10 @@ namespace Microsoft.Diagnostics.Runtime
             return Address.GetHashCode();
         }
 
-        public bool Equals(IAddressableTypedEntity? entity) => entity is ClrObject other && Equals(other);
+        public bool Equals(IClrValue? other)
+        {
+            return other != null && Address == other.Address && ((Type == null && other.Type == null) || (Type != null && Type.Equals(other.Type)));
+        }
 
         /// <summary>
         /// Determines whether two specified <see cref="ClrObject" /> have the same value.
@@ -519,6 +528,34 @@ namespace Microsoft.Diagnostics.Runtime
         public override string ToString()
         {
             return $"{Address:x} {Type?.Name}";
+        }
+
+        IClrException? IClrValue.AsException() => AsException();
+
+        IClrType? IClrValue.AsRuntimeType() => AsRuntimeType();
+
+        IEnumerable<IClrValue> IClrValue.EnumerateReferences(bool carefully, bool considerDependantHandles) => EnumerateReferences(carefully, considerDependantHandles).Cast<IClrValue>();
+
+        IComCallableWrapper? IClrValue.GetComCallableWrapper() => GetComCallableWrapper();
+
+        IRuntimeCallableWrapper? IClrValue.GetRuntimeCallableWrapper() => GetRuntimeCallableWrapper();
+
+        IClrValue IClrValue.ReadObjectField(string fieldName) => ReadObjectField(fieldName);
+
+        IClrValue IClrValue.ReadValueTypeField(string fieldName) => ReadValueTypeField(fieldName);
+
+        bool IClrValue.TryReadObjectField(string fieldName, [NotNullWhen(true)] out IClrValue? result)
+        {
+            bool res = TryReadObjectField(fieldName, out ClrObject obj);
+            result = obj;
+            return res;
+        }
+
+        bool IClrValue.TryReadValueTypeField(string fieldName, [NotNullWhen(true)] out IClrValue? result)
+        {
+            bool res = TryReadValueTypeField(fieldName, out ClrValueType val);
+            result = val;
+            return res;
         }
     }
 }

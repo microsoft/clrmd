@@ -6,6 +6,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -38,19 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsFinalizable => true;
 
-        public override bool IsPublic => true;
-
-        public override bool IsPrivate => false;
-
-        public override bool IsInternal => false;
-
-        public override bool IsProtected => false;
-
-        public override bool IsAbstract => false;
-
-        public override bool IsSealed => true;
-
-        public override bool IsInterface => false;
+        public override TypeAttributes TypeAttributes => TypeAttributes.Public;
 
         public override ClrType? BaseType => Heap.ObjectType;
 

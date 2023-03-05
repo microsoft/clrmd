@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -65,14 +66,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsPointer => ElementType != ClrElementType.SZArray && ElementType != ClrElementType.Array;
         public override IEnumerable<ClrInterface> EnumerateInterfaces() => Enumerable.Empty<ClrInterface>();
         public override bool IsFinalizable => false;
-        public override bool IsPublic => true;
-        public override bool IsPrivate => false;
-        public override bool IsInternal => false;
-        public override bool IsProtected => false;
-        public override bool IsAbstract => false;
-        public override bool IsSealed => false;
-        public override bool IsShared => false;
-        public override bool IsInterface => false;
         public override ClrInstanceField? GetFieldByName(string name) => null;
         public override ClrStaticField? GetStaticFieldByName(string name) => null;
         public override ClrType? BaseType => null;
@@ -83,5 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override int MetadataToken => 0;
         public override bool IsArray => !IsPointer;
         public override int ComponentSize => IntPtr.Size;
+        public override TypeAttributes TypeAttributes => TypeAttributes.Public;
+        public override bool IsShared => true;
     }
 }

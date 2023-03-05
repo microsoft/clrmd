@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Reflection;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -43,19 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsFinalizable => false;
 
-        public override bool IsPublic => false;
-
-        public override bool IsPrivate => false;
-
-        public override bool IsInternal => false;
-
-        public override bool IsProtected => false;
-
-        public override bool IsAbstract => false;
-
-        public override bool IsSealed => false;
-
-        public override bool IsInterface => false;
+        public override TypeAttributes TypeAttributes => TypeAttributes.Public;
 
         public override ClrType? BaseType => null;
 

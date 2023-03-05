@@ -4,6 +4,7 @@
 
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 using System;
 using System.Reflection;
 
@@ -12,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents a static field in the target process.
     /// </summary>
-    public sealed class ClrStaticField : ClrField
+    public sealed class ClrStaticField : ClrField, IClrStaticField
     {
         private readonly IClrFieldHelpers _helpers;
         private string? _name;
@@ -35,9 +36,9 @@ namespace Microsoft.Diagnostics.Runtime
         public override ClrElementType ElementType { get; }
 
         public override bool IsObjectReference => ElementType.IsObjectReference();
-        
+
         public override bool IsValueType => ElementType.IsValueType();
-        
+
         public override bool IsPrimitive => ElementType.IsPrimitive();
 
         public override string? Name
@@ -160,6 +161,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             return ContainingType.Heap.GetObject(obj);
         }
+        
+        IClrValue IClrStaticField.ReadObject(ClrAppDomain appDomain) => ReadObject(appDomain);
 
         /// <summary>
         /// Reads a ValueType struct from the instance field.
@@ -173,6 +176,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             return new ClrValueType(address, Type, interior: true);
         }
+
+        IClrValue IClrStaticField.ReadStruct(ClrAppDomain appDomain) => ReadStruct(appDomain);
 
         /// <summary>
         /// Reads a string from the instance field.

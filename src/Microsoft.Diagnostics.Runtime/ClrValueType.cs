@@ -2,14 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// Represents an instance of a type which inherits from <see cref="ValueType"/>.
     /// </summary>
-    public readonly struct ClrValueType : IAddressableTypedEntity
+    public readonly struct ClrValueType : IClrValue
     {
         private IDataReader DataReader => GetTypeOrThrow().Helpers.DataReader;
         private readonly bool _interior;
@@ -136,8 +140,11 @@ namespace Microsoft.Diagnostics.Runtime
             return address;
         }
 
-        public bool Equals(IAddressableTypedEntity? other)
-            => other != null && Address == other.Address && Type == other.Type;
+        public bool Equals(IClrValue? other)
+        {
+            return other != null && Address == other.Address && Type == (ClrType?)other.Type;
+        }
+            
 
         private ClrType GetTypeOrThrow()
         {
@@ -146,5 +153,131 @@ namespace Microsoft.Diagnostics.Runtime
 
             return Type;
         }
+
+        public bool ContainsPointers => Type?.ContainsPointers ?? false;
+        public ulong Size => (ulong)(Type?.StaticSize ?? 0);
+
+        bool IClrValue.HasComCallableWrapper => false;
+
+        bool IClrValue.HasRuntimeCallableWrapper => false;
+
+        bool IClrValue.IsArray => false;
+
+        bool IClrValue.IsBoxedValue => false;
+
+        bool IClrValue.IsComClassFactory => false;
+
+        bool IClrValue.IsDelegate => false;
+
+        bool IClrValue.IsException => false;
+
+        bool IClrValue.IsFree => false;
+
+        bool IClrValue.IsNull => false;
+
+        bool IClrValue.IsRuntimeType => false;
+
+        SyncBlock? IClrValue.SyncBlock => null;
+
+        IClrType? IClrValue.Type => Type;
+
+        ClrArray IClrValue.AsArray()
+        {
+            throw new InvalidOperationException($"Object {Address:x} is not an array, type is '{Type?.Name}'.");
+        }
+
+        ClrDelegate IClrValue.AsDelegate()
+        {
+            throw new InvalidOperationException($"Object {Address:x} is not a delegate, type is '{Type?.Name}'.");
+        }
+
+        IClrException? IClrValue.AsException() => null;
+
+        IClrType? IClrValue.AsRuntimeType() => null;
+
+        string? IClrValue.AsString(int maxLength) => null;
+
+        IEnumerable<ulong> IClrValue.EnumerateReferenceAddresses(bool carefully, bool considerDependantHandles)
+        {
+            // todo
+            throw new NotImplementedException();
+        }
+
+        IEnumerable<IClrValue> IClrValue.EnumerateReferences(bool carefully, bool considerDependantHandles)
+        {
+            // todo
+            throw new NotImplementedException();
+        }
+
+        IEnumerable<ClrReference> IClrValue.EnumerateReferencesWithFields(bool carefully, bool considerDependantHandles)
+        {
+            // todo
+            throw new NotImplementedException();
+        }
+
+        IComCallableWrapper? IClrValue.GetComCallableWrapper() => null;
+
+        IRuntimeCallableWrapper? IClrValue.GetRuntimeCallableWrapper() => null;
+
+        T IClrValue.ReadBoxedValue<T>()
+        {
+            IClrTypeHelpers? helpers = Type?.Helpers;
+            if (helpers is null)
+                return default;
+
+            return helpers.DataReader.Read<T>(Address);
+        }
+
+        IClrValue IClrValue.ReadObjectField(string fieldName) => ReadObjectField(fieldName);
+
+        bool IClrValue.TryReadField<T>(string fieldName, out T result)
+        {
+            ClrInstanceField? field = Type?.GetFieldByName(fieldName);
+            if (field is null)
+            {
+                result = default;
+                return false;
+            }
+
+            result = field.Read<T>(Address, _interior);
+            return true;
+        }
+
+        bool IClrValue.TryReadObjectField(string fieldName, [NotNullWhen(true)] out IClrValue? result)
+        {
+            result = null;
+
+            if (Type is null)
+                return false;
+
+            ClrInstanceField? field = Type.GetFieldByName(fieldName);
+            if (field is null || !field.IsObjectReference)
+                return false;
+
+            ClrHeap heap = Type.Heap;
+
+            ulong addr = field.GetAddress(Address, _interior);
+            if (!DataReader.ReadPointer(addr, out ulong obj))
+                return false;
+
+            result = heap.GetObject(obj);
+            return true;
+        }
+
+        bool IClrValue.TryReadValueTypeField(string fieldName, [NotNullWhen(true)] out IClrValue? result)
+        {
+            ClrInstanceField? field = Type?.GetFieldByName(fieldName);
+            if (field is null || field.IsValueType || field.Type is null)
+            {
+                result = null;
+                return false;
+            }
+
+            ulong addr = field.GetAddress(Address, _interior);
+            result = new ClrValueType(addr, field.Type, true);
+            return true;
+        }
+
+        IClrValue IClrValue.ReadValueTypeField(string fieldName) => ReadValueTypeField(fieldName);
     }
 }
