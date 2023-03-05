@@ -728,7 +728,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// </param>
         internal IEnumerable<ulong> EnumerateReferenceAddresses(ulong obj, ClrType type, bool carefully, bool considerDependantHandles)
         {
-
             if (type is null)
                 throw new ArgumentNullException(nameof(type));
 
@@ -833,17 +832,15 @@ namespace Microsoft.Diagnostics.Runtime
         private SubHeapData GetSubHeapData()
         {
             SubHeapData? data = _subHeapData;
-            if (data is null)
-            {
-                data = new(_helpers.GetSubHeaps(this));
-                Interlocked.CompareExchange(ref _subHeapData, data, null);
-            }
+            if (data is not null)
+                return data;
 
-            return data;
+            data = new(_helpers.GetSubHeaps(this));
+            Interlocked.CompareExchange(ref _subHeapData, data, null);
+            return _subHeapData;
         }
 
         public ClrType? GetTypeByMethodTable(ulong methodTable) => _typeFactory.GetOrCreateType(methodTable, 0);
-
 
         public ClrType? GetTypeByName(string name) => Runtime.EnumerateModules().OrderBy(m => m.Name ?? "").Select(m => GetTypeByName(m, name)).Where(r => r != null).FirstOrDefault();
 
@@ -928,11 +925,6 @@ namespace Microsoft.Diagnostics.Runtime
 
         private class SyncBlockContainer
         {
-            public SyncBlockContainer()
-            {
-                SyncBlocks = Array.Empty<ComSyncBlock>();
-            }
-
             public SyncBlockContainer(IEnumerable<SyncBlock> syncBlocks)
             {
                 SyncBlocks = syncBlocks.Where(FilterEmpty).OrderBy(b => b.Object).ToArray();
