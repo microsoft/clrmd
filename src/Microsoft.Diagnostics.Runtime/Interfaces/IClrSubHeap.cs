@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.Interfaces
 {
     public interface IClrSubHeap
     {

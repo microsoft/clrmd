@@ -4,6 +4,7 @@
 
 using System;
 using System.Reflection;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
 {

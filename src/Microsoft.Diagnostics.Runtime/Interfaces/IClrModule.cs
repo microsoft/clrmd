@@ -6,7 +6,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.Interfaces
 {
     /// <summary>
     /// <see cref="ClrModule"/>

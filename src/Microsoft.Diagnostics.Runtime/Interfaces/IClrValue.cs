@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.Interfaces
 {
     public interface IClrValue : IEquatable<IClrValue>
     {
@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime
         string? ReadStringField(string fieldName, int maxLength = 4096);
         IClrValue ReadValueTypeField(string fieldName);
         bool TryReadField<T>(string fieldName, out T result) where T : unmanaged;
-        
+
         bool TryReadObjectField(string fieldName, [NotNullWhen(true)] out IClrValue? result);
         bool TryReadValueTypeField(string fieldName, [NotNullWhen(true)] out IClrValue? result);
     }

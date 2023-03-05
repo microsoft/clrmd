@@ -1,5 +1,6 @@
 ﻿using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime

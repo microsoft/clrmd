@@ -4,7 +4,7 @@
 
 using System.Reflection;
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.Interfaces
 {
     public interface IClrField
     {

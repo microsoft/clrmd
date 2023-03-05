@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
