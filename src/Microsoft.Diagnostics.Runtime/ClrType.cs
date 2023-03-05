@@ -347,7 +347,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         IClrStaticField? IClrType.GetStaticFieldByName(string name) => GetStaticFieldByName(name);
 
-        bool IEquatable<IClrType>.Equals(IClrType other)
+        bool IEquatable<IClrType>.Equals(IClrType? other)
         {
             if (ReferenceEquals(this, other))
                 return true;
