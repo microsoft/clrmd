@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         bool HasBackgroundGC { get; }
         bool HasPinnedObjectHeap { get; }
         bool HasRegions { get; }
-        ClrHeap Heap { get; }
+        IClrHeap Heap { get; }
         int Index { get; }
         ImmutableArray<IClrSegment> Segments { get; }
     }

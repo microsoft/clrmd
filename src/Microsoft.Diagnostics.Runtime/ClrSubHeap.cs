@@ -46,6 +46,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         public ClrHeap Heap { get; }
+        IClrHeap IClrSubHeap.Heap => Heap;
 
         public ImmutableArray<ClrSegment> Segments { get; }
 
