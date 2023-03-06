@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
     public interface IClrInfo
     {
         ImmutableArray<byte> BuildId { get; }
-        DataTarget DataTarget { get; }
+        IDataTarget DataTarget { get; }
         ImmutableArray<DebugLibraryInfo> DebuggingLibraries { get; }
         ClrFlavor Flavor { get; }
         int IndexFileSize { get; }
@@ -19,9 +19,9 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         ModuleInfo ModuleInfo { get; }
         Version Version { get; }
 
-        ClrRuntime CreateRuntime();
-        ClrRuntime CreateRuntime(DacLibrary dacLibrary);
-        ClrRuntime CreateRuntime(string dacPath);
-        ClrRuntime CreateRuntime(string dacPath, bool ignoreMismatch);
+        IClrRuntime CreateRuntime();
+        IClrRuntime CreateRuntime(DacLibrary dacLibrary);
+        IClrRuntime CreateRuntime(string dacPath);
+        IClrRuntime CreateRuntime(string dacPath, bool ignoreMismatch);
     }
 }

@@ -355,6 +355,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         public DataTarget DataTarget { get; }
 
+        IDataTarget IClrInfo.DataTarget => DataTarget;
+
         /// <summary>
         /// Gets the version number of this runtime.
         /// </summary>
@@ -528,6 +530,14 @@ namespace Microsoft.Diagnostics.Runtime
 
             throw new FileNotFoundException("Could not find matching DAC for this runtime.");
         }
+
+        IClrRuntime IClrInfo.CreateRuntime() => CreateRuntime();
+
+        IClrRuntime IClrInfo.CreateRuntime(DacLibrary dacLibrary) => CreateRuntime(dacLibrary);
+
+        IClrRuntime IClrInfo.CreateRuntime(string dacPath) => CreateRuntime(dacPath);
+
+        IClrRuntime IClrInfo.CreateRuntime(string dacPath, bool ignoreMismatch) => CreateRuntime(dacPath, ignoreMismatch);
 
         private static OSPlatform GetCurrentPlatform()
         {
