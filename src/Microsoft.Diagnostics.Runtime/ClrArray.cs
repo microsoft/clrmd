@@ -5,13 +5,14 @@
 
 
 using System;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// Represents an array in the target process.
     /// </summary>
-    public struct ClrArray : IEquatable<ClrArray>, IEquatable<ClrObject>
+    public struct ClrArray : IEquatable<ClrArray>, IEquatable<ClrObject>, IClrArray
     {
         /// <summary>
         /// Gets the address of the object.
@@ -54,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private readonly int MultiDimensionalRank => (int)((Type.StaticSize - (uint)(3 * IntPtr.Size)) / (2 * sizeof(int)));
 
-        public ClrArray(ulong address, ClrType type)
+        internal ClrArray(ulong address, ClrType type)
         {
             Address = address;
             Type = type;

@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// Represents a delegate instance in the target process.
     /// </summary>
-    public struct ClrDelegate
+    public struct ClrDelegate : IClrDelegate
     {
         internal const string DelegateType = "System.Delegate";
         /// <summary>
@@ -15,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// must be true.
         /// </summary>
         /// <param name="obj">A delegate object</param>
-        public ClrDelegate(ClrObject obj)
+        internal ClrDelegate(ClrObject obj)
         {
             DebugOnly.Assert(obj.IsDelegate);
 

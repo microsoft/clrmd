@@ -181,12 +181,12 @@ namespace Microsoft.Diagnostics.Runtime
 
         IClrType? IClrValue.Type => Type;
 
-        ClrArray IClrValue.AsArray()
+        IClrArray IClrValue.AsArray()
         {
             throw new InvalidOperationException($"Object {Address:x} is not an array, type is '{Type?.Name}'.");
         }
 
-        ClrDelegate IClrValue.AsDelegate()
+        IClrDelegate IClrValue.AsDelegate()
         {
             throw new InvalidOperationException($"Object {Address:x} is not a delegate, type is '{Type?.Name}'.");
         }

@@ -27,8 +27,8 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         SyncBlock? SyncBlock { get; }
         IClrType? Type { get; }
 
-        ClrArray AsArray();
-        ClrDelegate AsDelegate();
+        IClrArray AsArray();
+        IClrDelegate AsDelegate();
         IClrException? AsException();
         IClrType? AsRuntimeType();
         string? AsString(int maxLength = 4096);
