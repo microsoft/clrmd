@@ -220,6 +220,8 @@ namespace Microsoft.Diagnostics.Runtime
             return new ClrArray(Address, type);
         }
 
+        IClrArray IClrValue.AsArray() => AsArray();
+
         /// <summary>
         /// Converts a ClrObject into its string value.
         /// </summary>
@@ -409,6 +411,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             return new ClrDelegate(this);
         }
+
+        IClrDelegate IClrValue.AsDelegate() => AsDelegate();
 
         /// <summary>
         /// Gets a string field from the object.  Note that the type must match exactly, as this method
