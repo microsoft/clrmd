@@ -4,6 +4,7 @@
 
 using System;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -11,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// A frame in a managed stack trace.  Note you can call ToString on an instance of this object to get the
     /// function name (or clr!Frame name) similar to SOS's !clrstack output.
     /// </summary>
-    public sealed class ClrStackFrame
+    public sealed class ClrStackFrame : IClrStackFrame
     {
         private readonly byte[]? _context;
 
@@ -19,6 +20,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// The thread parent of this frame.  Note that this may be null when inspecting the stack of ClrExceptions.
         /// </summary>
         public ClrThread? Thread { get; }
+
+        IClrThread? IClrStackFrame.Thread => Thread;
 
         /// <summary>
         /// Gets this stack frame context.
@@ -46,6 +49,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// stack marker does not have a managed method associated with it.
         /// </summary>
         public ClrMethod? Method { get; }
+
+        IClrMethod? IClrStackFrame.Method => Method;
 
         /// <summary>
         /// Gets the helper method frame name if <see cref="Kind"/> is <see cref="ClrStackFrameKind.Runtime"/>, <see langword="null"/> otherwise.

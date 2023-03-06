@@ -6,6 +6,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -114,6 +115,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <returns>An enumeration of stack frames.</returns>
         public IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext = false) => _helpers.EnumerateStackTrace(this, includeContext);
+
+        IEnumerable<IClrStackFrame> IClrThread.EnumerateStackTrace(bool includeContext) => EnumerateStackTrace(includeContext).Cast<IClrStackFrame>();
 
         /// <summary>
         /// Gets the exception currently on the thread.  Note that this field may be <see langword="null"/>.  Also note
