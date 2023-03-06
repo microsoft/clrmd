@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         int HResult { get; }
         IClrException? Inner { get; }
         string? Message { get; }
-        ImmutableArray<ClrStackFrame> StackTrace { get; }
+        ImmutableArray<IClrStackFrame> StackTrace { get; }
         IClrThread? Thread { get; }
         IClrType? Type { get; }
 

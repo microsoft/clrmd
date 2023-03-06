@@ -22,6 +22,6 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         ClrThreadState State { get; }
 
         IEnumerable<IClrStackRoot> EnumerateStackRoots();
-        IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext = false);
+        IEnumerable<IClrStackFrame> EnumerateStackTrace(bool includeContext = false);
     }
 }

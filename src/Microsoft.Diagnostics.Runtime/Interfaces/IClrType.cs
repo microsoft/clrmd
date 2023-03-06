@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         int StaticSize { get; }
         TypeAttributes TypeAttributes { get; }
 
-        ClrEnum AsEnum();
+        IClrEnum AsEnum();
         IEnumerable<ClrGenericParameter> EnumerateGenericParameters();
         IEnumerable<ClrInterface> EnumerateInterfaces();
         ulong GetArrayElementAddress(ulong objRef, int index);

@@ -149,6 +149,8 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
+        IClrHeap IClrRuntime.Heap => Heap;
+
         ImmutableArray<IClrAppDomain> IClrRuntime.AppDomains => AppDomains.CastArray<IClrAppDomain>();
 
         IClrAppDomain? IClrRuntime.SharedDomain => SharedDomain;

@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         IClrModule BaseClassLibrary { get; }
         IClrInfo ClrInfo { get; }
         IDataTarget DataTarget { get; }
-        ClrHeap Heap { get; }
+        IClrHeap Heap { get; }
         bool IsThreadSafe { get; }
         IClrAppDomain? SharedDomain { get; }
         IClrAppDomain? SystemDomain { get; }

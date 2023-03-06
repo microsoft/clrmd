@@ -126,6 +126,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ImmutableArray<ClrStackFrame> StackTrace => GetExceptionStackTrace(Thread, _object);
 
+        ImmutableArray<IClrStackFrame> IClrException.StackTrace => StackTrace.CastArray<IClrStackFrame>();
+
         IClrException? IClrException.Inner => Inner;
 
         IClrThread? IClrException.Thread => Thread;

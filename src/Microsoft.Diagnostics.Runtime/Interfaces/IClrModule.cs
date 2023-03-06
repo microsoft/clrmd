@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         /// <summary>
         /// <see cref="ClrModule.AppDomain"/>
         /// </summary>
-        ClrAppDomain AppDomain { get; }
+        IClrAppDomain AppDomain { get; }
 
         /// <summary>
         /// <see cref="ClrModule.AssemblyAddress"/>
@@ -69,13 +69,6 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         /// <see cref="ClrModule.MetadataAddress"/>
         /// </summary>
         ulong MetadataAddress { get; }
-
-
-        /// <summary>
-        /// <see cref="ClrModule.MetadataImport"/>
-        /// </summary>
-        MetadataImport? MetadataImport { get; }
-
 
         /// <summary>
         /// <see cref="ClrModule.MetadataLength"/>
@@ -127,6 +120,6 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         /// <summary>
         /// <see cref="ClrModule.GetTypeByName(string)"/>
         /// </summary>
-        ClrType? GetTypeByName(string name);
+        IClrType? GetTypeByName(string name);
     }
 }

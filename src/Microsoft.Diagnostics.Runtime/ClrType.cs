@@ -284,6 +284,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <exception cref="InvalidOperationException"><see cref="IsEnum"/> is <see langword="false"/>.</exception>
         public abstract ClrEnum AsEnum();
 
+        IClrEnum IClrType.AsEnum() => AsEnum();
+
         /// <summary>
         /// Gets a value indicating whether this type is shared across multiple AppDomains.
         /// </summary>

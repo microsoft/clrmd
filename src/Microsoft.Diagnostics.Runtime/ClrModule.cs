@@ -65,6 +65,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ClrAppDomain AppDomain { get; }
 
+        IClrAppDomain IClrModule.AppDomain => AppDomain;
+
         /// <summary>
         /// Gets the name of the assembly that this module is defined in.
         /// </summary>
@@ -210,6 +212,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="name">The name of the type.  (This would be the EXACT value returned by ClrType.Name.)</param>
         /// <returns>The requested ClrType, or <see langword="null"/> if the type doesn't exist or if the runtime hasn't constructed it.</returns>
         public ClrType? GetTypeByName(string name) => AppDomain.Runtime.Heap.GetTypeByName(this, name);
+
+        IClrType? IClrModule.GetTypeByName(string name) => GetTypeByName(name);
 
         /// <summary>
         /// Returns a name for the assembly.
