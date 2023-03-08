@@ -7,6 +7,7 @@ namespace Microsoft.Diagnostics.Runtime
     public class SyncBlock
     {
         public ulong Object { get; }
+        public int Index { get; }
 
         public virtual SyncBlockComFlags ComFlags => SyncBlockComFlags.None;
         public virtual bool IsComCallWrapper => false;
@@ -18,9 +19,10 @@ namespace Microsoft.Diagnostics.Runtime
         public virtual int RecursionCount => 0;
         public virtual int WaitingThreadCount => 0;
 
-        public SyncBlock(ulong obj)
+        public SyncBlock(ulong obj, int index)
         {
             Object = obj;
+            Index = index;
         }
     }
 }

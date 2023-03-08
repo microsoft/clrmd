@@ -12,8 +12,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsRuntimeCallWrapper => (ComFlags & SyncBlockComFlags.ComCallableWrapper) == SyncBlockComFlags.ComCallableWrapper;
         public override bool IsComClassFactory => (ComFlags & SyncBlockComFlags.ComClassFactory) == SyncBlockComFlags.ComClassFactory;
 
-        public ComSyncBlock(ulong obj, uint comFlags)
-            : base(obj)
+        public ComSyncBlock(ulong obj, int index, uint comFlags)
+            : base(obj, index)
         {
             ComFlags = (SyncBlockComFlags)comFlags;
         }

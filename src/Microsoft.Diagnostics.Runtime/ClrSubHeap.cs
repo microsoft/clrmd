@@ -68,8 +68,8 @@ namespace Microsoft.Diagnostics.Runtime
         internal GCState State { get; }
 
         internal ulong NextSweepObject { get; }
-        internal ulong SavedSweepEphemeralSegment { get; }
-        internal ulong SavedSweepEphemeralStart { get; }
+        public ulong SavedSweepEphemeralSegment { get; }
+        public ulong SavedSweepEphemeralStart { get; }
         internal ulong BackgroundSavedLowestAddress { get; }
         internal ulong BackgroundSavedHighestAddress { get; }
 

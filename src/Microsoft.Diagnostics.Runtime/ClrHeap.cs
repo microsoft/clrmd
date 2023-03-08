@@ -8,6 +8,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -170,6 +171,63 @@ namespace Microsoft.Diagnostics.Runtime
         internal IEnumerable<ClrObject> EnumerateObjects(ClrSegment segment)
         {
             return EnumerateObjects(segment, segment.FirstObjectAddress);
+        }
+
+        internal ObjectCorruption? VerifyObject(ClrObject obj, ClrSegment? seg)
+        {
+            if (obj.IsNull)
+                return null;
+
+            if (seg is null || !seg.ObjectRange.Contains(obj))
+            {
+                seg = GetSegmentByAddress(obj);
+                if (seg is null)
+                    return new(obj, 0, ObjectCorruptionKind.ObjectNotOnTheHeap);
+            }
+
+            return _helpers.VerifyObject(GetSyncBlocks(), seg, obj);
+        }
+
+        /// <summary>
+        /// Deeply verifies an object on the heap.  This goes beyond just ClrObject.IsValid and will
+        /// check the object's references as well as certain internal CLR data structures.  Please note,
+        /// however, that it is possible to pause a process in a debugger at a point where the heap is
+        /// NOT corrupted, but does look inconsistent to ClrMD.  For example, the GC might allocate
+        /// an array by writing a method table but the process might be paused before it had the chance
+        /// to write the array length onto the heap.  In this case, IsObjectCorrupted may return true
+        /// even if the process would have continued on fine.  As a result, this function acts more
+        /// like a warning signal that more investigation is needed, and not proof-positive that there
+        /// is heap corruption.
+        /// </summary>
+        /// <param name="obj">The address of the object to deeply verify.</param>
+        /// <param name="result">Only non-null if this function returns true.  An object which describes the
+        /// kind of corruption found.</param>
+        /// <returns>True if the object is corrupted in some way, false otherwise.</returns>
+        public bool IsObjectCorrupted(ulong obj, [NotNullWhen(true)] out ObjectCorruption? result)
+        {
+            return IsObjectCorrupted(GetObject(obj), out result);
+        }
+
+        /// <summary>
+        /// Deeply verifies an object on the heap.  This goes beyond just ClrObject.IsValid and will
+        /// check the object's references as well as certain internal CLR data structures.  Please note,
+        /// however, that it is possible to pause a process in a debugger at a point where the heap is
+        /// NOT corrupted, but does look inconsistent to ClrMD.  For example, the GC might allocate
+        /// an array by writing a method table but the process might be paused before it had the chance
+        /// to write the array length onto the heap.  In this case, IsObjectCorrupted may return true
+        /// even if the process would have continued on fine.  As a result, this function acts more
+        /// like a warning signal that more investigation is needed, and not proof-positive that there
+        /// is heap corruption.
+        /// </summary>
+        /// <param name="obj">The address of the object to deeply verify.</param>
+        /// <param name="result">Only non-null if this function returns true.  An object which describes the
+        /// kind of corruption found.</param>
+        /// <returns>True if the object is corrupted in some way, false otherwise.</returns>
+        public bool IsObjectCorrupted(ClrObject obj, [NotNullWhen(true)] out ObjectCorruption? result)
+        {
+            ClrSegment? seg = GetSegmentByAddress(obj);
+            result = VerifyObject(obj, seg);
+            return result != null;
         }
 
         internal IEnumerable<ClrObject> EnumerateObjects(ClrSegment segment, ulong startAddress)
@@ -473,24 +531,9 @@ namespace Microsoft.Diagnostics.Runtime
                     yield return new(kv.Key, kv.Value);
         }
 
-        /// <summary>
-        /// Obtains the SyncBlock data for a given object, if the object has an associated SyncBlock.
-        /// </summary>
-        /// <param name="obj">The object to get SyncBlock data for.</param>
-        /// <returns>The SyncBlock for the object, null if the object does not have one.</returns>
-        public SyncBlock? GetSyncBlock(ulong obj)
-        {
-            SyncBlockContainer syncBlocks = GetSyncBlocks();
+        public IEnumerable<SyncBlock> EnumerateSyncBlocks() => GetSyncBlocks();
 
-            if (syncBlocks.EmptySyncBlocks.Contains(obj))
-                return new(obj);
-
-            int index = syncBlocks.SyncBlocks.Search(obj, (x, y) => x.Object.CompareTo(y));
-            if (index != -1)
-                return syncBlocks.SyncBlocks[index];
-
-            return null;
-        }
+        internal SyncBlock? GetSyncBlock(ulong obj) => GetSyncBlocks().TryGetSyncBlock(obj);
 
         private SyncBlockContainer GetSyncBlocks()
         {
@@ -777,6 +820,7 @@ namespace Microsoft.Diagnostics.Runtime
                             DebugOnly.Assert(offset >= IntPtr.Size);
                         }
                     }
+                    ArrayPool<byte>.Shared.Return(buffer);
                 }
             }
         }
@@ -911,7 +955,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         IClrType? IClrHeap.GetTypeByName(string name) => GetTypeByName(name);
 
-        private class SubHeapData
+        private sealed class SubHeapData
         {
             public ImmutableArray<ClrSubHeap> SubHeaps { get; }
             public ImmutableArray<ClrSegment> Segments { get; }
@@ -921,28 +965,6 @@ namespace Microsoft.Diagnostics.Runtime
                 SubHeaps = subheaps;
                 Segments = subheaps.SelectMany(s => s.Segments).OrderBy(s => s.FirstObjectAddress).ToImmutableArray();
             }
-        }
-
-        private class SyncBlockContainer
-        {
-            public SyncBlockContainer(IEnumerable<SyncBlock> syncBlocks)
-            {
-                SyncBlocks = syncBlocks.Where(FilterEmpty).OrderBy(b => b.Object).ToArray();
-            }
-
-            private bool FilterEmpty(SyncBlock syncBlock)
-            {
-                if (syncBlock.GetType() == typeof(SyncBlock))
-                {
-                    EmptySyncBlocks.Add(syncBlock.Object);
-                    return false;
-                }
-
-                return true;
-            }
-
-            public SyncBlock[] SyncBlocks { get; }
-            public HashSet<ulong> EmptySyncBlocks { get; } = new();
         }
     }
 }

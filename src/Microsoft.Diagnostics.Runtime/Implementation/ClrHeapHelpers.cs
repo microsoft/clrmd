@@ -5,9 +5,12 @@
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -21,6 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly IMemoryReader _memoryReader;
         private readonly CacheOptions _cacheOptions;
         private readonly GCInfo _gcInfo;
+        private HashSet<ulong>? _validMethodTables;
 
         public bool IsServerMode => _gcInfo.ServerMode != 0;
 
@@ -117,11 +121,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (data.Free == 0)
                 {
                     if (data.MonitorHeld != 0 || data.HoldingThread != 0 || data.Recursion != 0 || data.AdditionalThreadCount != 0)
-                        yield return new FullSyncBlock(data);
+                        yield return new FullSyncBlock(data, curr);
                     else if (data.COMFlags != 0)
-                        yield return new ComSyncBlock(data.Object, data.COMFlags);
+                        yield return new ComSyncBlock(data.Object, curr, data.COMFlags);
                     else
-                        yield return new SyncBlock(data.Object);
+                        yield return new SyncBlock(data.Object, curr);
                 }
 
                 curr++;
@@ -212,15 +216,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private ClrSegment? CreateSegment(ClrSubHeap subHeap, ulong address, int generation)
         {
-            const nint heap_segment_flags_readonly = 1;
-
             if (!_sos.GetSegmentData(address, out SegmentData data))
                 return null;
 
-            bool ro = (data.Flags & heap_segment_flags_readonly) == heap_segment_flags_readonly;
-
+            ClrSegmentFlags flags = (ClrSegmentFlags)data.Flags;
             GCSegmentKind kind = GCSegmentKind.Generation2;
-            if (ro)
+            if ((flags & ClrSegmentFlags.ReadOnly) == ClrSegmentFlags.ReadOnly)
             {
                 kind = GCSegmentKind.Frozen;
             }
@@ -309,8 +310,204 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 Generation0 = gen0,
                 Generation1 = gen1,
                 Generation2 = gen2,
+                Flags = flags,
                 Next = data.Next,
+                BackgroundAllocated = data.BackgroundAllocated,
             };
+        }
+
+        public ObjectCorruption? VerifyObject(SyncBlockContainer syncBlocks, ClrSegment seg, ClrObject obj)
+        {
+            if (!obj.IsFree)
+            {
+                if (!_memoryReader.Read(obj.Address, out ulong mt) || !VerifyMethodTable(mt))
+                    return new ObjectCorruption(obj, 0, ObjectCorruptionKind.BadMethodTable);
+
+                // This shouldn't happen if VerifyMethodTable above returns success, but we'll make sure.
+                if (obj.Type is null)
+                    return new ObjectCorruption(obj, 0, ObjectCorruptionKind.BadMethodTable);
+            }
+
+            int intSize = obj.Size > int.MaxValue ? int.MaxValue : (int)obj.Size;
+            if (obj.Size > seg.MaxObjectSize || !seg.ObjectRange.Contains(obj + obj.Size))
+                return new ObjectCorruption(obj, _memoryReader.PointerSize, ObjectCorruptionKind.ObjectTooLarge);
+
+            // SyncBlock
+            SyncBlock? blk = syncBlocks.TryGetSyncBlock(obj);
+            uint objHeader = _memoryReader.Read<uint>(obj - sizeof(uint));
+            if ((objHeader & HashOrSyncBlockIndex) != 0 && (objHeader & HashCodeIndex) == 0)
+            {
+                uint index = (objHeader & SyncBlockIndexMask);
+                int clrIndex = blk?.Index ?? -1;
+                
+                if (index == 0)
+                    return new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockZero, -1, clrIndex);
+                else if (index != clrIndex)
+                    return new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockMismatch, (int)index, clrIndex);
+            }
+            else if (blk is not null)
+            {
+                return new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockMismatch, -1, blk.Index);
+            }
+
+            if (obj.IsFree)
+                return null;
+
+            //verify members
+            bool verifyMembers;
+            try
+            {
+                verifyMembers = ShouldVerifyMembers(seg, obj);
+            }
+            catch (IOException)
+            {
+                return new ObjectCorruption(obj, 0, ObjectCorruptionKind.CouldNotReadCardTable);
+            }
+
+            if (!verifyMembers)
+                return null;
+
+            // Type can't be null, we checked above.  The compiler just get lost in the IsFree checks.
+            if (obj.Type!.ContainsPointers)
+            {
+                GCDesc gcdesc = obj.Type!.GCDesc;
+                if (gcdesc.IsEmpty)
+                    return new ObjectCorruption(obj, 0, ObjectCorruptionKind.CouldNotReadGCDesc);
+
+                ulong freeMt = seg.SubHeap.Heap.FreeType.MethodTable;
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
+                if (_memoryReader.Read(obj, new Span<byte>(buffer, 0, intSize)) != intSize)
+                    return new ObjectCorruption(obj, 0, ObjectCorruptionKind.CouldNotReadObject);
+
+                foreach ((ulong objRef, int offset) in gcdesc.WalkObject(buffer, intSize))
+                {
+                    if (!_memoryReader.Read(objRef, out ulong mt) || !VerifyMethodTable(mt))
+                        return new ObjectCorruption(obj, offset, ObjectCorruptionKind.BadObjectReference);
+                    else if (mt == freeMt)
+                        return new ObjectCorruption(obj, offset, ObjectCorruptionKind.FreeObjectReference);
+                }
+
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+
+
+            return null;
+        }
+
+        private const uint HashOrSyncBlockIndex = 0x08000000;
+        private const uint HashCodeIndex = 0x04000000;
+        private const int SyncBlockIndexBits = 26;
+        private const uint SyncBlockIndexMask = ((1u << SyncBlockIndexBits) - 1u);
+
+        private bool ShouldVerifyMembers(ClrSegment seg, ClrObject obj)
+        {
+            ShouldCheckBgcMark(seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep);
+            return FgcShouldConsiderObject(seg, obj, considerBgcMark, checkCurrentSweep, checkSavedSweep);
+        }
+
+        private bool FgcShouldConsiderObject(ClrSegment seg, ClrObject obj, bool considerBgcMark, bool checkCurrentSweep, bool checkSavedSweep)
+        {
+            ClrSubHeap heap = seg.SubHeap;
+            bool noBgcMark = false;
+            if (considerBgcMark)
+            {
+                if (checkCurrentSweep && obj < heap.NextSweepObject)
+                {
+                    noBgcMark = true;
+                }
+                else
+                {
+                    if (checkSavedSweep)
+                    {
+                        if (obj >= heap.SavedSweepEphemeralStart)
+                            noBgcMark = true;
+                    }
+                    else
+                    {
+                        if (obj >= seg.BackgroundAllocated)
+                            noBgcMark = true;
+                    }
+                }
+            }
+            else
+            {
+                noBgcMark = true;
+            }
+
+            return noBgcMark || BackgroundObjectMarked(heap, obj);
+        }
+
+        const uint MarkBitPitch = 8;
+        const uint MarkWordWidth = 32;
+        const uint MarkWordSize = MarkBitPitch * MarkWordWidth;
+        const uint DtGcPageSize = 0x1000;
+        const uint CardWordWidth = 32;
+        private uint CardSize => ((uint)_memoryReader.PointerSize / 4) * DtGcPageSize / CardWordWidth;
+
+        private void ShouldCheckBgcMark(ClrSegment seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep)
+        {
+            considerBgcMark = false;
+            checkCurrentSweep = false;
+            checkSavedSweep = false;
+
+            ClrSubHeap heap = seg.SubHeap;
+            if (heap.State == ClrSubHeap.GCState.Planning)
+            {
+                // We are doing the next_sweep_obj comparison here because we have yet to
+                // turn on the swept flag for the segment but in_range_for_segment will return
+                // FALSE if the address is the same as reserved.
+                if ((seg.Flags & ClrSegmentFlags.Swept) == ClrSegmentFlags.Swept || !seg.ObjectRange.Contains(heap.NextSweepObject))
+                {
+                    // this seg was already swept.
+                }
+                else
+                {
+                    considerBgcMark = true;
+                    if (seg.Address == heap.SavedSweepEphemeralSegment)
+                        checkSavedSweep = true;
+
+                    if (seg.ObjectRange.Contains(heap.NextSweepObject))
+                        checkCurrentSweep = true;
+                }
+            }
+        }
+
+        private bool BackgroundObjectMarked(ClrSubHeap heap, ClrObject obj)
+        {
+            if (obj >= heap.BackgroundSavedLowestAddress && obj < heap.BackgroundSavedHighestAddress)
+                return MarkArrayMarked(heap, obj);
+
+            return true;
+        }
+
+        private bool MarkArrayMarked(ClrSubHeap heap, ClrObject obj)
+        {
+            ulong address = heap.MarkArray + sizeof(uint) * MarkWordOf(obj);
+            if (!_memoryReader.Read(address, out uint entry))
+                throw new IOException($"Could not read mark array at {address:x}");
+
+            return (entry & (1u << MarkBitOf(obj))) != 0;
+        }
+
+        static int MarkBitOf(ulong address) => (int)((address / MarkBitPitch) % MarkWordWidth);
+        static ulong MarkWordOf(ulong address) => address / MarkWordSize;
+
+
+        private bool VerifyMethodTable(ulong mt)
+        {
+            HashSet<ulong> validMts = _validMethodTables ??= new();
+            lock (validMts)
+                if (validMts.Contains(mt))
+                    return true;
+
+            bool verified = _sos.GetMethodTableData(mt, out _);
+            if (verified)
+            {
+                lock (validMts)
+                    validMts.Add(mt);
+            }
+
+            return verified;
         }
     }
 }
