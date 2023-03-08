@@ -97,7 +97,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Enumerates all objects on the segment.
         /// </summary>
-        public IEnumerable<ClrObject> EnumerateObjects() => SubHeap.Heap.EnumerateObjects(this);
+        public IEnumerable<ClrObject> EnumerateObjects(bool carefully = false) => SubHeap.Heap.EnumerateObjects(this, carefully);
 
         internal ulong MaxObjectSize => Kind switch
         {
@@ -135,7 +135,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A string representation of this object.</returns>
         public override string ToString()
         {
-            return $"[{Start:x12}, {End:x12}]";
+            return $"{Kind} [{Start:x12}, {End:x12}]";
         }
 
         IEnumerable<IClrValue> IClrSegment.EnumerateObjects() =>EnumerateObjects().Cast<IClrValue>();

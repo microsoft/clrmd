@@ -320,7 +320,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             if (!obj.IsFree)
             {
-                if (!_memoryReader.Read(obj.Address, out ulong mt) || !VerifyMethodTable(mt))
+                if (!_memoryReader.Read(obj.Address, out ulong mt) || !IsValidMethodTable(mt))
                     return new ObjectCorruption(obj, 0, ObjectCorruptionKind.BadMethodTable);
 
                 // This shouldn't happen if VerifyMethodTable above returns success, but we'll make sure.
@@ -329,7 +329,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
 
             int intSize = obj.Size > int.MaxValue ? int.MaxValue : (int)obj.Size;
-            if (obj.Size > seg.MaxObjectSize || !seg.ObjectRange.Contains(obj + obj.Size))
+            if (obj.Size > seg.MaxObjectSize || obj + obj.Size > seg.ObjectRange.End)
                 return new ObjectCorruption(obj, _memoryReader.PointerSize, ObjectCorruptionKind.ObjectTooLarge);
 
             // SyncBlock
@@ -381,7 +381,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 foreach ((ulong objRef, int offset) in gcdesc.WalkObject(buffer, intSize))
                 {
-                    if (!_memoryReader.Read(objRef, out ulong mt) || !VerifyMethodTable(mt))
+                    if (!_memoryReader.Read(objRef, out ulong mt) || !IsValidMethodTable(mt))
                         return new ObjectCorruption(obj, offset, ObjectCorruptionKind.BadObjectReference);
                     else if (mt == freeMt)
                         return new ObjectCorruption(obj, offset, ObjectCorruptionKind.FreeObjectReference);
@@ -493,7 +493,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         static ulong MarkWordOf(ulong address) => address / MarkWordSize;
 
 
-        private bool VerifyMethodTable(ulong mt)
+        public bool IsValidMethodTable(ulong mt)
         {
             HashSet<ulong> validMts = _validMethodTables ??= new();
             lock (validMts)

@@ -10,6 +10,108 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     public class VerifyHeapTests
     {
         [Fact]
+        public void ServerNoCorruption()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump(GCMode.Server);
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+            Assert.Empty(heap.VerifyHeap());
+        }
+
+        [Fact]
+        public void WorkstationNoCorruption()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump(GCMode.Workstation);
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+            Assert.Empty(heap.VerifyHeap());
+        }
+
+        [WindowsFact]
+        public void HeapCorruptionStillEnumeratesFact()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDumpWithDbgEng(GCMode.Server);
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            IDebugDataSpaces spaces = GetDataReader(dt).DebugDataSpaces;
+
+            ClrHeap heap = runtime.Heap;
+            ClrObject obj = FindMostInterestingObject(heap);
+            ClrObject arr = FindArrayObject(heap);
+
+            Assert.Empty(heap.VerifyHeap());
+
+            ClrObject[] objs = heap.EnumerateObjects().ToArray();
+            Assert.Contains(obj, objs);
+            Assert.Contains(arr, objs);
+
+            Assert.Empty(heap.VerifyHeap());
+
+            WriteAndRun(spaces, obj, 0xcccccccc, () =>
+            {
+                Assert.True(heap.IsObjectCorrupted(obj, out ObjectCorruption objCorruption));
+                Assert.NotNull(objCorruption);
+
+                WriteAndRun(spaces, arr, 0xcccccccc, () =>
+                {
+                    Assert.True(heap.IsObjectCorrupted(arr, out ObjectCorruption arrCorruption));
+                    Assert.NotNull(arrCorruption);
+
+                    // Ensure if we use "carefully" that we can step past object corruption.
+                    ClrObject[] foundObjs = heap.EnumerateObjects(carefully: true).ToArray();
+                    Assert.Equal(objs.Length, foundObjs.Length);
+
+                    ClrObject corruptedObject = Assert.Single(foundObjs.Where(f => f.Address == obj.Address));
+                    Assert.False(corruptedObject.IsValid);
+
+                    ClrObject corruptedArray = Assert.Single(foundObjs.Where(f => f.Address == arr.Address));
+                    Assert.False(corruptedArray.IsValid);
+
+                    ObjectCorruption[] corrupted = heap.VerifyHeap().ToArray();
+                    Assert.Equal(2, corrupted.Length);
+
+                    Assert.Single(corrupted.Where(c => c.Object == corruptedObject));
+                    Assert.Single(corrupted.Where(c => c.Object == corruptedArray));
+                });
+            });
+        }
+
+        [WindowsFact]
+        public void HeapCorruptionPrevNextObj()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDumpWithDbgEng(GCMode.Server);
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            IDebugDataSpaces spaces = GetDataReader(dt).DebugDataSpaces;
+
+            ClrHeap heap = runtime.Heap;
+            ClrObject obj = FindMostInterestingObject(heap);
+            ClrSegment segment = heap.GetSegmentByAddress(obj);
+
+            WriteAndRun(spaces, obj, 0xcccccccc, () =>
+            {
+                Assert.True(heap.IsObjectCorrupted(obj, out ObjectCorruption objCorruption));
+                Assert.NotNull(objCorruption);
+
+                ClrObject prev = heap.FindPreviousObjectOnSegment(obj, carefully: true);
+                Assert.True(prev.IsValid);
+                Assert.True(prev < obj);
+                Assert.Same(segment, heap.GetSegmentByAddress(prev));
+
+                ClrObject next = heap.FindNextObjectOnSegment(obj, carefully: true);
+                Assert.True(next.IsValid);
+                Assert.True(obj < next);
+                Assert.Same(segment, heap.GetSegmentByAddress(next));
+
+                ClrObject[] objects = heap.EnumerateObjects(new MemoryRange(prev.Address, next.Address + 1), carefully: true).ToArray();
+                Assert.Equal(3, objects.Length);
+
+                Assert.Equal(prev, objects[0]);
+                Assert.Equal(obj, objects[1]);
+                Assert.Equal(next, objects[2]);
+            });
+        }
+
+
+        [Fact]
         public void ObjectNotOnHeapTest()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDumpWithDbgEng(GCMode.Server);
@@ -26,7 +128,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(obj, result.Object);
             Assert.Equal(0, result.Offset);
         }
-
 
         [WindowsFact]
         public void SyncBlockZeroTest()

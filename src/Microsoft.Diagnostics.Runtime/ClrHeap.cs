@@ -4,6 +4,7 @@
 
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -20,6 +21,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrHeap : IClrHeap
     {
+        private const int EnumerateBufferSize = 0x10000;
         private const int MaxGen2ObjectSize = 85000;
 
         private readonly IClrTypeFactory _typeFactory;
@@ -137,17 +139,27 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates all objects on the heap.
         /// </summary>
         /// <returns>An enumerator for all objects on the heap.</returns>
-        public IEnumerable<ClrObject> EnumerateObjects()
+        public IEnumerable<ClrObject> EnumerateObjects() => EnumerateObjects(carefully: false);
+
+        /// <summary>
+        /// Enumerates all objects on the heap.
+        /// </summary>
+        /// <param name="carefully">Whether to continue walking objects on a segment where we've encountered
+        /// a region of unwalkable memory.  Note that setting carefully = true may significantly increase the
+        /// amount of time it takes to walk the heap if we encounter an error.</param>
+        /// <returns>An enumerator for all objects on the heap.</returns>
+        public IEnumerable<ClrObject> EnumerateObjects(bool carefully)
         {
             foreach (ClrSegment segment in Segments)
-                foreach (ClrObject obj in EnumerateObjects(segment))
+                foreach (ClrObject obj in EnumerateObjects(segment, carefully))
                     yield return obj;
         }
+
 
         /// <summary>
         /// Enumerates objects within the given memory range.
         /// </summary>
-        public IEnumerable<ClrObject> EnumerateObjects(MemoryRange range)
+        public IEnumerable<ClrObject> EnumerateObjects(MemoryRange range, bool carefully = false)
         {
             foreach (ClrSegment seg in Segments)
             {
@@ -158,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (seg.ObjectRange.Contains(range.Start))
                     start = range.Start;
 
-                foreach (ClrObject obj in EnumerateObjects(seg, start))
+                foreach (ClrObject obj in EnumerateObjects(seg, start, carefully))
                 {
                     if (range.Contains(obj.Address))
                         yield return obj;
@@ -168,9 +180,9 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        internal IEnumerable<ClrObject> EnumerateObjects(ClrSegment segment)
+        internal IEnumerable<ClrObject> EnumerateObjects(ClrSegment segment, bool carefully)
         {
-            return EnumerateObjects(segment, segment.FirstObjectAddress);
+            return EnumerateObjects(segment, segment.FirstObjectAddress, carefully);
         }
 
         internal ObjectCorruption? VerifyObject(ClrObject obj, ClrSegment? seg)
@@ -230,7 +242,22 @@ namespace Microsoft.Diagnostics.Runtime
             return result != null;
         }
 
-        internal IEnumerable<ClrObject> EnumerateObjects(ClrSegment segment, ulong startAddress)
+        /// <summary>
+        /// Verifies the GC Heap and returns an enumerator for any corrupted objects it finds.
+        /// </summary>
+        public IEnumerable<ObjectCorruption> VerifyHeap() => VerifyHeap(EnumerateObjects(carefully: true));
+
+        /// <summary>
+        /// Verifies the given objects and returns an enumerator for any corrupted objects it finds.
+        /// </summary>
+        public IEnumerable<ObjectCorruption> VerifyHeap(IEnumerable<ClrObject> objects)
+        {
+            foreach (ClrObject obj in objects)
+                if (IsObjectCorrupted(obj, out ObjectCorruption? result))
+                    yield return result;
+        }
+
+        internal IEnumerable<ClrObject> EnumerateObjects(ClrSegment segment, ulong startAddress, bool carefully)
         {
             if (!segment.ObjectRange.Contains(startAddress))
                 yield break;
@@ -239,9 +266,9 @@ namespace Microsoft.Diagnostics.Runtime
 
             uint currStep = (uint)((startAddress - segment.FirstObjectAddress) / markerStep);
 
-            bool isLargeOrPinned = segment.Kind == GCSegmentKind.Large || segment.Kind == GCSegmentKind.Pinned;
-            uint minObjSize = (uint)IntPtr.Size * 3;
-
+            uint pointerSize = (uint)_memoryReader.PointerSize;
+            uint minObjSize = pointerSize * 3;
+            uint objSkip = segment.Kind != GCSegmentKind.Large ? minObjSize : 85000;
 
             ulong obj;
             if (startAddress == segment.FirstObjectAddress)
@@ -249,36 +276,30 @@ namespace Microsoft.Diagnostics.Runtime
             else
                 obj = segment.ObjectMarkers.Select(m => segment.FirstObjectAddress + m).Where(m => m <= startAddress).Max();
 
-            // C# isn't smart enough to understand that !large means memoryReader is non-null.  We will just be
-            // careful here.
-            using MemoryReader memoryReader = (!isLargeOrPinned ? new MemoryReader(_memoryReader, 0x10000) : null)!;
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(IntPtr.Size * 2 + sizeof(uint));
-
-            // The large object heap
-            if (!isLargeOrPinned)
-                memoryReader.EnsureRangeInCache(obj);
+            using MemoryCache cache = new(_memoryReader, segment);
 
             while (segment.ObjectRange.Contains(obj))
             {
-                ulong mt;
-                if (isLargeOrPinned)
+                if (!cache.ReadPointer(obj, out ulong mt))
                 {
-                    if (_memoryReader.Read(obj, buffer) != buffer.Length)
+                    if (!carefully)
                         break;
 
-                    mt = Unsafe.As<byte, nuint>(ref buffer[0]);
-                }
-                else
-                {
-                    if (!memoryReader.ReadPtr(obj, out mt))
-                        break;
+                    obj = FindNextValidObject(segment, pointerSize + objSkip, obj, cache);
+                    continue;
                 }
 
                 ClrType? type = _typeFactory.GetOrCreateType(mt, obj);
                 ClrObject result = new(obj, type);
                 yield return result;
                 if (type is null)
-                    break;
+                {
+                    if (!carefully)
+                        break;
+
+                    obj = FindNextValidObject(segment, pointerSize, obj + objSkip, cache);
+                    continue;
+                }
 
                 ulong segmentOffset = obj - segment.ObjectRange.Start;
                 if (segmentOffset >= (currStep + 1) * markerStep && currStep < segment.ObjectMarkers.Length && segmentOffset <= uint.MaxValue)
@@ -291,11 +312,14 @@ namespace Microsoft.Diagnostics.Runtime
                 }
                 else
                 {
-                    uint count;
-                    if (isLargeOrPinned)
-                        count = Unsafe.As<byte, uint>(ref buffer[IntPtr.Size]);
-                    else
-                        memoryReader.ReadDword(obj + (uint)IntPtr.Size, out count);
+                    if (!cache.ReadUInt32(obj + pointerSize, out uint count))
+                    {
+                        if (!carefully)
+                            break;
+
+                        obj = FindNextValidObject(segment, pointerSize, obj + objSkip, cache);
+                        continue;
+                    }
 
                     // Strings in v4+ contain a trailing null terminator not accounted for.
                     if (StringType == type)
@@ -311,8 +335,95 @@ namespace Microsoft.Diagnostics.Runtime
                 obj += size;
                 obj = SkipAllocationContext(segment, obj);
             }
+        }
 
-            ArrayPool<byte>.Shared.Return(buffer);
+        private class MemoryCache : IDisposable
+        {
+            private readonly IMemoryReader _memoryReader;
+            private readonly int _pointerSize;
+            private readonly uint _requiredSize;
+            private readonly byte[]? _cache;
+
+            public MemoryCache(IMemoryReader reader, ClrSegment segment)
+            {
+                _memoryReader = reader;
+                _pointerSize = reader.PointerSize;
+                _requiredSize = (uint)_pointerSize * 3;
+                if (segment.Kind != GCSegmentKind.Large)
+                    _cache = ArrayPool<byte>.Shared.Rent(EnumerateBufferSize);
+            }
+
+            public void Dispose()
+            {
+                if (_cache is not null)
+                    ArrayPool<byte>.Shared.Return(_cache);
+            }
+
+            
+            public ulong Base { get; private set; }
+            public int Length { get; private set; }
+
+            public bool ReadPointer(ulong address, out ulong value)
+            {
+                if (!EnsureInCache(address))
+                    return _memoryReader.ReadPointer(address, out value);
+
+                int offset = (int)(address - Base);
+                value = _cache.AsSpan().AsPointer(offset);
+                return true;
+            }
+
+            public bool ReadUInt32(ulong address, out uint value)
+            {
+                if (!EnsureInCache(address))
+                    return _memoryReader.Read(address, out value);
+
+                int offset = (int)(address - Base);
+                value = _cache.AsSpan().AsUInt32(offset);
+                return true;
+            }
+
+
+            private bool EnsureInCache(ulong address)
+            {
+                if (_cache is null)
+                    return false;
+
+                ulong end = Base + (uint)Length;
+                if (Base <= address && address + _requiredSize < end)
+                    return true;
+
+                Base = address;
+                Length = _memoryReader.Read(address, _cache);
+                return Length >= _requiredSize;
+            }
+        }
+
+        private ulong FindNextValidObject(ClrSegment segment, uint pointerSize, ulong address, MemoryCache cache)
+        {
+            ulong obj = address;
+            while (segment.ObjectRange.Contains(obj))
+            {
+                ulong ctxObj = SkipAllocationContext(segment, obj);
+                if (obj < ctxObj)
+                {
+                    obj = ctxObj;
+                    continue;
+                }
+
+                obj += pointerSize;
+
+                if (!cache.ReadPointer(obj, out ulong mt))
+                    return 0;
+
+                if (mt > 0x1000)
+                {
+                    if (_helpers.IsValidMethodTable(mt))
+                        break;
+                }
+            }
+
+            return obj;
         }
 
         private static ulong GetMarkerStep(ClrSegment segment)
@@ -330,15 +441,18 @@ namespace Microsoft.Diagnostics.Runtime
         /// Finds the next ClrObject on the given segment.
         /// </summary>
         /// <param name="address">An address on any ClrSegment.</param>
+        /// <param name="carefully">Whether to continue walking objects on a segment where we've encountered
+        /// a region of unwalkable memory.  Note that setting carefully = true may significantly increase the
+        /// amount of time it takes to walk the heap if we encounter an error.</param>
         /// <returns>An invalid ClrObject if address doesn't lie on any segment or if no objects exist after the given address on a segment.</returns>
-        public ClrObject FindNextObjectOnSegment(ulong address)
+        public ClrObject FindNextObjectOnSegment(ulong address, bool carefully = false)
         {
             ClrSegment? seg = GetSegmentByAddress(address);
             if (seg is null)
                 return default;
 
             ulong start = seg.ObjectMarkers.Select(m => seg.FirstObjectAddress + m).Where(m => m <= address).Max();
-            foreach (ClrObject obj in EnumerateObjects(seg, start))
+            foreach (ClrObject obj in EnumerateObjects(seg, start, carefully))
                 if (address < obj)
                     return obj;
 
@@ -349,8 +463,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// Finds the previous object on 
         /// </summary>
         /// <param name="address">An address on any ClrSegment.</param>
+        /// <param name="carefully">Whether to continue walking objects on a segment where we've encountered
+        /// a region of unwalkable memory.  Note that setting carefully = true may significantly increase the
+        /// amount of time it takes to walk the heap if we encounter an error.</param>
+        /// <returns>An enumerator for all objects on the heap.</returns>
         /// <returns>An invalid ClrObject if address doesn't lie on any segment or if address is the first object on a segment.</returns>
-        public ClrObject FindPreviousObjectOnSegment(ulong address)
+        public ClrObject FindPreviousObjectOnSegment(ulong address, bool carefully = false)
         {
             ClrSegment? seg = GetSegmentByAddress(address);
             if (seg is null || address <= seg.FirstObjectAddress)
@@ -359,7 +477,7 @@ namespace Microsoft.Diagnostics.Runtime
             ulong start = seg.ObjectMarkers.Select(m => seg.FirstObjectAddress + m).Where(m => m < address).Max();
 
             ClrObject last = default;
-            foreach (ClrObject obj in EnumerateObjects(seg, start))
+            foreach (ClrObject obj in EnumerateObjects(seg, start, carefully))
             {
                 if (obj >= address)
                     return last;

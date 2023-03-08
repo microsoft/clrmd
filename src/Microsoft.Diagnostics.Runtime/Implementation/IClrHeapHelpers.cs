@@ -19,5 +19,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ImmutableArray<ClrSubHeap> GetSubHeaps(ClrHeap heap);
         IEnumerable<ClrSegment> EnumerateSegments(ClrSubHeap heap);
         ObjectCorruption? VerifyObject(SyncBlockContainer syncBlocks, ClrSegment seg, ClrObject obj);
+        bool IsValidMethodTable(ulong mt);
     }
 }

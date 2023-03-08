@@ -46,6 +46,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 #endif
+        public static unsafe ulong AsPointer(this Span<byte> span) => AsPointer(span, 0);
 
         public static unsafe ulong AsPointer(this Span<byte> span, int offset = 0)
         {
@@ -57,19 +58,30 @@ namespace Microsoft.Diagnostics.Runtime
             return Unsafe.As<byte, nuint>(ref MemoryMarshal.GetReference(span));
         }
 
-        public static unsafe int AsInt32(this Span<byte> span)
+        public static unsafe ulong AsPointer(this Span<byte> span, ulong offset = 0) => AsPointer(span, (int)offset);
+
+        public static unsafe int AsInt32(this Span<byte> span, int offset = 0)
         {
+            if (offset > 0)
+                span = span.Slice(offset);
+
             DebugOnly.Assert(span.Length >= sizeof(int));
             DebugOnly.Assert(unchecked((int)Unsafe.AsPointer(ref MemoryMarshal.GetReference(span))) % sizeof(int) == 0);
             return Unsafe.As<byte, int>(ref MemoryMarshal.GetReference(span));
         }
 
-        public static unsafe uint AsUInt32(this Span<byte> span)
+        public static unsafe uint AsUInt32(this Span<byte> span, int offset = 0)
         {
+            if (offset > 0)
+                span = span.Slice(offset);
+
             DebugOnly.Assert(span.Length >= sizeof(uint));
             DebugOnly.Assert(unchecked((int)Unsafe.AsPointer(ref MemoryMarshal.GetReference(span))) % sizeof(uint) == 0);
             return Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(span));
         }
+
+        public static unsafe uint AsUInt32(this Span<byte> span, ulong offset = 0) => AsUInt32(span, (int)offset);
+        public static unsafe uint AsUInt32(this Span<byte> span) => AsUInt32(span, 0);
 
 #if !NETCOREAPP3_1
         public static bool Contains(this string source, string value, StringComparison comparisonType)
