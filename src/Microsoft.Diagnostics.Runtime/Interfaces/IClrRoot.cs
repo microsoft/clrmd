@@ -4,8 +4,13 @@
 
 namespace Microsoft.Diagnostics.Runtime.Interfaces
 {
-    public interface IClrStackRoot : IClrRoot
+    public interface IClrRoot
     {
-        IClrStackFrame StackFrame { get; }
+        ulong Address { get; }
+        bool IsInterior { get; }
+        bool IsPinned { get; }
+        IClrValue Object { get; }
+        ClrRootKind RootKind { get; }
+        IClrStackFrame? StackFrame { get; }
     }
 }

@@ -276,7 +276,7 @@ namespace Microsoft.Diagnostics.Runtime
             _helpers.Dispose();
         }
 
-        IEnumerable<IClrRoot> IClrRuntime.EnumerateHandles() => EnumerateHandles().Cast<IClrRoot>();
+        IEnumerable<ClrRoot> IClrRuntime.EnumerateHandles() => EnumerateHandles().Cast<ClrRoot>();
 
         IEnumerable<IClrJitManager> IClrRuntime.EnumerateJitManagers() => EnumerateJitManagers().Cast<IClrJitManager>();
 

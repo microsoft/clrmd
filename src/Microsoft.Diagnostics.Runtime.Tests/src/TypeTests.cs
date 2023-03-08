@@ -243,11 +243,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
-            IEnumerable<IClrRoot> fooRoots = from root in heap.EnumerateRoots()
+            IEnumerable<ClrRoot> fooRoots = from root in heap.EnumerateRoots()
                                              where root.Object.Type.Name == "Foo"
                                              select root;
 
-            IClrRoot[] localVarRoots = fooRoots.Where(r => r.RootKind == ClrRootKind.Stack).ToArray();
+            ClrRoot[] localVarRoots = fooRoots.Where(r => r.RootKind == ClrRootKind.Stack).ToArray();
 
             ClrThread thread = runtime.GetMainThread();
             ClrStackFrame main = thread.GetFrame("Main");
@@ -260,7 +260,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             if (low > high)
                 (high, low) = (low, high);
 
-            foreach (IClrRoot localVarRoot in localVarRoots)
+            foreach (ClrRoot localVarRoot in localVarRoots)
                 Assert.True(low <= localVarRoot.Address && localVarRoot.Address <= high);
         }
 

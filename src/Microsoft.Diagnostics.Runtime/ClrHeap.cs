@@ -535,7 +535,7 @@ namespace Microsoft.Diagnostics.Runtime
         ///     ClrRuntime.EnumerateThreads().SelectMany(thread => thread.EnumerateStackRoots())
         ///     ClrHeap.EnumerateFinalizerRoots()
         /// </summary>
-        public IEnumerable<IClrRoot> EnumerateRoots()
+        public IEnumerable<ClrRoot> EnumerateRoots()
         {
             // Handle table
             foreach (ClrHandle handle in Runtime.EnumerateHandles())
@@ -569,12 +569,12 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             // Finalization Queue
-            foreach (IClrRoot root in EnumerateFinalizerRoots())
+            foreach (ClrRoot root in EnumerateFinalizerRoots())
                 yield return root;
 
             // Threads
             foreach (ClrThread thread in Runtime.Threads.Where(t => t.IsAlive))
-                foreach (IClrRoot root in thread.EnumerateStackRoots())
+                foreach (ClrRoot root in thread.EnumerateStackRoots())
                     yield return root;
         }
 
@@ -631,7 +631,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Enumerates all finalizable objects on the heap.
         /// </summary>
-        public IEnumerable<IClrRoot> EnumerateFinalizerRoots() => EnumerateFinalizers(SubHeaps.Select(heap => heap.FinalizerQueueRoots));
+        public IEnumerable<ClrRoot> EnumerateFinalizerRoots() => EnumerateFinalizers(SubHeaps.Select(heap => heap.FinalizerQueueRoots));
 
         /// <summary>
         /// Enumerates all AllocationContexts for all segments.  Allocation contexts are locations on the GC
@@ -973,7 +973,7 @@ namespace Microsoft.Diagnostics.Runtime
             return handles;
         }
 
-        private IEnumerable<ClrFinalizerRoot> EnumerateFinalizers(IEnumerable<MemoryRange> memoryRanges)
+        private IEnumerable<ClrRoot> EnumerateFinalizers(IEnumerable<MemoryRange> memoryRanges)
         {
             foreach (MemoryRange seg in memoryRanges)
             {
@@ -986,7 +986,7 @@ namespace Microsoft.Diagnostics.Runtime
                     ulong mt = _memoryReader.ReadPointer(obj);
                     ClrType? type = _typeFactory.GetOrCreateType(mt, obj);
                     if (type != null)
-                        yield return new ClrFinalizerRoot(ptr, new ClrObject(obj, type));
+                        yield return new ClrRoot(ptr, new ClrObject(obj, type), ClrRootKind.FinalizerQueue, isInterior: false, isPinned: false);
                 }
             }
         }

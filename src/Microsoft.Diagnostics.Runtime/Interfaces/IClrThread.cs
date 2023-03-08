@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         ulong StackLimit { get; }
         ClrThreadState State { get; }
 
-        IEnumerable<IClrStackRoot> EnumerateStackRoots();
+        IEnumerable<IClrRoot> EnumerateStackRoots();
         IEnumerable<IClrStackFrame> EnumerateStackTrace(bool includeContext = false);
     }
 }

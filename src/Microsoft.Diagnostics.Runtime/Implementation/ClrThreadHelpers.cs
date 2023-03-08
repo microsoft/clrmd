@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             DataReader = dataReader;
         }
 
-        public IEnumerable<IClrStackRoot> EnumerateStackRoots(ClrThread thread)
+        public IEnumerable<ClrStackRoot> EnumerateStackRoots(ClrThread thread)
         {
             using SOSStackRefEnum? stackRefEnum = _sos.EnumerateStackRefs(thread.OSThreadId);
             if (stackRefEnum is null)
@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         continue;
 
                     bool interior = (refs[i].Flags & GCInteriorFlag) == GCInteriorFlag;
-                    bool pinned = (refs[i].Flags & GCPinnedFlag) == GCPinnedFlag;
+                    bool isPinned = (refs[i].Flags & GCPinnedFlag) == GCPinnedFlag;
 
                     ClrStackFrame? frame = stack.SingleOrDefault(f => f.StackPointer == refs[i].Source || f.StackPointer == refs[i].StackPointer && f.InstructionPointer == refs[i].Source);
                     frame ??= new ClrStackFrame(thread, null, refs[i].Source, refs[i].StackPointer, ClrStackFrameKind.Unknown, null, null);
@@ -66,14 +66,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                         // Only yield return if we find a valid object on the heap
                         if (segment is not null)
-                            yield return new ClrStackInteriorRoot(segment, refs[i].Address, obj, frame, pinned);
+                            yield return new ClrStackRoot(refs[i].Address, heap.GetObject(obj), isInterior: true, isPinned: isPinned, heap: heap, frame: frame);
                     }
                     else
                     {
                         // It's possible that heap.GetObjectType could return null and we construct a bad ClrObject, but this should
                         // only happen in the case of heap corruption and obj.IsValidObject will return null, so this is fine.
-                        ClrObject obj = new(refs[i].Object, heap.GetObjectType(refs[i].Object));
-                        yield return new ClrStackRoot(refs[i].Address, obj, frame, pinned);
+                        ClrObject obj = heap.GetObject(refs[i].Object);
+                        yield return new ClrStackRoot(refs[i].Address, obj, isInterior: false, isPinned: isPinned, heap: heap, frame: frame);
                     }
                 }
             }

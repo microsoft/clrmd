@@ -100,11 +100,12 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong StackLimit { get; }
 
         /// <summary>
-        /// Enumerates the GC references (objects) on the stack.  The returned IClrRoot may either be an
-        /// <see cref="ClrStackRoot"/> or a <see cref="ClrStackInteriorRoot"/>.
+        /// Enumerates the GC references (objects) on the stack.
         /// </summary>
         /// <returns>An enumeration of GC references on the stack as the GC sees them.</returns>
-        public IEnumerable<IClrStackRoot> EnumerateStackRoots() => _helpers.EnumerateStackRoots(this);
+        public IEnumerable<ClrRoot> EnumerateStackRoots() => _helpers.EnumerateStackRoots(this);
+
+        IEnumerable<IClrRoot> IClrThread.EnumerateStackRoots() => EnumerateStackRoots().Cast<IClrRoot>();
 
         /// <summary>
         /// Enumerates a stack trace for a given thread.  Note this method may loop infinitely in the case of
