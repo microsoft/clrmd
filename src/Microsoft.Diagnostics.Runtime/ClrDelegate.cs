@@ -45,6 +45,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ClrObject Object { get; }
 
+        IClrValue IClrDelegate.Object => throw new NotImplementedException();
+
         /// <summary>
         /// Returns a the single delegate target of the 
         /// </summary>
@@ -180,5 +182,9 @@ namespace Microsoft.Diagnostics.Runtime
                 }
             }
         }
+
+        IEnumerable<IClrDelegateTarget> IClrDelegate.EnumerateDelegateTargets() => EnumerateDelegateTargets().Cast<IClrDelegateTarget>();
+
+        IClrDelegateTarget? IClrDelegate.GetDelegateTarget() => GetDelegateTarget();
     }
 }

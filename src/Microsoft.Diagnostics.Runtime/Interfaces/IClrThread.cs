@@ -2,11 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.Interfaces
 {
-    public interface IClrThread
+    public interface IClrThread : IEquatable<IClrThread>
     {
         ulong Address { get; }
         IClrAppDomain? CurrentAppDomain { get; }
@@ -21,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         ulong StackLimit { get; }
         ClrThreadState State { get; }
 
-        IEnumerable<IClrStackRoot> EnumerateStackRoots();
+        IEnumerable<IClrRoot> EnumerateStackRoots();
         IEnumerable<IClrStackFrame> EnumerateStackTrace(bool includeContext = false);
     }
 }

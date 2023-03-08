@@ -80,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="roots">The roots to consider.  You can pass ClrMD.</param>
         /// <param name="cancellationToken">A cancellation token to stop enumeration.</param>
         /// <returns>An enumeration of all GC roots found for target.</returns>
-        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool returnOnlyFullyUniquePaths, int maxDegreeOfParallelism, IEnumerable<IClrRoot> roots, CancellationToken cancellationToken = default)
+        public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool returnOnlyFullyUniquePaths, int maxDegreeOfParallelism, IEnumerable<ClrRoot> roots, CancellationToken cancellationToken = default)
         {
             if (roots is null)
                 throw new ArgumentNullException(nameof(roots));
@@ -97,7 +97,7 @@ namespace Microsoft.Diagnostics.Runtime
                 int count = 0;
 
                 ObjectSet processedObjects = new(Heap);
-                foreach (IClrRoot root in roots)
+                foreach (ClrRoot root in roots)
                 {
                     LinkedList<ClrObject>? path = PathsTo(processedObjects, knownEndPoints, root.Object, target, returnOnlyFullyUniquePaths, cancellationToken).FirstOrDefault();
                     if (path != null)
@@ -114,7 +114,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 ParallelObjectSet processedObjects = new(Heap);
                 ConcurrentQueue<GCRootPath> results = new();
-                using BlockingCollection<IClrRoot?> queue = new();
+                using BlockingCollection<ClrRoot?> queue = new();
 
                 Thread[] threads = new Thread[Math.Min(maxDegreeOfParallelism, Environment.ProcessorCount)];
                 for (int i = 0; i < threads.Length; i++)
@@ -124,7 +124,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
 #pragma warning disable CA2016 // Forward the 'CancellationToken' parameter to methods that take one (BlockingCollection is unbounded so Add will not block)
-                foreach (IClrRoot root in roots)
+                foreach (ClrRoot root in roots)
                     queue.Add(root);
 
                 // Add one sentinel value for every thread
@@ -171,7 +171,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         private void WorkerThread(
-            BlockingCollection<IClrRoot?> queue,
+            BlockingCollection<ClrRoot?> queue,
             ConcurrentQueue<GCRootPath> results,
             ObjectSet seen,
             Dictionary<ulong, LinkedListNode<ClrObject>> knownEndPoints,
@@ -182,7 +182,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             while (true)
             {
-                IClrRoot? root;
+                ClrRoot? root;
                 try
                 {
                     root = queue.Take(cancellationToken);

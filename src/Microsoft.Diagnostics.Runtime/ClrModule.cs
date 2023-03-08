@@ -17,10 +17,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents a managed module in the target process.
     /// </summary>
-    public sealed class ClrModule :
-#nullable disable // to enable use with both T and T? for reference types due to IEquatable<T> being invariant
-        IEquatable<ClrModule>, IClrModule
-#nullable restore
+    public sealed class ClrModule : IClrModule
     {
         private readonly IClrModuleHelpers _helpers;
         private int _debugMode = int.MaxValue;
@@ -258,6 +255,17 @@ namespace Microsoft.Diagnostics.Runtime
         public override bool Equals(object? obj) => Equals(obj as ClrModule);
 
         public bool Equals(ClrModule? other)
+        {
+            if (ReferenceEquals(this, other))
+                return true;
+
+            if (other is null)
+                return false;
+
+            return Address == other.Address;
+        }
+
+        public bool Equals(IClrModule? other)
         {
             if (ReferenceEquals(this, other))
                 return true;

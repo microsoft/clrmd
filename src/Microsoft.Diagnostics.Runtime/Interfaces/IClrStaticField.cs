@@ -6,11 +6,11 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
 {
     public interface IClrStaticField : IClrField
     {
-        ulong GetAddress(ClrAppDomain appDomain);
-        bool IsInitialized(ClrAppDomain appDomain);
-        T Read<T>(ClrAppDomain appDomain) where T : unmanaged;
-        IClrValue ReadObject(ClrAppDomain appDomain);
-        string? ReadString(ClrAppDomain appDomain);
-        IClrValue ReadStruct(ClrAppDomain appDomain);
+        ulong GetAddress(IClrAppDomain appDomain);
+        bool IsInitialized(IClrAppDomain appDomain);
+        T Read<T>(IClrAppDomain appDomain) where T : unmanaged;
+        IClrValue ReadObject(IClrAppDomain appDomain);
+        string? ReadString(IClrAppDomain appDomain);
+        IClrValue ReadStruct(IClrAppDomain appDomain);
     }
 }

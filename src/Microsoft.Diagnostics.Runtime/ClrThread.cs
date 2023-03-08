@@ -5,6 +5,7 @@
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -14,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// Represents a managed thread in the target process.  Note this does not wrap purely native threads
     /// in the target process (that is, threads which have never run managed code before).
     /// </summary>
-    public sealed class ClrThread : IClrThread
+    public sealed class ClrThread : IClrThread, IEquatable<ClrThread>
     {
         private readonly IClrThreadHelpers _helpers;
         private readonly ulong _exceptionHandle;
@@ -100,11 +101,12 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong StackLimit { get; }
 
         /// <summary>
-        /// Enumerates the GC references (objects) on the stack.  The returned IClrRoot may either be an
-        /// <see cref="ClrStackRoot"/> or a <see cref="ClrStackInteriorRoot"/>.
+        /// Enumerates the GC references (objects) on the stack.
         /// </summary>
         /// <returns>An enumeration of GC references on the stack as the GC sees them.</returns>
-        public IEnumerable<IClrStackRoot> EnumerateStackRoots() => _helpers.EnumerateStackRoots(this);
+        public IEnumerable<ClrRoot> EnumerateStackRoots() => _helpers.EnumerateStackRoots(this);
+
+        IEnumerable<IClrRoot> IClrThread.EnumerateStackRoots() => EnumerateStackRoots().Cast<IClrRoot>();
 
         /// <summary>
         /// Enumerates a stack trace for a given thread.  Note this method may loop infinitely in the case of
@@ -117,6 +119,26 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext = false) => _helpers.EnumerateStackTrace(this, includeContext);
 
         IEnumerable<IClrStackFrame> IClrThread.EnumerateStackTrace(bool includeContext) => EnumerateStackTrace(includeContext).Cast<IClrStackFrame>();
+
+        public bool Equals(IClrThread? other)
+        {
+            return other is not null && other.Address == Address && other.OSThreadId == OSThreadId && other.ManagedThreadId == ManagedThreadId;
+        }
+
+        public bool Equals(ClrThread? other)
+        {
+            return other is not null && other.Address == Address && other.OSThreadId == OSThreadId && other.ManagedThreadId == ManagedThreadId;
+        }
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is IClrThread thread)
+                return thread.Equals(this);
+
+            return false;
+        }
+
+        public override int GetHashCode() => Address.GetHashCode() ^ OSThreadId.GetHashCode() & ManagedThreadId.GetHashCode();
 
         /// <summary>
         /// Gets the exception currently on the thread.  Note that this field may be <see langword="null"/>.  Also note

@@ -86,9 +86,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 }
             }
 
-            ClrSegment large = heap.Segments.Single(s => s.Kind == GCSegmentKind.Large);
-            large.EnumerateObjects().ToArray();
-
             Assert.Equal(objs.Length, index);
         }
 

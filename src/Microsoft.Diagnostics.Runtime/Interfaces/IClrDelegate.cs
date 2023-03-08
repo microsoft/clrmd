@@ -5,9 +5,9 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
     public interface IClrDelegate
     {
         bool HasMultipleTargets { get; }
-        ClrObject Object { get; }
+        IClrValue Object { get; }
 
-        IEnumerable<ClrDelegateTarget> EnumerateDelegateTargets();
-        ClrDelegateTarget? GetDelegateTarget();
+        IEnumerable<IClrDelegateTarget> EnumerateDelegateTargets();
+        IClrDelegateTarget? GetDelegateTarget();
     }
 }

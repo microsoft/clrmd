@@ -10,7 +10,10 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly IClrNativeHeapHelpers _helpers;
 
         public ClrRuntime Runtime { get; }
+        IClrRuntime IClrJitManager.Runtime => Runtime;
+
         public ulong Address { get; }
+
         public CodeHeapKind Kind { get; }
 
         internal ClrJitManager(ClrRuntime runtime, in JitManagerInfo info, IClrNativeHeapHelpers helpers)

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Interfaces;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -20,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The ClrHeap this is an object set over.
         /// </summary>
-        public ClrHeap Heap { get; }
+        private readonly IClrHeap _heap;
 
         /// <summary>
         /// The collection of segments and associated objects.
@@ -36,12 +37,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// Constructor.
         /// </summary>
         /// <param name="heap">A ClrHeap to add objects from.</param>
-        public ObjectSet(ClrHeap heap)
+        public ObjectSet(IClrHeap heap)
         {
-            Heap = heap ?? throw new ArgumentNullException(nameof(heap));
+            _heap = heap ?? throw new ArgumentNullException(nameof(heap));
 
             List<HeapHashSegment> segments = new(heap.Segments.Length);
-            foreach (ClrSegment seg in heap.Segments)
+            foreach (IClrSegment seg in heap.Segments)
             {
                 ulong start = seg.Start;
                 ulong end = seg.End;
@@ -77,6 +78,9 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
+        public bool Contains(ClrObject obj) => Contains(obj.Address);
+        public bool Contains(IClrValue obj) => Contains(obj.Address);
+
         /// <summary>
         /// Adds the given object to the set.  Returns true if the object was added to the set, returns false if the object was already in the set.
         /// </summary>
@@ -100,6 +104,9 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
+        public bool Add(ClrObject obj) => Add(obj.Address);
+        public bool Add(IClrValue obj) => Add(obj.Address);
+
         /// <summary>
         /// Removes the given object from the set.  Returns true if the object was removed, returns false if the object was not in the set.
         /// </summary>
@@ -120,6 +127,9 @@ namespace Microsoft.Diagnostics.Runtime
 
             return false;
         }
+
+        public bool Remove(ClrObject obj) => Remove(obj.Address);
+        public bool Remove(IClrValue obj) => Remove(obj.Address);
 
         /// <summary>
         /// Empties the set.

@@ -302,7 +302,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                             case ClrHandleKind.Dependent:
                                 ClrObject dependent = heap.GetObject(handles[i].Secondary);
-                                yield return new ClrDependentHandle(domain, handles[i].Handle, clrObj, dependent);
+                                yield return new ClrHandle(domain, handles[i].Handle, clrObj, handleKind, dependent);
                                 break;
 
                             case ClrHandleKind.RefCounted:
@@ -329,7 +329,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                     }
                                 }
 
-                                yield return new ClrRefCountedHandle(domain, handles[i].Handle, clrObj, refCount);
+                                yield return new ClrHandle(domain, handles[i].Handle, clrObj, handleKind, refCount);
                                 break;
                         }
                     }

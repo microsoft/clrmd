@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -11,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
     /// <summary>
     /// <see cref="ClrModule"/>
     /// </summary>
-    public interface IClrModule
+    public interface IClrModule : IEquatable<IClrModule>
     {
         /// <summary>
         /// <see cref="ClrModule.Address"/>

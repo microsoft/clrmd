@@ -122,15 +122,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// </returns>
         public bool IsInitialized(ClrAppDomain appDomain) => GetAddress(appDomain) != 0;
 
+
+        bool IClrStaticField.IsInitialized(IClrAppDomain appDomain) => GetAddress(appDomain) != 0;
+
         /// <summary>
         /// Gets the address of the static field's value in memory.
         /// </summary>
         /// <returns>The address of the field's value.</returns>
-        public ulong GetAddress(ClrAppDomain appDomain)
-        {
-            ulong address = _helpers.GetStaticFieldAddress(this, appDomain);
-            return address;
-        }
+        public ulong GetAddress(ClrAppDomain appDomain) => _helpers.GetStaticFieldAddress(this, appDomain.Address);
+
+        public ulong GetAddress(IClrAppDomain appDomain) => _helpers.GetStaticFieldAddress(this, appDomain.Address);
 
         /// <summary>
         /// Reads the value of the field as an unmanaged struct or primitive type.
@@ -138,6 +139,18 @@ namespace Microsoft.Diagnostics.Runtime
         /// <typeparam name="T">An unmanaged struct or primitive type.</typeparam>
         /// <returns>The value read.</returns>
         public T Read<T>(ClrAppDomain appDomain) where T : unmanaged
+        {
+            ulong address = GetAddress(appDomain);
+            if (address == 0)
+                return default;
+
+            if (!_helpers.DataReader.Read(address, out T value))
+                return default;
+
+            return value;
+        }
+
+        T IClrStaticField.Read<T>(IClrAppDomain appDomain)
         {
             ulong address = GetAddress(appDomain);
             if (address == 0)
@@ -162,7 +175,14 @@ namespace Microsoft.Diagnostics.Runtime
             return ContainingType.Heap.GetObject(obj);
         }
         
-        IClrValue IClrStaticField.ReadObject(ClrAppDomain appDomain) => ReadObject(appDomain);
+        IClrValue IClrStaticField.ReadObject(IClrAppDomain appDomain)
+        {
+            ulong address = GetAddress(appDomain);
+            if (address == 0 || !_helpers.DataReader.ReadPointer(address, out ulong obj) || obj == 0)
+                return new ClrObject();
+
+            return ContainingType.Heap.GetObject(obj);
+        }
 
         /// <summary>
         /// Reads a ValueType struct from the instance field.
@@ -177,7 +197,14 @@ namespace Microsoft.Diagnostics.Runtime
             return new ClrValueType(address, Type, interior: true);
         }
 
-        IClrValue IClrStaticField.ReadStruct(ClrAppDomain appDomain) => ReadStruct(appDomain);
+        IClrValue IClrStaticField.ReadStruct(IClrAppDomain appDomain)
+        {
+            ulong address = GetAddress(appDomain);
+            if (address == 0)
+                return new ClrValueType();
+
+            return new ClrValueType(address, Type, interior: true);
+        }
 
         /// <summary>
         /// Reads a string from the instance field.
@@ -186,6 +213,16 @@ namespace Microsoft.Diagnostics.Runtime
         public string? ReadString(ClrAppDomain appDomain)
         {
             ClrObject obj = ReadObject(appDomain);
+            if (obj.IsNull)
+                return null;
+
+            return obj.AsString();
+        }
+
+        string? IClrStaticField.ReadString(IClrAppDomain appDomain)
+        {
+            IClrStaticField field = this;
+            IClrValue obj = field.ReadObject(appDomain);
             if (obj.IsNull)
                 return null;
 

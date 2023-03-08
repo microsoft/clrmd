@@ -44,6 +44,21 @@ namespace Microsoft.Diagnostics.Runtime
             DebugOnly.Assert(type != null && type.IsValueType);
         }
 
+        public bool Equals(ClrObject obj) => false;
+        public bool Equals(ClrValueType other) => other.Address == Address;
+        public override bool Equals([NotNullWhen(true)] object? obj)
+        {
+            if (obj is null)
+                return false;
+
+            if (obj is IClrValue other)
+                return other.Equals(this);
+
+            return false;
+        }
+
+        public override int GetHashCode() => Address.GetHashCode();
+
         /// <summary>
         /// Gets the given object reference field from this ClrObject.
         /// </summary>
@@ -209,7 +224,7 @@ namespace Microsoft.Diagnostics.Runtime
             throw new NotImplementedException();
         }
 
-        IEnumerable<ClrReference> IClrValue.EnumerateReferencesWithFields(bool carefully, bool considerDependantHandles)
+        IEnumerable<IClrReference> IClrValue.EnumerateReferencesWithFields(bool carefully, bool considerDependantHandles)
         {
             // todo
             throw new NotImplementedException();
@@ -279,5 +294,15 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         IClrValue IClrValue.ReadValueTypeField(string fieldName) => ReadValueTypeField(fieldName);
+
+        public static bool operator ==(ClrValueType left, ClrValueType right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(ClrValueType left, ClrValueType right)
+        {
+            return !(left == right);
+        }
     }
 }

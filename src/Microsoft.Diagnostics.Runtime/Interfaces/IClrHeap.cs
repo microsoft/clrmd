@@ -21,17 +21,17 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
 
         IEnumerable<MemoryRange> EnumerateAllocationContexts();
         IEnumerable<IClrValue> EnumerateFinalizableObjects();
-        IEnumerable<ClrFinalizerRoot> EnumerateFinalizerRoots();
+        IEnumerable<ClrRoot> EnumerateFinalizerRoots();
         IEnumerable<IClrValue> EnumerateObjects();
         IEnumerable<IClrValue> EnumerateObjects(MemoryRange range);
-        IEnumerable<IClrRoot> EnumerateRoots();
+        IEnumerable<ClrRoot> EnumerateRoots();
         IClrValue FindNextObjectOnSegment(ulong address);
         IClrValue FindPreviousObjectOnSegment(ulong address);
         IClrValue GetObject(ulong objRef);
         IClrType? GetObjectType(ulong objRef);
         IClrSegment? GetSegmentByAddress(ulong address);
         IClrType? GetTypeByMethodTable(ulong methodTable);
-        IClrType? GetTypeByName(ClrModule module, string name);
+        IClrType? GetTypeByName(IClrModule module, string name);
         IClrType? GetTypeByName(string name);
     }
 }

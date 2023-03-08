@@ -15,14 +15,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the location that roots the object.
         /// </summary>
-        public IClrRoot Root { get; }
+        public ClrRoot Root { get; }
 
         /// <summary>
         /// Gets the path from Root to a given target object.
         /// </summary>
         public ImmutableArray<ClrObject> Path { get; }
 
-        public GCRootPath(IClrRoot root, ImmutableArray<ClrObject> path)
+        public GCRootPath(ClrRoot root, ImmutableArray<ClrObject> path)
         {
             Root = root;
             Path = path;

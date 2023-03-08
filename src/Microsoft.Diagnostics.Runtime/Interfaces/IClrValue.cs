@@ -8,7 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Diagnostics.Runtime.Interfaces
 {
-    public interface IClrValue : IEquatable<IClrValue>
+    public interface IClrValue : IEquatable<IClrValue>, IEquatable<ClrObject>, IEquatable<ClrValueType>
     {
         ulong Address { get; }
         bool ContainsPointers { get; }
@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
 
         IEnumerable<ulong> EnumerateReferenceAddresses(bool carefully = false, bool considerDependantHandles = true);
         IEnumerable<IClrValue> EnumerateReferences(bool carefully = false, bool considerDependantHandles = true);
-        IEnumerable<ClrReference> EnumerateReferencesWithFields(bool carefully = false, bool considerDependantHandles = true);
+        IEnumerable<IClrReference> EnumerateReferencesWithFields(bool carefully = false, bool considerDependantHandles = true);
         IComCallableWrapper? GetComCallableWrapper();
         IRuntimeCallableWrapper? GetRuntimeCallableWrapper();
         T ReadBoxedValue<T>() where T : unmanaged;

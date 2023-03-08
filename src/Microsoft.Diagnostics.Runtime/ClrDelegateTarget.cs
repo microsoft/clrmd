@@ -1,11 +1,12 @@
 ﻿using System;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// The "target" method and object that a delegate points to.
     /// </summary>
-    public sealed class ClrDelegateTarget
+    public sealed class ClrDelegateTarget : IClrDelegateTarget
     {
         /// <summary>
         /// Constructor.
@@ -39,5 +40,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// The method that would be called when <see cref="Parent"/> is invoked in the target process.
         /// </summary>
         public ClrMethod Method { get; }
+
+        IClrMethod IClrDelegateTarget.Method => Method;
+
+        IClrDelegate IClrDelegateTarget.Parent => Parent;
+
+        IClrValue IClrDelegateTarget.TargetObject => TargetObject;
     }
 }

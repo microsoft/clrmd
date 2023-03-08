@@ -6,7 +6,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
     {
         ulong Address { get; }
         CodeHeapKind Kind { get; }
-        ClrRuntime Runtime { get; }
+        IClrRuntime Runtime { get; }
 
         IEnumerable<ClrNativeHeapInfo> EnumerateNativeHeaps();
     }

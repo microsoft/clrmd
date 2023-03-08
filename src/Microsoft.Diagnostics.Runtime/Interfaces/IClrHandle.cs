@@ -4,8 +4,12 @@
 
 namespace Microsoft.Diagnostics.Runtime.Interfaces
 {
-    public interface IClrStackRoot : IClrRoot
+    public interface IClrHandle : IClrRoot
     {
-        ClrStackFrame StackFrame { get; }
+        IClrAppDomain AppDomain { get; }
+        IClrValue Dependent { get; }
+        ClrHandleKind HandleKind { get; }
+        bool IsStrong { get; }
+        uint ReferenceCount { get; }
     }
 }

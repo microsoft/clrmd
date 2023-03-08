@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     internal interface IClrThreadHelpers
     {
         IDataReader DataReader { get; }
-        IEnumerable<IClrStackRoot> EnumerateStackRoots(ClrThread thread);
+        IEnumerable<ClrStackRoot> EnumerateStackRoots(ClrThread thread);
         IEnumerable<ClrStackFrame> EnumerateStackTrace(ClrThread thread, bool includeContext);
     }
 }
