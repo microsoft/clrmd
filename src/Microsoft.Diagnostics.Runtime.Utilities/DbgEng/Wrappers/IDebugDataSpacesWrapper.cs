@@ -1,19 +1,25 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     [DynamicInterfaceCastableImplementation]
     internal unsafe interface IDebugDataSpacesWrapper : IDebugDataSpaces
     {
+        int IDebugDataSpaces.WriteVirtual(ulong address, Span<byte> buffer, out int written)
+        {
+            GetVTable(this, out nint self, out IDebugDataSpacesVtable* vtable);
+            fixed (byte* ptr = buffer)
+                return vtable->WriteVirtual(self, address, ptr, buffer.Length, out written);
+        }
+
         bool IDebugDataSpaces.ReadVirtual(ulong address, Span<byte> buffer, out int read)
         {
             GetVTable(this, out nint self, out IDebugDataSpacesVtable* vtable);
 
-            int bytesRead = 0;
             fixed (byte* ptr = buffer)
             {
-                int hr = vtable->ReadVirtual(self, address, ptr, buffer.Length, &bytesRead);
-                read = bytesRead;
+                int hr = vtable->ReadVirtual(self, address, ptr, buffer.Length, out read);
                 return hr >= 0;
             }
         }

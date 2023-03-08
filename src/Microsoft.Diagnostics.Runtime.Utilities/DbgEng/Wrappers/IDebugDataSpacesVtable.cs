@@ -12,8 +12,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint Release;
 
         /* IDebugDataSpaces */
-        public readonly delegate* unmanaged[Stdcall]<nint, ulong, byte*, int, int*, int> ReadVirtual;
-        private readonly nint WriteVirtual;
+        public readonly delegate* unmanaged[Stdcall]<nint, ulong, byte*, int, out int, int> ReadVirtual;
+        public readonly delegate* unmanaged[Stdcall]<nint, ulong, byte*, int, out int, int> WriteVirtual;
         public readonly delegate* unmanaged[Stdcall]<nint, ulong, ulong, byte*, int, int, ulong*, int> SearchVirtual;
         private readonly nint ReadVirtualUncached;
         private readonly nint WriteVirtualUncached;

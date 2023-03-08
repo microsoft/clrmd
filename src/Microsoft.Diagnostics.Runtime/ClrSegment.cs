@@ -52,6 +52,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ClrSubHeap SubHeap { get; }
 
+        public ClrSegmentFlags Flags { get; internal set; }
+
         /// <summary>
         /// Gets the range of memory reserved (but not committed) for this segment.
         /// </summary>
@@ -95,7 +97,15 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Enumerates all objects on the segment.
         /// </summary>
-        public IEnumerable<ClrObject> EnumerateObjects() => SubHeap.Heap.EnumerateObjects(this);
+        public IEnumerable<ClrObject> EnumerateObjects(bool carefully = false) => SubHeap.Heap.EnumerateObjects(this, carefully);
+
+        internal ulong MaxObjectSize => Kind switch
+        {
+            GCSegmentKind.Frozen => int.MaxValue,
+            GCSegmentKind.Pinned => int.MaxValue,
+            GCSegmentKind.Large => int.MaxValue,
+            _ => 85000
+        };
 
         /// <summary>
         /// Returns the generation of an object in this segment.
@@ -125,7 +135,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A string representation of this object.</returns>
         public override string ToString()
         {
-            return $"[{Start:x12}, {End:x12}]";
+            return $"{Kind} [{Start:x12}, {End:x12}]";
         }
 
         IEnumerable<IClrValue> IClrSegment.EnumerateObjects() =>EnumerateObjects().Cast<IClrValue>();
@@ -158,5 +168,6 @@ namespace Microsoft.Diagnostics.Runtime
         internal ulong Next { get; set; }
 
         IClrSubHeap IClrSegment.SubHeap => SubHeap;
+        internal ulong BackgroundAllocated { get; set; }
     }
 }

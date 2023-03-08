@@ -19,8 +19,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override int RecursionCount { get; }
         public override int WaitingThreadCount { get; }
 
-        public FullSyncBlock(in SyncBlockData syncBlk)
-            : base(syncBlk.Object)
+        public FullSyncBlock(in SyncBlockData syncBlk, int index)
+            : base(syncBlk.Object, index)
         {
             ComFlags = (SyncBlockComFlags)syncBlk.COMFlags;
 
