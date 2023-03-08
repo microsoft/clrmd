@@ -9,10 +9,7 @@ using System.Reflection;
 
 namespace Microsoft.Diagnostics.Runtime.Interfaces
 {
-    public interface IClrType :
-#nullable disable // to enable use with both T and T? for reference types due to IEquatable<T> being invariant
-        IEquatable<IClrType>
-#nullable restore
+    public interface IClrType :IEquatable<IClrType>
     {
         ulong AssemblyLoadContextAddress { get; }
         IClrType? BaseType { get; }

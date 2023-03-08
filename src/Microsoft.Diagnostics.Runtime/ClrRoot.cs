@@ -3,11 +3,31 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.Diagnostics.Runtime.Interfaces;
+using System;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public class ClrRoot : IClrRoot
+    public class ClrRoot : IClrRoot, IEquatable<ClrRoot>
     {
+        public bool Equals(IClrRoot? other)
+        {
+            return other is not null && Address == other.Address && RootKind == other.RootKind && Object.Equals(other.Object);
+        }
+        public bool Equals(ClrRoot? other)
+        {
+            return other is not null && Address == other.Address && RootKind == other.RootKind && Object.Equals(other.Object);
+        }
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is IClrRoot other)
+                return other.Equals(this);
+
+            return false;
+        }
+
+        public override int GetHashCode() => Address.GetHashCode() ^ RootKind.GetHashCode() ^ Object.GetHashCode();
+
         /// <summary>
         /// Gets the address in memory of the root.  Typically dereferencing this address will
         /// give you the associated Object, but not always.

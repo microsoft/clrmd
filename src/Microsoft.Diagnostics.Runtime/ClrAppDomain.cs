@@ -25,6 +25,25 @@ namespace Microsoft.Diagnostics.Runtime
             Name = name;
         }
 
+        public bool Equals(IClrAppDomain? other) => other is not null && other.Address == Address;
+        public bool Equals(ClrAppDomain? other)
+        {
+            if (other is IClrAppDomain domain)
+                return domain.Equals(this);
+
+            return false;
+        }
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is IClrAppDomain domain)
+                return domain.Equals(this);
+
+            return false;
+        }
+
+        public override int GetHashCode() => Address.GetHashCode();
+
         /// <summary>
         /// Gets the runtime associated with this ClrAppDomain.
         /// </summary>

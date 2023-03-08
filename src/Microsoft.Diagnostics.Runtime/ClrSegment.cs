@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Diagnostics.Runtime.Interfaces;
@@ -13,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// Segments.  It has a start and end and knows what heap it belongs to.   Segments can
     /// optional have regions for Gen 0, 1 and 2, and Large properties.
     /// </summary>
-    public sealed class ClrSegment : IClrSegment
+    public sealed class ClrSegment : IClrSegment, IEquatable<ClrSegment>
     {
         private uint[]? _markers;
 
@@ -21,6 +22,26 @@ namespace Microsoft.Diagnostics.Runtime
         {
             SubHeap = subHeap;
         }
+
+        public bool Equals(IClrSegment? other)
+        {
+            return other is not null && other.Start == Start && other.End == End;
+        }
+
+        public bool Equals(ClrSegment? other)
+        {
+            return other is not null && other.Start == Start && other.End == End;
+        }
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is IClrSegment other)
+                return other.Equals(this);
+
+            return false;
+        }
+
+        public override int GetHashCode() => Start.GetHashCode() ^ End.GetHashCode();
 
         /// <summary>
         /// The address of the CLR segment object.

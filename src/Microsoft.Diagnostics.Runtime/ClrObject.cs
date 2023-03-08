@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents an object in the target process.
     /// </summary>
-    public readonly struct ClrObject : IEquatable<ClrObject>, IClrValue
+    public readonly struct ClrObject : IClrValue, IEquatable<ClrObject>
     {
         internal const string RuntimeTypeName = "System.RuntimeType";
 
@@ -484,16 +484,15 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="other">The <see cref="ClrObject" /> to compare to this instance.</param>
         /// <returns><see langword="true"/> if the <see cref="Address" /> of the parameter is same as <see cref="Address" /> in this instance; <see langword="false"/> otherwise.</returns>
         public bool Equals(ClrObject other) => Address == other.Address;
+        public bool Equals(ClrValueType other) => Address == other.Address;
+        public bool Equals(IClrValue? other) => other is not null && other.Address == Address;
+        public override bool Equals([NotNullWhen(true)] object? obj)
+        {
+            if (obj is IClrValue value)
+                return value.Equals(this);
 
-        /// <summary>
-        /// Determines whether this instance and a specified object, which must also be a <see cref="ClrObject" />, have the same value.
-        /// </summary>
-        /// <param name="obj">The <see cref="ClrObject" /> to compare to this instance.</param>
-        /// <returns>
-        /// <see langword="true"/> if <paramref name="obj" /> is <see cref="ClrObject" />, and its <see cref="Address" /> is same as <see cref="Address" /> in this instance; <see langword="false"/>
-        /// otherwise.
-        /// </returns>
-        public override bool Equals(object? obj) => obj is ClrObject other && Equals(other);
+            return false;
+        }
 
         /// <summary>
         /// Returns the hash code for this <see cref="ClrObject" /> based on its <see cref="Address" />.
@@ -502,11 +501,6 @@ namespace Microsoft.Diagnostics.Runtime
         public override int GetHashCode()
         {
             return Address.GetHashCode();
-        }
-
-        public bool Equals(IClrValue? other)
-        {
-            return other != null && Address == other.Address && ((Type == null && other.Type == null) || (Type != null && Type.Equals(other.Type)));
         }
 
         /// <summary>

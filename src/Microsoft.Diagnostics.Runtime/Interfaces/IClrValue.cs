@@ -8,7 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Diagnostics.Runtime.Interfaces
 {
-    public interface IClrValue : IEquatable<IClrValue>
+    public interface IClrValue : IEquatable<IClrValue>, IEquatable<ClrObject>, IEquatable<ClrValueType>
     {
         ulong Address { get; }
         bool ContainsPointers { get; }
