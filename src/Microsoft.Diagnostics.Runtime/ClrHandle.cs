@@ -2,12 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Microsoft.Diagnostics.Runtime.Interfaces;
+
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// Represents a CLR handle in the target process.
     /// </summary>
-    public class ClrHandle : ClrRoot
+    public class ClrHandle : ClrRoot, IClrHandle
     {
         internal ClrHandle(ClrAppDomain parent, ulong address, ClrObject obj, ClrHandleKind kind, uint referenceCount = 0)
             : base(address, obj, ClrRootKind.None, false, kind == ClrHandleKind.AsyncPinned || kind == ClrHandleKind.Pinned)
@@ -59,6 +61,10 @@ namespace Microsoft.Diagnostics.Runtime
             ClrHandleKind.WeakWinRT => false,
             _ => true,
         };
+
+        IClrAppDomain IClrHandle.AppDomain => AppDomain;
+
+        IClrValue IClrHandle.Dependent => Dependent;
 
         /// <summary>
         /// ToString override.
