@@ -7,7 +7,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents a root that comes from the finalizer queue.
     /// </summary>
-    public sealed class ClrFinalizerRoot : IClrRoot
+    internal sealed class ClrFinalizerRoot : IClrRoot
     {
         public ulong Address { get; }
         public ClrObject Object { get; }

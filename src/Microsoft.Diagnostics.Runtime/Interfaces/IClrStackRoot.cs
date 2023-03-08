@@ -6,6 +6,6 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
 {
     public interface IClrStackRoot : IClrRoot
     {
-        ClrStackFrame StackFrame { get; }
+        IClrStackFrame StackFrame { get; }
     }
 }

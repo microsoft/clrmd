@@ -25,7 +25,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ulong ObjectPointer { get; }
 
-        public ClrStackInteriorRoot(ClrSegment seg, ulong address, ulong objAddr, ClrStackFrame stackFrame, bool pinned)
+        IClrStackFrame IClrStackRoot.StackFrame => StackFrame;
+
+        internal ClrStackInteriorRoot(ClrSegment seg, ulong address, ulong objAddr, ClrStackFrame stackFrame, bool pinned)
         {
             _segment = seg;
             ObjectPointer = objAddr;

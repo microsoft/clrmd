@@ -5,6 +5,7 @@
 
 
 using System;
+using System.Reflection;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -54,6 +55,8 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly bool IsMultiDimensional => Type.StaticSize > (uint)(3 * IntPtr.Size);
 
         private readonly int MultiDimensionalRank => (int)((Type.StaticSize - (uint)(3 * IntPtr.Size)) / (2 * sizeof(int)));
+
+        IClrType IClrArray.Type => throw new NotImplementedException();
 
         internal ClrArray(ulong address, ClrType type)
         {
@@ -302,6 +305,14 @@ namespace Microsoft.Diagnostics.Runtime
         //                 | Address
         private readonly int GetMultiDimensionalBound(int offset) =>
             Type.Helpers.DataReader.Read<int>(Address + (ulong)(2 * IntPtr.Size) + (ulong)(offset * sizeof(int)));
+
+        IClrValue IClrArray.GetObjectValue(int index) => GetObjectValue(index);
+
+        IClrValue IClrArray.GetObjectValue(params int[] indices) => GetObjectValue(indices);
+
+        IClrValue IClrArray.GetStructValue(int index) => GetStructValue(index);
+
+        IClrValue IClrArray.GetStructValue(params int[] indices) => GetStructValue(indices);
 
         /// <summary>
         /// Determines whether two specified <see cref="ClrArray"/> have the same value.

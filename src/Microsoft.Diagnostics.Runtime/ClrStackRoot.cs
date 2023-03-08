@@ -16,7 +16,9 @@ namespace Microsoft.Diagnostics.Runtime
         public bool IsInterior => false;
         public bool IsPinned { get; }
 
-        public ClrStackRoot(ulong address, ClrObject obj, ClrStackFrame stackFrame, bool pinned)
+        IClrStackFrame IClrStackRoot.StackFrame => StackFrame;
+
+        internal ClrStackRoot(ulong address, ClrObject obj, ClrStackFrame stackFrame, bool pinned)
         {
             Address = address;
             Object = obj;

@@ -261,9 +261,9 @@ namespace Microsoft.Diagnostics.Runtime
             return true;
         }
 
-        public ulong GetStaticFieldAddress(ClrStaticField field, ClrAppDomain? appDomain)
+        public ulong GetStaticFieldAddress(ClrStaticField field, ulong appDomain)
         {
-            if (appDomain is null)
+            if (appDomain == 0)
                 return 0;
 
             ClrType type = field.ContainingType;
@@ -279,7 +279,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!_sos.GetModuleData(module.Address, out ModuleData data))
                     return 0;
 
-                if (!_sos.GetDomainLocalModuleDataFromAppDomain(appDomain.Address, (int)data.ModuleID, out DomainLocalModuleData dlmd))
+                if (!_sos.GetDomainLocalModuleDataFromAppDomain(appDomain, (int)data.ModuleID, out DomainLocalModuleData dlmd))
                     return 0;
 
                 if (!shared && !IsInitialized(dlmd, type.MetadataToken))

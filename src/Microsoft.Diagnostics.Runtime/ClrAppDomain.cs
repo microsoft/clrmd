@@ -30,6 +30,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ClrRuntime Runtime { get; }
 
+        IClrRuntime IClrAppDomain.Runtime => Runtime;
+
         /// <summary>
         /// Gets address of the AppDomain.
         /// </summary>

@@ -10,6 +10,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         IDataReader DataReader { get; }
         bool ReadProperties(ClrType parentType, int token, out string? name, out FieldAttributes attributes, ref ClrType? type);
-        ulong GetStaticFieldAddress(ClrStaticField field, ClrAppDomain? appDomain);
+        ulong GetStaticFieldAddress(ClrStaticField field, ulong appDomain);
     }
 }

@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
 
         IEnumerable<MemoryRange> EnumerateAllocationContexts();
         IEnumerable<IClrValue> EnumerateFinalizableObjects();
-        IEnumerable<ClrFinalizerRoot> EnumerateFinalizerRoots();
+        IEnumerable<IClrRoot> EnumerateFinalizerRoots();
         IEnumerable<IClrValue> EnumerateObjects();
         IEnumerable<IClrValue> EnumerateObjects(MemoryRange range);
         IEnumerable<IClrRoot> EnumerateRoots();
@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         IClrType? GetObjectType(ulong objRef);
         IClrSegment? GetSegmentByAddress(ulong address);
         IClrType? GetTypeByMethodTable(ulong methodTable);
-        IClrType? GetTypeByName(ClrModule module, string name);
+        IClrType? GetTypeByName(IClrModule module, string name);
         IClrType? GetTypeByName(string name);
     }
 }

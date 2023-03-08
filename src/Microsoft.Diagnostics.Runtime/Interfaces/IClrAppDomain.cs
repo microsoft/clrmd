@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         /// <summary>
         /// <see cref="ClrAppDomain.Runtime"/>
         /// </summary>
-        ClrRuntime Runtime { get; }
+        IClrRuntime Runtime { get; }
 
         /// <summary>
         /// <see cref="ClrAppDomain.EnumerateLoaderAllocatorHeaps"/>

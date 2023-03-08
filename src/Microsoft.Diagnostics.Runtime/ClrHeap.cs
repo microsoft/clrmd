@@ -569,7 +569,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             // Finalization Queue
-            foreach (ClrFinalizerRoot root in EnumerateFinalizerRoots())
+            foreach (IClrRoot root in EnumerateFinalizerRoots())
                 yield return root;
 
             // Threads
@@ -631,7 +631,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Enumerates all finalizable objects on the heap.
         /// </summary>
-        public IEnumerable<ClrFinalizerRoot> EnumerateFinalizerRoots() => EnumerateFinalizers(SubHeaps.Select(heap => heap.FinalizerQueueRoots));
+        public IEnumerable<IClrRoot> EnumerateFinalizerRoots() => EnumerateFinalizers(SubHeaps.Select(heap => heap.FinalizerQueueRoots));
 
         /// <summary>
         /// Enumerates all AllocationContexts for all segments.  Allocation contexts are locations on the GC
@@ -1014,9 +1014,14 @@ namespace Microsoft.Diagnostics.Runtime
             if (name.Length == 0)
                 throw new ArgumentException($"{nameof(name)} cannot be empty");
 
+            return FindTypeName(module.EnumerateTypeDefToMethodTableMap(), name);
+        }
+
+        private ClrType? FindTypeName(IEnumerable<(ulong MethodTable, int Token)> map, string name)
+        {
             // First, look for already constructed types and see if their name matches.
             List<ulong> lookup = new(256);
-            foreach ((ulong mt, _) in module.EnumerateTypeDefToMethodTableMap())
+            foreach ((ulong mt, _) in map)
             {
                 ClrType? type = _typeFactory.TryGetType(mt);
                 if (type is null)
@@ -1069,9 +1074,18 @@ namespace Microsoft.Diagnostics.Runtime
 
         IClrType? IClrHeap.GetTypeByMethodTable(ulong methodTable) => GetTypeByMethodTable(methodTable);
 
-        IClrType? IClrHeap.GetTypeByName(ClrModule module, string name) => GetTypeByName(module, name);
-
         IClrType? IClrHeap.GetTypeByName(string name) => GetTypeByName(name);
+
+        IClrType? IClrHeap.GetTypeByName(IClrModule module, string name)
+        {
+            if (name is null)
+                throw new ArgumentNullException(nameof(name));
+
+            if (name.Length == 0)
+                throw new ArgumentException($"{nameof(name)} cannot be empty");
+
+            return FindTypeName(module.EnumerateTypeDefToMethodTableMap(), name);
+        }
 
         private sealed class SubHeapData
         {
