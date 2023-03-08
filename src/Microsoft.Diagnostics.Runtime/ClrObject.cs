@@ -539,6 +539,7 @@ namespace Microsoft.Diagnostics.Runtime
         IClrType? IClrValue.AsRuntimeType() => AsRuntimeType();
 
         IEnumerable<IClrValue> IClrValue.EnumerateReferences(bool carefully, bool considerDependantHandles) => EnumerateReferences(carefully, considerDependantHandles).Cast<IClrValue>();
+        IEnumerable<IClrReference> IClrValue.EnumerateReferencesWithFields(bool carefully, bool considerDependantHandles) => EnumerateReferencesWithFields(carefully, considerDependantHandles).Cast<IClrReference>();
 
         IComCallableWrapper? IClrValue.GetComCallableWrapper() => GetComCallableWrapper();
 

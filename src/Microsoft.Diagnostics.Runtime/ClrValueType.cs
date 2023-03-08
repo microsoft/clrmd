@@ -209,7 +209,7 @@ namespace Microsoft.Diagnostics.Runtime
             throw new NotImplementedException();
         }
 
-        IEnumerable<ClrReference> IClrValue.EnumerateReferencesWithFields(bool carefully, bool considerDependantHandles)
+        IEnumerable<IClrReference> IClrValue.EnumerateReferencesWithFields(bool carefully, bool considerDependantHandles)
         {
             // todo
             throw new NotImplementedException();

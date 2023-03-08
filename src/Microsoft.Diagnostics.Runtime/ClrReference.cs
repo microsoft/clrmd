@@ -5,10 +5,11 @@
 using System;
 using System.Collections.Immutable;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public readonly struct ClrReference
+    public readonly struct ClrReference : IClrReference
     {
         private const ulong OffsetFlag = 0x8000000000000000ul;
         private const ulong DependentFlag = 0x4000000000000000ul;
@@ -89,6 +90,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns true if this reference came from an entry in an array.
         /// </summary>
         public bool IsArrayElement => (_offsetOrHandle & OffsetFlag) == OffsetFlag && Field == null;
+
+        IClrInstanceField? IClrReference.Field => Field;
+
+        IClrReference? IClrReference.InnerField => InnerField;
+
+        IClrValue IClrReference.Object => Object;
 
         /// <summary>
         /// Create a field reference from a dependent handle value.  We do not keep track of the dependent handle it came from
