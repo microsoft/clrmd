@@ -382,8 +382,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 ulong freeMt = seg.SubHeap.Heap.FreeType.MethodTable;
                 byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
-                if (_memoryReader.Read(obj, new Span<byte>(buffer, 0, intSize)) != intSize)
-                    return new ObjectCorruption(obj, 0, ObjectCorruptionKind.CouldNotReadObject);
+                int read = _memoryReader.Read(obj, new Span<byte>(buffer, 0, intSize));
+                if (read != intSize)
+                    return new ObjectCorruption(obj, read >= 0 ? read : 0, ObjectCorruptionKind.CouldNotReadObject);
 
                 foreach ((ulong objRef, int offset) in gcdesc.WalkObject(buffer, intSize))
                 {
