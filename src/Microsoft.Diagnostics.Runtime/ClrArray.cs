@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private readonly int MultiDimensionalRank => (int)((Type.StaticSize - (uint)(3 * IntPtr.Size)) / (2 * sizeof(int)));
 
-        IClrType IClrArray.Type => throw new NotImplementedException();
+        IClrType IClrArray.Type => this.Type;
 
         internal ClrArray(ulong address, ClrType type)
         {

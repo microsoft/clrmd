@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ClrObject Object { get; }
 
-        IClrValue IClrDelegate.Object => throw new NotImplementedException();
+        IClrValue IClrDelegate.Object => this.Object;
 
         /// <summary>
         /// Returns a the single delegate target of the 

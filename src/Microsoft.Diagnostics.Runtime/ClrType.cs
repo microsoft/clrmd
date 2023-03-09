@@ -302,19 +302,19 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         internal IClrTypeHelpers Helpers { get; }
 
-        IClrType? IClrType.BaseType => throw new NotImplementedException();
+        IClrType? IClrType.BaseType => this.BaseType;
 
-        IClrType? IClrType.ComponentType => throw new NotImplementedException();
+        IClrType? IClrType.ComponentType => this.ComponentType;
 
-        ImmutableArray<IClrInstanceField> IClrType.Fields => throw new NotImplementedException();
+        ImmutableArray<IClrInstanceField> IClrType.Fields => this.Fields.Cast<IClrInstanceField>().ToImmutableArray();
 
-        IClrHeap IClrType.Heap => throw new NotImplementedException();
+        IClrHeap IClrType.Heap => this.Heap;
 
-        ImmutableArray<IClrMethod> IClrType.Methods => throw new NotImplementedException();
+        ImmutableArray<IClrMethod> IClrType.Methods => this.Methods.Cast<IClrMethod>().ToImmutableArray();
 
-        IClrModule? IClrType.Module => throw new NotImplementedException();
+        IClrModule? IClrType.Module => this.Module;
 
-        ImmutableArray<IClrStaticField> IClrType.StaticFields => throw new NotImplementedException();
+        ImmutableArray<IClrStaticField> IClrType.StaticFields => this.StaticFields.Cast<IClrStaticField>().ToImmutableArray();
 
         public override bool Equals(object? obj) => Equals(obj as ClrType);
 
