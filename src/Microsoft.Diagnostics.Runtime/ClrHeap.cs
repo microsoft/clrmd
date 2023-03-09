@@ -529,6 +529,8 @@ namespace Microsoft.Diagnostics.Runtime
             return (size + AlignConst) & ~AlignConst;
         }
 
+        IEnumerable<IClrRoot> IClrHeap.EnumerateRoots() => EnumerateRoots().Cast<IClrRoot>();
+
         /// <summary>
         /// Enumerates all roots in the process.  Equivalent to the combination of:
         ///     ClrRuntime.EnumerateHandles().Where(handle => handle.IsStrong)
@@ -632,6 +634,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates all finalizable objects on the heap.
         /// </summary>
         public IEnumerable<ClrRoot> EnumerateFinalizerRoots() => EnumerateFinalizers(SubHeaps.Select(heap => heap.FinalizerQueueRoots));
+        IEnumerable<IClrRoot> IClrHeap.EnumerateFinalizerRoots() => EnumerateFinalizerRoots().Cast<IClrRoot>();
 
         /// <summary>
         /// Enumerates all AllocationContexts for all segments.  Allocation contexts are locations on the GC

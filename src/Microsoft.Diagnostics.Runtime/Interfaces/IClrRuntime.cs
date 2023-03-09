@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         ImmutableArray<IClrThread> Threads { get; }
 
         IEnumerable<ClrNativeHeapInfo> EnumerateClrNativeHeaps();
-        IEnumerable<ClrRoot> EnumerateHandles();
+        IEnumerable<IClrRoot> EnumerateHandles();
         IEnumerable<IClrJitManager> EnumerateJitManagers();
         IEnumerable<IClrModule> EnumerateModules();
         void FlushCachedData();
