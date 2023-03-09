@@ -107,6 +107,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.Equal(prev, objects[0]);
                 Assert.Equal(obj, objects[1]);
                 Assert.Equal(next, objects[2]);
+
+                objects = segment.EnumerateObjects(new MemoryRange(prev.Address, next.Address + 1), carefully: true).ToArray();
+                Assert.Equal(3, objects.Length);
+
+                Assert.Equal(prev, objects[0]);
+                Assert.Equal(obj, objects[1]);
+                Assert.Equal(next, objects[2]);
             });
         }
 

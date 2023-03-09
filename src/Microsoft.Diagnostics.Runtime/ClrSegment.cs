@@ -120,6 +120,25 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public IEnumerable<ClrObject> EnumerateObjects(bool carefully = false) => SubHeap.Heap.EnumerateObjects(this, carefully);
 
+        /// <summary>
+        /// Enumerates objects on the segment within the given memory range.
+        /// </summary>
+        public IEnumerable<ClrObject> EnumerateObjects(MemoryRange range, bool carefully = false)
+        {
+            if (ObjectRange.Overlaps(range))
+            {
+                ulong start = Math.Max(range.Start, ObjectRange.Start);
+
+                foreach (ClrObject obj in SubHeap.Heap.EnumerateObjects(this, start, carefully))
+                {
+                    if (range.Contains(obj))
+                        yield return obj;
+                    else
+                        break;
+                }
+            }
+        }
+
         internal ulong MaxObjectSize => Kind switch
         {
             GCSegmentKind.Frozen => int.MaxValue,
