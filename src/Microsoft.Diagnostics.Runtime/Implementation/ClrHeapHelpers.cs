@@ -318,6 +318,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public ObjectCorruption? VerifyObject(SyncBlockContainer syncBlocks, ClrSegment seg, ClrObject obj)
         {
+            if ((obj.Address & ~((uint)_memoryReader.PointerSize - 1)) != 0)
+                return new ObjectCorruption(obj, 0, ObjectCorruptionKind.ObjectNotPointerAligned);
+
             if (!obj.IsFree)
             {
                 if (!_memoryReader.Read(obj.Address, out ulong mt))
@@ -384,6 +387,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 foreach ((ulong objRef, int offset) in gcdesc.WalkObject(buffer, intSize))
                 {
+                    if ((objRef & ~((uint)_memoryReader.PointerSize - 1)) != 0)
+                        return new ObjectCorruption(obj, offset, ObjectCorruptionKind.ObjectReferenceNotPointerAligned);
                     if (!_memoryReader.Read(objRef, out ulong mt) || !IsValidMethodTable(mt))
                         return new ObjectCorruption(obj, offset, ObjectCorruptionKind.BadObjectReference);
                     else if (mt == freeMt)
