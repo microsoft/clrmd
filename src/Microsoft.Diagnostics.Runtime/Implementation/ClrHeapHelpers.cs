@@ -320,7 +320,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             if (!obj.IsFree)
             {
-                if (!_memoryReader.Read(obj.Address, out ulong mt) || !IsValidMethodTable(mt))
+                if (!_memoryReader.Read(obj.Address, out ulong mt))
+                    return new ObjectCorruption(obj, 0, ObjectCorruptionKind.CouldNotReadMethodTable);
+                
+                if (!IsValidMethodTable(mt))
                     return new ObjectCorruption(obj, 0, ObjectCorruptionKind.BadMethodTable);
 
                 // This shouldn't happen if VerifyMethodTable above returns success, but we'll make sure.
