@@ -56,6 +56,7 @@ namespace Microsoft.Diagnostics.Runtime
     {
         None,
         ObjectNotOnTheHeap,
+        CouldNotReadMethodTable,
         BadMethodTable,
         BadObjectReference,
         ObjectTooLarge,
