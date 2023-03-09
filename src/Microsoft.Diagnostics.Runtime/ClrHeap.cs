@@ -1056,10 +1056,7 @@ namespace Microsoft.Diagnostics.Runtime
             return new ClrException(obj.Type?.Helpers ?? FreeType.Helpers, thread, obj);
         }
 
-        IEnumerable<IClrValue> IClrHeap.EnumerateFinalizableObjects()
-        {
-            throw new NotImplementedException();
-        }
+        IEnumerable<IClrValue> IClrHeap.EnumerateFinalizableObjects() => EnumerateFinalizableObjects().Cast<IClrValue>();
 
         IEnumerable<IClrValue> IClrHeap.EnumerateObjects() => EnumerateObjects().Cast<IClrValue>();
 
