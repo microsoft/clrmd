@@ -66,5 +66,7 @@ namespace Microsoft.Diagnostics.Runtime
         FreeObjectReference,
         SyncBlockMismatch,
         SyncBlockZero,
+        ObjectNotPointerAligned,
+        ObjectReferenceNotPointerAligned,
     }
 }
