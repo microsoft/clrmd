@@ -226,15 +226,37 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.False(heap.IsObjectCorrupted(obj, out ObjectCorruption result));
             Assert.Null(result);
 
+            ClrObject free = heap.EnumerateObjects().First(obj => obj.IsFree);
             foreach (var reference in obj.EnumerateReferencesWithFields())
             {
                 uint offset = (uint)IntPtr.Size + (uint)reference.Offset;
-                WriteAndRun(spaces, obj + offset, 0xcccccc, () =>
+                WriteAndRun(spaces, obj + offset, 0xccccc0, () =>
                 {
                     Assert.True(heap.IsObjectCorrupted(obj, out ObjectCorruption result));
                     Assert.NotNull(result);
 
                     Assert.Equal(ObjectCorruptionKind.BadObjectReference, result.Kind);
+                    Assert.Equal(obj, result.Object);
+                    Assert.Equal((int)offset, result.Offset);
+                });
+
+                WriteAndRun(spaces, obj + offset, 0xcccccc, () =>
+                {
+                    Assert.True(heap.IsObjectCorrupted(obj, out ObjectCorruption result));
+                    Assert.NotNull(result);
+
+                    Assert.Equal(ObjectCorruptionKind.ObjectReferenceNotPointerAligned, result.Kind);
+                    Assert.Equal(obj, result.Object);
+                    Assert.Equal((int)offset, result.Offset);
+                });
+
+
+                WriteAndRun(spaces, obj + offset, (ulong)free, () =>
+                {
+                    Assert.True(heap.IsObjectCorrupted(obj, out ObjectCorruption result));
+                    Assert.NotNull(result);
+
+                    Assert.Equal(ObjectCorruptionKind.FreeObjectReference, result.Kind);
                     Assert.Equal(obj, result.Object);
                     Assert.Equal((int)offset, result.Offset);
                 });
