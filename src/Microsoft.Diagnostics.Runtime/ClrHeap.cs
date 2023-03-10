@@ -271,7 +271,7 @@ namespace Microsoft.Diagnostics.Runtime
             uint objSkip = segment.Kind != GCSegmentKind.Large ? minObjSize : 85000;
 
             ulong obj;
-            if (startAddress == segment.FirstObjectAddress)
+            if (startAddress == segment.FirstObjectAddress || segment.ObjectMarkers.Length == 0)
                 obj = segment.FirstObjectAddress;
             else
                 obj = segment.ObjectMarkers.Select(m => segment.FirstObjectAddress + m).Where(m => m <= startAddress).Max();
