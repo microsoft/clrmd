@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public bool IsValid => Type != null;
 
-        internal ClrValueType(ulong address, ClrType? type, bool interior)
+        public ClrValueType(ulong address, ClrType? type, bool interior)
         {
             Address = address;
             Type = type;
