@@ -48,25 +48,34 @@ namespace Microsoft.Diagnostics.Runtime
 
             string type = Object.Type?.Name != null ? $" {Object.Type.Name}" : "";
 
-            return $"[{Kind}] {Object:x}{offset}{type}";
+            return $"[{Kind}] {Object.Address:x}{offset}{type}";
         }
     }
 
     public enum ObjectCorruptionKind
     {
-        None,
+        None = 0,
+
+        // Not object failures
         ObjectNotOnTheHeap,
-        CouldNotReadMethodTable,
-        BadMethodTable,
-        BadObjectReference,
-        ObjectTooLarge,
+        ObjectNotPointerAligned,
+
+        // Object failures
+        ObjectTooLarge = 10,
+        InvalidMethodTable,
+        InvalidThinlock,
+        SyncBlockMismatch,
+        SyncBlockZero,
+
+        // Object reference failures
+        ObjectReferenceNotPointerAligned = 100,
+        InvalidObjectReference,
+        FreeObjectReference,
+
+        // Memory Read Errors
+        CouldNotReadMethodTable = 200,
         CouldNotReadCardTable,
         CouldNotReadObject,
         CouldNotReadGCDesc,
-        FreeObjectReference,
-        SyncBlockMismatch,
-        SyncBlockZero,
-        ObjectNotPointerAligned,
-        ObjectReferenceNotPointerAligned,
     }
 }

@@ -202,7 +202,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.True(heap.IsObjectCorrupted(obj, out ObjectCorruption result));
                 Assert.NotNull(result);
 
-                Assert.Equal(ObjectCorruptionKind.BadMethodTable, result.Kind);
+                Assert.Equal(ObjectCorruptionKind.InvalidMethodTable, result.Kind);
                 Assert.Equal(obj, result.Object);
                 Assert.Equal(0, result.Offset); // MT offset is at 0
             });
