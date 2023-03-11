@@ -20,7 +20,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             get
             {
                 fixed (byte* ptr = bytePdbFileName)
+                {
                     return Marshal.PtrToStringAnsi((IntPtr)ptr)!;
+                }
             }
         }
     }

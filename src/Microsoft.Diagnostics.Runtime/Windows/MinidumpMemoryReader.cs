@@ -24,20 +24,26 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                 Span<byte> span = new(buffer);
                 if (ReadFromRva(rva, span.Slice(0, sizeof(int))) != sizeof(int))
+                {
                     return null;
+                }
 
                 int len = Unsafe.As<byte, int>(ref buffer[0]);
                 len = Math.Min(len, buffer.Length);
 
                 if (len <= 0)
+                {
                     return null;
+                }
 
                 count = ReadFromRva(rva + sizeof(int), buffer);
                 string result = Encoding.Unicode.GetString(buffer, 0, count);
 
                 int index = result.IndexOf('\0');
                 if (index != -1)
+                {
                     result = result.Substring(0, index);
+                }
 
                 return result;
             }

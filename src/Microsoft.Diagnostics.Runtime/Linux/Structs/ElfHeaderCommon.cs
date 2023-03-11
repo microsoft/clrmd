@@ -31,7 +31,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             get
             {
                 if (_magic != Magic)
+                {
                     return false;
+                }
 
                 return Data == ElfData.LittleEndian;
             }

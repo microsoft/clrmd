@@ -26,7 +26,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public override void Dispose()
         {
             if (!_leaveOpen)
+            {
                 _stream.Dispose();
+            }
         }
 
         public override int PointerSize { get; }
@@ -37,7 +39,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             lock (_sync)
             {
                 if ((ulong)_stream.Length <= rva)
+                {
                     return 0;
+                }
 
                 _stream.Position = (long)rva;
                 return _stream.Read(buffer);
@@ -47,7 +51,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public override int Read(ulong address, Span<byte> buffer)
         {
             if (address == 0 || buffer.Length == 0)
+            {
                 return 0;
+            }
 
             lock (_sync)
             {
@@ -55,7 +61,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 {
                     int i = GetFirstSegmentContaining(address);
                     if (i < 0)
+                    {
                         return 0;
+                    }
 
                     int bytesRead = 0;
                     for (; i < _segments.Length; i++)
@@ -64,10 +72,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         ulong virtualAddress = segment.VirtualAddress;
                         ulong size = segment.Size;
                         if (virtualAddress > address)
+                        {
                             break;
+                        }
 
                         if (address >= virtualAddress + size)
+                        {
                             continue;
+                        }
 
                         ulong offset = address - virtualAddress;
                         int toRead = (int)Math.Min(buffer.Length - bytesRead, (long)(size - offset));
@@ -76,11 +88,15 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         _stream.Position = (long)(segment.FileOffset + offset);
                         int read = _stream.Read(slice);
                         if (read < toRead)
+                        {
                             break;
+                        }
 
                         bytesRead += read;
                         if (bytesRead == buffer.Length)
+                        {
                             break;
+                        }
 
                         address += (uint)read;
                     }
@@ -115,9 +131,13 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 }
 
                 if (address < segment.VirtualAddress)
+                {
                     upper = mid - 1;
+                }
                 else
+                {
                     lower = mid + 1;
+                }
             }
 
             return -1;

@@ -63,7 +63,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         public DbgEngIDataReader(nint pDebugClient)
         {
             if (pDebugClient == 0)
+            {
                 throw new ArgumentNullException(nameof(pDebugClient));
+            }
 
             DisplayName = $"DbgEng, IDebugClient={pDebugClient:x}";
 
@@ -79,7 +81,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         public DbgEngIDataReader(string dumpFile)
         {
             if (!File.Exists(dumpFile))
+            {
                 throw new FileNotFoundException(dumpFile);
+            }
 
             DisplayName = dumpFile;
 
@@ -97,7 +101,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                 const int STATUS_MAPPED_FILE_SIZE_ZERO = unchecked((int)0xC000011E);
 
                 if (hr == HResult.E_INVALIDARG || hr == (STATUS_MAPPED_FILE_SIZE_ZERO | 0x10000000))
+                {
                     throw new InvalidDataException($"'{dumpFile}' is not a crash dump.");
+                }
 
                 throw CreateExceptionFromDumpFile(dumpFile, hr);
             }
@@ -105,7 +111,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             // This actually "attaches" to the crash dump.
             HResult result = DebugControl.WaitForEvent(TimeSpan.MaxValue);
             if (!result)
+            {
                 throw CreateExceptionFromDumpFile(dumpFile, hr);
+            }
         }
 
         private static ClrDiagnosticsException CreateExceptionFromDumpFile(string dumpFile, HResult hr)
@@ -129,10 +137,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
             HResult hr = DebugControl.AddEngineOptions(DEBUG_ENGOPT.INITIAL_BREAK);
             if (hr)
+            {
                 hr = DebugClient.AttachProcess(processId, attach);
+            }
 
             if (hr)
+            {
                 hr = DebugControl.WaitForEvent(timeout);
+            }
 
             if (hr == HResult.S_FALSE)
             {
@@ -142,7 +154,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             if (hr != 0)
             {
                 if ((uint)hr.Value == 0xd00000bb)
+                {
                     throw new InvalidOperationException("Mismatched architecture between this process and the target process.");
+                }
 
                 throw new ArgumentException($"Could not attach to process {processId}, HRESULT: 0x{hr:x}");
             }
@@ -162,7 +176,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private void Dispose(bool disposing)
         {
             if (_disposed)
+            {
                 return;
+            }
 
             _disposed = true;
 
@@ -202,7 +218,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             try
             {
                 if (DebugSystemObjects.GetThreadIdBySystemId((int)systemId, out int id) < 0)
+                {
                     return false;
+                }
 
                 DebugSystemObjects.CurrentThreadId = id;
                 return DebugAdvanced.GetThreadContext(context) >= 0;
@@ -218,7 +236,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             HResult hr = DebugSymbols.GetNumberModules(out int count, out _);
 
             if (!hr)
+            {
                 return Array.Empty<ulong>();
+            }
 
             int index = 0;
             ulong[] bases = new ulong[count];
@@ -226,11 +246,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             {
                 hr = DebugSymbols.GetImageBase(i, out ulong baseAddress);
                 if (hr)
+                {
                     bases[index++] = baseAddress;
+                }
             }
 
             if (index < bases.Length)
+            {
                 Array.Resize(ref bases, index);
+            }
 
             return bases;
         }
@@ -238,11 +262,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         public IEnumerable<ModuleInfo> EnumerateModules()
         {
             if (_modules != null)
+            {
                 return _modules;
+            }
 
             ulong[] bases = GetImageBases();
             if (bases.Length == 0)
+            {
                 return Enumerable.Empty<ModuleInfo>();
+            }
 
             DEBUG_MODULE_PARAMETERS[] moduleParams = new DEBUG_MODULE_PARAMETERS[bases.Length];
 
@@ -264,11 +292,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                         // the bare minimum for functionality.
                         Version? version = null;
                         if (TargetPlatform == OSPlatform.Windows || moduleName.Contains("libcoreclr", StringComparison.OrdinalIgnoreCase))
+                        {
                             GetVersionInfo(bases[i], moduleParams[i].Size);
+                        }
 
-                        var module = ModuleInfo.TryCreate(this, bases[i], moduleName, (int)moduleParams[i].Size, (int)moduleParams[i].TimeDateStamp, version);
+                        ModuleInfo? module = ModuleInfo.TryCreate(this, bases[i], moduleName, (int)moduleParams[i].Size, (int)moduleParams[i].TimeDateStamp, version);
                         if (module is not null)
+                        {
                             modules.Add(module);
+                        }
                     }
                 }
             }
@@ -280,7 +312,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         public int Read(ulong address, Span<byte> buffer)
         {
             if (!DebugDataSpaces.ReadVirtual(address, buffer, out int read))
+            {
                 return 0;
+            }
 
             return read;
         }
@@ -290,14 +324,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             if (TargetPlatform == OSPlatform.Windows)
             {
                 if (!FindModuleIndex(baseAddress, out int index))
+                {
                     return null;
+                }
 
                 byte[] buffer = ArrayPool<byte>.Shared.Rent(256);
                 try
                 {
                     HResult hr = DebugSymbols.GetModuleVersionInformation(index, baseAddress, "\\\\\0", buffer);
                     if (!hr)
+                    {
                         return new Version();
+                    }
 
                     int minor = Unsafe.As<byte, ushort>(ref buffer[8]);
                     int major = Unsafe.As<byte, ushort>(ref buffer[10]);
@@ -363,7 +401,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                 }
 
                 if (claimedBaseAddr == baseAddr)
+                {
                     return true;
+                }
 
                 nextIndex = index + 1;
             }
@@ -373,12 +413,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         {
             DebugSystemObjects.GetNumberThreads(out int count);
             if (count == 0)
+            {
                 return Array.Empty<uint>();
+            }
 
             uint[] result = new uint[count];
             HResult hr = DebugSystemObjects.GetThreadSystemIDs(result);
             if (hr)
+            {
                 return result;
+            }
 
             return Array.Empty<uint>();
         }
@@ -394,7 +438,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                     DebugSystemObjects.CurrentThreadId = id;
                     hr = DebugSystemObjects.GetCurrentThreadTeb(out ulong teb);
                     if (hr)
+                    {
                         return teb;
+                    }
                 }
             }
             finally

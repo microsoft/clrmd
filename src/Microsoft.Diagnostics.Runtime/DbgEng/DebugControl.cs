@@ -31,7 +31,9 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             using IDisposable holder = _sys.Enter();
             int hr = VTable.GetEffectiveProcessorType(Self, out IMAGE_FILE_MACHINE result);
             if (hr == 0)
+            {
                 return result;
+            }
 
             return IMAGE_FILE_MACHINE.UNKNOWN;
         }
@@ -60,7 +62,9 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             using IDisposable holder = _sys.Enter();
             HResult hr = VTable.GetDumpFormatFlags(Self, out DEBUG_FORMAT result);
             if (hr)
+            {
                 return result;
+            }
 
             return DEBUG_FORMAT.DEFAULT;
         }

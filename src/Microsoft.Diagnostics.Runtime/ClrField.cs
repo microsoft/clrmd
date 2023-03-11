@@ -86,7 +86,9 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ClrType? type = Type;
             if (type is null)
+            {
                 return Name;
+            }
 
             return $"{type.Name} {Name}";
         }
@@ -99,21 +101,31 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 case ClrElementType.Struct:
                     if (type is null)
+                    {
                         return 1;
+                    }
 
                     ClrField? last = null;
                     foreach (ClrField field in type.Fields)
                     {
                         if (last is null)
+                        {
                             last = field;
+                        }
                         else if (field.Offset > last.Offset)
+                        {
                             last = field;
+                        }
                         else if (field.Offset == last.Offset && field.Size > last.Size)
+                        {
                             last = field;
+                        }
                     }
 
                     if (last is null)
+                    {
                         return 0;
+                    }
 
                     return last.Offset + last.Size;
 

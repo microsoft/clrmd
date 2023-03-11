@@ -37,12 +37,16 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             ThrowIfDisposed();
 
             if (_cacheIsComplete)
+            {
                 throw new InvalidOperationException($"You cannot call {nameof(CreateAndAddEntry)} after having called {nameof(CreateAndAddEntry)} enough times to cause the entry count to rise to {_entryCountWhenFull}, which was given to the ctor as the largest possible size");
+            }
 
             SegmentCacheEntry entry = _entryFactory.CreateEntryForSegment(segment, UpdateOverallCacheSizeForAddedChunk);
 
             if (!_cacheIsFullyPopulatedBeforeUse)
+            {
                 _cacheLock.EnterWriteLock();
+            }
 
             try
             {
@@ -51,7 +55,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 {
                     // Someone else beat us to adding this entry, clean up the entry we created and return the existing one
                     using (entry as IDisposable)
+                    {
                         return existingEntry;
+                    }
                 }
 
                 _cache.Add(segment.VirtualAddress, entry);
@@ -60,7 +66,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             finally
             {
                 if (!_cacheIsFullyPopulatedBeforeUse)
+                {
                     _cacheLock.ExitWriteLock();
+                }
             }
 
             Interlocked.Add(ref _cacheSize, entry.CurrentSize);
@@ -90,7 +98,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             finally
             {
                 if (acquiredReadLock)
+                {
                     _cacheLock.ExitReadLock();
+                }
             }
 
             if (res)
@@ -104,7 +114,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public void Dispose()
         {
             if (_cache == null)
+            {
                 return;
+            }
 
             using (_entryFactory as IDisposable)
             {
@@ -142,11 +154,15 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private void TrimCacheIfOverLimit()
         {
             if (Interlocked.Read(ref _cacheSize) < _maxSize)
+            {
                 return;
+            }
 
             IList<(KeyValuePair<ulong, SegmentCacheEntry> CacheEntry, int LastAccessTimestamp)> entries = SnapshotNonMinSizeCacheItems();
             if (entries.Count == 0)
+            {
                 return;
+            }
 
             // Try to cut ourselves down to about 85% of our max capacity, otherwise just hang out right at that boundary and the next entry we add we end up having to
             // scavenge again, and again, and again...
@@ -160,14 +176,18 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             {
                 // We could also be trimming on other threads, so if collectively we have brought ourselves below 85% of our max capacity then we are done
                 if (Interlocked.Read(ref _cacheSize) <= desiredSize)
+                {
                     break;
+                }
 
                 // find the largest item of the 10% of least recently accessed (remaining) items
                 uint largestSizeSeen = 0;
                 int curItemIndex = (entries.Count - 1) - (int)(entries.Count * 0.10);
 
                 if (curItemIndex < 0)
+                {
                     return;
+                }
 
                 int removalTargetIndex = -1;
                 while (curItemIndex < entries.Count)
@@ -192,7 +212,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 {
                     // If we are already below our desired size or we have already re-snapshotted one time, then just give up
                     if (haveUpdatedSnapshot || (Interlocked.Read(ref _cacheSize) <= desiredSize))
+                    {
                         break;
+                    }
 
                     // we failed to find any non MinSize entries in the last 10% of entries. Since our snapshot originally ONLY contained non-MinSize entries this likely
                     // means other threads are also trimming. Re-snapshot and try again.
@@ -200,7 +222,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     haveUpdatedSnapshot = true;
 
                     if (entries.Count == 0)
+                    {
                         break;
+                    }
 
                     continue;
                 }
@@ -208,12 +232,16 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 SegmentCacheEntry targetItem = entries[removalTargetIndex].CacheEntry.Value;
 
                 if (HeapSegmentCacheEventSource.Instance.IsEnabled())
+                {
                     HeapSegmentCacheEventSource.Instance.PageOutDataStart();
+                }
 
                 long sizeRemoved = targetItem.PageOutData();
 
                 if (HeapSegmentCacheEventSource.Instance.IsEnabled())
+                {
                     HeapSegmentCacheEventSource.Instance.PageOutDataEnd(sizeRemoved);
+                }
 
                 // Whether or not we managed to remove any memory for this item (another thread may have removed it all before we could), remove it from our list of
                 // entries to consider
@@ -257,7 +285,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             finally
             {
                 if (acquiredReadLock)
+                {
                     _cacheLock.ExitReadLock();
+                }
             }
 
             // Flip the sort order to the LEAST recently accessed items (i.e. the ones whose LastAccessTickCount are furthest in history) end up at the END of the array,
@@ -272,7 +302,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private void ThrowIfDisposed()
         {
             if (_cache == null)
+            {
                 throw new ObjectDisposedException(this.GetType().Name);
+            }
         }
     }
 }

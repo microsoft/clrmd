@@ -12,7 +12,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                 GetVTable(this, out nint self, out IDebugSystemObjectsVtable* vtable);
 
                 if (vtable->GetCurrentProcessSystemId(self, out int id) < 0)
+                {
                     return -1;
+                }
 
                 return id;
             }
@@ -25,7 +27,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                 GetVTable(this, out nint self, out IDebugSystemObjectsVtable* vtable);
 
                 if (vtable->GetCurrentThreadId(self, out int id) < 0)
+                {
                     return -1;
+                }
 
                 return id;
             }
@@ -60,7 +64,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             GetVTable(this, out nint self, out IDebugSystemObjectsVtable* vtable);
 
             fixed (uint *sysPtr = sysIds)
+            {
                 return vtable->GetThreadIdsByIndex(self, 0, sysIds.Length, null, sysPtr);
+            }
         }
 
         private static void GetVTable(object ths, out nint self, out IDebugSystemObjectsVtable* vtable)

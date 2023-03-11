@@ -49,7 +49,9 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 foreach (IElfPRStatus status in _core.EnumeratePRStatus())
+                {
                     return (int)status.ProcessId;
+                }
 
                 return -1;
             }
@@ -66,8 +68,12 @@ namespace Microsoft.Diagnostics.Runtime
 
                 _modules = new List<ModuleInfo>();
                 foreach (ElfLoadedImage image in _core.LoadedImages.Values)
+                {
                     if (image.BaseAddress != interpreter && !image.FileName.StartsWith("/dev", StringComparison.Ordinal))
+                    {
                         _modules.Add(CreateModuleInfo(image));
+                    }
+                }
             }
 
             return _modules;
@@ -103,7 +109,9 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<uint> EnumerateOSThreadIds()
         {
             foreach (IElfPRStatus status in _core.EnumeratePRStatus())
+            {
                 yield return status.ThreadId;
+            }
         }
 
         public ulong GetThreadTeb(uint osThreadId) => 0;
@@ -113,7 +121,9 @@ namespace Microsoft.Diagnostics.Runtime
             Dictionary<uint, IElfPRStatus> threads = LoadThreads();
 
             if (threads.TryGetValue(threadID, out IElfPRStatus? status))
+            {
                 return status.CopyRegistersAsContext(context);
+            }
 
             return false;
         }
@@ -132,7 +142,9 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 threads = new Dictionary<uint, IElfPRStatus>();
                 foreach (IElfPRStatus status in _core.EnumeratePRStatus())
+                {
                     threads.Add(status.ThreadId, status);
+                }
 
                 _threads = threads;
             }

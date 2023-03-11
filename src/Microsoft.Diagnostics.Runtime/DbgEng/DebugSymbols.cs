@@ -28,14 +28,18 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             using IDisposable holder = _sys.Enter();
             HResult hr = VTable.GetModuleNameStringWide(Self, which, index, imageBase, null, 0, out int needed);
             if (!hr)
+            {
                 return null;
+            }
 
             string nameResult = new('\0', needed - 1);
             fixed (char* nameResultPtr = nameResult)
             {
                 hr = VTable.GetModuleNameStringWide(Self, which, index, imageBase, nameResultPtr, needed, out _);
                 if (hr)
+                {
                     return nameResult;
+                }
             }
 
             return null;
@@ -79,10 +83,14 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             {
                 HResult hr;
                 fixed (byte* pBuffer = buffer)
+                {
                     hr = VTable.GetModuleVersionInformation(Self, index, imgBase, item, pBuffer, buffer.Length, out _);
+                }
 
                 if (!hr)
+                {
                     return new Version();
+                }
 
                 int minor = Unsafe.As<byte, ushort>(ref buffer[8]);
                 int major = Unsafe.As<byte, ushort>(ref buffer[10]);

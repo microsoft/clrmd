@@ -45,7 +45,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             DataReader = reader;
 
             if (header.Magic != MachHeader64.Magic64)
+            {
                 throw new InvalidDataException($"Module at {address:x} does not contain the expected Mach-O header.");
+            }
 
             // Since MachO segments are not contiguous the image size is just the headers/commands
             ImageSize = MachHeader64.Size + _header.SizeOfCommands;
@@ -78,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                         break;
 
                     case LoadCommandType.Uuid:
-                        var uuid = DataReader.Read<UuidLoadCommand>(cmdAddress);
+                        UuidLoadCommand uuid = DataReader.Read<UuidLoadCommand>(cmdAddress);
                         if (uuid.Header.Kind == LoadCommandType.Uuid)
                         {
                             BuildId = uuid.BuildId.ToImmutableArray();
@@ -93,13 +95,17 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             _segments = segments.ToArray();
 
             if (_symtab.StrOff != 0)
+            {
                 _stringTableAddress = GetAddressFromFileOffset(_symtab.StrOff);
+            }
         }
 
         public bool TryLookupSymbol(string symbol, out ulong address)
         {
             if (symbol is null)
+            {
                 throw new ArgumentNullException(nameof(symbol));
+            }
 
             if (_stringTableAddress != 0)
             {
@@ -126,7 +132,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             NList64[]? symTable = ReadSymbolTable();
             if (symTable is null)
+            {
                 return false;
+            }
 
             for (uint i = 0; i < nsyms && start + i < symTable.Length; i++)
             {
@@ -160,11 +168,16 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             Span<byte> buffer = new byte[max];
             int count = DataReader.Read(address, buffer);
             if (count == 0)
+            {
                 return "";
+            }
 
             buffer = buffer.Slice(0, count);
             if (buffer[buffer.Length - 1] == 0)
+            {
                 buffer = buffer.Slice(0, buffer.Length - 1);
+            }
+
             string result = Encoding.ASCII.GetString(buffer);
             return result;
         }
@@ -172,17 +185,23 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         private NList64[]? ReadSymbolTable()
         {
             if (_symTable != null)
+            {
                 return _symTable;
+            }
 
             if (_dysymtab.Header.Kind != LoadCommandType.DysymTab || _symtab.Header.Kind != LoadCommandType.SymTab)
+            {
                 return null;
+            }
 
             ulong symbolTableAddress = GetAddressFromFileOffset(_symtab.SymOff);
             NList64[] symTable = new NList64[_symtab.NSyms];
 
             int count;
             fixed (NList64* ptr = symTable)
+            {
                 count = DataReader.Read(symbolTableAddress, new Span<byte>(ptr, symTable.Length * sizeof(NList64))) / sizeof(NList64);
+            }
 
             _symTable = symTable;
             return symTable;
@@ -190,9 +209,13 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         private ulong GetAddressFromFileOffset(uint fileOffset)
         {
-            foreach (var seg in _segments)
+            foreach (MachOSegment seg in _segments)
+            {
                 if (seg.FileOffset <= fileOffset && fileOffset < seg.FileOffset + seg.FileSize)
+                {
                     return LoadBias + fileOffset + seg.Address - seg.FileOffset;
+                }
+            }
 
             return LoadBias + fileOffset;
         }
@@ -206,7 +229,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 LoadCommandHeader cmd = DataReader.Read<LoadCommandHeader>(cmdAddress);
 
                 if (cmd.Kind == LoadCommandType.Segment64)
+                {
                     yield return DataReader.Read<Segment64LoadCommand>(cmdAddress + LoadCommandHeader.HeaderSize);
+                }
 
                 offset += cmd.Size;
             }

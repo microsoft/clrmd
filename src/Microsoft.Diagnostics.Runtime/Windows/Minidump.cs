@@ -35,7 +35,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             get
             {
                 if (!_contextsCached.IsDefault)
+                {
                     return _contextsCached;
+                }
 
                 _contextsCached = _threadTask.Result.ContextData;
                 return _contextsCached;
@@ -67,7 +69,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             // Load header
             MinidumpHeader header = Read<MinidumpHeader>(stream);
             if (!header.IsValid)
+            {
                 throw new InvalidDataException($"File '{displayName}' is not a Minidump.");
+            }
 
             IsMiniDump = (header.Flags & (MiniDumpWithFullMemory | MiniDumpWithPrivateReadWriteMemory | MiniDumpWithPrivateWriteCopyMemory)) == 0;
 
@@ -75,7 +79,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             stream.Position = header.StreamDirectoryRva;
             if (!Read(stream, _directories))
+            {
                 throw new InvalidDataException($"Unable to read directories from minidump '{displayName} offset 0x{header.StreamDirectoryRva:x}");
+            }
 
             (int systemInfoIndex, int moduleListIndex, int miscStream) = FindImportantStreams(displayName);
 
@@ -86,7 +92,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             // ProcessId is the 3rd DWORD in this stream.
             if (miscStream != -1)
+            {
                 ProcessId = Read<int>(stream, _directories[miscStream].Rva + sizeof(uint) * 2);
+            }
 
             // Initialize modules.  DataTarget will need a module list immediately, so there's no reason to delay
             // filling in the module list.
@@ -97,9 +105,13 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             MinidumpModule[] modules = new MinidumpModule[count];
 
             if (Read(stream, rva, modules))
+            {
                 Modules = modules.AsImmutableArray();
+            }
             else
+            {
                 Modules = ImmutableArray<MinidumpModule>.Empty;
+            }
 
             // Read segments async.
             ImmutableArray<MinidumpSegment> segments = GetSegments(stream);
@@ -139,7 +151,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public void Dispose()
         {
             if (MemoryReader is IDisposable disposable)
+            {
                 disposable.Dispose();
+            }
 
             _file?.Dispose();
         }
@@ -158,14 +172,18 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 {
                     case MinidumpStreamType.ModuleListStream:
                         if (moduleList != -1)
+                        {
                             throw new InvalidDataException($"Minidump '{crashDump}' had multiple module lists.");
+                        }
 
                         moduleList = i;
                         break;
 
                     case MinidumpStreamType.SystemInfoStream:
                         if (systemInfo != -1)
+                        {
                             throw new InvalidDataException($"Minidump '{crashDump}' had multiple system info streams.");
+                        }
 
                         systemInfo = i;
                         break;
@@ -177,9 +195,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
 
             if (systemInfo == -1)
+            {
                 throw new InvalidDataException($"Minidump '{crashDump}' did not contain a system info stream.");
+            }
+
             if (moduleList == -1)
+            {
                 throw new InvalidDataException($"Minidump '{crashDump}' did not contain a module list stream.");
+            }
 
             return (systemInfo, moduleList, miscInfo);
         }
@@ -192,14 +215,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             // This will select ThreadListStread, ThreadExListStream, and ThreadInfoListStream in that order.
             // We prefer to pull contexts from the *ListStreams but if those don't exist or are missing threads
             // we still want threadIDs which don't have context records for IDataReader.EnumerateThreads.
-            var directories = from d in _directories
+            IOrderedEnumerable<MinidumpDirectory> directories = from d in _directories
                               where d.StreamType == MinidumpStreamType.ThreadListStream ||
                                     d.StreamType == MinidumpStreamType.ThreadExListStream ||
                                     d.StreamType == MinidumpStreamType.ThreadInfoListStream
                               orderby d.StreamType ascending
                               select d;
 
-            var threadBuilder = ImmutableArray.CreateBuilder<uint>();
+            ImmutableArray<uint>.Builder threadBuilder = ImmutableArray.CreateBuilder<uint>();
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(1024);
             try
@@ -210,7 +233,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     {
                         uint numThreads = await ReadAsync<uint>(stream, buffer, directory.Rva).ConfigureAwait(false);
                         if (numThreads == 0)
+                        {
                             continue;
+                        }
 
                         int count = ResizeBytesForArray<MinidumpThread>(numThreads, ref buffer);
                         int read = await ReadAsync(stream, buffer, count).ConfigureAwait(false);
@@ -220,7 +245,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                             MinidumpThread thread = Unsafe.As<byte, MinidumpThread>(ref buffer[i]);
 
                             if (!threadContextLocations.ContainsKey(thread.ThreadId))
+                            {
                                 threadBuilder.Add(thread.ThreadId);
+                            }
 
                             threadContextLocations[thread.ThreadId] = (thread.ThreadContext.Rva, thread.ThreadContext.DataSize, thread.Teb);
                         }
@@ -229,7 +256,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     {
                         uint numThreads = await ReadAsync<uint>(stream, buffer, directory.Rva).ConfigureAwait(false);
                         if (numThreads == 0)
+                        {
                             continue;
+                        }
 
                         int count = ResizeBytesForArray<MinidumpThreadEx>(numThreads, ref buffer);
                         int read = await ReadAsync(stream, buffer, count).ConfigureAwait(false);
@@ -239,7 +268,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                             MinidumpThreadEx thread = Unsafe.As<byte, MinidumpThreadEx>(ref buffer[i]);
 
                             if (!threadContextLocations.ContainsKey(thread.ThreadId))
+                            {
                                 threadBuilder.Add(thread.ThreadId);
+                            }
 
                             threadContextLocations[thread.ThreadId] = (thread.ThreadContext.Rva, thread.ThreadContext.DataSize, thread.Teb);
                         }
@@ -248,10 +279,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     {
                         MinidumpThreadInfoList threadInfoList = await ReadAsync<MinidumpThreadInfoList>(stream, buffer, directory.Rva).ConfigureAwait(false);
                         if (threadInfoList.NumberOfEntries <= 0)
+                        {
                             continue;
+                        }
 
                         if (threadInfoList.SizeOfEntry != SizeOf<MinidumpThreadInfo>())
+                        {
                             throw new InvalidDataException($"ThreadInfoList.SizeOfEntry=0x{threadInfoList.SizeOfEntry:x}, but sizeof(MinidumpThreadInfo)=0x{SizeOf<MinidumpThreadInfo>()}");
+                        }
 
                         stream.Position = directory.Rva + threadInfoList.SizeOfHeader;
                         int count = ResizeBytesForArray<MinidumpThreadInfo>((ulong)threadInfoList.NumberOfEntries, ref buffer);
@@ -274,8 +309,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 ArrayPool<byte>.Shared.Return(buffer);
             }
 
-            var contextBuilder = ImmutableArray.CreateBuilder<MinidumpContextData>(threadContextLocations.Count);
-            var tebBuilder = ImmutableDictionary.CreateBuilder<uint, ulong>();
+            ImmutableArray<MinidumpContextData>.Builder contextBuilder = ImmutableArray.CreateBuilder<MinidumpContextData>(threadContextLocations.Count);
+            ImmutableDictionary<uint, ulong>.Builder tebBuilder = ImmutableDictionary.CreateBuilder<uint, ulong>();
 
             foreach (KeyValuePair<uint, (uint Rva, uint Size, ulong Teb)> item in threadContextLocations.OrderBy(k => k.Key))
             {
@@ -319,7 +354,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         int byteCount = ResizeBytesForArray<MinidumpMemoryDescriptor>(count, ref buffer);
 
                         if (stream.Read(buffer, 0, byteCount) == byteCount)
+                        {
                             AddSegments(segments, buffer, byteCount);
+                        }
                     }
                     else if (_directories[i].StreamType == MinidumpStreamType.Memory64ListStream)
                     {
@@ -327,14 +364,18 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         int byteCount = ResizeBytesForArray<MinidumpMemoryDescriptor>(memList64.NumberOfMemoryRanges, ref buffer);
 
                         if (stream.Read(buffer, 0, byteCount) == byteCount)
+                        {
                             AddSegments(segments, memList64.Rva, buffer, byteCount);
+                        }
                     }
                 }
             }
             finally
             {
                 if (buffer != null)
+                {
                     ArrayPool<byte>.Shared.Return(buffer);
+                }
             }
 
             return segments.Where(s => s.Size > 0).OrderBy(s => s.VirtualAddress).ThenBy(s => s.Size).ToImmutableArray();
@@ -348,7 +389,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             {
                 MinidumpMemoryDescriptor* desc = (MinidumpMemoryDescriptor*)ptr;
                 for (int i = 0; i < count; i++)
+                {
                     segments.Add(new MinidumpSegment(desc[i].Rva, desc[i].StartAddress, desc[i].DataSize32));
+                }
             }
         }
 
@@ -391,7 +434,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             int size = SizeOf<T>();
             if (buffer.Length < size)
+            {
                 buffer = new byte[size];
+            }
 
             stream.Position = offset;
             int read = await ReadAsync(stream, buffer, size).ConfigureAwait(false);
@@ -421,7 +466,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             int read = stream.Read(buffer);
             if (read < size)
+            {
                 return default;
+            }
 
             return Unsafe.As<byte, T>(ref buffer[0]);
         }

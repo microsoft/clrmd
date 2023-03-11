@@ -33,7 +33,9 @@ namespace Microsoft.Diagnostics.Runtime
             if (!GetFileVersion(file, out int major, out int minor, out int build, out int revision))
             {
                 if (version == null)
+                {
                     return true;  // the runtime module has no version info either
+                }
 
                 return false;
             }

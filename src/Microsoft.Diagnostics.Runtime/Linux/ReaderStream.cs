@@ -38,7 +38,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public override int Read(byte[] buffer, int offset, int count)
         {
             if (offset != 0)
+            {
                 throw new NotImplementedException();
+            }
 
             ulong readOffset = (_position < 0) ? (ulong)((long)_baseAddress + _position) : _baseAddress + (ulong)_position;
             int read = _reader.ReadBytes(readOffset, new Span<byte>(buffer, 0, count));
@@ -51,11 +53,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public override long Seek(long offset, SeekOrigin origin)
         {
             if (origin == SeekOrigin.Begin)
+            {
                 _position = offset;
+            }
             else if (origin == SeekOrigin.Current)
+            {
                 _position += offset;
+            }
             else
+            {
                 throw new InvalidOperationException();
+            }
 
             return _position;
         }

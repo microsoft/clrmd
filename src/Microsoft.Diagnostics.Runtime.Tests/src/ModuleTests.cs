@@ -24,7 +24,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             foreach (PEModuleInfo module in dt.EnumerateModules())
             {
                 if (!module.IsManaged)
+                {
                     continue;
+                }
 
                 PEImage img = module.GetPEImage();
                 Assert.NotNull(img);

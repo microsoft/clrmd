@@ -38,7 +38,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 _pos = value;
                 if (_pos > _len)
+                {
                     _pos = _len;
+                }
             }
         }
 
@@ -65,13 +67,19 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 case SeekOrigin.End:
                     _pos = _len + offset;
                     if (_pos > _len)
+                    {
                         _pos = _len;
+                    }
+
                     break;
 
                 case SeekOrigin.Current:
                     _pos += offset;
                     if (_pos > _len)
+                    {
                         _pos = _len;
+                    }
+
                     break;
             }
 

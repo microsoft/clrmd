@@ -16,7 +16,9 @@ namespace Microsoft.Diagnostics.Runtime
         public static void Assert(bool mustBeTrue, string msg)
         {
             if (!mustBeTrue)
+            {
                 Fail(msg);
+            }
         }
 
         [Conditional("DEBUG")]

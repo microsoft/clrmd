@@ -18,7 +18,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private static StringComparer GetEqualityComparer()
         {
             if (IsCaseInsensitiveFileSystem)
+            {
                 return StringComparer.OrdinalIgnoreCase;
+            }
 
             return StringComparer.Ordinal;
         }
@@ -28,10 +30,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public FileSymbolCache(string cacheLocation)
         {
             if (string.IsNullOrWhiteSpace(cacheLocation))
+            {
                 throw new ArgumentNullException(nameof(cacheLocation));
+            }
 
             if (!Directory.Exists(cacheLocation))
+            {
                 throw new DirectoryNotFoundException($"No symbol cache directory found at '{cacheLocation}'.");
+            }
 
             Location = cacheLocation;
         }
@@ -41,11 +47,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (Path.GetFileName(fileName) != fileName && File.Exists(fileName))
             {
                 if (!checkProperties || buildId.IsDefaultOrEmpty)
+                {
                     return fileName;
+                }
 
                 using ElfFile elf = new(fileName);
                 if (elf.BuildId.SequenceEqual(buildId))
+                {
                     return fileName;
+                }
             }
 
             string? key = base.FindElfImage(fileName, archivedUnder, buildId, checkProperties);
@@ -57,7 +67,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (Path.GetFileName(fileName) != fileName && File.Exists(fileName))
             {
                 if (!checkProperties || uuid.IsDefaultOrEmpty)
+                {
                     return fileName;
+                }
 
                 // TODO:  We don't have a mach-o file reader to grab the uuid to verify.
                 return fileName;
@@ -75,7 +87,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 {
                     using PEImage peImage = new(File.OpenRead(fileName), leaveOpen: false);
                     if (peImage.IndexFileSize == imageSize && peImage.IndexTimeStamp == buildTimeStamp)
+                    {
                         return fileName;
+                    }
                 }
             }
 
@@ -86,7 +100,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 using PEImage peImage = new(File.OpenRead(image), leaveOpen: false);
                 if (peImage.IndexFileSize != imageSize || peImage.IndexTimeStamp != buildTimeStamp)
+                {
                     image = null;
+                }
             }
 
             return image;
@@ -101,7 +117,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private string? FindImage(string? key)
         {
             if (key is null)
+            {
                 return null;
+            }
 
             string fullPath = Path.Combine(Location, key);
             if (File.Exists(fullPath))
@@ -119,7 +137,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         internal string Store(Stream stream, string key)
         {
             if (string.IsNullOrWhiteSpace(key))
+            {
                 throw new InvalidOperationException($"Cannot store to an empty {nameof(key)}.");
+            }
 
             string fullPath = Path.Combine(Location, key);
 
@@ -128,7 +148,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             lock (_writingTo)
             {
                 if (!_writingTo.TryGetValue(fullPath, out currentWrite))
+                {
                     _writingTo.Add(fullPath, source.Task);
+                }
             }
 
             if (currentWrite != null)

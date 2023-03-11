@@ -17,7 +17,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         protected override object? CreateObject(IntPtr externalComObject, CreateObjectFlags flags)
         {
             if (flags != CreateObjectFlags.UniqueInstance)
+            {
                 throw new NotSupportedException($"Only 'UniqueInstance' is supported.");
+            }
 
             return new DbgEngWrapper(externalComObject);
         }

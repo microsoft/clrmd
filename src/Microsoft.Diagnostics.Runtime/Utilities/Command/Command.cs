@@ -66,7 +66,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             get
             {
                 if (_outputStream != null)
+                {
                     throw new Exception("Output not available if redirected to file or stream");
+                }
 
                 return _output.ToString();
             }
@@ -114,7 +116,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             // See if the command is quoted and match it in that case
             Match m = Regex.Match(commandLine, "^\\s*\"(.*?)\"\\s*(.*)");
             if (!m.Success)
+            {
                 m = Regex.Match(commandLine, @"\s*(\S*)\s*(.*)"); // thing before first space is command
+            }
 
             ProcessStartInfo startInfo = new(m.Groups[1].Value, m.Groups[2].Value)
             {
@@ -174,7 +178,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     "    Cmd: " + commandLine + "\r\n";
 
                 if (Regex.IsMatch(startInfo.FileName, @"^(copy|dir|del|color|set|cd|cdir|md|mkdir|prompt|pushd|popd|start|assoc|ftype)", RegexOptions.IgnoreCase))
+                {
                     msg += "    Cmd " + startInfo.FileName + " implemented by Cmd.exe, fix by prefixing with 'cmd /c'.";
+                }
+
                 throw new Exception(msg, e);
             }
 
@@ -210,7 +217,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             // we where told not to wait
             if (Options.noWait)
+            {
                 return this;
+            }
 
             bool waitReturned = false;
             bool killed = false;
@@ -222,7 +231,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 // If you do Run("cmd /c set") you get truncated output at the
                 // Looks like the problem in the framework.
                 for (int i = 0; i < 10; i++)
+                {
                     Thread.Sleep(1);
+                }
             }
             finally
             {
@@ -235,14 +246,22 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             // If we created the output stream, we should close it.
             if (_outputStream != null && Options.outputFile != null)
+            {
                 _outputStream.Dispose();
+            }
+
             _outputStream = null;
 
             if (waitReturned && killed)
+            {
                 throw new Exception("Timeout of " + Options.timeoutMSec / 1000 + " sec exceeded\r\n    Cmd: " + _commandLine);
+            }
 
             if (Process.ExitCode != 0 && !Options.noThrow)
+            {
                 ThrowCommandFailure(null);
+            }
+
             return this;
         }
 
@@ -265,18 +284,27 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     // Only show the first lineNumber the last two lines if there are a lot of output.
                     Match m = Regex.Match(outStr, @"^(\s*\n)?(.+\n)(.|\n)*?(.+\n.*\S)\s*$");
                     if (m.Success)
+                    {
                         outStr = m.Groups[2].Value + "    <<< Omitted output ... >>>\r\n" + m.Groups[4].Value;
+                    }
                     else
+                    {
                         outStr = outStr.Trim();
+                    }
                     // Indent the output
                     outStr = outStr.Replace("\n", "\n    ");
                     outSpec = "\r\n  Output: {\r\n    " + outStr + "\r\n  }";
                 }
 
                 if (message is null)
+                {
                     message = string.Empty;
+                }
                 else if (message.Length > 0)
+                {
                     message += "\r\n";
+                }
+
                 throw new Exception($"{message} Process returned exit code 0x{Process.ExitCode:x} Cmd: {_commandLine}{outSpec}");
             }
         }
@@ -321,7 +349,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             // If we created the output stream, we should close it.
             if (_outputStream != null && Options.outputFile != null)
+            {
                 _outputStream.Dispose();
+            }
+
             _outputStream = null;
         }
 
@@ -347,7 +378,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             string? ret = ProbeForExe(commandExe);
             if (ret != null)
+            {
                 return ret;
+            }
 
             if (!commandExe.Contains("\\"))
             {
@@ -356,7 +389,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     string baseExe = Path.Combine(path, commandExe);
                     ret = ProbeForExe(baseExe);
                     if (ret != null)
+                    {
                         return ret;
+                    }
                 }
             }
 
@@ -366,13 +401,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private static string? ProbeForExe(string path)
         {
             if (File.Exists(path))
+            {
                 return path;
+            }
 
             foreach (string ext in PathExts)
             {
                 string name = path + ext;
                 if (File.Exists(name))
+                {
                     return name;
+                }
             }
 
             return null;
@@ -403,9 +442,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private void OnProcessOutput(object sender, DataReceivedEventArgs e)
         {
             if (_outputStream != null)
+            {
                 _outputStream.WriteLine(e.Data);
+            }
             else
+            {
                 _output.AppendLine(e.Data);
+            }
         }
 
         /* private state */

@@ -21,15 +21,19 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // We make sure SearchMemory will find things that are not pointer aligned with 'i' here.
             Span<byte> buffer = stackalloc byte[sizeof(ulong) + sizeof(int)];
 
-            foreach (var segment in heap.Segments)
+            foreach (ClrSegment segment in heap.Segments)
             {
                 HashSet<ulong> seen = new HashSet<ulong>() { 0 };
                 List<ClrObject> firstSeenObjectOfType = new List<ClrObject>();
 
                 // We will search for method tables so make sure we
                 foreach (ClrObject obj in segment.EnumerateObjects())
+                {
                     if (seen.Add(obj.Type.MethodTable))
+                    {
                         firstSeenObjectOfType.Add(obj);
+                    }
+                }
 
                 foreach (ClrObject obj in firstSeenObjectOfType)
                 {
@@ -37,17 +41,23 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     {
                         ulong expectedOffset = obj.Address - (uint)i;
                         if (expectedOffset < segment.Start)
+                        {
                             continue;
+                        }
 
                         Span<byte> slice = buffer.Slice(0, sizeof(ulong) + i);
                         if (dt.DataReader.Read(expectedOffset, slice) != slice.Length)
+                        {
                             continue;
+                        }
 
                         ulong addressFound = dt.DataReader.SearchMemory(segment.Start, (int)segment.Length, buffer.Slice(0, i + sizeof(ulong)));
 
                         // There could still accidentally be a pattern that matches this somewhere
                         while (addressFound != 0 && addressFound < expectedOffset)
+                        {
                             addressFound = dt.DataReader.SearchMemory(addressFound + 1, (int)(segment.End - (addressFound + 1)), buffer.Slice(0, i + sizeof(ulong)));
+                        }
 
                         Assert.Equal(expectedOffset, addressFound);
                     }

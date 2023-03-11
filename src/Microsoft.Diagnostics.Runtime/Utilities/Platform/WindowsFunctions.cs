@@ -53,7 +53,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             int len = NativeMethods.GetFileVersionInfoSize(dll, out int handle);
             if (len <= 0)
+            {
                 return false;
+            }
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(len);
             try
@@ -61,10 +63,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 fixed (byte* data = buffer)
                 {
                     if (!NativeMethods.GetFileVersionInfo(dll, handle, len, data))
+                    {
                         return false;
+                    }
 
                     if (!NativeMethods.VerQueryValue(data, "\\", out IntPtr ptr, out len))
+                    {
                         return false;
+                    }
 
                     DebugOnly.Assert(unchecked((int)ptr.ToInt64()) % sizeof(ushort) == 0);
 
@@ -86,14 +92,22 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public override IntPtr LoadLibrary(string libraryPath)
         {
             if (libraryPath is null)
+            {
                 throw new ArgumentNullException(nameof(libraryPath));
+            }
 
             IntPtr handle = NativeMethods.LoadLibrary(libraryPath);
             if (handle == IntPtr.Zero)
+            {
                 if (Marshal.GetLastWin32Error() == 193)
+                {
                     throw new BadImageFormatException(); // ERROR_BAD_EXE_FORMAT
+                }
                 else
+                {
                     throw new DllNotFoundException();
+                }
+            }
 
             return handle;
         }

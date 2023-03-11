@@ -26,7 +26,9 @@ namespace Microsoft.Diagnostics.Runtime
             Type = type ?? throw new ArgumentNullException(nameof(type));
 
             if (!type.IsEnum)
+            {
                 throw new InvalidOperationException($"{type.Name ?? nameof(ClrType)} is not an enum.  You must call {nameof(ClrType)}.{nameof(ClrType.IsEnum)} before using {nameof(ClrEnum)}.");
+            }
 
             MetadataImport? import = type.Module?.MetadataImport;
             if (import != null)
@@ -59,13 +61,17 @@ namespace Microsoft.Diagnostics.Runtime
                 if (import.GetFieldProps(token, out string? name, out FieldAttributes attr, out IntPtr ppvSigBlob, out int pcbSigBlob, out int pdwCPlusTypeFlag, out IntPtr ppValue))
                 {
                     if (name == null)
+                    {
                         continue;
+                    }
 
                     if ((int)attr == 0x606 && name == "value__")
                     {
                         SigParser parser = new(ppvSigBlob, pcbSigBlob);
                         if (parser.GetCallingConvInfo(out _) && parser.GetElemType(out int elemType))
+                        {
                             elementType = (ClrElementType)elemType;
+                        }
                     }
 
                     // public, static, literal, has default

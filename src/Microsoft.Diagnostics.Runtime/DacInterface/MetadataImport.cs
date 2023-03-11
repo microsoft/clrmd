@@ -32,8 +32,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             try
             {
                 while (Enum(ref handle, token, tokens, tokens.Length, out int count) && count > 0)
+                {
                     for (int i = 0; i < count; i++)
+                    {
                         yield return tokens[i];
+                    }
+                }
 
                 bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count)
                 {
@@ -47,7 +51,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             finally
             {
                 if (handle != IntPtr.Zero)
+                {
                     CloseEnum(handle);
+                }
 
                 ArrayPool<int>.Shared.Return(tokens);
             }
@@ -76,7 +82,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             string nameResult = new('\0', needed - 1);
             fixed (char* nameResultPtr = nameResult)
+            {
                 hr = VTable.GetTypeDefProps(Self, token, nameResultPtr, needed, out needed, out attributes, out mdParent);
+            }
 
             name = hr ? nameResult : null;
             return hr;
@@ -101,7 +109,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             string nameResult = new('\0', needed - 1);
             fixed (char* nameResultPtr = nameResult)
+            {
                 hr = VTable.GetFieldProps(Self, token, out typeDef, nameResultPtr, needed, out needed, out attrs, out ppvSigBlob, out pcbSigBlob, out pdwCPlusTypeFlag, out ppValue, out pcchValue);
+            }
 
             name = hr ? nameResult : null;
             return hr;
@@ -114,8 +124,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             try
             {
                 while (Enum(ref handle, token, tokens, tokens.Length, out int count) && count > 0)
+                {
                     for (int i = 0; i < count; i++)
+                    {
                         yield return tokens[i];
+                    }
+                }
 
                 bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count)
                 {
@@ -129,7 +143,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             finally
             {
                 if (handle != IntPtr.Zero)
+                {
                     CloseEnum(handle);
+                }
 
                 ArrayPool<int>.Shared.Return(tokens);
             }
@@ -144,14 +160,18 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.GetTypeRefProps(Self, token, out int scope, null, 0, out int needed);
             if (!hr.IsOK)
+            {
                 return null;
+            }
 
             string nameResult = new('\0', needed - 1);
             fixed (char* nameResultPtr = nameResult)
             {
                 hr = VTable.GetTypeRefProps(Self, token, out scope, nameResultPtr, needed, out needed);
                 if (hr)
+                {
                     return nameResult;
+                }
             }
 
             return null;
@@ -182,8 +202,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             try
             {
                 while (Enum(ref handle, token, tokens, tokens.Length, out int count) && count > 0)
+                {
                     for (int i = 0; i < count; i++)
+                    {
                         yield return tokens[i];
+                    }
+                }
 
                 bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count)
                 {
@@ -197,7 +221,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             finally
             {
                 if (handle != IntPtr.Zero)
+                {
                     CloseEnum(handle);
+                }
 
                 ArrayPool<int>.Shared.Return(tokens);
             }
@@ -211,14 +237,20 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             HResult hr = VTable.GetGenericParamProps(Self, token, out index, out attributes, out int owner, out _, null, 0, out int needed);
 
             if (hr < 0)
+            {
                 return false;
+            }
 
             string nameResult = new('\0', needed - 1);
             fixed (char* nameResultPtr = nameResult)
+            {
                 hr = VTable.GetGenericParamProps(Self, token, out index, out attributes, out owner, out _, nameResultPtr, nameResult.Length + 1, out needed);
+            }
 
             if (hr < 0)
+            {
                 return false;
+            }
 
             name = nameResult;
             return true;
@@ -228,7 +260,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.GetSigFromToken(Self, token, out IntPtr sig, out int len);
             if (hr)
+            {
                 return new SigParser(sig, len);
+            }
 
             return default;
         }

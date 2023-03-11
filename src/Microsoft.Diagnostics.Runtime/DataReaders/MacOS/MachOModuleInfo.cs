@@ -19,13 +19,23 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             get
             {
                 if (_version is not null)
+                {
                     return _version;
+                }
 
                 if (_module is not null)
+                {
                     foreach (Segment64LoadCommand segment in _module.EnumerateSegments())
+                    {
                         if (((segment.InitProt & Segment64LoadCommand.VmProtWrite) != 0) && !segment.Name.Equals("__LINKEDIT"))
+                        {
                             if (_module.DataReader.GetVersionInfo(_module.LoadBias + segment.VMAddr, segment.VMSize, out Version? version))
+                            {
                                 _version = version;
+                            }
+                        }
+                    }
+                }
 
                 return _version ?? new Version();
             }
@@ -36,7 +46,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             get
             {
                 if (_module is not null)
+                {
                     return _module.BuildId;
+                }
 
                 return ImmutableArray<byte>.Empty;
             }
@@ -46,10 +58,14 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         public override ulong GetExportSymbolAddress(string symbol)
         {
             if (_module is null)
+            {
                 return 0;
+            }
 
             if (_module.TryLookupSymbol(symbol, out ulong symbolAddress))
+            {
                 return symbolAddress;
+            }
 
             return 0;
         }

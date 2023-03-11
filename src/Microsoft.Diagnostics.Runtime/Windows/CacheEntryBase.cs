@@ -32,7 +32,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             int pageCount = (int)((_segmentData.End - _segmentData.VirtualAddress) / EntryPageSize);
 
             if ((_segmentData.End - _segmentData.VirtualAddress) % EntryPageSize != 0)
+            {
                 pageCount++;
+            }
 
             _pages = new CachePage<T>[pageCount];
             _pageLocks = new ReaderWriterLockSlim[pageCount];
@@ -133,7 +135,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public void Dispose()
         {
             if (_pages == null)
+            {
                 return;
+            }
 
             Dispose(disposing: true);
 
@@ -146,7 +150,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         protected void ThrowIfDisposed()
         {
             if (_pages == null)
+            {
                 throw new ObjectDisposedException(GetType().Name);
+            }
         }
 
         private void ReadPageDataFromOffset(ulong segmentOffset, IntPtr buffer, uint byteCount, uint entryPageSize, out ulong bytesRead)
@@ -259,7 +265,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             finally
             {
                 if (holdsReadLock)
+                {
                     pageLock.ExitReadLock();
+                }
             }
 
             if (notifyCacheOfSizeUpdate)
@@ -339,7 +347,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 for (; j < terminatingSequence.Length; j++)
                 {
                     if (trailingBytes[j] != terminatingSequence[j])
+                    {
                         break;
+                    }
                 }
 
                 if (j == terminatingSequence.Length)
@@ -384,7 +394,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 for (; j < terminatingSequence.Length; j++)
                 {
                     if (*((byte*)data + inPageOffset + i + j) != terminatingSequence[j])
+                    {
                         break;
+                    }
                 }
 
                 if (j == terminatingSequence.Length)

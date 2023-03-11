@@ -58,7 +58,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 foreach (ClrModule module in domain.Modules)
                 {
                     if (Path.GetExtension(module.Name) == ".nlp")
+                    {
                         continue;
+                    }
 
                     Assert.Contains(Path.GetFileName(module.Name), expected);
                     Assert.DoesNotContain(module, modules);
@@ -73,30 +75,38 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.NestedException.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            var oldShared = runtime.SharedDomain;
-            var oldSystem = runtime.SystemDomain;
-            var oldDomains = runtime.AppDomains;
-            var oldHeap = runtime.Heap;
-            var oldModules = runtime.EnumerateModules().ToArray();
-            var oldObjects = oldHeap.EnumerateObjects().Take(20).ToArray();
-            var oldFields = oldObjects.SelectMany(o => o.Type.Fields).ToArray();
-            var oldStaticFields = oldObjects.SelectMany(o => o.Type.StaticFields).ToArray();
-            var oldMethods = oldObjects.SelectMany(o => o.Type.Methods).ToArray();
-            var oldThreads = runtime.Threads;
+            ClrAppDomain oldShared = runtime.SharedDomain;
+            ClrAppDomain oldSystem = runtime.SystemDomain;
+            System.Collections.Immutable.ImmutableArray<ClrAppDomain> oldDomains = runtime.AppDomains;
+            ClrHeap oldHeap = runtime.Heap;
+            ClrModule[] oldModules = runtime.EnumerateModules().ToArray();
+            ClrObject[] oldObjects = oldHeap.EnumerateObjects().Take(20).ToArray();
+            ClrInstanceField[] oldFields = oldObjects.SelectMany(o => o.Type.Fields).ToArray();
+            ClrStaticField[] oldStaticFields = oldObjects.SelectMany(o => o.Type.StaticFields).ToArray();
+            ClrMethod[] oldMethods = oldObjects.SelectMany(o => o.Type.Methods).ToArray();
+            System.Collections.Immutable.ImmutableArray<ClrThread> oldThreads = runtime.Threads;
 
             // Ensure names are read and cached
-            foreach (var obj in oldObjects)
+            foreach (ClrObject obj in oldObjects)
             {
                 _ = obj.Type.Name;
-                foreach (var item in obj.Type.Methods)
+                foreach (ClrMethod item in obj.Type.Methods)
+                {
                     _ = item.Name;
-                foreach (var item in obj.Type.Fields)
+                }
+
+                foreach (ClrInstanceField item in obj.Type.Fields)
+                {
                     _ = item.Name;
-                foreach (var item in obj.Type.StaticFields)
+                }
+
+                foreach (ClrStaticField item in obj.Type.StaticFields)
+                {
                     _ = item.Name;
+                }
             }
 
-            foreach (var module in oldModules)
+            foreach (ClrModule module in oldModules)
             {
                 _ = module.Name;
                 _ = module.Name;
@@ -122,15 +132,19 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             CheckDomainNotSame(oldSystem, runtime.SystemDomain);
             Assert.Equal(oldDomains.Length, runtime.AppDomains.Length);
             for (int i = 0; i < oldDomains.Length; i++)
+            {
                 CheckDomainNotSame(oldDomains[i], runtime.AppDomains[i]);
+            }
 
-            var newModules = runtime.EnumerateModules().ToArray();
+            ClrModule[] newModules = runtime.EnumerateModules().ToArray();
             for (int i = 0; i < oldModules.Length; i++)
+            {
                 CheckModuleNotSame(oldModules[i], newModules[i]);
+            }
 
             ClrHeap newHeap = runtime.Heap;
 
-            var newObjs = newHeap.EnumerateObjects().Take(20).ToArray();
+            ClrObject[] newObjs = newHeap.EnumerateObjects().Take(20).ToArray();
             Assert.Equal(oldObjects.Length, newObjs.Length);
             for (int i = 0; i < oldObjects.Length; i++)
             {
@@ -138,7 +152,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 CheckTypeNotSame(oldObjects[i].Type, newObjs[i].Type);
             }
 
-            var newThreads = runtime.Threads;
+            System.Collections.Immutable.ImmutableArray<ClrThread> newThreads = runtime.Threads;
             Assert.Equal(newThreads, runtime.Threads);
             Assert.Equal(oldThreads.Length, newThreads.Length);
             for (int i = 0; i < oldThreads.Length; i++)
@@ -152,20 +166,28 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Don't check that the basic types are different, it's ok to cache those
             if (oldType.IsFree || oldType.IsArray || oldType.IsException || oldType.BaseType == null || oldType.IsString)
+            {
                 return;
+            }
 
             Assert.Equal(oldType.MethodTable, newType.MethodTable);
 
             AssertEqualNotSame(oldType.Name, newType.Name);
 
             for (int i = 0; i < oldType.Fields.Length; i++)
+            {
                 AssertEqualNotSame(oldType.Fields[i].Name, newType.Fields[i].Name);
+            }
 
             for (int i = 0; i < oldType.StaticFields.Length; i++)
+            {
                 AssertEqualNotSame(oldType.StaticFields[i].Name, newType.StaticFields[i].Name);
+            }
 
             for (int i = 0; i < oldType.Methods.Length; i++)
+            {
                 AssertEqualNotSame(oldType.Methods[i].Name, newType.Methods[i].Name);
+            }
         }
 
         private void AssertEqualNotSame(string t1, string t2)

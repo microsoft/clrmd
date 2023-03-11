@@ -44,7 +44,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             SizeOfPlugAndGap = (ulong)_memoryReader.PointerSize * 4;
 
             if (!_sos.GetGCHeapData(out _gcInfo))
+            {
                 _gcInfo = default; // Ensure _gcInfo.GCStructuresValid == false.
+            }
         }
 
         public IClrTypeFactory CreateTypeFactory(ClrHeap heap) => new ClrTypeFactory(heap, _clrDataProcess, _sos, _sos6, _sos8, _cacheOptions);
@@ -54,20 +56,28 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (_sos12 is not null && _sos12.GetGlobalAllocationContext(out ulong allocPointer, out ulong allocLimit))
             {
                 if (allocPointer < allocLimit)
+                {
                     yield return new(allocPointer, allocLimit);
+                }
             }
 
             if (!_sos.GetThreadStoreData(out ThreadStoreData threadStore))
+            {
                 yield break;
+            }
 
             ulong address = threadStore.FirstThread;
             for (int i = 0; i < threadStore.ThreadCount && address != 0; i++)
             {
                 if (!_sos.GetThreadData(address, out ThreadData thread))
+                {
                     break;
+                }
 
                 if (thread.AllocationContextPointer < thread.AllocationContextLimit)
+                {
                     yield return new(thread.AllocationContextPointer, thread.AllocationContextLimit);
+                }
 
                 address = thread.NextThread;
             }
@@ -77,7 +87,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             using SOSHandleEnum? handleEnum = _sos.EnumerateHandles(ClrHandleKind.Dependent);
             if (handleEnum is null)
+            {
                 yield break;
+            }
 
             HandleData[] handles;
             try
@@ -101,7 +113,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     {
                         ulong obj = _memoryReader.ReadPointer(handles[i].Handle);
                         if (obj != 0)
+                        {
                             yield return (obj, handles[i].Secondary);
+                        }
                     }
                 }
             }
@@ -111,7 +125,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             HResult hr = _sos.GetSyncBlockData(1, out SyncBlockData data);
             if (!hr || data.TotalSyncBlockCount == 0)
+            {
                 yield break;
+            }
 
             int max = data.TotalSyncBlockCount >= int.MaxValue ? int.MaxValue : (int)data.TotalSyncBlockCount;
 
@@ -121,16 +137,24 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (data.Free == 0)
                 {
                     if (data.MonitorHeld != 0 || data.HoldingThread != 0 || data.Recursion != 0 || data.AdditionalThreadCount != 0)
+                    {
                         yield return new FullSyncBlock(data, curr);
+                    }
                     else if (data.COMFlags != 0)
+                    {
                         yield return new ComSyncBlock(data.Object, curr, data.COMFlags);
+                    }
                     else
+                    {
                         yield return new SyncBlock(data.Object, curr);
+                    }
                 }
 
                 curr++;
                 if (curr > max)
+                {
                     break;
+                }
 
                 hr = _sos.GetSyncBlockData(curr, out data);
             } while (hr);
@@ -141,7 +165,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (IsServerMode)
             {
                 ClrDataAddress[] heapAddresses = _sos.GetHeapList(_gcInfo.HeapCount);
-                var heapsBuilder = ImmutableArray.CreateBuilder<ClrSubHeap>(heapAddresses.Length);
+                ImmutableArray<ClrSubHeap>.Builder heapsBuilder = ImmutableArray.CreateBuilder<ClrSubHeap>(heapAddresses.Length);
                 for (int i = 0; i < heapAddresses.Length; i++)
                 {
                     if (_sos.GetServerHeapDetails(heapAddresses[i], out HeapDetails heapData))
@@ -193,7 +217,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
 
             if (heap.GenerationTable.Length > 4)
+            {
                 segments = segments.Concat(EnumerateSegments(heap, 4, seen));
+            }
 
             return segments;
         }
@@ -207,7 +233,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 ClrSegment? segment = CreateSegment(heap, address, generation);
 
                 if (segment is null)
+                {
                     break;
+                }
 
                 yield return segment;
                 address = segment.Next;
@@ -217,7 +245,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private ClrSegment? CreateSegment(ClrSubHeap subHeap, ulong address, int generation)
         {
             if (!_sos.GetSegmentData(address, out SegmentData data))
+            {
                 return null;
+            }
 
             ClrSegmentFlags flags = (ClrSegmentFlags)data.Flags;
             GCSegmentKind kind = GCSegmentKind.Generation2;
@@ -239,18 +269,28 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (subHeap.HasRegions)
                 {
                     if (generation == 0)
+                    {
                         kind = GCSegmentKind.Generation0;
+                    }
                     else if (generation == 1)
+                    {
                         kind = GCSegmentKind.Generation1;
+                    }
                     else if (generation == 2)
+                    {
                         kind = GCSegmentKind.Generation2;
+                    }
                 }
                 else
                 {
                     if (subHeap.EphemeralHeapSegment == address)
+                    {
                         kind = GCSegmentKind.Ephemeral;
+                    }
                     else
+                    {
                         kind = GCSegmentKind.Generation2;
+                    }
                 }
             }
 
@@ -319,24 +359,34 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public ObjectCorruption? VerifyObject(SyncBlockContainer syncBlocks, ClrSegment seg, ClrObject obj)
         {
             if ((obj.Address & ((uint)_memoryReader.PointerSize - 1)) != 0)
+            {
                 return new ObjectCorruption(obj, 0, ObjectCorruptionKind.ObjectNotPointerAligned);
+            }
 
             if (!obj.IsFree)
             {
                 if (!_memoryReader.Read(obj.Address, out ulong mt))
+                {
                     return new ObjectCorruption(obj, 0, ObjectCorruptionKind.CouldNotReadMethodTable);
-                
+                }
+
                 if (!IsValidMethodTable(mt))
+                {
                     return new ObjectCorruption(obj, 0, ObjectCorruptionKind.BadMethodTable);
+                }
 
                 // This shouldn't happen if VerifyMethodTable above returns success, but we'll make sure.
                 if (obj.Type is null)
+                {
                     return new ObjectCorruption(obj, 0, ObjectCorruptionKind.BadMethodTable);
+                }
             }
 
             int intSize = obj.Size > int.MaxValue ? int.MaxValue : (int)obj.Size;
             if (obj.Size > seg.MaxObjectSize || obj + obj.Size > seg.ObjectRange.End)
+            {
                 return new ObjectCorruption(obj, _memoryReader.PointerSize, ObjectCorruptionKind.ObjectTooLarge);
+            }
 
             // SyncBlock
             SyncBlock? blk = syncBlocks.TryGetSyncBlock(obj);
@@ -347,9 +397,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 int clrIndex = blk?.Index ?? -1;
                 
                 if (index == 0)
+                {
                     return new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockZero, -1, clrIndex);
+                }
                 else if (index != clrIndex)
+                {
                     return new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockMismatch, (int)index, clrIndex);
+                }
             }
             else if (blk is not null)
             {
@@ -357,7 +411,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
 
             if (obj.IsFree)
+            {
                 return null;
+            }
 
             //verify members
             bool verifyMembers;
@@ -371,29 +427,42 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
 
             if (!verifyMembers)
+            {
                 return null;
+            }
 
             // Type can't be null, we checked above.  The compiler just get lost in the IsFree checks.
             if (obj.Type!.ContainsPointers)
             {
                 GCDesc gcdesc = obj.Type!.GCDesc;
                 if (gcdesc.IsEmpty)
+                {
                     return new ObjectCorruption(obj, 0, ObjectCorruptionKind.CouldNotReadGCDesc);
+                }
 
                 ulong freeMt = seg.SubHeap.Heap.FreeType.MethodTable;
                 byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
                 int read = _memoryReader.Read(obj, new Span<byte>(buffer, 0, intSize));
                 if (read != intSize)
+                {
                     return new ObjectCorruption(obj, read >= 0 ? read : 0, ObjectCorruptionKind.CouldNotReadObject);
+                }
 
                 foreach ((ulong objRef, int offset) in gcdesc.WalkObject(buffer, intSize))
                 {
                     if ((objRef & ((uint)_memoryReader.PointerSize - 1)) != 0)
+                    {
                         return new ObjectCorruption(obj, offset, ObjectCorruptionKind.ObjectReferenceNotPointerAligned);
+                    }
+
                     if (!_memoryReader.Read(objRef, out ulong mt) || !IsValidMethodTable(mt))
+                    {
                         return new ObjectCorruption(obj, offset, ObjectCorruptionKind.BadObjectReference);
+                    }
                     else if (mt == freeMt)
+                    {
                         return new ObjectCorruption(obj, offset, ObjectCorruptionKind.FreeObjectReference);
+                    }
                 }
 
                 ArrayPool<byte>.Shared.Return(buffer);
@@ -429,12 +498,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     if (checkSavedSweep)
                     {
                         if (obj >= heap.SavedSweepEphemeralStart)
+                        {
                             noBgcMark = true;
+                        }
                     }
                     else
                     {
                         if (obj >= seg.BackgroundAllocated)
+                        {
                             noBgcMark = true;
+                        }
                     }
                 }
             }
@@ -473,10 +546,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 {
                     considerBgcMark = true;
                     if (seg.Address == heap.SavedSweepEphemeralSegment)
+                    {
                         checkSavedSweep = true;
+                    }
 
                     if (seg.ObjectRange.Contains(heap.NextSweepObject))
+                    {
                         checkCurrentSweep = true;
+                    }
                 }
             }
         }
@@ -484,7 +561,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private bool BackgroundObjectMarked(ClrSubHeap heap, ClrObject obj)
         {
             if (obj >= heap.BackgroundSavedLowestAddress && obj < heap.BackgroundSavedHighestAddress)
+            {
                 return MarkArrayMarked(heap, obj);
+            }
 
             return true;
         }
@@ -493,7 +572,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             ulong address = heap.MarkArray + sizeof(uint) * MarkWordOf(obj);
             if (!_memoryReader.Read(address, out uint entry))
+            {
                 throw new IOException($"Could not read mark array at {address:x}");
+            }
 
             return (entry & (1u << MarkBitOf(obj))) != 0;
         }
@@ -506,14 +587,20 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             HashSet<ulong> validMts = _validMethodTables ??= new();
             lock (validMts)
+            {
                 if (validMts.Contains(mt))
+                {
                     return true;
+                }
+            }
 
             bool verified = _sos.GetMethodTableData(mt, out _);
             if (verified)
             {
                 lock (validMts)
+                {
                     validMts.Add(mt);
+                }
             }
 
             return verified;

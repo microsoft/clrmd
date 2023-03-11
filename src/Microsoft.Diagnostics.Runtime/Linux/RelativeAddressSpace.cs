@@ -33,14 +33,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public int Read(ulong position, Span<byte> buffer)
         {
             if ((long)position < _baseToRelativeShift)
+            {
                 return 0;
+            }
 
             ulong basePosition = (ulong)((long)position - _baseToRelativeShift);
             if (basePosition < _baseStart)
+            {
                 return 0;
+            }
 
             if (_length < (ulong)buffer.Length)
+            {
                 buffer = buffer.Slice(0, (int)_length);
+            }
 
             return _baseAddressSpace.Read(basePosition, buffer);
         }

@@ -30,7 +30,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public ClrDataAddress GetDomainLoaderAllocator(ClrDataAddress domainAddress)
         {
             if (domainAddress == 0)
+            {
                 return 0;
+            }
 
             HResult hr = VTable.GetDomainLoaderAllocator(Self, domainAddress, out ClrDataAddress loaderAllocator);
             return hr ? loaderAllocator : 0;
@@ -48,7 +50,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     {
                         string[] result = new string[needed];
                         for (int i = 0; i < needed; i++)
+                        {
                             result[i] = Marshal.PtrToStringAnsi(pointers[i]) ?? "";
+                        }
 
                         return result;
                     }
@@ -74,9 +78,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     {
                         if (hr = VTable.GetLoaderAllocatorHeaps(Self, loaderAllocator, addresses.Length, ptrAddresses, ptrKinds, out _))
                         {
-                            var result = new (ClrDataAddress, LoaderHeapKind)[needed];
+                            (ClrDataAddress, LoaderHeapKind)[] result = new (ClrDataAddress, LoaderHeapKind)[needed];
                             for (int i = 0; i < needed; i++)
+                            {
                                 result[i] = (addresses[i], kinds[i]);
+                            }
 
                             return result;
                         }

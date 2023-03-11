@@ -23,7 +23,9 @@
             get
             {
                 if (_dbgeng is not null)
+                {
                     return _dbgeng;
+                }
 
                 _weOwnDbgEng = true;
                 _dbgeng = IDebugClient.Create(IUnknown);
@@ -44,7 +46,9 @@
             get
             {
                 if (_runtimes is null)
+                {
                     InitRuntimes();
+                }
 
                 // Make a copy so it isn't modified
                 return _runtimes!.ToArray();
@@ -56,7 +60,9 @@
             get
             {
                 if (_failures is null)
+                {
                     InitRuntimes();
+                }
 
                 // Make a copy so it isn't modified
                 return _failures!.ToArray();
@@ -90,10 +96,14 @@
         public static ExtensionContext Create(nint pUnknown)
         {
             if (s_current is null)
+            {
                 return s_current = new ExtensionContext(pUnknown);
+            }
 
             if (s_current.IUnknown == pUnknown)
+            {
                 return s_current;
+            }
 
             ExtensionContext current = s_current;
             s_current = current;
@@ -104,10 +114,14 @@
         public static ExtensionContext Create(IDisposable dbgeng)
         {
             if (s_current is null)
+            {
                 return s_current = new ExtensionContext(dbgeng);
+            }
 
             if (s_current._dbgeng == dbgeng)
+            {
                 return s_current;
+            }
 
             ExtensionContext current = s_current;
             s_current = current;
@@ -132,13 +146,19 @@
             Interlocked.CompareExchange(ref s_current, null, this);
 
             if (_runtimes is not null)
+            {
                 foreach (ClrRuntime runtime in _runtimes)
+                {
                     runtime.Dispose();
+                }
+            }
 
             _dataTarget?.Dispose();
 
             if (_weOwnDbgEng)
+            {
                 _dbgeng?.Dispose();
+            }
         }
     }
 }

@@ -58,10 +58,14 @@ namespace Microsoft.Diagnostics.Runtime
         public bool Equals(PdbInfo? other)
         {
             if (ReferenceEquals(this, other))
+            {
                 return true;
+            }
 
             if (other is null)
+            {
                 return false;
+            }
 
             if (Revision == other.Revision && Guid == other.Guid)
             {
@@ -85,7 +89,9 @@ namespace Microsoft.Diagnostics.Runtime
         public static bool operator ==(PdbInfo? left, PdbInfo? right)
         {
             if (right is null)
+            {
                 return left is null;
+            }
 
             return right.Equals(left);
         }

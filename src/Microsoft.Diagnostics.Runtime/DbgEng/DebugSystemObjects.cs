@@ -77,7 +77,9 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
             {
                 hr = VTable.GetCurrentThreadTeb(Self, out teb);
                 if (!hr)
+                {
                     teb = 0;
+                }
             }
 
             SetCurrentThread(currId);
@@ -97,14 +99,18 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
             int count = GetNumberThreads();
             if (count == 0)
+            {
                 return Array.Empty<uint>();
+            }
 
             uint[] result = new uint[count];
             fixed (uint* pResult = result)
             {
                 HResult hr = VTable.GetThreadIdsByIndex(Self, 0, count, null, pResult);
                 if (hr)
+                {
                     return result;
+                }
 
                 return Array.Empty<uint>();
             }

@@ -36,7 +36,9 @@ namespace Microsoft.Diagnostics.Runtime
         public override bool Equals(object? obj)
         {
             if (obj is IClrSegment other)
+            {
                 return other.Equals(this);
+            }
 
             return false;
         }
@@ -132,9 +134,13 @@ namespace Microsoft.Diagnostics.Runtime
                 foreach (ClrObject obj in SubHeap.Heap.EnumerateObjects(this, start, carefully))
                 {
                     if (range.Contains(obj))
+                    {
                         yield return obj;
+                    }
                     else
+                    {
                         break;
+                    }
                 }
             }
         }
@@ -158,13 +164,19 @@ namespace Microsoft.Diagnostics.Runtime
         public int GetGeneration(ulong obj)
         {
             if (Generation2.Contains(obj))
+            {
                 return 2;
+            }
 
             if (Generation1.Contains(obj))
+            {
                 return 1;
+            }
 
             if (Generation0.Contains(obj))
+            {
                 return 0;
+            }
 
             return -1;
         }
@@ -186,9 +198,11 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 uint[]? markers = _markers;
                 if (markers is not null)
+                {
                     return markers;
+                }
 
-                var len = ObjectRange.Length switch
+                int len = ObjectRange.Length switch
                 {
                     < 8 * 1024 => 0,
                     < 64 * 1024 * 1024 => 64,

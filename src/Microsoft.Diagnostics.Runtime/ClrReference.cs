@@ -49,18 +49,24 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (!IsField || Field?.Type == null || !Field.Type.IsValueType)
+                {
                     return null;
+                }
 
                 int offset = Offset - Field.Offset;
 
                 ClrInstanceField? field = FindField(Field.Type.Fields, offset);
                 if (field is null)
+                {
                     return null;
+                }
 
                 // Primitive types intentionally have a recursive definition.  In the case where we incorrectly find
                 // an object's offset as one of these fields we need to break out of the infinite loop.
                 if (field == Field && field.Name == "m_value")
+                {
                     return null;
+                }
 
                 unchecked
                 {
@@ -115,10 +121,14 @@ namespace Microsoft.Diagnostics.Runtime
         public static ClrReference CreateFromFieldOrArray(ClrObject reference, ClrType containingType, int offset)
         {
             if (containingType == null)
+            {
                 throw new ArgumentNullException(nameof(containingType));
+            }
 
             if (offset < 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(offset), $"{nameof(offset)} must be >= 0.");
+            }
 
             ClrInstanceField? field = FindField(containingType.Fields, offset);
 
@@ -145,9 +155,13 @@ namespace Microsoft.Diagnostics.Runtime
                 if (curr.Offset <= offset)
                 {
                     if (field == null)
+                    {
                         field = curr;
+                    }
                     else if (field.Offset < curr.Offset)
+                    {
                         field = curr;
+                    }
                 }
             }
 
@@ -185,7 +199,9 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             if (IsDependentHandle)
+            {
                 return $"{Object.Address:x12} {Object.Type?.Name ?? "error"} (dependent handle)";
+            }
 
             return $"{Object.Address:x12} {Object.Type?.Name ?? "error"}";
         }

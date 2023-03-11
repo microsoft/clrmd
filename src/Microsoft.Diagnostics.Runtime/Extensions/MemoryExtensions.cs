@@ -26,15 +26,21 @@ namespace Microsoft.Diagnostics.Runtime
         public static ulong SearchMemory(this IMemoryReader reader, ulong startAddress, int length, ReadOnlySpan<byte> searchFor)
         {
             if (reader is null)
+            {
                 throw new ArgumentNullException(nameof(reader));
+            }
 
             // While not strictly disallowed, providing a sanity check to make sure the user isn't
             // searching from 0 to ulong.MaxValue is a good idea.
             if (startAddress == 0)
+            {
                 throw new ArgumentException($"{nameof(startAddress)} must be within allocated memory.");
+            }
 
             if (length <= searchFor.Length)
+            {
                 return 0;
+            }
 
             ulong endAddress = startAddress + (uint)length;
 
@@ -46,7 +52,9 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     int bytesRemaining = (int)(endAddress - startAddress);
                     if (bytesRemaining < searchFor.Length)
+                    {
                         break;
+                    }
 
                     Span<byte> buffer = array.AsSpan(0, Math.Min(bytesRemaining, array.Length));
                     int read = reader.Read(startAddress, buffer);
@@ -59,14 +67,18 @@ namespace Microsoft.Diagnostics.Runtime
                     buffer = buffer.Slice(0, read);
                     int index = buffer.IndexOf(searchFor);
                     if (index >= 0)
+                    {
                         return startAddress + (uint)index;
+                    }
 
                     // To keep the code simple, we'll re-read the last bit of the buffer each time instead of
                     // block copying the leftover bits at the end and having to keep track of the buffer offset
                     // along the way.
                     int increment = buffer.Length - searchFor.Length;
                     if (increment <= 0)
+                    {
                         increment = searchFor.Length;
+                    }
 
                     startAddress += (uint)increment;
                 }
@@ -88,11 +100,15 @@ namespace Microsoft.Diagnostics.Runtime
 
             updated /= 1024;
             if (updated < 1024)
+            {
                 return $"{updated:0.00}kb";
+            }
 
             updated /= 1024;
             if (updated < 1024)
+            {
                 return $"{updated:0.00}mb";
+            }
 
             updated /= 1024;
             return $"{updated:0.00}gb";

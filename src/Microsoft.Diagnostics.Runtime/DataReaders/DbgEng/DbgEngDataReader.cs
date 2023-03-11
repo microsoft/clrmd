@@ -47,13 +47,17 @@ namespace Microsoft.Diagnostics.Runtime
         {
             DisplayName = displayName;
             if (!leaveOpen)
+            {
                 stream?.Dispose();
+            }
         }
 
         public DbgEngDataReader(IntPtr pDebugClient)
         {
             if (pDebugClient == IntPtr.Zero)
+            {
                 throw new ArgumentNullException(nameof(pDebugClient));
+            }
 
             DisplayName = $"DbgEng, IDebugClient={pDebugClient.ToInt64():x}";
             CreateClient(pDebugClient);
@@ -63,7 +67,9 @@ namespace Microsoft.Diagnostics.Runtime
         public DbgEngDataReader(string dumpFile)
         {
             if (!File.Exists(dumpFile))
+            {
                 throw new FileNotFoundException(dumpFile);
+            }
 
             DisplayName = dumpFile;
 
@@ -75,7 +81,9 @@ namespace Microsoft.Diagnostics.Runtime
                 const int STATUS_MAPPED_FILE_SIZE_ZERO = unchecked((int)0xC000011E);
 
                 if (hr == HResult.E_INVALIDARG || hr == (STATUS_MAPPED_FILE_SIZE_ZERO | 0x10000000))
+                {
                     throw new InvalidDataException($"'{dumpFile}' is not a crash dump.");
+                }
 
                 throw new ClrDiagnosticsException($"Could not load crash dump, HRESULT: {hr}", hr).AddData("DumpFile", dumpFile);
             }
@@ -99,7 +107,9 @@ namespace Microsoft.Diagnostics.Runtime
             HResult hr = _client.AttachProcess((uint)processId, attach);
 
             if (hr)
+            {
                 hr = _control.WaitForEvent(msecTimeout);
+            }
 
             if (hr == HResult.S_FALSE)
             {
@@ -109,10 +119,14 @@ namespace Microsoft.Diagnostics.Runtime
             if (hr != 0)
             {
                 if ((uint)hr.Value == 0xd00000bb)
+                {
                     throw new InvalidOperationException("Mismatched architecture between this process and the target process.");
+                }
 
                 if (!WindowsFunctions.IsProcessRunning(processId))
+                {
                     throw new ArgumentException($"Process {processId} is not running.");
+                }
 
                 throw new ArgumentException($"Could not attach to process {processId}, HRESULT: 0x{hr:x}");
             }
@@ -160,7 +174,9 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 ulong image = _symbols.GetModuleByIndex(i);
                 if (image != 0)
+                {
                     bases.Add(image);
+                }
             }
 
             return bases.ToArray();
@@ -169,11 +185,15 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<ModuleInfo> EnumerateModules()
         {
             if (_modules != null)
+            {
                 return _modules;
+            }
 
             ulong[] bases = GetImageBases();
             if (bases.Length == 0)
+            {
                 return Enumerable.Empty<ModuleInfo>();
+            }
 
             List<ModuleInfo> modules = new();
             if (_symbols.GetModuleParameters(bases, out DEBUG_MODULE_PARAMETERS[] mods))
@@ -228,7 +248,9 @@ namespace Microsoft.Diagnostics.Runtime
         public Version? GetVersionInfo(ulong baseAddress)
         {
             if (!FindModuleIndex(baseAddress, out int index))
+            {
                 return null;
+            }
 
             return _symbols.GetModuleVersionInformation(index, baseAddress);
         }
@@ -252,7 +274,9 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 if (claimedBaseAddr == baseAddr)
+                {
                     return true;
+                }
 
                 nextIndex = index + 1;
             }
@@ -270,7 +294,9 @@ namespace Microsoft.Diagnostics.Runtime
         private void Dispose(bool disposing)
         {
             if (_disposed)
+            {
                 return;
+            }
 
             _disposed = true;
 

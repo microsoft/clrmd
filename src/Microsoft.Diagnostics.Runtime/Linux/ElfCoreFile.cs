@@ -90,7 +90,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             ElfFile = new ElfFile(_reader);
 
             if (ElfFile.Header.Type != ElfHeaderType.Core)
+            {
                 throw new InvalidDataException($"{stream.GetFilename() ?? "The given stream"} is not a coredump");
+            }
 
 #if DEBUG
             _loadedImages = LoadFileTable();
@@ -117,7 +119,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private void LoadAuxvTable()
         {
             if (_auxvEntries.Count != 0)
+            {
                 return;
+            }
 
             ElfNote auxvNote = GetNotes(ElfNoteType.Aux).SingleOrDefault() ?? throw new BadImageFormatException($"No auxv entries in coredump");
             ulong position = 0;
@@ -127,13 +131,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 ulong value;
                 if (ElfFile.Header.Is64Bit)
                 {
-                    var elfauxv64 = auxvNote.ReadContents<ElfAuxv64>(ref position);
+                    ElfAuxv64 elfauxv64 = auxvNote.ReadContents<ElfAuxv64>(ref position);
                     type = elfauxv64.Type;
                     value = elfauxv64.Value;
                 }
                 else
                 {
-                    var elfauxv32 = auxvNote.ReadContents<ElfAuxv32>(ref position);
+                    ElfAuxv32 elfauxv32 = auxvNote.ReadContents<ElfAuxv32>(ref position);
                     type = elfauxv32.Type;
                     value = elfauxv32.Value;
                 }
@@ -192,13 +196,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     int end = start;
                     while (bytes[end] != 0)
+                    {
                         end++;
+                    }
 
                     string path = Encoding.UTF8.GetString(bytes, start, end - start);
                     start = end + 1;
 
                     if (!lookup.TryGetValue(path, out ElfLoadedImage? image))
+                    {
                         image = lookup[path] = new ElfLoadedImage(ElfFile.VirtualAddressReader, ElfFile.Header.Is64Bit, path);
+                    }
 
                     image.AddTableEntryPointers(fileTable[i]);
                 }
@@ -220,7 +228,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public void Dispose()
         {
             if (!_leaveOpen)
+            {
                 _stream.Dispose();
+            }
         }
     }
 }

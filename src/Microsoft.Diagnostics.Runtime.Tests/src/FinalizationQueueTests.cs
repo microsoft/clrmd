@@ -36,16 +36,22 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private static Stats GetStats(IEnumerable<ClrObject> objs)
         {
-            var stats = new Stats();
+            Stats stats = new Stats();
             foreach (ClrObject obj in objs)
             {
-                var type = obj.Type;
+                ClrType type = obj.Type;
                 if (type.Name == "SampleA")
+                {
                     stats.A++;
+                }
                 else if (type.Name == "SampleB")
+                {
                     stats.B++;
+                }
                 else if (type.Name == "SampleC")
+                {
                     stats.C++;
+                }
             }
 
             return stats;

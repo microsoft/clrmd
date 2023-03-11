@@ -10,7 +10,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         {
             GetVTable(this, out nint self, out IDebugDataSpacesVtable* vtable);
             fixed (byte* ptr = buffer)
+            {
                 return vtable->WriteVirtual(self, address, ptr, buffer.Length, out written);
+            }
         }
 
         bool IDebugDataSpaces.ReadVirtual(ulong address, Span<byte> buffer, out int read)

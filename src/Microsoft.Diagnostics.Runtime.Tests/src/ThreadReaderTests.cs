@@ -23,7 +23,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             foreach (ClrThread thread in runtime.Threads)
             {
                 if (!thread.IsAlive)
+                {
                     continue;
+                }
 
                 Assert.NotEqual(0u, thread.OSThreadId);
 
@@ -31,7 +33,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.NotEqual(0ul, teb);
 
                 if (dac.GetThreadData(thread.Address, out ThreadData threadData))
+                {
                     Assert.Equal((ulong)threadData.Teb, teb);
+                }
             }
         }
 
@@ -51,7 +55,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(threads.Length, new HashSet<uint>(threads).Count);
 
             foreach (uint threadId in runtime.Threads.Select(f => f.OSThreadId).Where(id => id != 0))
+            {
                 Assert.Contains(threadId, threads);
+            }
         }
 
         [Fact]
@@ -62,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             IThreadReader threadReader = (IThreadReader)dt.DataReader;
 
-            var items = threadReader.EnumerateOSThreadIds().ToArray();
+            uint[] items = threadReader.EnumerateOSThreadIds().ToArray();
 
             uint mainThreadId = runtime.GetMainThread().OSThreadId;
             Assert.Equal(mainThreadId, threadReader.EnumerateOSThreadIds().First());

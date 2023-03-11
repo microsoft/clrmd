@@ -227,7 +227,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Null(result);
 
             ClrObject free = heap.EnumerateObjects().First(obj => obj.IsFree);
-            foreach (var reference in obj.EnumerateReferencesWithFields())
+            foreach (ClrReference reference in obj.EnumerateReferencesWithFields())
             {
                 uint offset = (uint)IntPtr.Size + (uint)reference.Offset;
                 WriteAndRun(spaces, obj + offset, 0xccccc0, () =>
@@ -299,15 +299,21 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             MemoryMarshal.Cast<T, byte>(span).CopyTo(newBuffer);
 
             if (!spaces.ReadVirtual(location, old, out int read) || read != old.Length || old.SequenceEqual(newBuffer))
+            {
                 throw new IOException();
+            }
 
             if (spaces.WriteVirtual(location, newBuffer, out int written) != 0 || written != newBuffer.Length)
+            {
                 throw new IOException();
+            }
 
             action();
 
             if (spaces.WriteVirtual(location, old, out written) != 0 || written != old.Length)
+            {
                 throw new IOException();
+            }
         }
 
         private static DbgEngIDataReader GetDataReader(DataTarget dt)
@@ -322,13 +328,19 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 foreach (ClrObject obj in seg.EnumerateObjects().OrderByDescending(obj => obj.EnumerateReferenceAddresses().Count()))
                 {
                     if (obj.IsFree)
+                    {
                         continue;
+                    }
 
                     if (obj.SyncBlock is null)
+                    {
                         continue;
+                    }
 
                     if (!obj.EnumerateReferenceAddresses().Any())
+                    {
                         continue;
+                    }
 
                     return obj;
                 }

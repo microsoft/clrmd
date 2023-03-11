@@ -27,10 +27,14 @@ namespace Microsoft.Diagnostics.Runtime
         public MinidumpReader(string displayName, Stream stream, CacheOptions cacheOptions, bool leaveOpen)
         {
             if (displayName is null)
+            {
                 throw new ArgumentNullException(nameof(displayName));
+            }
 
             if (stream is null)
+            {
                 throw new ArgumentNullException(nameof(stream));
+            }
 
             DisplayName = displayName;
 
@@ -87,11 +91,15 @@ namespace Microsoft.Diagnostics.Runtime
         {
             int index = _minidump.ContextData.Search(threadID, (x, y) => x.ThreadId.CompareTo(y));
             if (index < 0)
+            {
                 return false;
+            }
 
             MinidumpContextData ctx = _minidump.ContextData[index];
             if (ctx.ContextRva == 0 || ctx.ContextBytes == 0)
+            {
                 return false;
+            }
 
             return _minidump.MemoryReader.ReadFromRva(ctx.ContextRva, context) == context.Length;
         }

@@ -213,10 +213,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             SigParser sigTemp = new(this);
 
             if (!sigTemp.SkipAnyVASentinel())
+            {
                 return false;
+            }
 
             if (!sigTemp.GetByte(out byte bElementType))
+            {
                 return false;
+            }
 
             switch (bElementType)
             {
@@ -279,7 +283,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private bool AtSentinel()
         {
             if (_len > 0)
+            {
                 return _sig[_offs] == ELEMENT_TYPE_SENTINEL;
+            }
 
             return false;
         }
@@ -300,19 +306,27 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             SigParser sigTemp = new(this);
 
             if (!sigTemp.SkipAnyVASentinel())
+            {
                 return false;
+            }
 
             if (!sigTemp.PeekByte(out byte bElementType))
+            {
                 return false;
+            }
 
             while (bElementType == ELEMENT_TYPE_CMOD_REQD || bElementType == ELEMENT_TYPE_CMOD_OPT)
             {
                 sigTemp.SkipBytes(1);
                 if (!sigTemp.GetToken(out _))
+                {
                     return false;
+                }
 
                 if (!sigTemp.PeekByte(out bElementType))
+                {
                     return false;
+                }
             }
 
             // Following custom modifiers must be an element type value which is less than ELEMENT_TYPE_MAX, or one of the other element types
@@ -336,10 +350,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             SigParser sigTemp = new(this);
             if (!sigTemp.SkipAnyVASentinel())
+            {
                 return false;
+            }
 
             if (!sigTemp.PeekByte(out byte bElementType))
+            {
                 return false;
+            }
 
             while (bElementType == ELEMENT_TYPE_CMOD_REQD ||
                 bElementType == ELEMENT_TYPE_CMOD_OPT ||
@@ -349,10 +367,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 sigTemp.SkipBytes(1);
 
                 if (!sigTemp.GetToken(out int _))
+                {
                     return false;
+                }
 
                 if (!sigTemp.PeekByte(out bElementType))
+                {
                     return false;
+                }
             }
 
             // Following custom modifiers must be an element type value which is less than ELEMENT_TYPE_MAX, or one of the other element types
@@ -375,10 +397,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private bool SkipAnyVASentinel()
         {
             if (!PeekByte(out byte bElementType))
+            {
                 return false;
+            }
 
             if (bElementType == ELEMENT_TYPE_SENTINEL)
+            {
                 SkipBytes(1);
+            }
 
             return true;
         } // SkipAnyVASentinel
@@ -386,7 +412,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public bool SkipExactlyOne()
         {
             if (!GetElemType(out int typ))
+            {
                 return false;
+            }
 
             if (!((ClrElementType)typ).IsPrimitive())
             {
@@ -398,7 +426,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     case ELEMENT_TYPE_VAR:
                     case ELEMENT_TYPE_MVAR:
                         if (!GetData(out _))
+                        {
                             return false;
+                        }
 
                         break;
 
@@ -412,48 +442,70 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     case ELEMENT_TYPE_PINNED:
                     case ELEMENT_TYPE_SZARRAY:
                         if (!SkipExactlyOne())
+                        {
                             return false;
+                        }
 
                         break;
 
                     case ELEMENT_TYPE_VALUETYPE:
                     case ELEMENT_TYPE_CLASS:
                         if (!GetToken(out _))
+                        {
                             return false;
+                        }
 
                         break;
 
                     case ELEMENT_TYPE_FNPTR:
                         if (!SkipSignature())
+                        {
                             return false;
+                        }
 
                         break;
 
                     case ELEMENT_TYPE_ARRAY:
                         // Skip element type
                         if (!SkipExactlyOne())
+                        {
                             return false;
+                        }
 
                         // Get rank;
                         int rank;
                         if (!GetData(out rank))
+                        {
                             return false;
+                        }
 
                         if (rank > 0)
                         {
                             if (!GetData(out int sizes))
+                            {
                                 return false;
+                            }
 
                             while (sizes-- != 0)
+                            {
                                 if (!GetData(out _))
+                                {
                                     return false;
+                                }
+                            }
 
                             if (!GetData(out int bounds))
+                            {
                                 return false;
+                            }
 
                             while (bounds-- != 0)
+                            {
                                 if (!GetData(out _))
+                                {
                                     return false;
+                                }
+                            }
                         }
 
                         break;
@@ -464,23 +516,32 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                     case ELEMENT_TYPE_INTERNAL:
                         if (!GetData(out _))
+                        {
                             return false;
+                        }
 
                         break;
 
                     case ELEMENT_TYPE_GENERICINST:
                         // Skip generic type
                         if (!SkipExactlyOne())
+                        {
                             return false;
+                        }
 
                         // Get number of parameters
                         int argCnt;
                         if (!GetData(out argCnt))
+                        {
                             return false;
+                        }
 
                         // Skip the parameters
                         while (argCnt-- != 0)
+                        {
                             SkipExactlyOne();
+                        }
+
                         break;
                 }
             }
@@ -494,23 +555,35 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             // Skip calling convention
             if (!GetCallingConvInfo(out int uCallConv))
+            {
                 return false;
+            }
 
             if (uCallConv == IMAGE_CEE_CS_CALLCONV_FIELD || uCallConv == IMAGE_CEE_CS_CALLCONV_LOCAL_SIG)
+            {
                 return false;
+            }
 
             // Skip type parameter count
             if ((uCallConv & IMAGE_CEE_CS_CALLCONV_GENERIC) == IMAGE_CEE_CS_CALLCONV_GENERIC)
+            {
                 if (!GetData(out _))
+                {
                     return false;
+                }
+            }
 
             // Get arg count;
             if (!GetData(out pcArgs))
+            {
                 return false;
+            }
 
             // Skip return type;
             if (!SkipExactlyOne())
+            {
                 return false;
+            }
 
             return true;
         } // SigParser::SkipMethodHeaderSignature
@@ -518,12 +591,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private bool SkipSignature()
         {
             if (!SkipMethodHeaderSignature(out int args))
+            {
                 return false;
+            }
 
             // Skip args.
             while (args-- > 0)
+            {
                 if (!SkipExactlyOne())
+                {
                     return false;
+                }
+            }
 
             return false;
         }
@@ -531,7 +610,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private bool UncompressToken(out int token, out int size)
         {
             if (!UncompressData(out token, out size))
+            {
                 return false;
+            }
 
             int tkType = s_tkCorEncodeToken[token & 3];
             token = (token >> 2) | tkType;
@@ -550,7 +631,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             pDataLen = 0;
 
             if (_len <= 0)
+            {
                 return false;
+            }
 
             byte byte0 = GetSig(0);
 

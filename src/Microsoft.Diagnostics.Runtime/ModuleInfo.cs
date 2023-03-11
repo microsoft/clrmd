@@ -28,7 +28,9 @@ namespace Microsoft.Diagnostics.Runtime
         public static ModuleInfo? TryCreate(IDataReader reader, ulong baseAddress, string name)
         {
             if (reader is null)
+            {
                 throw new ArgumentNullException(nameof(reader));
+            }
 
             name ??= "";
 
@@ -36,10 +38,14 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 Span<byte> buffer = stackalloc byte[4];
                 if (reader.Read(baseAddress, buffer) != buffer.Length)
+                {
                     return null;
+                }
 
                 if (Unsafe.As<byte, ushort>(ref buffer[0]) == 0x5a4d)
+                {
                     return new PEModuleInfo(reader, baseAddress, name, isVirtualHint: true);
+                }
 
                 uint header = Unsafe.As<byte, uint>(ref buffer[0]);
                 if (header == ElfHeaderCommon.Magic)
@@ -147,7 +153,9 @@ namespace Microsoft.Diagnostics.Runtime
         public ModuleInfo(ulong imageBase, string fileName)
         {
             if (fileName is null)
+            {
                 throw new ArgumentNullException(nameof(fileName));
+            }
 
             ImageBase = imageBase;
             FileName = fileName;

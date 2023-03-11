@@ -35,7 +35,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             get
             {
                 if (_name != null)
+                {
                     return _name;
+                }
 
                 ulong namePosition = _position + HeaderSize;
                 _name = _reader.ReadNullTerminatedAscii(namePosition, (int)Header.NameSize);

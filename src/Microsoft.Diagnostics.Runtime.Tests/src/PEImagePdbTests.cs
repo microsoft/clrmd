@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void WindowsNativePdbTest()
         {
             // Load Windows' ntdll.dll
-            var dllFileName = Path.Combine(Environment.SystemDirectory, "ntdll.dll");
+            string dllFileName = Path.Combine(Environment.SystemDirectory, "ntdll.dll");
             using PEImage img = new PEImage(new FileStream(dllFileName, FileMode.Open, FileAccess.Read));
             Assert.NotNull(img);
 
@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void ExportSymbolTest()
         {
             // Load Windows' ntdll.dll
-            var dllFileName = Path.Combine(Environment.SystemDirectory, "ntdll.dll");
+            string dllFileName = Path.Combine(Environment.SystemDirectory, "ntdll.dll");
             using PEImage img = new PEImage(new FileStream(dllFileName, FileMode.Open, FileAccess.Read));
             Assert.NotNull(img);
 

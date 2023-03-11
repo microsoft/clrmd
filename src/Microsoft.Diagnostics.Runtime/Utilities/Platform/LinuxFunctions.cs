@@ -176,7 +176,9 @@ namespace Microsoft.Diagnostics.Runtime
         {
             IntPtr handle = _dlopen(libraryPath, NativeMethods.RTLD_NOW);
             if (handle == IntPtr.Zero)
+            {
                 throw new DllNotFoundException(Marshal.PtrToStringAnsi(_dlerror()));
+            }
 
             return handle;
         }

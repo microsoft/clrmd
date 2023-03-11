@@ -29,11 +29,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public int Read(ulong address, Span<byte> buffer)
         {
             if (address == 0 || buffer.Length == 0)
+            {
                 return 0;
+            }
 
             int i = GetFirstSegmentContaining(address);
             if (i < 0)
+            {
                 return 0;
+            }
 
             int bytesRead = 0;
             for (; i < _segments.Length; i++)
@@ -43,10 +47,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 ulong virtualSize = segment.VirtualSize;
 
                 if (virtualAddress > address)
+                {
                     break;
+                }
 
                 if (address >= virtualAddress + virtualSize)
+                {
                     continue;
+                }
 
                 ulong offset = address - virtualAddress;
                 int toRead = (int)Math.Min((ulong)(buffer.Length - bytesRead), virtualSize - offset);
@@ -54,11 +62,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 Span<byte> slice = buffer.Slice(bytesRead, toRead);
                 int read = segment.AddressSpace.Read(offset, slice);
                 if (read < toRead)
+                {
                     break;
+                }
 
                 bytesRead += read;
                 if (bytesRead == buffer.Length)
+                {
                     break;
+                }
 
                 address += (uint)read;
             }
@@ -89,9 +101,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
 
                 if (address < virtualAddress)
+                {
                     upper = mid - 1;
+                }
                 else
+                {
                     lower = mid + 1;
+                }
             }
 
             return -1;

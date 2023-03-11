@@ -27,7 +27,9 @@
         public void Show(string command)
         {
             if (string.IsNullOrWhiteSpace(command))
+            {
                 command = "help";
+            }
 
             string help = GetRawHelp(command);
             help = ReplaceVariables(help);
@@ -39,9 +41,9 @@
             int index = command.IndexOf('$');
             while (index > 0 && index < command.Length - 1)
             {
-                var span = command.AsSpan(index);
+                ReadOnlySpan<char> span = command.AsSpan(index);
 
-                foreach (var (name, replacement) in Replacements)
+                foreach ((string name, string replacement) in Replacements)
                 {
                     if (span.Length >= name.Length && name.AsSpan().SequenceEqual(span[..name.Length]))
                     {
@@ -58,7 +60,7 @@
 
         private static string GetRawHelp(string command)
         {
-            var assembly = typeof(Help).Assembly;
+            System.Reflection.Assembly assembly = typeof(Help).Assembly;
             string[] resources = assembly.GetManifestResourceNames();
 
             foreach (string file in resources.Where(f => f.StartsWith(RootResource)))
@@ -68,14 +70,18 @@
                 {
                     Stream? stream = assembly.GetManifestResourceStream(file);
                     if (stream is null)
+                    {
                         return $"Failed to read help stream {file}.";
+                    }
 
                     return new StreamReader(stream).ReadToEnd();
                 }
             }
 
             if (command != "help")
+            {
                 return GetRawHelp("help");
+            }
 
             return $"No help found for command '{command}'.";
         }

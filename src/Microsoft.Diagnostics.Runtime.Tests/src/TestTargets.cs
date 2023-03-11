@@ -59,7 +59,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 string artifacts = Path.Combine(curr, "test_artifacts");
                 if (Directory.Exists(artifacts))
+                {
                     return artifacts;
+                }
 
                 curr = Path.GetDirectoryName(curr);
             }
@@ -85,7 +87,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             DirectoryInfo info = new DirectoryInfo(Environment.CurrentDirectory);
             while (info.GetFiles(".gitignore").Length != 1)
+            {
                 info = info.Parent;
+            }
 
             TestRoot = Path.Combine(info.FullName, "src", "TestTargets");
         }
@@ -94,7 +98,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             Source = Path.Combine(TestRoot, name, name + ".cs");
             if (!File.Exists(Source))
+            {
                 throw new FileNotFoundException($"Could not find source file: {name}.cs");
+            }
 
             Executable = Path.Combine(TestRoot, "bin", Architecture, name + (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : null));
             Pdb = Path.ChangeExtension(Executable, ".pdb");
@@ -137,7 +143,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public DataTarget LoadFullDumpWithDbgEng(GCMode gc = GCMode.Workstation)
         {
             string dumpPath = BuildDumpName(gc, true);
-            var dbgengReader = new Utilities.DbgEng.DbgEngIDataReader(dumpPath);
+            Utilities.DbgEng.DbgEngIDataReader dbgengReader = new Utilities.DbgEng.DbgEngIDataReader(dumpPath);
             return new DataTarget(new CustomDataTarget(dbgengReader));
         }
     }

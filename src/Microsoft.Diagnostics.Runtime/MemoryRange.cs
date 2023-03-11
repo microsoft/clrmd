@@ -48,7 +48,9 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (End < Start)
+                {
                     return 0;
+                }
 
                 return End - Start;
             }
@@ -88,10 +90,14 @@ namespace Microsoft.Diagnostics.Runtime
         public int CompareTo(ulong address)
         {
             if (address < Start)
+            {
                 return 1;
+            }
 
             if (address >= End)
+            {
                 return -1;
+            }
 
             return 0;
         }

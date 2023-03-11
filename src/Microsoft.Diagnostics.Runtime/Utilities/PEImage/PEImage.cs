@@ -82,7 +82,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _leaveOpen = leaveOpen;
 
             if (!stream.CanSeek)
+            {
                 throw new ArgumentException($"{nameof(stream)} is not seekable.");
+            }
 
             ushort dosHeaderMagic = Read<ushort>(0);
             if (dosHeaderMagic != ExpectedDosHeaderMagic)
@@ -120,13 +122,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 // this is a x64 image or not, hence why this is wrapped in the above TryRead
                 SeekTo(DataDirectoryOffset);
                 for (int i = 0; i < _directories.Length; i++)
+                {
                     if (!TryRead(out _directories[i]))
+                    {
                         break;
-
+                    }
+                }
             }
 
             if (loadedImageBase == 0)
+            {
                 return;
+            }
 
             _loadedImageBase = loadedImageBase;
 
@@ -215,7 +222,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 // _metadata is an object to preserve atomicity
                 if (_metadata is not null)
+                {
                     return (ImageDataDirectory)_metadata;
+                }
 
                 ImageDataDirectory result = default;
                 ImageDataDirectory corHdr = ComDescriptorDirectory;
@@ -223,7 +232,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     int offset = RvaToOffset(corHdr.VirtualAddress);
                     if (offset > 0)
+                    {
                         result = Read<ImageCor20Header>(offset).MetaData;
+                    }
                 }
 
                 _metadata = result;
@@ -253,9 +264,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             get
             {
                 if (!_pdbs.IsDefault)
+                {
                     return _pdbs;
+                }
 
-                var pdbs = ReadPdbs();
+                ImmutableArray<PdbInfo> pdbs = ReadPdbs();
                 _pdbs = pdbs;
                 return pdbs;
             }
@@ -273,7 +286,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!_disposed)
             {
                 if (!_leaveOpen)
+                {
                     _stream.Dispose();
+                }
 
                 _disposed = true;
             }
@@ -287,17 +302,23 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public int RvaToOffset(int virtualAddress)
         {
             if (virtualAddress < 4096)
+            {
                 return virtualAddress;
+            }
 
             if (_isVirtual)
+            {
                 return virtualAddress;
+            }
 
             ImageSectionHeader[] sections = ReadSections();
             for (int i = 0; i < sections.Length; i++)
             {
                 ref ImageSectionHeader section = ref sections[i];
                 if (section.VirtualAddress <= virtualAddress && virtualAddress < section.VirtualAddress + section.VirtualSize)
+                {
                     return (int)(section.PointerToRawData + ((uint)virtualAddress - section.VirtualAddress));
+                }
             }
 
             return -1;
@@ -478,7 +499,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                     byte[] beforeBytes = new byte[relocationSize];
                     for (int i = 0; i < relocationSize; i++)
+                    {
                         beforeBytes[i] = buffer[relocationStartOffset - beginRead + i];
+                    }
 
                     byte[]? afterBytes;
                     if (relocationSize == 4)
@@ -521,7 +544,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             int offset = RvaToOffset(virtualAddress);
             if (offset == -1)
+            {
                 return 0;
+            }
 
             return DoRead(ref offset, dest);
         }
@@ -536,15 +561,21 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             IResourceNode? versionNode = Resources.GetChild("Version");
             if (versionNode is null || versionNode.Children.Length != 1)
+            {
                 return null;
+            }
 
             versionNode = versionNode.Children[0];
             if (versionNode.Children.Length == 1)
+            {
                 versionNode = versionNode.Children[0];
+            }
 
             int size = versionNode.Size;
             if (size < 16)  // Arbitrarily small value to ensure it's non-zero and has at least a little data in it
+            {
                 return null;
+            }
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(size);
             try
@@ -617,12 +648,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     if (totalRead < maxLength)
                     {
                         if (bytes[i] != 0)
+                        {
                             builder.Append((char)bytes[i]);
+                        }
                         else
+                        {
                             done = true;
+                        }
                     }
                     else
+                    {
                         done = true;
+                    }
                 }
             }
 
@@ -681,8 +718,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private ImageSectionHeader[] ReadSections()
         {
             if (_sections is not null)
+            {
                 return _sections;
-
+            }
 
             ImageSectionHeader[] sections = new ImageSectionHeader[_sectionCount];
 
@@ -690,12 +728,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             // Sanity check, there's a null row at the end of the data directory table
             if (!TryRead(out ulong zero) || zero != 0)
+            {
                 return sections;
+            }
 
             for (int i = 0; i < sections.Length; i++)
             {
                 if (!TryRead(out sections[i]))
+                {
                     break;
+                }
             }
 
             // We don't care about a race here
@@ -706,11 +748,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private bool Read64Bit()
         {
             if (!IsValid)
+            {
                 return false;
+            }
 
             int offset = OptionalHeaderOffset;
             if (!TryRead(ref offset, out ushort magic))
+            {
                 return false;
+            }
 
             return magic != OptionalMagic32;
         }
@@ -725,14 +771,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     int count = debugDirectory.Size / sizeof(ImageDebugDirectory);
                     int offset = RvaToOffset(debugDirectory.VirtualAddress);
                     if (offset == -1)
+                    {
                         return ImmutableArray<PdbInfo>.Empty;
+                    }
 
                     SeekTo(offset);
-                    var result = ImmutableArray.CreateBuilder<PdbInfo>(count);
+                    ImmutableArray<PdbInfo>.Builder result = ImmutableArray.CreateBuilder<PdbInfo>(count);
                     for (int i = 0; i < count; i++)
                     {
                         if (!TryRead(ref offset, out ImageDebugDirectory directory))
+                        {
                             break;
+                        }
 
                         if (directory.Type == ImageDebugType.CODEVIEW && directory.SizeOfData >= sizeof(CvInfoPdb70))
                         {
@@ -772,18 +822,24 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private string? ReadString(int len)
         {
             if (len > 4096)
+            {
                 len = 4096;
+            }
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(len);
             try
             {
                 int offset = _offset;
                 if (DoRead(ref offset, buffer) == 0)
+                {
                     return null;
+                }
 
                 int index = Array.IndexOf(buffer, (byte)'\0', 0, len);
                 if (index >= 0)
+                {
                     len = index;
+                }
 
                 return Encoding.ASCII.GetString(buffer, 0, len);
             }

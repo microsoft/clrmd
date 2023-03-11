@@ -30,10 +30,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // Always cache an empty name, no reason to keep requesting it.
             // Implementations may ignore this (ClrmdMethod doesn't cache null signatures).
             if (string.IsNullOrWhiteSpace(signature))
+            {
                 return true;
+            }
 
             if (_cacheOptions.CacheMethodNames == StringCaching.Intern)
+            {
                 signature = string.Intern(signature);
+            }
 
             return _cacheOptions.CacheMethodNames != StringCaching.None;
         }
@@ -54,9 +58,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         if (map[i].StartAddress > map[i].EndAddress)
                         {
                             if (i + 1 == map.Length)
+                            {
                                 map[i].EndAddress = FindEnd(inMethod.HotColdInfo, map[i].StartAddress);
+                            }
                             else
+                            {
                                 map[i].EndAddress = map[i + 1].StartAddress - 1;
+                            }
                         }
                     }
 
@@ -73,11 +81,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             ulong hotEnd = reg.HotStart + reg.HotSize;
             if (reg.HotStart <= address && address < hotEnd)
+            {
                 return hotEnd;
+            }
 
             ulong coldEnd = reg.ColdStart + reg.ColdSize;
             if (reg.ColdStart <= address && address < coldEnd)
+            {
                 return coldEnd;
+            }
 
             // Shouldn't reach here, but give a sensible answer if we do.
             return address + 0x20;

@@ -50,7 +50,9 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 string? signature = Signature;
                 if (signature is null)
+                {
                     return null;
+                }
 
                 int last = signature.LastIndexOf('(');
                 if (last > 0)
@@ -58,7 +60,9 @@ namespace Microsoft.Diagnostics.Runtime
                     int first = signature.LastIndexOf('.', last - 1);
 
                     if (first != -1 && signature[first - 1] == '.')
+                    {
                         first--;
+                    }
 
                     return signature.Substring(first + 1, last - first - 1);
                 }
@@ -76,11 +80,15 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (_signature != null)
+                {
                     return _signature;
+                }
 
                 // returns whether we should cache the signature or not.
                 if (_helpers.GetSignature(MethodDesc, out string? signature))
+                {
                     _signature = signature;
+                }
 
                 return signature;
             }
@@ -100,15 +108,23 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ImmutableArray<ILToNativeMap> map = ILOffsetMap;
             if (map.IsDefault)
+            {
                 return 0;
+            }
 
             int ilOffset = 0;
             if (map.Length > 1)
+            {
                 ilOffset = map[1].ILOffset;
+            }
 
             for (int i = 0; i < map.Length; ++i)
+            {
                 if (map[i].StartAddress <= addr && addr <= map[i].EndAddress)
+                {
                     return map[i].ILOffset;
+                }
+            }
 
             return ilOffset;
         }
@@ -121,11 +137,15 @@ namespace Microsoft.Diagnostics.Runtime
             IDataReader dataReader = _helpers.DataReader;
             ClrModule? module = Type.Module;
             if (module is null)
+            {
                 return null;
+            }
 
             MetadataImport? mdImport = module.MetadataImport;
             if (mdImport is null)
+            {
                 return null;
+            }
 
             uint rva = mdImport.GetRva(MetadataToken);
 
@@ -189,7 +209,9 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (!_attributes.HasValue)
+                {
                     _attributes = Type.Module?.MetadataImport?.GetMethodAttributes(MetadataToken) ?? default;
+                }
 
                 return _attributes.Value;
             }
@@ -210,13 +232,19 @@ namespace Microsoft.Diagnostics.Runtime
         public bool Equals(ClrMethod? other)
         {
             if (ReferenceEquals(this, other))
+            {
                 return true;
+            }
 
             if (other is null)
+            {
                 return false;
+            }
 
             if (MethodDesc == other.MethodDesc)
+            {
                 return true;
+            }
 
             // MethodDesc shouldn't be 0, but we should check the other way equality mechanism anyway.
             return MethodDesc == 0 && Type == other.Type && MetadataToken == other.MetadataToken;
@@ -227,7 +255,9 @@ namespace Microsoft.Diagnostics.Runtime
         public static bool operator ==(ClrMethod? left, ClrMethod? right)
         {
             if (right is null)
+            {
                 return left is null;
+            }
 
             return right.Equals(left);
         }

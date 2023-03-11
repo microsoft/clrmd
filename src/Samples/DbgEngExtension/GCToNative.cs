@@ -30,9 +30,13 @@ namespace DbgEngExtension
                                  .GetOptionalFlag(All, out bool showAll);
 
             if (types.Length == 0)
+            {
                 Console.WriteLine($"usage: !{Command} TYPES");
+            }
             else
+            {
                 PrintGCPointersToMemory(showAll, types);
+            }
         }
 
         public void PrintGCPointersToMemory(bool showAll, params string[] memoryTypes)
@@ -51,7 +55,9 @@ namespace DbgEngExtension
             //   5. Display all of this to the user.
 
             if (memoryTypes.Length == 0)
+            {
                 return;
+            }
 
             MAddress maddressHelper = new(this);
             IEnumerable<AddressMemoryRange> rangeEnum = maddressHelper.EnumerateAddressSpace(tagClrMemoryRanges: true, includeReserveMemory: false, tagReserveMemoryHeuristically: false);
@@ -70,16 +76,18 @@ namespace DbgEngExtension
             Console.WriteLine("Walking GC heap to find pointers...");
             Dictionary<ClrSegment, List<GCObjectToRange>> segmentLists = new();
 
-            var items = Runtimes
+            IEnumerable<(ClrSegment Segment, ulong Address, ulong Pointer, AddressMemoryRange MemoryRange)> items = Runtimes
                             .SelectMany(r => r.Heap.Segments)
                             .SelectMany(Segment => maddressHelper
                                                     .EnumerateRegionPointers(Segment.ObjectRange.Start, Segment.ObjectRange.End, ranges)
                                                     .Select(regionPointer => (Segment, regionPointer.Address, regionPointer.Pointer, regionPointer.MemoryRange)));
 
-            foreach (var item in items)
+            foreach ((ClrSegment Segment, ulong Address, ulong Pointer, AddressMemoryRange MemoryRange) item in items)
             {
                 if (!segmentLists.TryGetValue(item.Segment, out List<GCObjectToRange>? list))
+                {
                     list = segmentLists[item.Segment] = new();
+                }
 
                 list.Add(new GCObjectToRange(item.Address, item.Pointer, item.MemoryRange));
             }
@@ -104,7 +112,9 @@ namespace DbgEngExtension
                     foreach (ClrObject obj in seg.EnumerateObjects())
                     {
                         if (index >= pointers.Count)
+                        {
                             break;
+                        }
 
                         while (index < pointers.Count && pointers[index].GCPointer < obj.Address)
                         {
@@ -117,7 +127,9 @@ namespace DbgEngExtension
                         }
 
                         if (index == pointers.Count)
+                        {
                             break;
+                        }
 
                         while (index < pointers.Count && obj.Address <= pointers[index].GCPointer && pointers[index].GCPointer < obj.Address + obj.Size)
                         {
@@ -138,12 +150,16 @@ namespace DbgEngExtension
                             else if (KnownClrMemoryPointer.ContainsKnownClrMemoryPointers(obj))
                             {
                                 foreach (KnownClrMemoryPointer knownMem in KnownClrMemoryPointer.EnumerateKnownClrMemoryPointers(obj, sizeHints))
+                                {
                                     knownMemory.Add(obj, knownMem);
+                                }
                             }
                             else
                             {
                                 if (typeName.Contains('>'))
+                                {
                                     typeName = CollapseGenerics(typeName);
+                                }
 
                                 unknownObjPointers.Add((pointers[index].TargetSegmentPointer, obj));
                             }
@@ -173,11 +189,17 @@ namespace DbgEngExtension
                         };
 
                         allOut.WriteRowWithSpacing('-', "Pointer", "Size", "Object", "Type");
-                        foreach (var entry in allPointers)
+                        foreach ((ulong Pointer, ulong Size, ulong Object, string Type) entry in allPointers)
+                        {
                             if (entry.Size == 0)
+                            {
                                 allOut.WriteRow(entry.Pointer, "", entry.Object, entry.Type);
+                            }
                             else
+                            {
                                 allOut.WriteRow(entry.Pointer, entry.Size, entry.Object, entry.Type);
+                            }
+                        }
 
                         Console.WriteLine();
                     }
@@ -211,7 +233,9 @@ namespace DbgEngExtension
                         summary.WriteRowWithSpacing('-', "Type", "Count", "Size", "Size (bytes)", "RndPointer");
 
                         foreach (var item in knownMemorySummary)
+                        {
                             summary.WriteRow(item.Name, item.Count, item.TotalSize.ConvertToHumanReadable(), item.TotalSize, item.Pointer);
+                        }
 
                         (int totalRegions, ulong totalBytes) = GetSizes(knownMemory, sizeHints);
 
@@ -250,7 +274,9 @@ namespace DbgEngExtension
                         summary.WriteRowWithSpacing('-', "Type", "Count", "RndPointer");
 
                         foreach (var item in unknownMem)
+                        {
                             summary.WriteRow(item.Name, item.Count, item.Pointer);
+                        }
                     }
                 }
             }
@@ -258,7 +284,7 @@ namespace DbgEngExtension
 
         private static (int Regions, ulong Bytes) GetSizes(Dictionary<ulong, KnownClrMemoryPointer> knownMemory, Dictionary<ulong, int> sizeHints)
         {
-            var ordered = from item in knownMemory.Values
+            IOrderedEnumerable<KnownClrMemoryPointer> ordered = from item in knownMemory.Values
                           orderby item.Pointer ascending, item.Size descending
                           select item;
 
@@ -266,7 +292,7 @@ namespace DbgEngExtension
             ulong totalBytes = 0;
             ulong prevEnd = 0;
 
-            foreach (var item in ordered)
+            foreach (KnownClrMemoryPointer? item in ordered)
             {
                 ulong size = GetSize(sizeHints, item);
 
@@ -274,11 +300,15 @@ namespace DbgEngExtension
                 if (item.Pointer < prevEnd)
                 {
                     if (item.Pointer + size <= prevEnd)
+                    {
                         continue;
+                    }
 
                     ulong diff = prevEnd - item.Pointer;
                     if (diff >= size)
+                    {
                         continue;
+                    }
 
                     size -= diff;
                     prevEnd += size;
@@ -299,7 +329,10 @@ namespace DbgEngExtension
         {
             int lpad = (Width - header.Length) / 2;
             if (lpad > 0)
+            {
                 header = header.PadLeft(Width - lpad, '=');
+            }
+
             Console.WriteLine(header.PadRight(Width, '='));
         }
 
@@ -314,9 +347,13 @@ namespace DbgEngExtension
                     if (nest++ == 0)
                     {
                         if (i < typeName.Length - 1 && typeName[i + 1] == '>')
+                        {
                             result.Append("<>");
+                        }
                         else
+                        {
                             result.Append("<...>");
+                        }
                     }
                 }
                 else if (typeName[i] == '>')
@@ -335,8 +372,12 @@ namespace DbgEngExtension
         private static ulong GetSize(Dictionary<ulong, int> sizeHints, KnownClrMemoryPointer k)
         {
             if (sizeHints.TryGetValue(k.Pointer, out int hint))
+            {
                 if ((ulong)hint > k.Size)
+                {
                     return (ulong)hint;
+                }
+            }
 
             return k.Size;
         }
@@ -408,7 +449,9 @@ namespace DbgEngExtension
                             int size = obj.ReadField<int>("_size");
 
                             if (pointer != 0 && size > 0)
+                            {
                                 AddSizeHint(sizeHints, pointer, size);
+                            }
 
                             yield return new KnownClrMemoryPointer(obj, pointer, size);
                         }
@@ -420,7 +463,9 @@ namespace DbgEngExtension
                             int size = obj.ReadField<int>("_size");
 
                             if (pointer != 0 && size > 0)
+                            {
                                 AddSizeHint(sizeHints, pointer, size);
+                            }
 
                             yield return new KnownClrMemoryPointer(obj, pointer, size);
                         }
@@ -443,7 +488,9 @@ namespace DbgEngExtension
                             int size = obj.ReadField<int>("_size");
 
                             if (pointer != 0 && size > 0)
+                            {
                                 AddSizeHint(sizeHints, pointer, size);
+                            }
                         }
 
                         break;
@@ -452,7 +499,9 @@ namespace DbgEngExtension
                         {
                             MemoryBlockImpl block = obj.ReadField<MemoryBlockImpl>("Block");
                             if (block.Pointer != 0 && block.Size > 0)
+                            {
                                 yield return new KnownClrMemoryPointer(obj, block.Pointer, block.Size);
+                            }
                         }
                         break;
                 }
@@ -467,7 +516,9 @@ namespace DbgEngExtension
                     if (sizeHints.TryGetValue(ptr, out int hint))
                     {
                         if (hint < size)
+                        {
                             sizeHints[ptr] = size;
+                        }
                     }
                     else
                     {

@@ -11,11 +11,15 @@
 
             updated /= 1024;
             if (updated < 1024)
+            {
                 return $"{updated:0.00}kb";
+            }
 
             updated /= 1024;
             if (updated < 1024)
+            {
                 return $"{updated:0.00}mb";
+            }
 
             updated /= 1024;
             return $"{updated:0.00}gb";
@@ -24,10 +28,14 @@
         public static string[] GetOptionalFlag(this string[] args, string name, out bool value)
         {
             if (string.IsNullOrWhiteSpace(name))
+            {
                 throw new ArgumentNullException(nameof(name));
+            }
 
             if (StartsWithSlash(name))
+            {
                 throw new ArgumentException($"Do not put a {name[0]} on {nameof(name)}.");
+            }
 
             // There's more efficient ways of doing all of this, but this isn't high performance code
             int i = Array.FindIndex(args, item => item.Length > name.Length && StartsWithSlash(item) && item.AsSpan()[1..] == name);

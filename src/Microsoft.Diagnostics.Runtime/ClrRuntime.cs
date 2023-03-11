@@ -46,7 +46,9 @@ namespace Microsoft.Diagnostics.Runtime
         private ClrAppDomainData GetAppDomainData()
         {
             if (_appDomainData is not null)
+            {
                 return _appDomainData;
+            }
 
             ClrAppDomainData data = _helpers.GetAppDomainData();
             Interlocked.CompareExchange(ref _appDomainData, data, null);
@@ -100,7 +102,9 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (!_threads.IsDefault)
+                {
                     return _threads;
+                }
 
                 ImmutableArray<ClrThread> threads = _helpers.EnumerateThreads().ToImmutableArray();
                 ImmutableInterlocked.InterlockedCompareExchange(ref _threads, threads, _threads);
@@ -186,34 +190,46 @@ namespace Microsoft.Diagnostics.Runtime
         {
             // Enumerate the JIT code heaps.
             foreach (ClrJitManager jitMgr in EnumerateJitManagers())
+            {
                 foreach (ClrNativeHeapInfo heap in jitMgr.EnumerateNativeHeaps())
+                {
                     yield return heap;
+                }
+            }
 
             HashSet<ulong> visited = new();
 
             // Ensure we are working on a consistent set of domains/modules
-            var domainData = GetAppDomainData();
+            ClrAppDomainData domainData = GetAppDomainData();
 
             // Walk domains
             if (domainData.SystemDomain is not null)
             {
                 visited.Add(domainData.SystemDomain.LoaderAllocator);
                 foreach (ClrNativeHeapInfo heap in domainData.SystemDomain.EnumerateLoaderAllocatorHeaps())
+                {
                     yield return heap;
+                }
             }
 
             if (domainData.SharedDomain is not null)
             {
                 visited.Add(domainData.SharedDomain.LoaderAllocator);
                 foreach (ClrNativeHeapInfo heap in domainData.SharedDomain.EnumerateLoaderAllocatorHeaps())
+                {
                     yield return heap;
+                }
             }
 
             foreach (ClrAppDomain domain in domainData.AppDomains)
             {
                 if (domain.LoaderAllocator == 0 || visited.Add(domain.LoaderAllocator))
+                {
                     foreach (ClrNativeHeapInfo heap in domain.EnumerateLoaderAllocatorHeaps())
+                    {
                         yield return heap;
+                    }
+                }
             }
 
             // Walk modules.  We do this after domains to ensure we don't enumerate
@@ -225,14 +241,22 @@ namespace Microsoft.Diagnostics.Runtime
                 if (module.Address == 0 || visited.Add(module.Address))
                 {
                     if (module.ThunkHeap != 0 && visited.Add(module.ThunkHeap))
+                    {
                         foreach (ClrNativeHeapInfo heap in module.EnumerateThunkHeap())
+                        {
                             yield return heap;
+                        }
+                    }
 
                     // LoaderAllocator may be shared with its parent domain.  We only have a
                     // unique LoaderAllocator in the case of collectable assemblies.
                     if (module.LoaderAllocator != 0 && visited.Add(module.LoaderAllocator))
+                    {
                         foreach (ClrNativeHeapInfo heap in module.EnumerateLoaderAllocatorHeaps())
+                        {
                             yield return heap;
+                        }
+                    }
                 }
             }
         }

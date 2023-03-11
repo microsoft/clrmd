@@ -41,10 +41,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             BloomShift = reader.Read<int>(ref address);
 
             if (BucketCount <= 0 || SymbolOffset == 0)
+            {
                 throw new InvalidDataException("ELF file has a hash bucket count or symbol offset invalid");
+            }
 
             if (BloomSize < 0)
+            {
                 throw new InvalidDataException("ELF file has a negative BloomSize.");
+            }
 
             long sizeTSize = is64Bit ? 8 : 4;
             address += (ulong)(sizeTSize * BloomSize);
@@ -52,10 +56,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             Buckets = new int[BucketCount];
             byte[] buffer = new byte[BucketCount * Marshal.SizeOf<int>()];
             if (reader.ReadBytes(address, new Span<byte>(buffer)) != buffer.Length)
+            {
                 throw new InvalidDataException("Error reading ELF dump's bucket array");
+            }
 
             for (int i = 0; i < BucketCount; i++)
+            {
                 Buckets[i] = BitConverter.ToInt32(buffer, i * Marshal.SizeOf<int>());
+            }
 
             _chainsAddress = address + (ulong)(BucketCount * (uint)Marshal.SizeOf<int>());
         }

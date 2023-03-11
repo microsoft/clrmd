@@ -71,10 +71,14 @@ namespace Microsoft.Diagnostics.Runtime
         public T[]? ReadValues<T>(int start, int count) where T : unmanaged
         {
             if (start < 0 || start >= Length)
+            {
                 throw new ArgumentOutOfRangeException(nameof(start));
+            }
 
             if (count < 0 || start + count > Length)
+            {
                 throw new ArgumentOutOfRangeException(nameof(count));
+            }
 
             return Type.ReadArrayElements<T>(Address, start, count);
         }
@@ -104,10 +108,14 @@ namespace Microsoft.Diagnostics.Runtime
         {
             int rank = MultiDimensionalRank;
             if (rank == 0 && dimension == 0)
+            {
                 return Length;
+            }
 
             if ((uint)dimension >= rank)
+            {
                 throw new ArgumentOutOfRangeException(nameof(dimension));
+            }
 
             return GetMultiDimensionalBound(dimension);
         }
@@ -116,10 +124,14 @@ namespace Microsoft.Diagnostics.Runtime
         {
             int rank = MultiDimensionalRank;
             if (rank == 0 && dimension == 0)
+            {
                 return 0;
+            }
 
             if ((uint)dimension >= rank)
+            {
                 throw new ArgumentOutOfRangeException(nameof(dimension));
+            }
 
             return GetMultiDimensionalBound(rank + dimension);
         }
@@ -128,10 +140,14 @@ namespace Microsoft.Diagnostics.Runtime
         {
             int rank = MultiDimensionalRank;
             if (rank == 0 && dimension == 0)
+            {
                 return Length - 1;
+            }
 
             if ((uint)dimension >= rank)
+            {
                 throw new ArgumentOutOfRangeException(nameof(dimension));
+            }
 
             int length = GetMultiDimensionalBound(dimension);
             int lowerBound = GetMultiDimensionalBound(rank + dimension);
@@ -141,7 +157,9 @@ namespace Microsoft.Diagnostics.Runtime
         public unsafe T GetValue<T>(int index) where T : unmanaged
         {
             if (sizeof(T) != Type.ComponentSize)
+            {
                 throw new ArgumentException($"{typeof(T).Name} is 0x{sizeof(T):x} bytes but the array element is 0x{Type.ComponentSize:x}.");
+            }
 
             return ReadValue<T>(index);
         }
@@ -149,7 +167,9 @@ namespace Microsoft.Diagnostics.Runtime
         public unsafe T GetValue<T>(params int[] indices) where T : unmanaged
         {
             if (sizeof(T) != Type.ComponentSize)
+            {
                 throw new ArgumentException($"{typeof(T).Name} is 0x{sizeof(T):x} bytes but the array element is 0x{Type.ComponentSize:x}.");
+            }
 
             return ReadValue<T>(indices);
         }
@@ -157,10 +177,14 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrValueType GetStructValue(int index)
         {
             if (Type.ComponentType is null)
+            {
                 return default;
+            }
 
             if (Type.ComponentType.IsObjectReference)
+            {
                 throw new InvalidOperationException($"{Type} does not contain value type instances.");
+            }
 
             ulong address = GetElementAddress(Type.ComponentSize, index);
             return new ClrValueType(address, Type.ComponentType, interior: true);
@@ -169,10 +193,14 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrValueType GetStructValue(params int[] indices)
         {
             if (Type.ComponentType is null)
+            {
                 return default;
+            }
 
             if (Type.ComponentType.IsObjectReference)
+            {
                 throw new InvalidOperationException($"{Type} does not contain value type instances.");
+            }
 
             ulong address = GetElementAddress(Type.ComponentSize, indices);
             return new ClrValueType(address, Type.ComponentType, interior: true);
@@ -181,7 +209,9 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrObject GetObjectValue(int index)
         {
             if (Type.ComponentType != null && !Type.ComponentType.IsObjectReference)
+            {
                 throw new InvalidOperationException($"{Type} does not contain object references.");
+            }
 
             return Type.Heap.GetObject(ReadValue<nuint>(index));
         }
@@ -189,7 +219,9 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrObject GetObjectValue(params int[] indices)
         {
             if (Type.ComponentType != null && !Type.ComponentType.IsObjectReference)
+            {
                 throw new InvalidOperationException($"{Type} does not contain object references.");
+            }
 
             return Type.Heap.GetObject(ReadValue<nuint>(indices));
         }
@@ -207,7 +239,9 @@ namespace Microsoft.Diagnostics.Runtime
         private unsafe ulong GetElementAddress(int elementSize, int index)
         {
             if (Rank != 1)
+            {
                 throw new ArgumentException($"Array {Address:x} was not a one-dimensional array. Type: {Type?.Name ?? "null"}");
+            }
 
             int valueOffset = index;
             int dataByteOffset = 2 * sizeof(nint);
@@ -216,14 +250,18 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 valueOffset -= GetMultiDimensionalBound(1);
                 if (unchecked((uint)valueOffset) >= GetMultiDimensionalBound(0))
+                {
                     throw new ArgumentOutOfRangeException(nameof(index));
+                }
 
                 dataByteOffset += 2 * sizeof(int);
             }
             else
             {
                 if (unchecked((uint)valueOffset) >= Length)
+                {
                     throw new ArgumentOutOfRangeException(nameof(index));
+                }
             }
 
             int valueByteOffset = dataByteOffset + valueOffset * elementSize;
@@ -233,11 +271,15 @@ namespace Microsoft.Diagnostics.Runtime
         private unsafe ulong GetElementAddress(int elementSize, int[] indices)
         {
             if (indices is null)
+            {
                 throw new ArgumentNullException(nameof(indices));
+            }
 
             int rank = Rank;
             if (rank != indices.Length)
+            {
                 throw new ArgumentException($"Indices length does not match the array rank. Array {Address:x} Rank = {rank}, {nameof(indices)} Rank = {indices.Length}");
+            }
 
             int valueOffset = 0;
             int dataByteOffset = 2 * sizeof(nint);
@@ -248,7 +290,9 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     valueOffset = indices[0] - GetMultiDimensionalBound(1);
                     if ((uint)valueOffset >= GetMultiDimensionalBound(0))
+                    {
                         throw new ArgumentOutOfRangeException(nameof(indices));
+                    }
 
                     dataByteOffset += 2 * sizeof(int);
                 }
@@ -256,7 +300,9 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     valueOffset = indices[0];
                     if ((uint)valueOffset >= Length)
+                    {
                         throw new ArgumentOutOfRangeException(nameof(indices));
+                    }
                 }
             }
             else
@@ -265,7 +311,9 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     int currentValueOffset = indices[dimension] - GetMultiDimensionalBound(rank + dimension);
                     if ((uint)currentValueOffset >= GetMultiDimensionalBound(dimension))
+                    {
                         throw new ArgumentOutOfRangeException(nameof(indices));
+                    }
 
                     valueOffset *= GetMultiDimensionalBound(dimension);
                     valueOffset += currentValueOffset;

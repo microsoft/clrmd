@@ -49,10 +49,14 @@ namespace Microsoft.Diagnostics.Runtime
         public override bool Equals([NotNullWhen(true)] object? obj)
         {
             if (obj is null)
+            {
                 return false;
+            }
 
             if (obj is IClrValue other)
+            {
                 return other.Equals(this);
+            }
 
             return false;
         }
@@ -74,13 +78,17 @@ namespace Microsoft.Diagnostics.Runtime
             ClrType type = GetTypeOrThrow();
             ClrInstanceField field = type.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
             if (!field.IsObjectReference)
+            {
                 throw new ArgumentException($"Field '{type.Name}.{fieldName}' is not an object reference.");
+            }
 
             ClrHeap heap = type.Heap;
 
             ulong addr = field.GetAddress(Address, _interior);
             if (!DataReader.ReadPointer(addr, out ulong obj))
+            {
                 return default;
+            }
 
             return heap.GetObject(obj);
         }
@@ -111,10 +119,14 @@ namespace Microsoft.Diagnostics.Runtime
             ClrInstanceField? field = type.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
 
             if (!field.IsValueType)
+            {
                 throw new ArgumentException($"Field '{type.Name}.{fieldName}' is not a ValueClass.");
+            }
 
             if (field.Type is null)
+            {
                 throw new InvalidOperationException("Field does not have an associated class.");
+            }
 
             ulong addr = field.GetAddress(Address, _interior);
             return new ClrValueType(addr, field.Type, true);
@@ -135,10 +147,14 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
             if (!DataReader.ReadPointer(address, out ulong str))
+            {
                 return null;
+            }
 
             if (str == 0)
+            {
                 return null;
+            }
 
             ClrObject obj = new(str, GetTypeOrThrow().Heap.StringType);
             return obj.AsString(maxLength);
@@ -149,7 +165,9 @@ namespace Microsoft.Diagnostics.Runtime
             ClrType type = GetTypeOrThrow();
             ClrInstanceField field = type.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
             if (field.ElementType != element)
+            {
                 throw new InvalidOperationException($"Field '{type.Name}.{fieldName}' is not of type '{typeName}'.");
+            }
 
             ulong address = field.GetAddress(Address, _interior);
             return address;
@@ -164,7 +182,9 @@ namespace Microsoft.Diagnostics.Runtime
         private ClrType GetTypeOrThrow()
         {
             if (Type is null)
+            {
                 throw new InvalidOperationException($"Unknown type of value at {Address:x}.");
+            }
 
             return Type;
         }
@@ -238,7 +258,9 @@ namespace Microsoft.Diagnostics.Runtime
         {
             IClrTypeHelpers? helpers = Type?.Helpers;
             if (helpers is null)
+            {
                 return default;
+            }
 
             return helpers.DataReader.Read<T>(Address);
         }
@@ -263,17 +285,23 @@ namespace Microsoft.Diagnostics.Runtime
             result = null;
 
             if (Type is null)
+            {
                 return false;
+            }
 
             ClrInstanceField? field = Type.GetFieldByName(fieldName);
             if (field is null || !field.IsObjectReference)
+            {
                 return false;
+            }
 
             ClrHeap heap = Type.Heap;
 
             ulong addr = field.GetAddress(Address, _interior);
             if (!DataReader.ReadPointer(addr, out ulong obj))
+            {
                 return false;
+            }
 
             result = heap.GetObject(obj);
             return true;

@@ -37,7 +37,7 @@ namespace DbgEngExtension
             AddressMemoryRange[] allRegions = address.EnumerateAddressSpace(tagClrMemoryRanges: true, includeReserveMemory: false, tagReserveMemoryHeuristically: false).ToArray();
 
             Console.WriteLine("Scanning for pinned objects...");
-            var ctx = CreateMemoryWalkContext();
+            MemoryWalkContext ctx = CreateMemoryWalkContext();
 
             foreach (string type in memTypes)
             {
@@ -52,14 +52,16 @@ namespace DbgEngExtension
 
                 foreach (AddressMemoryRange mem in matchingRanges.OrderBy(r => r.Start))
                 {
-                    var pointersFound = address.EnumerateRegionPointers(mem.Start, mem.End, allRegions).Select(r => (r.Pointer, r.MemoryRange));
+                    IEnumerable<(ulong Pointer, AddressMemoryRange MemoryRange)> pointersFound = address.EnumerateRegionPointers(mem.Start, mem.End, allRegions).Select(r => (r.Pointer, r.MemoryRange));
                     RegionPointers result = ProcessOneRegion(pinnedOnly, pointersFound, ctx);
 
                     WriteMemoryHeaderLine(mem);
 
                     Console.WriteLine($"Type:  {mem.Name}");
                     if (mem.Image is not null)
+                    {
                         Console.WriteLine($"Image: {mem.Image}");
+                    }
 
                     WriteTables(ctx, result, false);
 
@@ -113,7 +115,10 @@ namespace DbgEngExtension
             string header = $"REGION [{mem.Start:x}-{mem.End:x}] {mem.Kind} {mem.State} {mem.Protect}";
             int lpad = (Width - header.Length) / 2;
             if (lpad > 0)
+            {
                 header = header.PadLeft(Width - lpad, '=');
+            }
+
             Console.WriteLine(header.PadRight(Width, '='));
         }
 
@@ -125,7 +130,7 @@ namespace DbgEngExtension
             }
             else
             {
-                var gcResult = from obj in result.PinnedPointers
+                IEnumerable<(string Key, int, int, IEnumerable<ulong>)> gcResult = from obj in result.PinnedPointers
                                let name = obj.Type?.Name ?? "<unknown_object_types>"
                                group obj.Address by name into g
                                let Count = g.Count()
@@ -140,7 +145,7 @@ namespace DbgEngExtension
 
                 if (result.NonPinnedGCPointers.Count > 0)
                 {
-                    var v = new (string, int, int, IEnumerable<ulong>)[] { ("[Pointers to non-pinned objects]", result.NonPinnedGCPointers.Count, new HashSet<ulong>(result.NonPinnedGCPointers).Count, result.NonPinnedGCPointers) };
+                    (string, int, int, IEnumerable<ulong>)[] v = new (string, int, int, IEnumerable<ulong>)[] { ("[Pointers to non-pinned objects]", result.NonPinnedGCPointers.Count, new HashSet<ulong>(result.NonPinnedGCPointers).Count, result.NonPinnedGCPointers) };
                     gcResult = v.Concat(gcResult);
                 }
 
@@ -150,7 +155,7 @@ namespace DbgEngExtension
 
         private static void WriteUnresolvablePointerTable(RegionPointers result, bool forceTruncate)
         {
-            var unresolvedQuery = from item in result.UnresolvablePointers
+            IEnumerable<(string Key, int, int, IEnumerable<ulong>)> unresolvedQuery = from item in result.UnresolvablePointers
                                   let Name = item.Key.Image ?? item.Key.Name
                                   group item.Value by Name into g
                                   let All = g.SelectMany(r => r).ToArray()
@@ -170,7 +175,7 @@ namespace DbgEngExtension
 
         private void WriteResolvablePointerTable(MemoryWalkContext ctx, RegionPointers result, bool forceTruncate)
         {
-            var resolvedQuery = from ptr in result.ResolvablePointers.SelectMany(r => r.Value)
+            IEnumerable<(string, int, int, IEnumerable<ulong>)> resolvedQuery = from ptr in result.ResolvablePointers.SelectMany(r => r.Value)
                                 let r = ctx.ResolveSymbol(DebugSymbols, ptr)
                                 let name = r.Symbol ?? "<unknown_function>"
                                 group (ptr, r.Offset) by name into g
@@ -190,9 +195,11 @@ namespace DbgEngExtension
 
         private static void PrintPointerTable(string nameColumn, string truncatedName, bool forceTruncate, IEnumerable<(string Name, int Count, int Unique, IEnumerable<ulong> Pointers)> query)
         {
-            var resolved = query.ToArray();
+            (string Name, int Count, int Unique, IEnumerable<ulong> Pointers)[] resolved = query.ToArray();
             if (resolved.Length == 0)
+            {
                 return;
+            }
 
             int single = resolved.Count(r => r.Count == 1);
             int multi = resolved.Length - single;
@@ -207,12 +214,16 @@ namespace DbgEngExtension
             table.Divider = "   ";
             table.WriteRowWithSpacing('-', nameColumn, "Unique", "Count", "RndPtr");
 
-            var items = truncate ? resolved.Take(multi) : resolved;
-            foreach (var (Name, Count, Unique, Pointers) in items)
+            IEnumerable<(string Name, int Count, int Unique, IEnumerable<ulong> Pointers)> items = truncate ? resolved.Take(multi) : resolved;
+            foreach ((string Name, int Count, int Unique, IEnumerable<ulong> Pointers) in items)
+            {
                 table.WriteRow(Name, Unique, Count, FindMostCommonPointer(Pointers));
+            }
 
             if (truncate)
+            {
                 table.WriteRow(truncatedName, single, single);
+            }
 
             table.WriteRowWithSpacing('-', " [ TOTALS ] ", resolved.Sum(r => r.Unique), resolved.Sum(r => r.Count), "");
         }
@@ -220,16 +231,24 @@ namespace DbgEngExtension
         private static string FixTypeName(string typeName, HashSet<int> offsets)
         {
             if (typeName.EndsWith('!') && typeName.Count(r => r == '!') == 1)
+            {
                 typeName = typeName[..^1];
+            }
 
             int vtableIdx = typeName.IndexOf(VtableConst);
             if (vtableIdx > 0)
+            {
                 typeName = typeName.Replace(VtableConst, "") + "::vtable";
+            }
 
             if (offsets.Count == 1 && offsets.Single() > 0)
+            {
                 typeName = $"{typeName}+{offsets.Single():x}";
+            }
             else if (offsets.Count > 1)
+            {
                 typeName = $"{typeName}+...";
+            }
 
             return typeName;
         }
@@ -245,16 +264,21 @@ namespace DbgEngExtension
                     if (pinnedOnly)
                     {
                         if (ctx.IsPinnedObject(found.Pointer, out ClrObject obj))
-
+                        {
                             result.AddGCPointer(obj);
+                        }
                         else
+                        {
                             result.AddGCPointer(found.Pointer);
+                        }
                     }
                     else
                     {
                         ClrObject obj = Runtimes.Single().Heap.GetObject(found.Pointer);
                         if (obj.IsValid)
+                        {
                             result.AddGCPointer(obj);
+                        }
                     }
                 }
                 else if (found.Range.Kind == MemKind.MEM_IMAGE)
@@ -277,11 +301,15 @@ namespace DbgEngExtension
 
             foreach (ClrRuntime runtime in Runtimes)
             {
-                foreach (var root in runtime.Heap.EnumerateRoots().Where(r => r.IsPinned))
+                foreach (ClrRoot? root in runtime.Heap.EnumerateRoots().Where(r => r.IsPinned))
                 {
                     if (root.Object.IsValid && !root.Object.IsFree)
+                    {
                         if (seen.Add(root.Object))
+                        {
                             pinned.Add(root.Object);
+                        }
+                    }
                 }
 
                 foreach (ClrSegment seg in runtime.Heap.Segments.Where(s => s.IsPinned))
@@ -289,7 +317,9 @@ namespace DbgEngExtension
                     foreach (ClrObject obj in seg.EnumerateObjects().Where(o => seen.Add(o)))
                     {
                         if (!obj.IsFree && obj.IsValid)
+                        {
                             pinned.Add(obj);
+                        }
                     }    
                 }
             }
@@ -321,10 +351,12 @@ namespace DbgEngExtension
 
             internal void AddRegionPointer(AddressMemoryRange range, ulong pointer, bool hasSymbols)
             {
-                var pointerMap = hasSymbols ? ResolvablePointers : UnresolvablePointers;
+                Dictionary<AddressMemoryRange, List<ulong>> pointerMap = hasSymbols ? ResolvablePointers : UnresolvablePointers;
 
                 if (!pointerMap.TryGetValue(range, out List<ulong>? pointers))
+                {
                     pointers = pointerMap[range] = new();
+                }
 
                 pointers.Add(pointer);
             }
@@ -339,12 +371,16 @@ namespace DbgEngExtension
 
             private static void AddTo(Dictionary<AddressMemoryRange, List<ulong>> sourceDict, Dictionary<AddressMemoryRange, List<ulong>> destDict)
             {
-                foreach (var item in sourceDict)
+                foreach (KeyValuePair<AddressMemoryRange, List<ulong>> item in sourceDict)
                 {
                     if (destDict.TryGetValue(item.Key, out List<ulong>? values))
+                    {
                         values.AddRange(item.Value);
+                    }
                     else
+                    {
                         destDict[item.Key] = new(item.Value);
+                    }
                 }
             }
         }
@@ -397,14 +433,20 @@ namespace DbgEngExtension
             public (string? Symbol, int Offset) ResolveSymbol(IDebugSymbols symbols, ulong ptr)
             {
                 if (_resolved.TryGetValue(ptr, out (string?,int) result))
+                {
                     return result;
+                }
 
                 // _resolved is just a cache.  Don't let it get so big we eat all of the memory.
                 if (_resolved.Count > 16*1024)
+                {
                     _resolved.Clear();
+                }
 
                 if (symbols.GetNameByOffset(ptr, out string? name, out ulong displacement))
+                {
                     return _resolved[ptr] = (name, displacement > int.MaxValue ? int.MaxValue : (int)displacement);
+                }
 
                 return (null, -1);
             }
@@ -413,19 +455,27 @@ namespace DbgEngExtension
             public bool HasSymbols(IDebugSymbols symbols, AddressMemoryRange range)
             {
                 if (_imageHasSymbols.TryGetValue(range, out bool hasSymbols))
+                {
                     return hasSymbols;
+                }
 
                 ulong imageBase = FindBaseAddress(symbols, range.Start, out string? filename);
 
                 if (imageBase == 0)
+                {
                     return _imageHasSymbols[range] = false;
+                }
 
                 if (filename is not null && _imageByNameHasSymbols.TryGetValue(filename, out hasSymbols))
+                {
                     return hasSymbols;
+                }
 
                 HResult hr = symbols.GetModuleParameters(imageBase, out DEBUG_MODULE_PARAMETERS param);
                 if (hr && param.SymbolType != DEBUG_SYMTYPE.NONE && param.SymbolType != DEBUG_SYMTYPE.DEFERRED)
+                {
                     return SetValue(param.SymbolType, range, filename);
+                }
 
                 if (filename is not null)
                 {
@@ -448,7 +498,9 @@ namespace DbgEngExtension
                 _imageHasSymbols.Add(range, hasSymbols);
 
                 if (filename is not null)
+                {
                     _imageByNameHasSymbols.Add(filename, hasSymbols);
+                }
 
                 return hasSymbols;
             }
@@ -460,7 +512,9 @@ namespace DbgEngExtension
                 {
 
                     if (symbols.GetModuleName(DEBUG_MODNAME.IMAGE, baseAddr, out filename) < 0)
+                    {
                         filename = null;
+                    }
                 }
                 else
                 {

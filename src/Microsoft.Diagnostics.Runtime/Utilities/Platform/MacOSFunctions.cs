@@ -154,7 +154,9 @@ namespace Microsoft.Diagnostics.Runtime
         {
             IntPtr handle = NativeMethods.dlopen(libraryPath, NativeMethods.RTLD_NOW);
             if (handle == IntPtr.Zero)
+            {
                 throw new DllNotFoundException(Marshal.PtrToStringAnsi(NativeMethods.dlerror()));
+            }
 
             return handle;
         }

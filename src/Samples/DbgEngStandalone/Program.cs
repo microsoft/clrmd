@@ -5,7 +5,9 @@ using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
 using System.Runtime.InteropServices;
 
 if (args.Length != 1 || !File.Exists(args[0]))
+{
     Exit("Usage:  DbgEngStandalone [dump-file-path]");
+}
 
 // There is a copy of dbgeng.dll in the System32 folder, but that copy of DbgEng is very old
 // and has several features compiled out of it for security reasons.  We can use that version
@@ -40,7 +42,7 @@ using (DbgEngOutputHolder output = new DbgEngOutputHolder(client, DEBUG_OUTPUT.A
 {
     output.OutputReceived += (text, flags) =>
     {
-        var oldColor = Console.ForegroundColor;
+        ConsoleColor oldColor = Console.ForegroundColor;
 
         Console.ForegroundColor = ConsoleColor.Green;
         Console.Write($"[{flags}] ");
@@ -68,7 +70,9 @@ foreach (ClrRuntime runtime in dt.ClrVersions.Select(clr => clr.CreateRuntime())
 
     Console.WriteLine("        First 10 objects:");
     foreach (ClrObject obj in runtime.Heap.EnumerateObjects().Take(10))
+    {
         Console.WriteLine($"            {obj}");
+    }
 }
 
 // Let's re-use our DbgEngExtension as an example.  We don't redirect Console.WriteLine because
@@ -96,7 +100,9 @@ using (MHeap heapExtension = new(dbgeng, redirectConsoleOutput: false))
 static void CheckHResult(HResult hr, string msg)
 {
     if (!hr)
+    {
         Exit(msg, hr);
+    }
 }
 
 static void Exit(string message, int exitCode = -1)
@@ -108,18 +114,26 @@ static void Exit(string message, int exitCode = -1)
 static string? FindDbgEngPath()
 {
     if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    {
         throw new NotSupportedException($"DbgEng only exists for Windows.");
+    }
 
     if (CheckOneFolderForDbgEng(ExpectedDbgEngInstallPath))
+    {
         return ExpectedDbgEngInstallPath;
+    }
 
     string? dbgEngEnv = Environment.GetEnvironmentVariable(ExpectedDbgEngPathEnvVariable);
     if (CheckOneFolderForDbgEng(dbgEngEnv))
+    {
         return dbgEngEnv!;
+    }
 
     string system32 = Environment.GetFolderPath(Environment.SpecialFolder.System);
     if (CheckOneFolderForDbgEng(system32))
+    {
         return system32;
+    }
 
     return null;
 }
@@ -127,7 +141,9 @@ static string? FindDbgEngPath()
 static bool CheckOneFolderForDbgEng(string? directory)
 {
     if (!Directory.Exists(directory))
+    {
         return false;
+    }
 
     string path = Path.Combine(directory, "dbgeng.dll");
     return File.Exists(path);

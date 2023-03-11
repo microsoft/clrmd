@@ -38,7 +38,9 @@ namespace Microsoft.Diagnostics.Runtime
         public static unsafe string GetString(this Encoding encoding, ReadOnlySpan<byte> bytes)
         {
             if (bytes.IsEmpty)
+            {
                 return string.Empty;
+            }
 
             fixed (byte* bytesPtr = bytes)
             {
@@ -51,7 +53,9 @@ namespace Microsoft.Diagnostics.Runtime
         public static unsafe ulong AsPointer(this Span<byte> span, int offset = 0)
         {
             if (offset > 0)
+            {
                 span = span.Slice(offset);
+            }
 
             DebugOnly.Assert(span.Length >= sizeof(nuint));
             DebugOnly.Assert(unchecked((int)Unsafe.AsPointer(ref MemoryMarshal.GetReference(span))) % sizeof(nuint) == 0);
@@ -63,7 +67,9 @@ namespace Microsoft.Diagnostics.Runtime
         public static unsafe int AsInt32(this Span<byte> span, int offset = 0)
         {
             if (offset > 0)
+            {
                 span = span.Slice(offset);
+            }
 
             DebugOnly.Assert(span.Length >= sizeof(int));
             DebugOnly.Assert(unchecked((int)Unsafe.AsPointer(ref MemoryMarshal.GetReference(span))) % sizeof(int) == 0);
@@ -73,7 +79,9 @@ namespace Microsoft.Diagnostics.Runtime
         public static unsafe uint AsUInt32(this Span<byte> span, int offset = 0)
         {
             if (offset > 0)
+            {
                 span = span.Slice(offset);
+            }
 
             DebugOnly.Assert(span.Length >= sizeof(uint));
             DebugOnly.Assert(unchecked((int)Unsafe.AsPointer(ref MemoryMarshal.GetReference(span))) % sizeof(uint) == 0);

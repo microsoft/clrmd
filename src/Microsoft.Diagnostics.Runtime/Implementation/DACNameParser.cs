@@ -33,10 +33,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public static string? Parse(string? name)
         {
             if (name == null)
+            {
                 return null;
+            }
 
             if (name.Length == 0)
+            {
                 return name;
+            }
 
             try
             {
@@ -92,7 +96,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                 // Special case: Check if after parsing the type name we have exhausted the string, if so it means the input string is the output string, so just return it
                                 // without allocating a copy.
                                 if (ReturnOriginalDACString(curPos, name.Length, nameSegments))
+                                {
                                     return name;
+                                }
 
                                 bool typeIsNestedClass = (parsingNestedClassDepth != 0);
                                 if (parsingGenericArgListDepth == 0)
@@ -116,7 +122,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                 }
 
                                 if (parsingNestedClassDepth != 0)
+                                {
                                     parsingNestedClassDepth--;
+                                }
 
                                 (currentState, curPos) = DetermineNextStateAndPos(name, curPos);
                                 break;
@@ -162,7 +170,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                             {
                                 // Nothing to do here, really, just skip the assembly name specified in the generic arg type
                                 while (curPos < name.Length && name[curPos] != ']')
+                                {
                                     curPos++;
+                                }
 
                                 (currentState, curPos) = DetermineNextStateAndPos(name, curPos);
                                 break;
@@ -186,14 +196,18 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                 while ((curPos < name.Length) && (name[curPos] != ']'))
                                 {
                                     if (name[curPos] == ',')
+                                    {
                                         arrayDimensions++;
+                                    }
 
                                     curPos++;
                                 }
 
                                 // Consume the final ] of the array specifier, unless we are at the end of the string already
                                 if (curPos != name.Length)
+                                {
                                     curPos++;
+                                }
 
                                 if (parsingGenericArgListDepth != 0 || nameSegments != null)
                                 {
@@ -222,7 +236,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                         //
                                         // System.String[,,,] or System.Int32[][]
                                         if (ReturnOriginalDACString(curPos, name.Length, nameSegments))
+                                        {
                                             return name;
+                                        }
                                     }
                                 }
                                 else
@@ -263,7 +279,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 //Build the final result from all the type name segments we have
                 StringBuilder result = new();
                 foreach (TypeNameSegment segment in nameSegments)
+                {
                     segment.ToString(result);
+                }
 
                 return result.ToString();
             }
@@ -325,7 +343,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 propagatedTypesToGenericArgs = true;
 
                 if (!TryPatchUnfulfilledGenericArgs(genericTargetIndex, genericArgs))
+                {
                     return (ParsingState.Error, currentPosition);
+                }
 
                 int previousTarget = genericTargetIndex;
                 genericTargetIndex = -1;
@@ -425,7 +445,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 DebugOnly.Assert(genericTargetIndex + 1 != genericArgs.Count, "There are no arguments parsed following the target type for our generic arg back-propagation code. What do we patch with?");
                 if (genericTargetIndex + 1 == genericArgs.Count)
+                {
                     return false;
+                }
 
                 // NOTE: This is an annoyance of the DAC. Generally, when patching generic args into their owning type we can simply take the first arg after the generic
                 // type entry itself and patch away. However, if we have a nested generic type whose parent is also a generic type then the type list for BOTH types are
@@ -456,14 +478,20 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     {
                         // Don't flow back between levels of nested generic lists
                         if (genericArgs[i].ParsingArgDepth != targetTypeToPatch.ParsingArgDepth)
+                        {
                             break;
+                        }
 
                         if (genericArgs[i].IsGenericClass)
+                        {
                             nextTargetFulfillmentIndex += genericArgs[i].RemainingUnfulfilledGenericArgCount;
+                        }
 
                         // If the previous class itself is not nested, then we can stop searching, if it is, we have to continue
                         if (!genericArgs[i].IsNestedClass)
+                        {
                             break;
+                        }
                     }
                 }
 
@@ -483,7 +511,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 DebugOnly.Assert(nextTargetFulfillmentIndex != genericTargetIndex, "Ran out of args to back-propagate to satisfy generic requirements of earlier generic parameter.");
                 if (nextTargetFulfillmentIndex == genericTargetIndex)
+                {
                     return false;
+                }
 
                 // Add the located argument as a generic arg to our previous generic type
                 targetTypeToPatch.AddGenericArg(genericArgs[nextTargetFulfillmentIndex]);
@@ -510,7 +540,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 // Once we hit an arg that came from a parsing arg depth < than the current, we can stop, we won't be processing any of those args yet, we will when we unwind
                 // that parsing level
                 if (candidateSegment.ParsingArgDepth < parsingGenericArgListDepth)
+                {
                     break;
+                }
 
                 // Don't fold any that still have unfulfilled generics, leave them so they can be fulfilled
                 //
@@ -545,11 +577,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private static bool ReturnOriginalDACString(int curPos, int inputStringLength, List<TypeNameSegment>? queuedNameSegments)
         {
             if (curPos != inputStringLength)
+            {
                 return false;
+            }
 
             // Ex: System.String
             if (queuedNameSegments == null)
+            {
                 return true;
+            }
 
             // Ex: Microsoft.VisualStudio.Imaging.SourceDescriptor+<>c__DisplayClass50_0+<<LoadBitmappedImage>b__0>d
             // or
@@ -586,7 +622,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             int digitSpanStart = curPos;
             while (curPos < input.Length && char.IsDigit(input[curPos]))
+            {
                 curPos++;
+            }
 
             int value = 0;
             int multAmt = 1;
@@ -603,7 +641,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private static (ParsingState State, int Pos) DetermineNextStateAndPos(string name, int curPos)
         {
             if (curPos == name.Length)
+            {
                 return (ParsingState.Done, curPos);
+            }
 
             switch (name[curPos])
             {
@@ -624,9 +664,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         if (curPos + 1 != name.Length)
                         {
                             if (name[curPos + 1] == GenericArgListOrArrayEndSpecifier || name[curPos + 1] == ArgSeperator)
+                            {
                                 return (ParsingState.ParsingArraySpecifier, curPos);
+                            }
                             else if (name[curPos + 1] == GenericArgListOrArrayStartSpecifier)
+                            {
                                 return (ParsingState.ParsingGenericArgs, curPos + 2);
+                            }
                         }
 
                         return (ParsingState.Error, curPos);
@@ -636,7 +680,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         if (curPos != name.Length)
                         {
                             if (name[curPos + 1] == GenericArgListOrArrayEndSpecifier)
+                            {
                                 return (ParsingState.ResolveParsedGenericList, curPos + 2);
+                            }
                             else if (name[curPos + 1] == ArgSeperator)
                             {
                                 // +3 because cur pos == ']' and next position is a ',', which means we must have a list like this:
@@ -723,9 +769,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 // out the names at the end (to either print [,] or [][]).
 
                 if (_arrayDimensions == 0)
+                {
                     _arrayDimensions = dimensions;
+                }
                 else
+                {
                     _arrayOfArraysCount++;
+                }
             }
 
             public void SetExpectedGenericArgCount(int expectedCount)
@@ -738,7 +788,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 DebugOnly.Assert(_expectedGenericArgCount != 0, $"{Name} did not expect any generic arguments");
 
                 if (_expectedGenericArgCount == 0)
+                {
                     return;
+                }
 
                 _typeArgSegments ??= new TypeNameSegment[_expectedGenericArgCount];
                 _typeArgSegments[_nextUnfulfilledGenericArgSlot++] = arg;
@@ -762,7 +814,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             public void ToString(StringBuilder destination)
             {
                 if (IsNestedClass)
+                {
                     destination.Append('+');
+                }
 
                 destination.Append(_input, Extent.Start, Extent.End - Extent.Start);
 
@@ -778,13 +832,18 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 {
                     destination.Append("[]");
                     for (int i = 0; i < _arrayOfArraysCount; i++)
+                    {
                         destination.Append("[]");
+                    }
                 }
                 else if (_arrayDimensions != 0)
                 {
                     destination.Append('[');
                     if (_arrayDimensions > 1)
+                    {
                         destination.Append(',', _arrayDimensions - 1);
+                    }
+
                     destination.Append(']');
                 }
             }
@@ -805,13 +864,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     for (int i = 0; i < firstMissingGenericSlot; i++)
                     {
                         if (i != 0)
+                        {
                             destination.Append(", ");
+                        }
 
                         typeArgs[i].ToString(destination);
                     }
 
                     if (firstMissingGenericSlot < expectedArgCount)
+                    {
                         AddMissingArgumentInfo(destination, firstMissingGenericSlot, expectedArgCount);
+                    }
 
                     destination.Append('>');
                 }
@@ -823,7 +886,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 for (int i = firstMissingGenericSlot; i < expectedArgCount; i++)
                 {
                     if (i != 0)
+                    {
                         result.Append(", ");
+                    }
 
                     result.Append("T" + (i + 1).ToString(CultureInfo.CurrentCulture));
                 }

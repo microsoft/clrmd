@@ -33,7 +33,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public bool CopyContext(Span<byte> context)
         {
             if (context.Length < ArmContext.Size)
+            {
                 return false;
+            }
 
             ref ArmContext contextRef = ref Unsafe.As<byte, ArmContext>(ref MemoryMarshal.GetReference(context));
 

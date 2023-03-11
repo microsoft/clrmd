@@ -62,7 +62,9 @@ namespace Microsoft.Diagnostics.Runtime
             if (!IndexBuildId.IsDefaultOrEmpty)
             {
                 foreach (byte b in IndexBuildId)
+                {
                     code ^= b;
+                }
             }
 
             return code;
@@ -72,21 +74,31 @@ namespace Microsoft.Diagnostics.Runtime
         public override bool Equals(object? obj)
         {
             if (obj is null)
+            {
                 return false;
+            }
 
             if (ReferenceEquals(this, obj))
+            {
                 return true;
+            }
 
             if (obj is not DebugLibraryInfo other)
+            {
                 return false;
+            }
 
             if (!IndexBuildId.IsDefaultOrEmpty)
             {
                 if (other.IndexBuildId.IsDefaultOrEmpty)
+                {
                     return false;
+                }
 
                 if (!IndexBuildId.SequenceEqual(other.IndexBuildId))
+                {
                     return false;
+                }
             }
 
             return FileName == other.FileName && IndexTimeStamp == other.IndexTimeStamp && IndexFileSize == other.IndexFileSize;
@@ -96,7 +108,9 @@ namespace Microsoft.Diagnostics.Runtime
         public override string ToString()
         {
             if (IndexBuildId.IsDefaultOrEmpty)
+            {
                 return $"{FileName} size:{IndexFileSize:x} time:{IndexTimeStamp:x}";
+            }
 
             return $"{FileName} {string.Join("", IndexBuildId.Select(x => x.ToString("x")))}";
         }

@@ -20,7 +20,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotEmpty(threads);
             Assert.Equal(threads.Length, ithreads.Length);
             for (int i = 0; i < threads.Length; i++)
+            {
                 Assert.Same(threads[i], ithreads[i]);
+            }
         }
 
         [Fact]
@@ -36,7 +38,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotEmpty(domains);
             Assert.Equal(domains.Length, idomains.Length);
             for (int i = 0; i < domains.Length; i++)
+            {
                 Assert.Same(domains[i], idomains[i]);
+            }
         }
 
         [Fact]

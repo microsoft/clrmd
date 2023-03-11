@@ -17,7 +17,9 @@ namespace Microsoft.Diagnostics.Runtime
         internal ClrDelegateTarget(ClrDelegate del, ClrObject target, ClrMethod method)
         {
             if (method is null)
+            {
                 throw new ArgumentNullException(nameof(method));
+            }
 
             Parent = del;
             TargetObject = target;

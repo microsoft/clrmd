@@ -32,7 +32,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public bool CopyContext(Span<byte> context)
         {
             if (context.Length < X86Context.Size)
+            {
                 return false;
+            }
 
             ref X86Context contextRef = ref Unsafe.As<byte, X86Context>(ref MemoryMarshal.GetReference(context));
 

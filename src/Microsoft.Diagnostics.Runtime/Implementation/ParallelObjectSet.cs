@@ -20,7 +20,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 int offset = GetOffset(obj, seg);
 
                 lock (seg.Objects)
+                {
                     return seg.Objects[offset];
+                }
             }
 
             return false;

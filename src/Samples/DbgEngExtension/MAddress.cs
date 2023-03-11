@@ -40,7 +40,9 @@ namespace DbgEngExtension
         internal void Run(string args)
         {
             if (ParseArgs(args, out bool printAllRanges, out bool showImageTable, out bool includeReserveMemory, out bool tagReserveMemoryHeuristically))
+            {
                 PrintMemorySummary(printAllRanges, showImageTable, includeReserveMemory, tagReserveMemoryHeuristically);
+            }
         }
 
         public IEnumerable<(ulong Address, ulong Pointer, AddressMemoryRange MemoryRange)> EnumerateRegionPointers(ulong start, ulong end, AddressMemoryRange[] ranges)
@@ -57,7 +59,9 @@ namespace DbgEngExtension
                     int size = Math.Min(remaining > int.MaxValue ? int.MaxValue : (int)remaining, arrayBytes);
                     bool res = ReadMemory(curr, array, size, out int bytesRead);
                     if (!res || bytesRead <= 0)
+                    {
                         break;
+                    }
 
                     for (int i = 0; i < bytesRead / sizeof(ulong); i++)
                     {
@@ -65,7 +69,9 @@ namespace DbgEngExtension
 
                         AddressMemoryRange? found = FindMemory(ranges, ptr);
                         if (found is not null)
+                        {
                             yield return (curr + (uint)i * sizeof(ulong), ptr, found);
+                        }
                     }
 
                     curr += (uint)bytesRead;
@@ -82,7 +88,9 @@ namespace DbgEngExtension
         private static AddressMemoryRange? FindMemory(AddressMemoryRange[] ranges, ulong ptr)
         {
             if (ptr < ranges[0].Start || ptr >= ranges.Last().End)
+            {
                 return null;
+            }
 
             int low = 0;
             int high = ranges.Length - 1;
@@ -125,7 +133,9 @@ namespace DbgEngExtension
             tagReserveMemoryHeuristically = false;
 
             if (string.IsNullOrWhiteSpace(args))
+            {
                 return true;
+            }
 
             string[] parameters = args.Replace('/', '-').Split(' ', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
             string? badEntry = parameters.Where(f => !f.StartsWith('-')).FirstOrDefault();
@@ -138,17 +148,21 @@ namespace DbgEngExtension
             foreach (string word in parameters)
             {
                 if (word.Equals(IncludeReserveOption, StringComparison.OrdinalIgnoreCase))
+                {
                     includeReserveMemory = true;
-
+                }
                 else if (word.Equals(UseHeuristicOption, StringComparison.OrdinalIgnoreCase))
+                {
                     tagReserveMemoryHeuristically = true;
-
+                }
                 else if (word.Equals(ShowImageTableOption, StringComparison.OrdinalIgnoreCase))
+                {
                     showImageTable = true;
-
+                }
                 else if (word.Equals(SummaryOption, StringComparison.OrdinalIgnoreCase) || word.Equals(StatOption, StringComparison.OrdinalIgnoreCase))
+                {
                     printAllRanges = false;
-
+                }
                 else
                 {
                     PrintUsage(word);
@@ -162,7 +176,9 @@ namespace DbgEngExtension
         private static void PrintUsage(string? badEntry)
         {
             if (badEntry is not null)
+            {
                 Console.WriteLine($"Unknown parameter: {badEntry}");
+            }
 
             Console.WriteLine($"usage: !{Command} [{SummaryOption}] [{ShowImageTableOption}] [{IncludeReserveOption}] [{UseHeuristicOption}]");
         }
@@ -171,7 +187,9 @@ namespace DbgEngExtension
         {
             IEnumerable<AddressMemoryRange> memoryRanges = EnumerateAddressSpace(tagClrMemoryRanges: true, includeReserveMemory, tagReserveMemoryHeuristically);
             if (!includeReserveMemory)
+            {
                 memoryRanges = memoryRanges.Where(m => m.State != MemState.MEM_RESERVE);
+            }
 
             AddressMemoryRange[] ranges = memoryRanges.ToArray();
 
@@ -179,7 +197,9 @@ namespace DbgEngExtension
 
             // Tag reserved memory based on what's adjacent.
             if (tagReserveMemoryHeuristically)
+            {
                 CollapseReserveRegions(ranges);
+            }
 
             if (printAllMemory)
             {
@@ -195,7 +215,9 @@ namespace DbgEngExtension
 
                 output.WriteRowWithSpacing('-', "Memory Kind", "StartAddr", "EndAddr-1", "Size", "Type", "State", "Protect", "Image");
                 foreach (AddressMemoryRange mem in ranges)
+                {
                     output.WriteRow(mem.Name, mem.Start, mem.End, mem.Length.ConvertToHumanReadable(), mem.Kind, mem.State, mem.Protect, mem.Image);
+                }
 
                 output.WriteSpacer('-');
             }
@@ -300,24 +322,32 @@ namespace DbgEngExtension
             addressResult = addressResult.Where(m => (m.Start & 0xffffffff00000000) != 0xffffffff00000000 && (m.End & 0xffffffff00000000) != 0xffffffff00000000);
 
             if (!includeReserveMemory)
+            {
                 addressResult = addressResult.Where(m => m.State != MemState.MEM_RESERVE);
+            }
 
             AddressMemoryRange[] ranges = addressResult.OrderBy(r => r.Start).ToArray();
             if (tagClrMemoryRanges)
             {
                 foreach (ClrMemoryPointer mem in EnumerateClrMemoryAddresses())
                 {
-                    var found = ranges.Where(m => m.Start <= mem.Address && mem.Address < m.End).ToArray();
+                    AddressMemoryRange[] found = ranges.Where(m => m.Start <= mem.Address && mem.Address < m.End).ToArray();
 
                     if (found.Length == 0)
+                    {
                         Trace.WriteLine($"Warning:  Could not find a memory range for {mem.Address:x} - {mem.Kind}.");
+                    }
                     else if (found.Length > 1)
+                    {
                         Trace.WriteLine($"Warning:  Found multiple memory ranges for entry {mem.Address:x} - {mem.Kind}.");
+                    }
 
-                    foreach (var entry in found)
+                    foreach (AddressMemoryRange? entry in found)
                     {
                         if (entry.ClrMemoryKind != ClrMemoryKind.None && entry.ClrMemoryKind != mem.Kind)
+                        {
                             Trace.WriteLine($"Warning:  Overwriting range {entry.Start:x} {entry.ClrMemoryKind} -> {mem.Kind}.");
+                        }
 
                         entry.ClrMemoryKind = mem.Kind;
                     }
@@ -330,13 +360,17 @@ namespace DbgEngExtension
                 {
                     string memName = mem.Name;
                     if (memName == "RESERVED")
+                    {
                         TagMemoryRecursive(mem, ranges);
+                    }
                 }
             }
 
             // On Linux, !address doesn't mark stack space.  Go do that.
             if (DataTarget.DataReader.TargetPlatform == OSPlatform.Linux)
+            {
                 MarkStackSpace(ranges);
+            }
 
             return ranges;
         }
@@ -367,7 +401,9 @@ namespace DbgEngExtension
 
                         AddressMemoryRange? range = FindMemory(ranges, sp);
                         if (range is not null)
+                        {
                             range.Description = "Stack";
+                        }
                     }
                 }
                 finally
@@ -440,7 +476,9 @@ namespace DbgEngExtension
             {
                 string memName = mem.Name;
                 if (memName == "RESERVED")
+                {
                     TagMemoryRecursive(mem, ranges);
+                }
             }
         }
 
@@ -449,15 +487,18 @@ namespace DbgEngExtension
         /// </summary>
         public IEnumerable<ClrMemoryPointer> EnumerateClrMemoryAddresses()
         {
-            foreach (var runtime in Runtimes)
+            foreach (ClrRuntime runtime in Runtimes)
             {
                 SOSDac sos = runtime.DacLibrary.SOSDacInterface;
                 foreach (JitManagerInfo jitMgr in sos.GetJitManagers())
                 {
-                    foreach (var handle in runtime.EnumerateHandles())
+                    foreach (ClrHandle handle in runtime.EnumerateHandles())
+                    {
                         yield return new ClrMemoryPointer() { Kind = ClrMemoryKind.HandleTable, Address = handle.Address };
+                    }
 
-                    foreach (var mem in sos.GetCodeHeapList(jitMgr.Address))
+                    foreach (JitCodeHeapInfo mem in sos.GetCodeHeapList(jitMgr.Address))
+                    {
                         yield return new ClrMemoryPointer()
                         {
                             Address = mem.Address,
@@ -468,37 +509,54 @@ namespace DbgEngExtension
                                 _ => ClrMemoryKind.UnknownCodeHeap
                             } 
                         };
+                    }
 
-                    foreach (var seg in runtime.Heap.Segments)
+                    foreach (ClrSegment seg in runtime.Heap.Segments)
                     {
                         if (seg.CommittedMemory.Length > 0)
+                        {
                             yield return new ClrMemoryPointer() { Address = seg.CommittedMemory.Start, Kind = ClrMemoryKind.GCHeapSegment };
+                        }
 
                         if (seg.ReservedMemory.Length > 0)
+                        {
                             yield return new ClrMemoryPointer() { Address = seg.ReservedMemory.Start, Kind = ClrMemoryKind.GCHeapReserve };
+                        }
                     }
 
                     HashSet<ulong> seen = new();
 
                     List<ClrMemoryPointer> heaps = new();
                     if (runtime.SystemDomain is not null)
+                    {
                         AddAppDomainHeaps(sos, runtime.SystemDomain.Address, heaps);
+                    }
 
                     if (runtime.SharedDomain is not null)
+                    {
                         AddAppDomainHeaps(sos, runtime.SharedDomain.Address, heaps);
+                    }
 
-                    foreach (var heap in heaps)
+                    foreach (ClrMemoryPointer heap in heaps)
+                    {
                         if (seen.Add(heap.Address))
+                        {
                             yield return heap;
+                        }
+                    }
 
                     foreach (ClrDataAddress address in sos.GetAppDomainList())
                     {
                         heaps.Clear();
                         AddAppDomainHeaps(sos, address, heaps);
 
-                        foreach (var heap in heaps)
+                        foreach (ClrMemoryPointer heap in heaps)
+                        {
                             if (seen.Add(heap.Address))
+                            {
                                 yield return heap;
+                            }
+                        }
                     }
                 }
             }
@@ -574,19 +632,25 @@ namespace DbgEngExtension
 
             (int hr, string text) = RunCommandWithOutput("!address");
             if (hr < 0)
+            {
                 throw new InvalidOperationException($"!address failed with hresult={hr:x}");
+            }
 
             foreach (string line in text.Split('\n'))
             {
                 if (line.Length == 0)
+                {
                     continue;
+                }
 
                 if (!foundHeader)
                 {
                     // find the !address header
                     string[] split = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (split.Length > 0)
+                    {
                         foundHeader = split[0] == "BaseAddress" && split.Last() == "Usage";
+                    }
                 }
                 else if (!skipped)
                 {
@@ -601,16 +665,22 @@ namespace DbgEngExtension
 
                     int index = 3;
                     if (Enum.TryParse(parts[index], ignoreCase: true, out MemKind kind))
+                    {
                         index++;
+                    }
 
                     if (Enum.TryParse(parts[index], ignoreCase: true, out MemState state))
+                    {
                         index++;
+                    }
 
                     StringBuilder sbRemainder = new();
                     for (int i = index; i < parts.Length; i++)
                     {
                         if (i != index)
+                        {
                             sbRemainder.Append(' ');
+                        }
 
                         sbRemainder.Append(parts[i]);
                     }
@@ -625,7 +695,9 @@ namespace DbgEngExtension
                         {
                             protect |= result;
                             if (parts[index + 1] == "|")
+                            {
                                 index++;
+                            }
                         }
                         else
                         {
@@ -639,7 +711,9 @@ namespace DbgEngExtension
 
                     // On Linux, !address is reporting this as MEM_PRIVATE or MEM_UNKNOWN
                     if (description == "Image")
+                    {
                         kind = MemKind.MEM_IMAGE;
+                    }
 
                     // On Linux, !address is reporting this as nothing
                     if (kind == MemKind.MEM_UNKNOWN && state == MemState.MEM_UNKNOWN && protect == MemProtect.PAGE_UNKNOWN)
@@ -650,10 +724,14 @@ namespace DbgEngExtension
 
                     string? image = null;
                     if (kind == MemKind.MEM_IMAGE)
+                    {
                         image = parts[index++][1..^1];
+                    }
 
                     if (description.Equals("<unknown>", StringComparison.OrdinalIgnoreCase))
+                    {
                         description = "";
+                    }
 
                     yield return new AddressMemoryRange()
                     {
@@ -669,21 +747,29 @@ namespace DbgEngExtension
             }
 
             if (!foundHeader)
+            {
                 throw new InvalidOperationException($"!address did not produce a standard header.\nThis may mean symbols could not be resolved for ntdll.\nPlease run !address and make sure the output looks correct.");
+            }
         }
 
         private static AddressMemoryRange? TagMemoryRecursive(AddressMemoryRange mem, AddressMemoryRange[] ranges)
         {
             if (mem.Name != "RESERVED")
+            {
                 return mem;
+            }
 
             AddressMemoryRange? found = ranges.SingleOrDefault(r => r.End == mem.Start);
             if (found is null)
+            {
                 return null;
+            }
 
             AddressMemoryRange? nonReserved = TagMemoryRecursive(found, ranges);
             if (nonReserved is null)
+            {
                 return null;
+            }
 
             mem.Description = nonReserved.Name;
             return nonReserved;
@@ -767,23 +853,35 @@ namespace DbgEngExtension
                 get
                 {
                     if (ClrMemoryKind != ClrMemoryKind.None)
+                    {
                         return ClrMemoryKind.ToString();
+                    }
 
                     if (!string.IsNullOrWhiteSpace(Description))
+                    {
                         return Description;
+                    }
 
                     if (State == MemState.MEM_RESERVE)
+                    {
                         return "RESERVED";
+                    }
                     else if (State == MemState.MEM_FREE)
+                    {
                         return "FREE";
+                    }
 
                     string result = Protect.ToString();
                     if (Kind == MemKind.MEM_MAPPED)
                     {
                         if (string.IsNullOrWhiteSpace(result))
+                        {
                             result = Kind.ToString();
+                        }
                         else
+                        {
                             result = result.Replace("PAGE", "MAPPED");
+                        }
                     }
 
                     return result;

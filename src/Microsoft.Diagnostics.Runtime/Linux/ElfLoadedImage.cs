@@ -46,12 +46,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             IElfHeader? header;
 
             if (_is64bit)
+            {
                 header = _vaReader.TryRead<ElfHeader64>(BaseAddress);
+            }
             else
+            {
                 header = _vaReader.TryRead<ElfHeader32>(BaseAddress);
+            }
 
             if (header is null || !header.IsValid)
+            {
                 return null;
+            }
 
             return new ElfFile(header, _vaReader, BaseAddress, true);
         }
@@ -68,7 +74,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         internal void AddTableEntryPointers(ElfFileTableEntryPointers64 pointers)
         {
             if (_end < pointers.Stop)
+            {
                 _end = pointers.Stop;
+            }
 
             // There are cases (like .NET single-file modules) where the first NT_FILE entry isn't the ELF
             // or PE header (i.e the base address). The header is the first entry with PageOffset == 0. For
@@ -76,7 +84,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             // assemblies, there can be more than one PageOffset == 0 entry and the first one is the base
             // address.
             if (_baseAddress == 0 && pointers.PageOffset == 0)
+            {
                 _baseAddress = pointers.Start;
+            }
 
             // If no load address was found, will use the lowest start address. There has to be at least one
             // entry. This fixes the .NET 5.0 MacOS ELF dumps which have modules with no PageOffset == 0 entries.

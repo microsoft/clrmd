@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (is64bit)
             {
-                var header = reader.Read<ElfProgramHeader64>(headerPositon);
+                ElfProgramHeader64 header = reader.Read<ElfProgramHeader64>(headerPositon);
                 _attributes = (ElfProgramHeaderAttributes)header.Flags;
                 Type = header.Type;
                 VirtualAddress = header.VirtualAddress;
@@ -62,7 +62,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
             else
             {
-                var header = reader.Read<ElfProgramHeader32>(headerPositon);
+                ElfProgramHeader32 header = reader.Read<ElfProgramHeader32>(headerPositon);
                 _attributes = (ElfProgramHeaderAttributes)header.Flags;
                 Type = header.Type;
                 VirtualAddress = header.VirtualAddress;

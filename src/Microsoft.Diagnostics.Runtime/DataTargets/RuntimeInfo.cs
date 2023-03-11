@@ -29,8 +29,12 @@ namespace Microsoft.Diagnostics.Runtime
 
             int size = sizeof(ClrRuntimeInfo);
             fixed (ClrRuntimeInfo* pHeader = &header)
+            {
                 if (reader.Read(address, new Span<byte>(pHeader, size)) != size || !header.IsValid)
+                {
                     return false;
+                }
+            }
 
             if (header._version >= 2)
             {
@@ -38,7 +42,9 @@ namespace Microsoft.Diagnostics.Runtime
                 Span<byte> buffer = MemoryMarshal.Cast<int, byte>(runtimeVersion);
 
                 if (reader.Read(address + (uint)size, buffer) == buffer.Length)
+                {
                     version = new Version(runtimeVersion[0], runtimeVersion[1], runtimeVersion[2], runtimeVersion[3]);
+                }
             }
 
             return true;
@@ -49,7 +55,9 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 fixed (byte* ptr = _signature)
+                {
                     return _version > 0 && Encoding.ASCII.GetString(ptr, SymbolValue.Length) == SymbolValue;
+                }
             }
         }
 
@@ -58,7 +66,9 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 fixed (byte* ptr = _runtimeModuleIndex)
+                {
                     return GetProperties(ptr);
+                }
             }
         }
 
@@ -67,7 +77,9 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 fixed (byte* ptr = _dacModuleIndex)
+                {
                     return GetProperties(ptr);
+                }
             }
         }
 
@@ -76,13 +88,17 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 fixed (byte* ptr = _dbiModuleIndex)
+                {
                     return GetProperties(ptr);
+                }
             }
         }
         private (int TimeStamp, int FileSize) GetProperties(byte* ptr)
         {
             if (ptr[0] < 2 * sizeof(int))
+            {
                 return (0, 0);
+            }
 
             return (Unsafe.As<byte, int>(ref ptr[1]), Unsafe.As<byte, int>(ref ptr[1 + sizeof(int)]));
         }
@@ -92,7 +108,9 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 fixed (byte* ptr = _runtimeModuleIndex)
+                {
                     return GetBuildId(ptr);
+                }
             }
         }
 
@@ -102,7 +120,9 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 fixed (byte* ptr = _dacModuleIndex)
+                {
                     return GetBuildId(ptr);
+                }
             }
         }
 
@@ -112,7 +132,9 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 fixed (byte* ptr = _dbiModuleIndex)
+                {
                     return GetBuildId(ptr);
+                }
             }
         }
 

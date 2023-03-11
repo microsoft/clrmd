@@ -26,7 +26,9 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         {
             using IDisposable holder = _sys.Enter();
             fixed (byte* ptr = context)
+            {
                 return VTable.GetThreadContext(Self, ptr, context.Length);
+            }
         }
 
         private readonly DebugSystemObjects _sys;

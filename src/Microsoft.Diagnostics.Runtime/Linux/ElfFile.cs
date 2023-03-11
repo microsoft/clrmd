@@ -117,7 +117,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             get
             {
                 if (!_buildId.IsDefault)
+                {
                     return _buildId;
+                }
 
                 if (Header.ProgramHeaderOffset != 0 && Header.ProgramHeaderEntrySize > 0 && Header.ProgramHeaderCount > 0)
                 {
@@ -190,7 +192,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _virtual = isVirtual;
 
             if (isVirtual)
+            {
                 _virtualAddressReader = reader;
+            }
 
             ElfHeaderCommon common;
             try
@@ -204,7 +208,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             Header = common.GetHeader(reader, _position)!;
             if (Header is null)
+            {
                 throw new InvalidDataException($"{reader.DataSource.Name ?? "This coredump"} does not contain a valid ELF header.");
+            }
         }
 
         internal ElfFile(IElfHeader header, Reader reader, ulong position = 0, bool isVirtual = false)
@@ -214,7 +220,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _virtual = isVirtual;
 
             if (isVirtual)
+            {
                 _virtualAddressReader = reader;
+            }
 
             Header = header;
         }
@@ -227,7 +235,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private void LoadNotes()
         {
             if (!_notes.IsDefault)
+            {
                 return;
+            }
 
             LoadProgramHeaders();
 
@@ -254,7 +264,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private void LoadProgramHeaders()
         {
             if (!_programHeaders.IsDefault)
+            {
                 return;
+            }
 
             // Calculate the loadBias. It is usually just the base address except for some executable modules.
             long loadBias = (long)_position;
@@ -262,7 +274,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 for (uint i = 0; i < Header.ProgramHeaderCount; i++)
                 {
-                    var header = new ElfProgramHeader(Reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, 0, _virtual);
+                    ElfProgramHeader header = new ElfProgramHeader(Reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, 0, _virtual);
                     if (header.Type == ElfProgramHeaderType.Load && header.FileOffset == 0)
                     {
                         loadBias -= (long)header.VirtualAddress;
@@ -275,7 +287,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             programHeaders.Count = programHeaders.Capacity;
 
             for (uint i = 0; i < programHeaders.Count; i++)
+            {
                 programHeaders[(int)i] = new ElfProgramHeader(Reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, loadBias, _virtual);
+            }
 
             _programHeaders = programHeaders.MoveToImmutable();
         }
@@ -283,7 +297,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public void Dispose()
         {
             if (!_leaveOpen)
+            {
                 _stream?.Dispose();
+            }
         }
     }
 }

@@ -34,7 +34,9 @@ namespace Microsoft.Diagnostics.Runtime
             builder.Append($"{Root.RootKind.GetName()} @{Root.Address:x12}");
 
             foreach (ClrObject obj in Path)
+            {
                 builder.Append($" -> {obj}");
+            }
 
             return builder.ToString();
         }

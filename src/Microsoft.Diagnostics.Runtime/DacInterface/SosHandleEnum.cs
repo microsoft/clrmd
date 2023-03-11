@@ -23,7 +23,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public int ReadHandles(Span<HandleData> handles)
         {
             if (handles.IsEmpty)
+            {
                 throw new ArgumentException(null, nameof(handles));
+            }
 
             fixed (HandleData* ptr = handles)
             {

@@ -81,7 +81,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.False(type.IsObjectReference);
             Assert.True(type.IsValueType);
 
-            var fds = obj.Type.Fields;
+            System.Collections.Immutable.ImmutableArray<ClrInstanceField> fds = obj.Type.Fields;
 
             Assert.True(obj.IsBoxedValue);
             int value = obj.ReadBoxedValue<int>();
@@ -103,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrType type = obj.Type;
                 Assert.True(!type.IsArray || type.ComponentType != null);
 
-                var generics = type.EnumerateGenericParameters().ToArray();
+                ClrGenericParameter[] generics = type.EnumerateGenericParameters().ToArray();
 
                 foreach (ClrInstanceField field in type.Fields)
                 {
@@ -137,9 +137,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.NotNull(type);
 
                 if (type.IsArray || type.IsPointer)
+                {
                     Assert.NotNull(type.ComponentType);
+                }
                 else
+                {
                     Assert.Null(type.ComponentType);
+                }
             }
         }
 
@@ -258,10 +262,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             // Account for different platform stack direction.
             if (low > high)
+            {
                 (high, low) = (low, high);
+            }
 
             foreach (ClrRoot localVarRoot in localVarRoots)
+            {
                 Assert.True(low <= localVarRoot.Address && localVarRoot.Address <= high);
+            }
         }
 
         [Fact]
@@ -292,9 +300,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.Equal(type.MethodTable, typeFromHeap.MethodTable);
 
                 if (dt.CacheOptions.CacheTypes)
+                {
                     Assert.Same(type, typeFromHeap);
+                }
                 else
+                {
                     Assert.Equal(type, typeFromHeap);
+                }
             }
         }
 
@@ -316,9 +328,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.NotEqual(0ul, mt);
 
                 if (dt.CacheOptions.CacheTypes)
+                {
                     Assert.Same(type, runtime.GetTypeByMethodTable(mt));
+                }
                 else
+                {
                     Assert.Equal(type, runtime.GetTypeByMethodTable(mt));
+                }
 
                 Assert.Equal(mt, type.MethodTable);
             }
@@ -404,9 +420,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ClrInstanceField field = structTestClass.GetFieldByName("s");
             if (dt.CacheOptions.CacheTypes)
+            {
                 Assert.Same(structTest, field.Type);
+            }
             else
+            {
                 Assert.Equal(structTest, field.Type);
+            }
 
             Assert.Equal(sizeof(int), field.Size);
 
@@ -462,9 +482,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             // Ensure we are looking at the same ClrType
             if (dt.CacheOptions.CacheTypes)
+            {
                 Assert.Same(itemsField.Type, itemsObj.Type);
+            }
             else
+            {
                 Assert.Equal(itemsField.Type, itemsObj.Type);
+            }
 
             // Assert that we eventually filled in ComponentType after we got a real object for the type
             Assert.NotNull(itemsObj.Type.ComponentType);
@@ -610,7 +634,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            var query = from obj in runtime.Heap.EnumerateObjects()
+            IEnumerable<ClrType> query = from obj in runtime.Heap.EnumerateObjects()
                         where obj.Type?.Name?.StartsWith("Types+<Async>d__") == true
                         select obj.Type;
 
@@ -626,7 +650,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            var query = from obj in runtime.Heap.EnumerateObjects()
+            IEnumerable<ClrType> query = from obj in runtime.Heap.EnumerateObjects()
                         where obj.Type?.Name == "System.String"
                         select obj.Type;
 

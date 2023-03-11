@@ -23,7 +23,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public int ReadStackReferences(Span<StackRefData> stackRefs)
         {
             if (stackRefs.IsEmpty)
+            {
                 throw new ArgumentException(null, nameof(stackRefs));
+            }
 
             fixed (StackRefData* ptr = stackRefs)
             {

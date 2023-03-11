@@ -21,11 +21,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             get
             {
                 if (_buildId is not null)
+                {
                     return (ImmutableArray<byte>)_buildId;
+                }
 
                 ImmutableArray<byte> buildId = _elf?.BuildId ?? ImmutableArray<byte>.Empty;
                 if (buildId.IsDefault)
+                {
                     buildId = ImmutableArray<byte>.Empty;
+                }
 
                 _buildId = buildId;
                 return buildId;
@@ -34,8 +38,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ulong GetExportSymbolAddress(string symbol)
         {
-            if (_elf is null || !_elf.TryGetExportSymbol(symbol, out var address))
+            if (_elf is null || !_elf.TryGetExportSymbol(symbol, out ulong address))
+            {
                 return 0;
+            }
 
             return ImageBase + address;
         }
@@ -46,10 +52,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             get
             {
                 if (_version is not null)
+                {
                     return _version;
+                }
 
                 if (_elf is null || !_reader.GetVersionInfo(ImageBase, _elf, out System.Version? version))
+                {
                     version = new System.Version();
+                }
 
                 _version = version;
                 return version!;
@@ -60,10 +70,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             : base(imageBase, fileName)
         {
             if (reader is null)
+            {
                 throw new ArgumentNullException(nameof(reader));
+            }
 
             if (fileName is null)
+            {
                 throw new ArgumentNullException(nameof(fileName));
+            }
 
             _reader = reader;
             _elf = elf;

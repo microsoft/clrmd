@@ -83,9 +83,13 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 if (address < beginAddress)
+                {
                     upper = mid - 1;
+                }
                 else
+                {
                     lower = mid + 1;
+                }
             }
 
             return -1;

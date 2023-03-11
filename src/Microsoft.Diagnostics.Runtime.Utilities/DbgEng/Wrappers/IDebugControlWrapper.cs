@@ -70,7 +70,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             GetVTable(this, out nint self, out IDebugControlVtable* vtable);
 
             fixed (char* textPtr = text)
+            {
                 vtable->OutputWide(self, mask, textPtr);
+            }
         }
 
         void IDebugControl.ControlledOutput(DEBUG_OUTCTL outCtl, DEBUG_OUTPUT dbgOutput, string text)
@@ -78,7 +80,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             GetVTable(this, out nint self, out IDebugControlVtable* vtable);
 
             fixed (char* textPtr = text)
+            {
                 vtable->ControlledOutputWide(self, outCtl, dbgOutput, textPtr);
+            }
         }
 
         int IDebugControl.GetExecutionStatus(out DEBUG_STATUS status)
@@ -91,7 +95,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         {
             GetVTable(this, out nint self, out IDebugControlVtable* vtable);
             fixed (char* commandPtr = command)
+            {
                 return vtable->ExecuteWide(self, outputControl, commandPtr, flags);
+            }
         }
 
         private static void GetVTable(object ths, out nint self, out IDebugControlVtable* vtable)

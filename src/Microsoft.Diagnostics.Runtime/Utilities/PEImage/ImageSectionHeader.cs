@@ -17,7 +17,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 fixed (byte* ptr = NameBytes)
                 {
                     if (ptr[7] == 0)
+                    {
                         return Marshal.PtrToStringAnsi((IntPtr)ptr)!;
+                    }
 
                     return Marshal.PtrToStringAnsi((IntPtr)ptr, 8);
                 }

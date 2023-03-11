@@ -26,14 +26,18 @@ namespace DbgEngExtension
         {
             _context = ExtensionContext.Create(pUnknown);
             if (redirectConsoleOutput)
+            {
                 _redirectedOutput = new DbgEngOutputStream(DebugClient, DebugControl);
+            }
         }
 
         protected DbgEngCommand(IDisposable dbgeng, bool redirectConsoleOutput)
         {
             _context = ExtensionContext.Create(dbgeng);
             if (redirectConsoleOutput)
+            {
                 _redirectedOutput = new DbgEngOutputStream(DebugClient, DebugControl);
+            }
         }
 
         /// <summary>

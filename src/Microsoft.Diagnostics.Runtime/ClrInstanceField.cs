@@ -25,7 +25,9 @@ namespace Microsoft.Diagnostics.Runtime
         internal ClrInstanceField(ClrType containingType, ClrType? type, IClrFieldHelpers helpers, in FieldData data)
         {
             if (containingType is null)
+            {
                 throw new ArgumentNullException(nameof(containingType));
+            }
 
             ContainingType = containingType;
             Token = (int)data.FieldToken;
@@ -37,7 +39,9 @@ namespace Microsoft.Diagnostics.Runtime
             // Must be the last use of 'data' in this constructor.
             _type = type;
             if (ElementType == ClrElementType.Class && _type != null)
+            {
                 ElementType = _type.ElementType;
+            }
 
             DebugOnlyLoadLazyValues();
         }
@@ -51,7 +55,9 @@ namespace Microsoft.Diagnostics.Runtime
         private void InitData()
         {
             if (_attributes != FieldAttributes.ReservedMask)
+            {
                 return;
+            }
 
             ReadData();
         }
@@ -59,16 +65,22 @@ namespace Microsoft.Diagnostics.Runtime
         private string? ReadData()
         {
             if (!_helpers.ReadProperties(ContainingType, Token, out string? name, out _attributes, ref _type))
+            {
                 return null;
+            }
 
             StringCaching options = ContainingType.Heap.Runtime.DataTarget?.CacheOptions.CacheFieldNames ?? StringCaching.Cache;
             if (name != null)
             {
                 if (options == StringCaching.Intern)
+                {
                     name = string.Intern(name);
+                }
 
                 if (options != StringCaching.None)
+                {
                     _name = name;
+                }
             }
 
             return name;
@@ -93,7 +105,9 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (_name != null)
+                {
                     return _name;
+                }
 
                 return ReadData();
             }
@@ -104,7 +118,9 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (_type != null)
+                {
                     return _type;
+                }
 
                 InitData();
                 return _type;
@@ -128,10 +144,14 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ulong address = GetAddress(objRef, interior);
             if (address == 0)
+            {
                 return default;
+            }
 
             if (!_helpers.DataReader.Read(address, out T value))
+            {
                 return default;
+            }
 
             return value;
         }
@@ -146,7 +166,9 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ulong address = GetAddress(objRef, interior);
             if (address == 0 || !_helpers.DataReader.ReadPointer(address, out ulong obj) || obj == 0)
+            {
                 return default;
+            }
 
             return ContainingType.Heap.GetObject(obj);
         }
@@ -163,7 +185,9 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ulong address = GetAddress(objRef, interior);
             if (address == 0)
+            {
                 return default;
+            }
 
             return new ClrValueType(address, Type, interior: true);
         }
@@ -180,7 +204,9 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ClrObject obj = ReadObject(objRef, interior);
             if (obj.IsNull)
+            {
                 return null;
+            }
 
             return obj.AsString();
         }
@@ -207,7 +233,9 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong GetAddress(ulong objRef, bool interior)
         {
             if (interior)
+            {
                 return objRef + (ulong)Offset;
+            }
 
             return objRef + (ulong)(Offset + IntPtr.Size);
         }
