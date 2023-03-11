@@ -1,21 +1,8 @@
 {
   "profiles": {
-    "WSL": {
-      "commandName": "WSL2",
-      "distributionName": ""
-    },
-    "Remi": {
+    "DbgEngStandalone": {
       "commandName": "Project",
-      "commandLineArgs": "d:\\work\\remi.dmp"
-    },
-    "honghai": {
-      "commandName": "Project",
-      "commandLineArgs": "\"D:\\work\\02_15_honghai\\coredump.15184\"",
-      "nativeDebugging": false
-    },
-    "desktop": {
-      "commandName": "Project",
-      "commandLineArgs": "\"C:\\git\\clrmd\\src\\TestTargets\\bin\\x64\\Types_svr.dmp\""
+      "commandLineArgs": "..\\..\\..\\..\\..\\src\\TestTargets\\bin\\x64\\AppDomains_wks.dmp"
     }
   }
 }
