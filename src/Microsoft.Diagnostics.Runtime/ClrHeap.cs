@@ -668,6 +668,15 @@ namespace Microsoft.Diagnostics.Runtime
             return container;
         }
 
+        internal ClrThinlock? GetThinlock(ulong address)
+        {
+            uint header = _memoryReader.Read<uint>(address - 4);
+            if (header == 0)
+                return null;
+
+            return _helpers.GetThinlock(this, header);
+        }
+
         /// <summary>
         /// Returns a string representation of this heap, including the size and number of segments.
         /// </summary>
