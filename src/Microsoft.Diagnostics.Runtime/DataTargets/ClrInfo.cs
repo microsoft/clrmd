@@ -154,7 +154,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                     if (IndexFileSize != 0 && IndexTimeStamp != 0)
                     {
-                        DebugLibraryInfo dacLibraryInfo = new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp);
+                        DebugLibraryInfo dacLibraryInfo = new(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp);
                         if (foundLocalDac)
                         {
                             artifacts.Insert(0, dacLibraryInfo);
@@ -167,7 +167,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                     if (!BuildId.IsDefaultOrEmpty)
                     {
-                        DebugLibraryInfo dacLibraryInfo = new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, BuildId);
+                        DebugLibraryInfo dacLibraryInfo = new(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, BuildId);
                         if (foundLocalDac)
                         {
                             artifacts.Insert(0, dacLibraryInfo);

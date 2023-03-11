@@ -50,10 +50,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            HashSet<string> expected = new HashSet<string>(new[] { "mscorlib.dll", "system.dll", "system.core.dll", "sharedlibrary.dll", "nestedexception.exe", "appdomains.exe" }, StringComparer.OrdinalIgnoreCase);
+            HashSet<string> expected = new(new[] { "mscorlib.dll", "system.dll", "system.core.dll", "sharedlibrary.dll", "nestedexception.exe", "appdomains.exe" }, StringComparer.OrdinalIgnoreCase);
             foreach (ClrAppDomain domain in runtime.AppDomains)
             {
-                HashSet<ClrModule> modules = new HashSet<ClrModule>();
+                HashSet<ClrModule> modules = new();
                 foreach (ClrModule module in domain.Modules)
                 {
                     if (Path.GetExtension(module.Name) == ".nlp")

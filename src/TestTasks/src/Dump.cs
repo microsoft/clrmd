@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
                 return false;
             }
 
-            DebuggerStartInfo info = new DebuggerStartInfo();
+            DebuggerStartInfo info = new();
             if (IsServerGC)
             {
                 info.SetEnvironmentVariable("COMPlus_BuildFlavor", "SVR");

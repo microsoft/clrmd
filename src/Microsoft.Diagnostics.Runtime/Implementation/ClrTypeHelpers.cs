@@ -302,7 +302,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (type is null)
             {
-                Utilities.SigParser sigParser = new Utilities.SigParser(fieldSig, sigLen);
+                Utilities.SigParser sigParser = new(fieldSig, sigLen);
                 if (sigParser.GetCallingConvInfo(out int sigType) && sigType == Utilities.SigParser.IMAGE_CEE_CS_CALLCONV_FIELD)
                 {
                     sigParser.SkipCustomModifiers();

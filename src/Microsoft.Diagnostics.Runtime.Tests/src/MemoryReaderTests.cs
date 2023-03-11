@@ -22,8 +22,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             foreach (ClrSegment segment in heap.Segments)
             {
-                HashSet<ulong> seen = new HashSet<ulong>() { 0 };
-                List<ClrObject> firstSeenObjectOfType = new List<ClrObject>();
+                HashSet<ulong> seen = new() { 0 };
+                List<ClrObject> firstSeenObjectOfType = new();
 
                 // We will search for method tables so make sure we
                 foreach (ClrObject obj in segment.EnumerateObjects())

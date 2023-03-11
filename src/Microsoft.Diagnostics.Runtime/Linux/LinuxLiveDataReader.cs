@@ -144,12 +144,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             fixed (byte* ptr = buffer)
             {
-                IOVEC local = new IOVEC
+                IOVEC local = new()
                 {
                     iov_base = ptr,
                     iov_len = (IntPtr)readableBytesCount
                 };
-                IOVEC remote = new IOVEC
+                IOVEC remote = new()
                 {
                     iov_base = (void*)address,
                     iov_len = (IntPtr)readableBytesCount
@@ -228,7 +228,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private void LoadThreadsAndAttach()
         {
             const int maxPasses = 100;
-            HashSet<uint> tracees = new HashSet<uint>();
+            HashSet<uint> tracees = new();
             bool makesProgress = true;
             // Make up to maxPasses to be sure to attach to the threads that could have been created in the meantime
             for (int i = 0; makesProgress && i < maxPasses; i++)

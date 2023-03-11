@@ -277,7 +277,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
             DEBUG_MODULE_PARAMETERS[] moduleParams = new DEBUG_MODULE_PARAMETERS[bases.Length];
 
-            List<ModuleInfo> modules = new List<ModuleInfo>();
+            List<ModuleInfo> modules = new();
             HResult hr = DebugSymbols.GetModuleParameters(bases, moduleParams);
             if (hr)
             {

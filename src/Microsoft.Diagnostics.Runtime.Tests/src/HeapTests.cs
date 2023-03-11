@@ -170,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 if (all.Length > 2)
                 {
-                    MemoryRange range = new MemoryRange(seg.FirstObjectAddress - 0x10u, seg.CommittedMemory.End + 0x10);
+                    MemoryRange range = new(seg.FirstObjectAddress - 0x10u, seg.CommittedMemory.End + 0x10);
                     Assert.Equal(all, heap.EnumerateObjects(range));
                 }
             }

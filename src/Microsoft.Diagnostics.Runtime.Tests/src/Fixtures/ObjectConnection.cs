@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Fixtures
         public DataTarget DataTarget { get; }
         public TestTarget TestTarget { get; }
 
-        public T Prototype => new T();
+        public T Prototype => new();
 
         private ClrObject FindFirstInstanceOfType(ClrHeap heap, string typeName)
         {

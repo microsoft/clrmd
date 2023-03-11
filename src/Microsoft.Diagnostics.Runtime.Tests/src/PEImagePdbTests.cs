@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Load Windows' ntdll.dll
             string dllFileName = Path.Combine(Environment.SystemDirectory, "ntdll.dll");
-            using PEImage img = new PEImage(new FileStream(dllFileName, FileMode.Open, FileAccess.Read));
+            using PEImage img = new(new FileStream(dllFileName, FileMode.Open, FileAccess.Read));
             Assert.NotNull(img);
 
             PdbInfo imgPdb = img.DefaultPdb;
@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Load Windows' ntdll.dll
             string dllFileName = Path.Combine(Environment.SystemDirectory, "ntdll.dll");
-            using PEImage img = new PEImage(new FileStream(dllFileName, FileMode.Open, FileAccess.Read));
+            using PEImage img = new(new FileStream(dllFileName, FileMode.Open, FileAccess.Read));
             Assert.NotNull(img);
 
             Assert.True(img.TryGetExportSymbol("DbgBreakPoint", out ulong offset));

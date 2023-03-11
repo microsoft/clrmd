@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private static Stats GetStats(IEnumerable<ClrObject> objs)
         {
-            Stats stats = new Stats();
+            Stats stats = new();
             foreach (ClrObject obj in objs)
             {
                 ClrType type = obj.Type;

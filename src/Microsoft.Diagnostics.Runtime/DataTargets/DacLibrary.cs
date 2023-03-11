@@ -127,7 +127,7 @@ namespace Microsoft.Diagnostics.Runtime
             int res = func(guid, iDacDataTarget, out nint iUnk);
             Marshal.Release(iDacDataTarget);
 #else
-            LegacyDacDataTargetWrapper wrapper = new LegacyDacDataTargetWrapper(DacDataTarget, DacDataTarget.RuntimeBaseAddress != 0);
+            LegacyDacDataTargetWrapper wrapper = new(DacDataTarget, DacDataTarget.RuntimeBaseAddress != 0);
             int res = func(guid, wrapper.IDacDataTarget, out nint iUnk);
             GC.KeepAlive(wrapper);
 #endif

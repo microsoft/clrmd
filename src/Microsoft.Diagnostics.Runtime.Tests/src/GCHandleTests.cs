@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.GCHandles.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            List<ClrHandle> handles = new List<ClrHandle>(runtime.EnumerateHandles());
+            List<ClrHandle> handles = new(runtime.EnumerateHandles());
 
             int i = 0;
             foreach (ClrHandle hnd in runtime.EnumerateHandles())
@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void EnsureAllItemsAreUnique()
         {
             // Making sure that handles are returned only once
-            HashSet<ClrHandle> handles = new HashSet<ClrHandle>();
+            HashSet<ClrHandle> handles = new();
 
             using DataTarget dt = TestTargets.GCHandles.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();

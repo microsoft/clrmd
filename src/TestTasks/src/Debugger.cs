@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
 
     internal sealed class DebuggerStartInfo
     {
-        private readonly Dictionary<string, string> _environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string> _environment = new(StringComparer.OrdinalIgnoreCase);
         public string DbgEngDirectory { get; set; }
 
         public DebuggerStartInfo()
@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
     internal sealed class Debugger : IDebugOutputCallbacks, IDebugEventCallbacks, IDisposable
     {
         #region Fields
-        private readonly StringBuilder _output = new StringBuilder();
+        private readonly StringBuilder _output = new();
         private bool _exited;
         private bool _processing;
 

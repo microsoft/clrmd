@@ -273,7 +273,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 for (uint i = 0; i < Header.ProgramHeaderCount; i++)
                 {
-                    ElfProgramHeader header = new ElfProgramHeader(Reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, 0, _virtual);
+                    ElfProgramHeader header = new(Reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, 0, _virtual);
                     if (header.Type == ElfProgramHeaderType.Load && header.FileOffset == 0)
                     {
                         loadBias -= (long)header.VirtualAddress;

@@ -147,7 +147,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
-            ObjectSet hash = new ObjectSet(heap);
+            ObjectSet hash = new(heap);
             foreach (ulong obj in heap.EnumerateObjects())
             {
                 Assert.False(hash.Contains(obj));
@@ -170,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
-            ObjectSet hash = new ObjectSet(heap);
+            ObjectSet hash = new(heap);
             foreach (ulong obj in heap.EnumerateObjects())
             {
                 Assert.False(hash.Contains(obj));
@@ -187,9 +187,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
-            GCRoot gcroot = new GCRoot(heap);
+            GCRoot gcroot = new(heap);
 
-            CancellationTokenSource cancelSource = new CancellationTokenSource();
+            CancellationTokenSource cancelSource = new();
             cancelSource.Cancel();
 
             GetKnownSourceAndTarget(runtime.Heap, out ulong source, out ulong target);
@@ -202,9 +202,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
-            GCRoot gcroot = new GCRoot(heap);
+            GCRoot gcroot = new(heap);
 
-            CancellationTokenSource cancelSource = new CancellationTokenSource();
+            CancellationTokenSource cancelSource = new();
             cancelSource.Cancel();
 
             GetKnownSourceAndTarget(runtime.Heap, out ulong source, out ulong target);
@@ -217,7 +217,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
-            GCRoot gcroot = new GCRoot(heap);
+            GCRoot gcroot = new(heap);
 
             ulong target = heap.GetObjectsOfType("TargetType").Single();
 
@@ -275,7 +275,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dataTarget = TestTargets.GCRoot2.LoadFullDump();
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
-            GCRoot gcroot = new GCRoot(heap);
+            GCRoot gcroot = new(heap);
 
             ulong target = heap.GetObjectsOfType("DirectTarget").Single();
 
@@ -292,7 +292,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dataTarget = TestTargets.GCRoot2.LoadFullDump();
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
-            GCRoot gcroot = new GCRoot(heap);
+            GCRoot gcroot = new(heap);
 
             ulong target = heap.GetObjectsOfType("IndirectTarget").Single();
 
@@ -309,7 +309,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
-            GCRoot gcroot = new GCRoot(heap);
+            GCRoot gcroot = new(heap);
 
             GetKnownSourceAndTarget(heap, out ulong source, out ulong target);
 
@@ -324,7 +324,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
-            GCRoot gcroot = new GCRoot(heap);
+            GCRoot gcroot = new(heap);
 
             GetKnownSourceAndTarget(heap, out ulong source, out ulong target);
 

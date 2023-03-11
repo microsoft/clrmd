@@ -26,23 +26,23 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
     public static class TestTargets
     {
-        private static readonly Lazy<TestTarget> _arrays = new Lazy<TestTarget>(() => new TestTarget("Arrays"));
-        private static readonly Lazy<TestTarget> _clrObjects = new Lazy<TestTarget>(() => new TestTarget("ClrObjects"));
-        private static readonly Lazy<TestTarget> _gcroot = new Lazy<TestTarget>(() => new TestTarget("GCRoot"));
-        private static readonly Lazy<TestTarget> _gcroot2 = new Lazy<TestTarget>(() => new TestTarget("GCRoot2"));
-        private static readonly Lazy<TestTarget> _nestedException = new Lazy<TestTarget>(() => new TestTarget("NestedException"));
-        private static readonly Lazy<TestTarget> _nestedTypes = new Lazy<TestTarget>(() => new TestTarget("NestedTypes"));
-        private static readonly Lazy<TestTarget> _gcHandles = new Lazy<TestTarget>(() => new TestTarget("GCHandles"));
-        private static readonly Lazy<TestTarget> _types = new Lazy<TestTarget>(() => new TestTarget("Types"));
-        private static readonly Lazy<TestTarget> _appDomains = new Lazy<TestTarget>(() => new TestTarget("AppDomains"));
-        private static readonly Lazy<TestTarget> _finalizationQueue = new Lazy<TestTarget>(() => new TestTarget("FinalizationQueue"));
-        private static readonly Lazy<TestTarget> _byReference = new Lazy<TestTarget>(() => new TestTarget("ByReference"));
+        private static readonly Lazy<TestTarget> _arrays = new(() => new TestTarget("Arrays"));
+        private static readonly Lazy<TestTarget> _clrObjects = new(() => new TestTarget("ClrObjects"));
+        private static readonly Lazy<TestTarget> _gcroot = new(() => new TestTarget("GCRoot"));
+        private static readonly Lazy<TestTarget> _gcroot2 = new(() => new TestTarget("GCRoot2"));
+        private static readonly Lazy<TestTarget> _nestedException = new(() => new TestTarget("NestedException"));
+        private static readonly Lazy<TestTarget> _nestedTypes = new(() => new TestTarget("NestedTypes"));
+        private static readonly Lazy<TestTarget> _gcHandles = new(() => new TestTarget("GCHandles"));
+        private static readonly Lazy<TestTarget> _types = new(() => new TestTarget("Types"));
+        private static readonly Lazy<TestTarget> _appDomains = new(() => new TestTarget("AppDomains"));
+        private static readonly Lazy<TestTarget> _finalizationQueue = new(() => new TestTarget("FinalizationQueue"));
+        private static readonly Lazy<TestTarget> _byReference = new(() => new TestTarget("ByReference"));
 
         public static TestTarget GCRoot => _gcroot.Value;
         public static TestTarget GCRoot2 => _gcroot2.Value;
         public static TestTarget NestedException => _nestedException.Value;
         public static TestTarget NestedTypes => _nestedTypes.Value;
-        public static ExceptionTestData NestedExceptionData => new ExceptionTestData();
+        public static ExceptionTestData NestedExceptionData => new();
         public static TestTarget GCHandles => _gcHandles.Value;
         public static TestTarget Types => _types.Value;
         public static TestTarget AppDomains => _appDomains.Value;
@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             Architecture = IntPtr.Size == 4 ? "x86" : "x64";
 
-            DirectoryInfo info = new DirectoryInfo(Environment.CurrentDirectory);
+            DirectoryInfo info = new(Environment.CurrentDirectory);
             while (info.GetFiles(".gitignore").Length != 1)
             {
                 info = info.Parent;
@@ -142,7 +142,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public DataTarget LoadFullDumpWithDbgEng(GCMode gc = GCMode.Workstation)
         {
             string dumpPath = BuildDumpName(gc, true);
-            Utilities.DbgEng.DbgEngIDataReader dbgengReader = new Utilities.DbgEng.DbgEngIDataReader(dumpPath);
+            Utilities.DbgEng.DbgEngIDataReader dbgengReader = new(dumpPath);
             return new DataTarget(new CustomDataTarget(dbgengReader));
         }
     }
