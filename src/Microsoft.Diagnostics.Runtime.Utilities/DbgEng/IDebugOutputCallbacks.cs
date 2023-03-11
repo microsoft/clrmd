@@ -77,7 +77,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             private static int Ignore(nint self) => 0;
 
             [UnmanagedCallersOnly]
-            private static int GetInterestMask(nint self, DEBUG_OUTCBI *pInterest)
+            private static int GetInterestMask(nint self, DEBUG_OUTCBI* pInterest)
             {
                 IDebugOutputCallbacks callbacks = ComInterfaceDispatch.GetInstance<IDebugOutputCallbacks>((ComInterfaceDispatch*)self);
                 *pInterest = callbacks.OutputInterestFlags;

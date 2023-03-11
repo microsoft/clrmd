@@ -122,7 +122,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             foreach (ClrInstanceField field in Object.Type.Fields)
             {
-                seenAny |= field.Name == "_methodPtr" || field.Name == "_methodPtrAux";
+                seenAny |= field.Name is "_methodPtr" or "_methodPtrAux";
                 allNull &= field.Name == null;
             }
 

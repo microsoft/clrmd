@@ -37,8 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             ElfMachine architecture = ElfFile.Header.Architecture;
 
-            return GetNotes(ElfNoteType.PrpsStatus).Select<ElfNote, IElfPRStatus>(r =>
-            {
+            return GetNotes(ElfNoteType.PrpsStatus).Select<ElfNote, IElfPRStatus>(r => {
                 return architecture switch
                 {
                     ElfMachine.EM_X86_64 => r.ReadContents<ElfPRStatusX64>(0),

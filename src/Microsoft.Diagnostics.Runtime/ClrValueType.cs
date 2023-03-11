@@ -177,7 +177,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             return other != null && Address == other.Address && Type == (ClrType?)other.Type;
         }
-            
+
 
         private ClrType GetTypeOrThrow()
         {

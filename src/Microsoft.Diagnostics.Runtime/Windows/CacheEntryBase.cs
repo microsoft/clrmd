@@ -292,10 +292,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             do
             {
-                ReadPageDataFromOffset(pageIndex, inPageOffset, byteCount: 0, buffer: IntPtr.Zero, (data, dataLength) =>
-                    {
-                        return CacheEntryBase<T>.ProcessPageForSequenceTerminatingRead(data, dataLength, inPageOffset, terminatingSequence, bytesRead, ref trailingBytes, ref sawTerminatingSequence);
-                    });
+                ReadPageDataFromOffset(pageIndex, inPageOffset, byteCount: 0, buffer: IntPtr.Zero, (data, dataLength) => {
+                    return CacheEntryBase<T>.ProcessPageForSequenceTerminatingRead(data, dataLength, inPageOffset, terminatingSequence, bytesRead, ref trailingBytes, ref sawTerminatingSequence);
+                });
 
                 pageIndex++;
                 inPageOffset = 0;

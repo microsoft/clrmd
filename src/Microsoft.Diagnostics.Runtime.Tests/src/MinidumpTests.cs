@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.NestedException.LoadMinidump();
             Assert.True(dt.DataReader.ProcessId > 0);
         }
-        
+
         [Fact]
         public void MinidumpCallstackTest()
         {

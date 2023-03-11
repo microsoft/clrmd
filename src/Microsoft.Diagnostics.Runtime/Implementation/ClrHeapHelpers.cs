@@ -395,7 +395,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 uint index = (objHeader & SyncBlockIndexMask);
                 int clrIndex = blk?.Index ?? -1;
-                
+
                 if (index == 0)
                 {
                     return new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockZero, -1, clrIndex);

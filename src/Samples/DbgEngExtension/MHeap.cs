@@ -53,7 +53,7 @@ namespace DbgEngExtension
 
                     if (!statOnly)
                     {
-                        Console.WriteLine($"{obj.Address,12:x} {obj.Type?.MethodTable??0,12:x} {typeName}");
+                        Console.WriteLine($"{obj.Address,12:x} {obj.Type?.MethodTable ?? 0,12:x} {typeName}");
                     }
 
                     sizes.TryGetValue(typeName, out (int Count, ulong TotalSize) item);

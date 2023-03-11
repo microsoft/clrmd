@@ -173,10 +173,10 @@ namespace Microsoft.Diagnostics.Runtime
                 // to debug .Net Core (assuming the user is just debugging one of them)
 
                 IEnumerable<ClrInfo> clrs = from module in EnumerateModules()
-                           let clrInfo = ClrInfo.TryCreate(this, module)
-                           where clrInfo != null
-                           orderby clrInfo.Flavor descending, clrInfo.Version
-                           select clrInfo;
+                                            let clrInfo = ClrInfo.TryCreate(this, module)
+                                            where clrInfo != null
+                                            orderby clrInfo.Flavor descending, clrInfo.Version
+                                            select clrInfo;
 
                 _clrs = clrs.ToImmutableArray();
             }

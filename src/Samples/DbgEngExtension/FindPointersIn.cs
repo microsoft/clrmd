@@ -131,17 +131,17 @@ namespace DbgEngExtension
             else
             {
                 IEnumerable<(string Key, int, int, IEnumerable<ulong>)> gcResult = from obj in result.PinnedPointers
-                               let name = obj.Type?.Name ?? "<unknown_object_types>"
-                               group obj.Address by name into g
-                               let Count = g.Count()
-                               orderby Count descending
-                               select
-                               (
-                                   g.Key,
-                                   Count,
-                                   new HashSet<ulong>(g).Count,
-                                   g.AsEnumerable()
-                               );
+                                                                                   let name = obj.Type?.Name ?? "<unknown_object_types>"
+                                                                                   group obj.Address by name into g
+                                                                                   let Count = g.Count()
+                                                                                   orderby Count descending
+                                                                                   select
+                                                                                   (
+                                                                                       g.Key,
+                                                                                       Count,
+                                                                                       new HashSet<ulong>(g).Count,
+                                                                                       g.AsEnumerable()
+                                                                                   );
 
                 if (result.NonPinnedGCPointers.Count > 0)
                 {
@@ -156,18 +156,18 @@ namespace DbgEngExtension
         private static void WriteUnresolvablePointerTable(RegionPointers result, bool forceTruncate)
         {
             IEnumerable<(string Key, int, int, IEnumerable<ulong>)> unresolvedQuery = from item in result.UnresolvablePointers
-                                  let Name = item.Key.Image ?? item.Key.Name
-                                  group item.Value by Name into g
-                                  let All = g.SelectMany(r => r).ToArray()
-                                  let Count = All.Length
-                                  orderby Count descending
-                                  select
-                                  (
-                                      g.Key,
-                                      Count,
-                                      new HashSet<ulong>(All).Count,
-                                      All.AsEnumerable()
-                                  );
+                                                                                      let Name = item.Key.Image ?? item.Key.Name
+                                                                                      group item.Value by Name into g
+                                                                                      let All = g.SelectMany(r => r).ToArray()
+                                                                                      let Count = All.Length
+                                                                                      orderby Count descending
+                                                                                      select
+                                                                                      (
+                                                                                          g.Key,
+                                                                                          Count,
+                                                                                          new HashSet<ulong>(All).Count,
+                                                                                          All.AsEnumerable()
+                                                                                      );
 
 
             PrintPointerTable("Region", "[Unique Pointers to Unique Regions]", forceTruncate, unresolvedQuery);
@@ -176,19 +176,19 @@ namespace DbgEngExtension
         private void WriteResolvablePointerTable(MemoryWalkContext ctx, RegionPointers result, bool forceTruncate)
         {
             IEnumerable<(string, int, int, IEnumerable<ulong>)> resolvedQuery = from ptr in result.ResolvablePointers.SelectMany(r => r.Value)
-                                let r = ctx.ResolveSymbol(DebugSymbols, ptr)
-                                let name = r.Symbol ?? "<unknown_function>"
-                                group (ptr, r.Offset) by name into g
-                                let Count = g.Count()
-                                let UniqueOffsets = new HashSet<int>(g.Select(g => g.Offset))
-                                orderby Count descending
-                                select
-                                (
-                                    FixTypeName(g.Key, UniqueOffsets),
-                                    Count,
-                                    UniqueOffsets.Count,
-                                    g.Select(r => r.ptr)
-                                );
+                                                                                let r = ctx.ResolveSymbol(DebugSymbols, ptr)
+                                                                                let name = r.Symbol ?? "<unknown_function>"
+                                                                                group (ptr, r.Offset) by name into g
+                                                                                let Count = g.Count()
+                                                                                let UniqueOffsets = new HashSet<int>(g.Select(g => g.Offset))
+                                                                                orderby Count descending
+                                                                                select
+                                                                                (
+                                                                                    FixTypeName(g.Key, UniqueOffsets),
+                                                                                    Count,
+                                                                                    UniqueOffsets.Count,
+                                                                                    g.Select(r => r.ptr)
+                                                                                );
 
             PrintPointerTable("Symbol", "[Unique Pointers]", forceTruncate, resolvedQuery);
         }
@@ -320,7 +320,7 @@ namespace DbgEngExtension
                         {
                             pinned.Add(obj);
                         }
-                    }    
+                    }
                 }
             }
 
@@ -389,7 +389,7 @@ namespace DbgEngExtension
         {
             private readonly Dictionary<string, bool> _imageByNameHasSymbols = new();
             private readonly Dictionary<AddressMemoryRange, bool> _imageHasSymbols = new();
-            private readonly Dictionary<ulong, (string?,int)> _resolved = new();
+            private readonly Dictionary<ulong, (string?, int)> _resolved = new();
             private readonly ClrObject[] _pinned;
 
             public MemoryWalkContext(IEnumerable<ClrObject> pinnedObjects)
@@ -432,13 +432,13 @@ namespace DbgEngExtension
 
             public (string? Symbol, int Offset) ResolveSymbol(IDebugSymbols symbols, ulong ptr)
             {
-                if (_resolved.TryGetValue(ptr, out (string?,int) result))
+                if (_resolved.TryGetValue(ptr, out (string?, int) result))
                 {
                     return result;
                 }
 
                 // _resolved is just a cache.  Don't let it get so big we eat all of the memory.
-                if (_resolved.Count > 16*1024)
+                if (_resolved.Count > 16 * 1024)
                 {
                     _resolved.Clear();
                 }

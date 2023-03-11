@@ -110,7 +110,7 @@ namespace DbgEngExtension
         }
 
         [UnmanagedCallersOnly(EntryPoint = "DebugExtensionInitialize")]
-        public static int DebugExtensionInitialize(uint *pVersion, uint *pFlags)
+        public static int DebugExtensionInitialize(uint* pVersion, uint* pFlags)
         {
             *pVersion = DEBUG_EXTENSION_VERSION(1, 0);
             *pFlags = 0;

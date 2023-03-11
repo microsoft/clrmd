@@ -201,7 +201,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the enclosing type of this method.
         /// </summary>
         public ClrType Type { get; }
-        
+
         IClrType IClrMethod.Type => Type;
 
         public MethodAttributes Attributes

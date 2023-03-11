@@ -36,8 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
             }
 
             using Debugger debugger = info.LaunchProcess(ExePath, null);
-            debugger.OnException += (debugger, exception, firstChance) =>
-            {
+            debugger.OnException += (debugger, exception, firstChance) => {
                 if (!firstChance && exception.ExceptionCode == (uint)ExceptionTypes.Clr)
                 {
                     _ = debugger.WriteDumpFile(FullDumpPath, DEBUG_DUMP.DEFAULT);

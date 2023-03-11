@@ -198,7 +198,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             return ContainingType.Heap.GetObject(obj);
         }
-        
+
         IClrValue IClrStaticField.ReadObject(IClrAppDomain appDomain)
         {
             ulong address = GetAddress(appDomain);

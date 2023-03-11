@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ClrDelegate TestEvent = Types.GetStaticFieldByName("TestEvent").ReadObject(runtime.AppDomains.Single()).AsDelegate();
             methods = TestEvent.EnumerateDelegateTargets().ToArray();
-            
+
             Assert.Equal(2, methods.Length);
             CompareToInner(Types, TestEvent, methods[0]);
             CompareToInstanceMethod(Types, TestEvent, methods[1]);

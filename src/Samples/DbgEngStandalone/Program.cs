@@ -40,8 +40,7 @@ CheckHResult(hr, "WaitForEvent unexpectedly failed.");
 // messages in Yellow with its output mask in Green as an example:
 using (DbgEngOutputHolder output = new DbgEngOutputHolder(client, DEBUG_OUTPUT.ALL))
 {
-    output.OutputReceived += (text, flags) =>
-    {
+    output.OutputReceived += (text, flags) => {
         ConsoleColor oldColor = Console.ForegroundColor;
 
         Console.ForegroundColor = ConsoleColor.Green;

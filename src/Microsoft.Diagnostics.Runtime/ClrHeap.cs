@@ -403,7 +403,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
             }
 
-            
+
             public ulong Base { get; private set; }
             public int Length { get; private set; }
 
