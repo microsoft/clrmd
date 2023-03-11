@@ -124,8 +124,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             if (_domainData is null)
             {
-
-                bool res = _sos.GetAppDomainStoreData(out AppDomainStoreData domainStore);
+                _ = _sos.GetAppDomainStoreData(out AppDomainStoreData domainStore);
 
                 ClrAppDomainData domainData = new();
                 domainData.SystemDomain = CreateAppDomain(domainStore.SystemDomain, "System Domain", domainData.Modules);
