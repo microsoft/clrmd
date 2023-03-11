@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     [StructLayout(LayoutKind.Sequential)]
-    internal unsafe struct ImageSectionHeader
+    internal sealed unsafe struct ImageSectionHeader
     {
         public string Name
         {

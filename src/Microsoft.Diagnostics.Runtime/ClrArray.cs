@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents an array in the target process.
     /// </summary>
-    public struct ClrArray : IClrArray
+    public struct ClrArray : IClrArray, IEquatable<ClrArray>
     {
         /// <summary>
         /// Gets the address of the object.
@@ -226,17 +226,17 @@ namespace Microsoft.Diagnostics.Runtime
             return Type.Heap.GetObject(ReadValue<nuint>(indices));
         }
 
-        private unsafe T ReadValue<T>(int index) where T : unmanaged
+        private sealed unsafe T ReadValue<T>(int index) where T : unmanaged
         {
             return Type.Helpers.DataReader.Read<T>(GetElementAddress(sizeof(T), index));
         }
 
-        private unsafe T ReadValue<T>(int[] indices) where T : unmanaged
+        private sealed unsafe T ReadValue<T>(int[] indices) where T : unmanaged
         {
             return Type.Helpers.DataReader.Read<T>(GetElementAddress(sizeof(T), indices));
         }
 
-        private unsafe ulong GetElementAddress(int elementSize, int index)
+        private sealed unsafe ulong GetElementAddress(int elementSize, int index)
         {
             if (Rank != 1)
             {
@@ -268,7 +268,7 @@ namespace Microsoft.Diagnostics.Runtime
             return Address + (ulong)valueByteOffset;
         }
 
-        private unsafe ulong GetElementAddress(int elementSize, int[] indices)
+        private sealed unsafe ulong GetElementAddress(int elementSize, int[] indices)
         {
             if (indices is null)
             {
@@ -342,5 +342,10 @@ namespace Microsoft.Diagnostics.Runtime
         IClrValue IClrArray.GetStructValue(int index) => GetStructValue(index);
 
         IClrValue IClrArray.GetStructValue(params int[] indices) => GetStructValue(indices);
+
+        public bool Equals(ClrArray other)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

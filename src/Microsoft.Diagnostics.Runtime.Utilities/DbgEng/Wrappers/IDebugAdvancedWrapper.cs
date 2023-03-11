@@ -4,7 +4,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
 
     [DynamicInterfaceCastableImplementation]
-    internal unsafe interface IDebugAdvancedWrapper : IDebugAdvanced
+    internal sealed unsafe interface IDebugAdvancedWrapper : IDebugAdvanced
     {
         int IDebugAdvanced.GetThreadContext(Span<byte> buffer)
         {

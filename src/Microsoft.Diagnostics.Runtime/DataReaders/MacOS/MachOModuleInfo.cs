@@ -1,10 +1,10 @@
-﻿using Microsoft.Diagnostics.Runtime.MacOS.Structs;
-using System;
+﻿using System;
 using System.Collections.Immutable;
+using Microsoft.Diagnostics.Runtime.MacOS.Structs;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
-    internal class MachOModuleInfo : ModuleInfo
+    internal sealed class MachOModuleInfo : ModuleInfo
     {
         private readonly MachOModule? _module;
         private Version? _version;

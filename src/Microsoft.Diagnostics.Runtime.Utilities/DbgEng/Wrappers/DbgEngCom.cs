@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
-    internal class DbgEngCom : ComWrappers
+    internal sealed class DbgEngCom : ComWrappers
     {
         public const string DbgEngDll = "dbgeng.dll";
 

@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    internal class StackTraceEntry
+    internal sealed class StackTraceEntry
     {
         public ClrStackFrameKind Kind { get; set; }
         public string ModuleString { get; set; }

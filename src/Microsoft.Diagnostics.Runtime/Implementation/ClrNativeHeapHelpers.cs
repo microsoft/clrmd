@@ -1,13 +1,13 @@
-﻿using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Utilities;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ClrNativeHeapHelpers : IClrNativeHeapHelpers
+    internal sealed class ClrNativeHeapHelpers : IClrNativeHeapHelpers
     {
         private NativeHeapKind[]? _heapNativeTypes;
         private readonly ClrInfo _clrInfo;

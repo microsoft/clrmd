@@ -6,7 +6,7 @@ using System;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal class MemoryVirtualAddressSpace : IAddressSpace
+    internal sealed class MemoryVirtualAddressSpace : IAddressSpace
     {
         private readonly IDataReader _dataReader;
 

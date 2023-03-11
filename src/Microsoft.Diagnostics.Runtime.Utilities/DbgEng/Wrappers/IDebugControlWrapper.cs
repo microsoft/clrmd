@@ -1,14 +1,14 @@
 ﻿using System.Reflection;
 using System.Runtime.InteropServices;
-using static System.Net.Mime.MediaTypeNames;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 #pragma warning disable CS0169 // field is never used
 #pragma warning disable CS0649 // field is never assigned
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     [DynamicInterfaceCastableImplementation]
-    internal unsafe interface IDebugControlWrapper : IDebugControl
+    internal sealed unsafe interface IDebugControlWrapper : IDebugControl
     {
         OSPlatform IDebugControl.OSPlatform
         {

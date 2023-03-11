@@ -36,6 +36,7 @@ namespace Microsoft.Diagnostics.Runtime
 
 #pragma warning disable 0169
 #pragma warning disable IDE0051 // Remove unused private members
+#pragma warning disable CA1823 // Avoid unused private fields
         /// <summary>
         /// Reserved.
         /// </summary>

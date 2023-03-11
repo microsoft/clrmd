@@ -7,7 +7,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
     internal struct MachOSegmentCommand64
     {
         // readonly MachOCommand
-        internal unsafe fixed byte SegmentName[16];
+        internal sealed unsafe fixed byte SegmentName[16];
         internal readonly long VMAddress;
         internal readonly long VMSize;
         internal readonly long FileOffset;

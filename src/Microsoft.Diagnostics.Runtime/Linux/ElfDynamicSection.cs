@@ -6,7 +6,7 @@ using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal class ElfDynamicSection
+    internal sealed class ElfDynamicSection
     {
         public ElfDynamicSection(Reader reader, bool is64Bit, ulong address, ulong size)
         {

@@ -1,5 +1,5 @@
-﻿using Microsoft.Diagnostics.Runtime.Utilities;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {

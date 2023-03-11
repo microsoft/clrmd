@@ -6,7 +6,7 @@ using System;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal class RelativeAddressSpace : IAddressSpace
+    internal sealed class RelativeAddressSpace : IAddressSpace
     {
         private readonly IAddressSpace _baseAddressSpace;
         private readonly ulong _baseStart;

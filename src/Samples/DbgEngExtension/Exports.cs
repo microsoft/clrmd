@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace DbgEngExtension
 {
-    public unsafe static class Exports
+    public static unsafe class Exports
     {
         [UnmanagedCallersOnly(EntryPoint = "mheap", CallConvs = new[] { typeof(CallConvStdcall) })]
         public static int ManagedHeap(nint pUnknown, nint args)

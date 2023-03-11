@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal unsafe struct CvInfoPdb70
+    internal sealed unsafe struct CvInfoPdb70
     {
         public const int PDB70CvSignature = 0x53445352; // RSDS in ascii
 

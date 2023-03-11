@@ -2,9 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Implementation;
-using Microsoft.Diagnostics.Runtime.Interfaces;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -13,6 +10,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Interfaces;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -377,7 +377,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        private class MemoryCache : IDisposable
+        private sealed class MemoryCache : IDisposable
         {
             private readonly IMemoryReader _memoryReader;
             private readonly int _pointerSize;
@@ -526,7 +526,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Finds the previous object on 
+        /// Finds the previous object on
         /// </summary>
         /// <param name="address">An address on any ClrSegment.</param>
         /// <param name="carefully">Whether to continue walking objects on a segment where we've encountered

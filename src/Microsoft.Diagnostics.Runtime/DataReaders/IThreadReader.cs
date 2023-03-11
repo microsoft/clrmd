@@ -10,11 +10,11 @@ namespace Microsoft.Diagnostics.Runtime.DataReaders.Implementation
     /// This interface is implemented by all ClrMD provided implementations of <see cref="IDataReader"/>.
     /// This interface is not used by the ClrMD library itself, but is here to maintain functionality
     /// for previous uses of these functions in ClrMD 1.1's <see cref="IDataReader"/>.
-    /// 
+    ///
     /// This inteface must always be requested and not assumed to be there:
-    /// 
+    ///
     ///     IDataReader reader = ...;
-    /// 
+    ///
     ///     if (reader is IThreadReader threadReader)
     ///         ...
     /// </summary>

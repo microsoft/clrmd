@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// <summary>
     /// A representation of an ELF loaded image section.
     /// </summary>
-    internal class ElfLoadedImage
+    internal sealed class ElfLoadedImage
     {
         private readonly Reader _vaReader;
         private readonly bool _is64bit;

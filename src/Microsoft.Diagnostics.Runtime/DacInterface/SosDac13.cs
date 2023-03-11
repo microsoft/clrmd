@@ -1,7 +1,7 @@
-﻿using Microsoft.Diagnostics.Runtime.Utilities;
-using System;
+﻿using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface

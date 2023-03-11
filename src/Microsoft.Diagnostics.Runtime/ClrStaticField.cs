@@ -2,11 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
+using System.Reflection;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
-using System;
-using System.Reflection;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -204,7 +204,7 @@ namespace Microsoft.Diagnostics.Runtime
             ulong address = GetAddress(appDomain);
             if (address == 0 || !_helpers.DataReader.ReadPointer(address, out ulong obj) || obj == 0)
             {
-                return new ClrObject();
+                return default(ClrObject);
             }
 
             return ContainingType.Heap.GetObject(obj);
@@ -230,7 +230,7 @@ namespace Microsoft.Diagnostics.Runtime
             ulong address = GetAddress(appDomain);
             if (address == 0)
             {
-                return new ClrValueType();
+                return default(ClrValueType);
             }
 
             return new ClrValueType(address, Type, interior: true);

@@ -11,7 +11,7 @@ using System.Text;
 namespace Microsoft.Diagnostics.Runtime
 {
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    internal unsafe struct ClrRuntimeInfo
+    internal sealed unsafe struct ClrRuntimeInfo
     {
         public const string SymbolValue = "DotNetRuntimeInfo";
         public const int SignatureValueLength = 18;

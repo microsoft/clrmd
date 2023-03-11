@@ -2,10 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Implementation;
-using Microsoft.Diagnostics.Runtime.Interfaces;
-using Microsoft.Diagnostics.Runtime.MacOS;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -14,6 +10,10 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Interfaces;
+using Microsoft.Diagnostics.Runtime.MacOS;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -352,7 +352,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// of ClrMD is still responsible for suspending the process itself.  ClrMD does NOT support inspecting
         /// a running process and will produce undefined behavior when attempting to do so.
         /// </summary>
-        /// <param name="processId">The ID of the process to attach to.</param> 
+        /// <param name="processId">The ID of the process to attach to.</param>
         /// <param name="suspend">Whether or not to suspend the process.</param>
         /// <returns>A <see cref="DataTarget"/> instance.</returns>
         public static DataTarget AttachToProcess(int processId, bool suspend)
@@ -378,7 +378,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         /// <summary>
         /// Creates a snapshot of a running process and attaches to it.  This method will pause a running process
-        /// 
+        ///
         /// </summary>
         /// <param name="processId">The ID of the process to attach to.</param>
         /// <returns>A <see cref="DataTarget"/> instance.</returns>

@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private ElfVirtualAddressSpace? _virtualAddressSpace;
 
         /// <summary>
-        /// All coredumps are themselves ELF files.  This property returns the ElfFile that represents this coredump.  
+        /// All coredumps are themselves ELF files.  This property returns the ElfFile that represents this coredump.
         /// </summary>
         public ElfFile ElfFile { get; }
 

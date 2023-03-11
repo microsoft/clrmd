@@ -6,7 +6,7 @@ using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal class ElfStringTable
+    internal sealed class ElfStringTable
     {
         private readonly Reader _reader;
 

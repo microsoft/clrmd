@@ -1,7 +1,7 @@
-﻿using Microsoft.Diagnostics.Runtime;
+﻿using System.Text;
+using Microsoft.Diagnostics.Runtime;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
-using System.Text;
 
 namespace DbgEngExtension
 {

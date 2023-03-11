@@ -226,7 +226,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             [DllImport("kernel32.dll", SetLastError = true)]
             internal static extern void GetSystemInfo(ref SYSTEM_INFO lpSystemInfo);
 
-            internal unsafe static bool EnableDisablePrivilege(string PrivilegeName, bool enable)
+            internal static unsafe bool EnableDisablePrivilege(string PrivilegeName, bool enable)
             {
                 if (!OpenProcessToken(Process.GetCurrentProcess().Handle, TokenAccessLevels.AdjustPrivileges | TokenAccessLevels.Query, out IntPtr processToken))
                 {

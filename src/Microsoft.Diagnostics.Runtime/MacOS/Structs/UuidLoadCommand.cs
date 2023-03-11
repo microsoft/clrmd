@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.MacOS.Structs
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    internal unsafe struct UuidLoadCommand
+    internal sealed unsafe struct UuidLoadCommand
     {
         public LoadCommandHeader Header;
         public fixed byte Uuid[16];

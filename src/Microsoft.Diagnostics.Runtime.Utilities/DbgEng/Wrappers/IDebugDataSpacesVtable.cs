@@ -5,7 +5,7 @@
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "This is required for vtable layout")]
-    internal unsafe readonly struct IDebugDataSpacesVtable
+    internal sealed readonly unsafe struct IDebugDataSpacesVtable
     {
         private readonly nint QueryInterface;
         private readonly nint AddRef;

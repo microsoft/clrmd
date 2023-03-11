@@ -2,12 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.DacInterface;
 using System.Collections.Immutable;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ClrMethodHelpers : IClrMethodHelpers
+    internal sealed class ClrMethodHelpers : IClrMethodHelpers
     {
         private readonly ClrDataProcess _clrDataProcess;
         private readonly SOSDac _sos;

@@ -6,7 +6,7 @@ using System.Text;
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     [DynamicInterfaceCastableImplementation]
-    internal unsafe interface IDebugClientWrapper : IDebugClient
+    internal sealed unsafe interface IDebugClientWrapper : IDebugClient
     {
         int IDebugClient.CreateProcessAndAttach(string commandLine, string? directory, DEBUG_ATTACH flags, in DEBUG_CREATE_PROCESS_OPTIONS options)
         {

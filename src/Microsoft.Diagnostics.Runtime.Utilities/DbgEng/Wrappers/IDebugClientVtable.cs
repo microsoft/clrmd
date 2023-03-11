@@ -3,7 +3,7 @@
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     [StructLayout(LayoutKind.Sequential)]
-    internal unsafe struct IDebugClientVtable
+    internal sealed unsafe struct IDebugClientVtable
     {
         private readonly nint QueryInterface;
         private readonly nint AddRef;

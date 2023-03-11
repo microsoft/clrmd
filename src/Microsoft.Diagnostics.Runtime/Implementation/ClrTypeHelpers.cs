@@ -1,16 +1,16 @@
-﻿using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Implementation;
-using System;
+﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class ClrTypeHelpers : IClrTypeHelpers, IClrFieldHelpers
+    internal sealed class ClrTypeHelpers : IClrTypeHelpers, IClrFieldHelpers
     {
         private readonly uint _firstChar = (uint)IntPtr.Size + 4;
         private readonly uint _stringLength = (uint)IntPtr.Size;

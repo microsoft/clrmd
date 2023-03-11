@@ -1,14 +1,14 @@
-﻿using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Utilities;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ClrTypeFactory : IClrTypeFactory
+    internal sealed class ClrTypeFactory : IClrTypeFactory
     {
         private const int mdtTypeDef = 0x02000000;
         private const int mdtTypeRef = 0x01000000;

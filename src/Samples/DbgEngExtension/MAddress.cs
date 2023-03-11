@@ -1,10 +1,10 @@
-﻿using Microsoft.Diagnostics.Runtime;
-using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
-using System.Buffers;
+﻿using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime;
+using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac;
 
 namespace DbgEngExtension
@@ -114,7 +114,7 @@ namespace DbgEngExtension
             return null;
         }
 
-        private unsafe bool ReadMemory(ulong start, ulong[] array, int size, out int bytesRead)
+        private sealed unsafe bool ReadMemory(ulong start, ulong[] array, int size, out int bytesRead)
         {
             bytesRead = 0;
             fixed (ulong* ptr = array)
@@ -307,7 +307,7 @@ namespace DbgEngExtension
         /// large chunk of memory and commit the beginning of it as it allocates more and more memory...the RESERVE
         /// region was actually "caused" by the Heap space before it).  Sometimes this will simply be wrong when
         /// a MEM_COMMIT region is next to an unrelated MEM_RESERVE region.
-        /// 
+        ///
         /// This is a heuristic, so use it accordingly.</param>
         /// <exception cref="InvalidOperationException">If !address fails we will throw InvalidOperationException.  This is usually
         /// because symbols for ntdll couldn't be found.</exception>
@@ -411,7 +411,7 @@ namespace DbgEngExtension
             }
         }
 
-        private unsafe ulong GetStackPointer(Architecture arch, Span<byte> buffer, uint thread)
+        private sealed unsafe ulong GetStackPointer(Architecture arch, Span<byte> buffer, uint thread)
         {
             ulong sp = 0;
 
@@ -465,7 +465,7 @@ namespace DbgEngExtension
         /// memory and commit the beginning of it as it allocates more and more memory...the RESERVE region
         /// was actually "caused" by the Heap space before it).  Sometimes this will simply be wrong when
         /// a MEM_COMMIT region is next to an unrelated MEM_RESERVE region.
-        /// 
+        ///
         /// This is a heuristic, so use it accordingly.
         /// </summary>
         public static void CollapseReserveRegions(AddressMemoryRange[] ranges)

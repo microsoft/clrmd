@@ -24,9 +24,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         DEBUG_STATUS OnSymbolChangeState(DEBUG_CSS flags, ulong argument) => DEBUG_STATUS.NO_CHANGE;
     }
 
-    internal unsafe class DebugEventCallbacksCOM : ComWrappers
+    internal sealed unsafe class DebugEventCallbacksCOM : ComWrappers
     {
-        static internal Guid IID_IDebugEventCallbacksWide = new Guid("0690e046-9c23-45ac-a04f-987ac29ad0d3");
+        internal static Guid IID_IDebugEventCallbacksWide = new Guid("0690e046-9c23-45ac-a04f-987ac29ad0d3");
         private static readonly ComInterfaceEntry* s_wrapperEntry = InitializeComInterfaceEntry();
         public static DebugEventCallbacksCOM Instance { get; } = new();
 
@@ -62,7 +62,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             throw new NotImplementedException();
         }
 
-        private unsafe static class IDebugEventCallbacksWideVtable
+        private static unsafe class IDebugEventCallbacksWideVtable
         {
             public static nint Create(nint qi, nint addref, nint release)
             {

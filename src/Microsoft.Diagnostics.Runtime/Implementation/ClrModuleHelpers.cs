@@ -2,12 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.DacInterface;
 using System.Collections.Generic;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ClrModuleHelpers : IClrModuleHelpers
+    internal sealed class ClrModuleHelpers : IClrModuleHelpers
     {
         private const int mdtTypeDef = 0x02000000;
         private const int mdtTypeRef = 0x01000000;

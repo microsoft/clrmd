@@ -1,15 +1,15 @@
-﻿using Microsoft.Diagnostics.Runtime.MacOS.Structs;
-using Microsoft.Diagnostics.Runtime.Utilities;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.MacOS.Structs;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
-    internal unsafe sealed class MachOCoreDump : IDisposable
+    internal sealed unsafe class MachOCoreDump : IDisposable
     {
         private const uint X86_THREAD_STATE64 = 4;
         private const uint ARM_THREAD_STATE64 = 6;
@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             for (int i = 0; i < _header.NumberCommands; i++)
             {
                 long position = stream.Position;
-                LoadCommandHeader loadCommand = new();
+                LoadCommandHeader loadCommand = default;
                 stream.Read(new Span<byte>(&loadCommand, sizeof(LoadCommandHeader)));
 
                 long next = position + loadCommand.Size;
@@ -350,7 +350,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 }
             }
 
-            seg = new MachOSegment();
+            seg = default;
             return false;
         }
 

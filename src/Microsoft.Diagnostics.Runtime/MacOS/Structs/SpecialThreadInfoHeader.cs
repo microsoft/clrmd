@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS.Structs
 {
-    internal unsafe struct SpecialThreadInfoHeader
+    internal sealed unsafe struct SpecialThreadInfoHeader
     {
         public const string SpecialThreadInfoSignature = "THREADINFO";
         public const ulong SpecialThreadInfoAddress = 0x7fffffff00000000;

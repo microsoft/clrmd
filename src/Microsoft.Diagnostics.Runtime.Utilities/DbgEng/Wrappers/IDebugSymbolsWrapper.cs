@@ -6,7 +6,7 @@ using System.Text;
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     [DynamicInterfaceCastableImplementation]
-    internal unsafe interface IDebugSymbolsWrapper : IDebugSymbols
+    internal sealed unsafe interface IDebugSymbolsWrapper : IDebugSymbols
     {
         string? IDebugSymbols.SymbolPath
         {

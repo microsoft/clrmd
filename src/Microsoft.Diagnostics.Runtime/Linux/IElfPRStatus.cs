@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// Copies the registers within this prstatus into the Windows _CONTEXT structure for the specified
         /// architecture.
-        /// 
+        ///
         /// <see cref="Arm64Context"/>
         /// <see cref="AMD64Context"/>
         /// <see cref="ArmContext"/>

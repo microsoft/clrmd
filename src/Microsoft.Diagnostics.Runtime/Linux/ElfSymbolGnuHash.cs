@@ -10,7 +10,7 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal class ElfSymbolGnuHash
+    internal sealed class ElfSymbolGnuHash
     {
         private readonly Reader _reader;
         private readonly ulong _chainsAddress;

@@ -1,9 +1,9 @@
-﻿using Microsoft.Diagnostics.Runtime.MacOS.Structs;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.MacOS.Structs;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
@@ -109,7 +109,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             if (_stringTableAddress != 0)
             {
-                // First, search just the "external" export symbols 
+                // First, search just the "external" export symbols
                 if (TryLookupSymbol(_dysymtab.iextdefsym, _dysymtab.nextdefsym, symbol, out address))
                 {
                     return true;

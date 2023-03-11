@@ -2,14 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    internal unsafe class ClrDataTask : CallableCOMWrapper
+    internal sealed unsafe class ClrDataTask : CallableCOMWrapper
     {
         private static readonly Guid IID_IXCLRDataTask = new("A5B0BEEA-EC62-4618-8012-A24FFC23934C");
 

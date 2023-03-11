@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime
         IClrValue IClrDelegate.Object => this.Object;
 
         /// <summary>
-        /// Returns a the single delegate target of the 
+        /// Returns a the single delegate target of the
         /// </summary>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException">If this object is not a delegate we throw</exception>
@@ -127,7 +127,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             // If all field names were null then we cannot validate whether this was a delegate or not.  The case we are worried
-            // about here is if we have no 
+            // about here is if we have no
             if (allNull)
             {
                 return true;

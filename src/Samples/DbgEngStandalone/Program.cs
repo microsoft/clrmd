@@ -1,8 +1,8 @@
-﻿using DbgEngExtension;
+﻿using System.Runtime.InteropServices;
+using DbgEngExtension;
 using Microsoft.Diagnostics.Runtime;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
-using System.Runtime.InteropServices;
 
 if (args.Length != 1 || !File.Exists(args[0]))
 {

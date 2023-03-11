@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
         Break = 0x80000003
     }
 
-    internal class DebuggerStartInfo
+    internal sealed class DebuggerStartInfo
     {
         private readonly Dictionary<string, string> _environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         public string DbgEngDirectory { get; set; }
@@ -29,7 +29,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
             foreach (DictionaryEntry entry in Environment.GetEnvironmentVariables())
             {
                 if (entry.Value is null || entry.Value is not string strValue)
+                {
                     continue;
+                }
 
                 _environment[(string)entry.Key] = strValue;
             }
@@ -43,13 +45,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
         public unsafe Debugger LaunchProcess(string commandLine, string workingDirectory)
         {
             if (string.IsNullOrEmpty(workingDirectory))
+            {
                 workingDirectory = Environment.CurrentDirectory;
+            }
 
             return new Debugger(DbgEngDirectory, commandLine, workingDirectory, _environment);
         }
     }
 
-    internal class Debugger : IDebugOutputCallbacks, IDebugEventCallbacks, IDisposable
+    internal sealed class Debugger : IDebugOutputCallbacks, IDebugEventCallbacks, IDisposable
     {
         #region Fields
         private readonly StringBuilder _output = new StringBuilder();
@@ -75,38 +79,52 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
             _control = (IDebugControl)_client;
 
             if (string.IsNullOrEmpty(workingDirectory))
+            {
                 workingDirectory = Environment.CurrentDirectory;
+            }
 
-            DEBUG_CREATE_PROCESS_OPTIONS options = new DEBUG_CREATE_PROCESS_OPTIONS();
+            DEBUG_CREATE_PROCESS_OPTIONS options = default;
             options.CreateFlags = DEBUG_CREATE_PROCESS.DEBUG_PROCESS;
             int hr = _client.CreateProcessAndAttach(commandLine, workingDirectory, env, DEBUG_ATTACH.DEFAULT, options);
 
             if (hr < 0)
+            {
                 throw new Exception(GetExceptionString("IDebugClient::CreateProcessAndAttach2", hr));
+            }
 
             _client.SetEventCallbacks(this);
             if (hr < 0)
+            {
                 throw new Exception(GetExceptionString("IDebugClient::SetEventCallbacks", hr));
+            }
 
             _client.SetOutputCallbacks(this);
             if (hr < 0)
+            {
                 throw new Exception(GetExceptionString("IDebugClient::SetOutputCallbacks", hr));
+            }
         }
 
         public DEBUG_STATUS ProcessEvents(TimeSpan timeout)
         {
             if (_processing)
+            {
                 throw new InvalidOperationException("Cannot call ProcessEvents reentrantly.");
+            }
 
             if (_exited)
+            {
                 return DEBUG_STATUS.NO_DEBUGGEE;
+            }
 
             _processing = true;
             int hr = _control.WaitForEvent(timeout);
             _processing = false;
 
             if (hr < 0 && (uint)hr != 0x8000000A)
+            {
                 throw new Exception(GetExceptionString("IDebugControl::WaitForEvent", hr));
+            }
 
             return GetDebugStatus();
         }
@@ -121,7 +139,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
         {
             // DEBUG_DUMP.DEFAULT emits an older "USERDU64" format dump which conflicts with our minidump reader.
             if (type == DEBUG_DUMP.DEFAULT)
+            {
                 return _control.Execute(DEBUG_OUTCTL.NOT_LOGGED, $".dump /ma {dump}", DEBUG_EXECUTE.DEFAULT);
+            }
 
             return _control.Execute(DEBUG_OUTCTL.NOT_LOGGED, $".dump /m {dump}", DEBUG_EXECUTE.DEFAULT);
         }
@@ -138,7 +158,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
             int hr = _control.GetExecutionStatus(out DEBUG_STATUS status);
 
             if (hr < 0)
+            {
                 throw new Exception(GetExceptionString("IDebugControl::GetExecutionStatus", hr));
+            }
 
             return status;
         }
@@ -179,7 +201,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
         #endregion
     }
 
-    internal class CreateProcessArgs
+    internal sealed class CreateProcessArgs
     {
         public ulong ImageFileHandle;
         public ulong Handle;

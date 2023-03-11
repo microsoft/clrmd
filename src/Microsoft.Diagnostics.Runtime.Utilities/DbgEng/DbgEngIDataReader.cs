@@ -1,11 +1,11 @@
-﻿using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
-using System;
+﻿using System;
 using System.Buffers;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         /// Creates an instance of DbgEngIDataReader from the given object.  This object
         /// must be castable to these interfaces: IDebugClient, IDebugControl, IDebugDataSpaces,
         /// IDebugAdvanced, IDebugSymbols, IDebugSystemObjects.
-        /// 
+        ///
         /// The most common way to obtain a working version of this object is via IDebugClient.Create.
         /// </summary>
         /// <param name="dbgeng">An implementation of DbgEng interfaces.</param>

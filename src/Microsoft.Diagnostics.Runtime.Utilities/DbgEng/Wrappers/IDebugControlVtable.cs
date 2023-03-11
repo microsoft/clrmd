@@ -3,10 +3,11 @@ using System.Reflection;
 
 #pragma warning disable CS0169 // field is never used
 #pragma warning disable CS0649 // field is never assigned
+#pragma warning disable CA1823 // Avoid unused private fields
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "This is required for vtable layout")]
-    internal unsafe readonly struct IDebugControlVtable
+    internal sealed readonly unsafe struct IDebugControlVtable
     {
         private readonly nint QueryInterface;
         private readonly nint AddRef;

@@ -1,5 +1,5 @@
-﻿using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
-using System.Text;
+﻿using System.Text;
+using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
 
 namespace DbgEngExtension
 {
@@ -7,7 +7,7 @@ namespace DbgEngExtension
     {
         private readonly char _spacing = ' ';
         public string Divider { get; set; } = " ";
-        public bool AlignLeft { get; set; } = false;
+        public bool AlignLeft { get; set; }
 
         private readonly (int width, string format)[] _formats;
 

@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal unsafe sealed class WindowsFunctions : CoreFunctions
+    internal sealed unsafe class WindowsFunctions : CoreFunctions
     {
         internal static bool IsProcessRunning(int processId)
         {

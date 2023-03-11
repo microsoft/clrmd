@@ -1,10 +1,10 @@
-﻿using Microsoft.Diagnostics.Runtime.Utilities;
-using System;
+﻿using System;
 using System.Collections.Immutable;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ElfModuleInfo : ModuleInfo
+    internal sealed class ElfModuleInfo : ModuleInfo
     {
         private readonly IDataReader _reader;
         private readonly ElfFile? _elf;

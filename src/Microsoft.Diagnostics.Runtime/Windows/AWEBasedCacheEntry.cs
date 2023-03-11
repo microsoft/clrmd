@@ -16,20 +16,20 @@ namespace Microsoft.Diagnostics.Runtime.Windows
     /// <summary>
     /// Represents heap segment cache entries backed by AWE (Address Windowing Extensions). This technology allows us to read the entirety of the heap data out of the dump (which is very fast disk
     /// access wise) up front, keep it in physical memory, but only maps those physical memory pages into our VM space as needed, allowing us to control how much memory we use and making 'mapping in'
-    /// very fast(some page table entry work in Windows instead of physically reading the data off of disk). The downside is it requires the user have special privileges as well as it maps data 
+    /// very fast(some page table entry work in Windows instead of physically reading the data off of disk). The downside is it requires the user have special privileges as well as it maps data
     /// in 64k chunks(the VirtualAlloc allocation granularity).
     /// </summary>
     internal sealed class AWEBasedCacheEntry : CacheEntryBase<UIntPtr>
     {
-        private readonly static uint VirtualAllocPageSize; // set in static ctor
-        private readonly static int SystemPageSize = Environment.SystemPageSize;
+        private static readonly uint VirtualAllocPageSize; // set in static ctor
+        private static readonly int SystemPageSize = Environment.SystemPageSize;
 
         private UIntPtr _pageFrameArray;
         private readonly int _pageFrameArrayItemCount;
 
         static AWEBasedCacheEntry()
         {
-            CacheNativeMethods.Util.SYSTEM_INFO sysInfo = new();
+            CacheNativeMethods.Util.SYSTEM_INFO sysInfo = default;
             CacheNativeMethods.Util.GetSystemInfo(ref sysInfo);
 
             AWEBasedCacheEntry.VirtualAllocPageSize = sysInfo.dwAllocationGranularity;
@@ -137,7 +137,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return sizeRemoved;
         }
 
-        protected unsafe override uint InvokeCallbackWithDataPtr(CachePage<UIntPtr> page, Func<UIntPtr, ulong, uint> callback)
+        protected override unsafe uint InvokeCallbackWithDataPtr(CachePage<UIntPtr> page, Func<UIntPtr, ulong, uint> callback)
         {
             return callback(page.Data, page.DataExtent);
         }
@@ -182,7 +182,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 //
                 // NOTE: VirtualAlloc ALWAYS rounds allocation requests to the VirtualAllocPageSize, which is 64k. If you ask it for less the allocation will succeed but it will have
                 // reserved 64k of memory, making that memory unusable for anyone else. If you do this a lot (say across an entire dump heap) you easily fragment memory to the point
-                // of seeing sporadic allocation failures due to not being able to find enough contiguous memory. VMMAP (from SysInternals) is good for showing this kind of 
+                // of seeing sporadic allocation failures due to not being able to find enough contiguous memory. VMMAP (from SysInternals) is good for showing this kind of
                 // fragmentation, it marks the excess space as 'Unusable Space'
                 UIntPtr vmPtr = CacheNativeMethods.Memory.VirtualAlloc(EntryPageSize, CacheNativeMethods.Memory.VirtualAllocType.Reserve | CacheNativeMethods.Memory.VirtualAllocType.Physical, CacheNativeMethods.Memory.MemoryProtection.ReadWrite);
                 if (vmPtr == UIntPtr.Zero)

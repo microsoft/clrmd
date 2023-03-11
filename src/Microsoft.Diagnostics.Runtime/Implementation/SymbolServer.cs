@@ -1,11 +1,11 @@
-﻿using Microsoft.Diagnostics.Runtime.Utilities;
-using System;
+﻿using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly HttpClient _http = new();
 
         public bool SupportsCompression { get; private set; } = true;
-        public bool SupportsRedirection { get; private set; } = false;
+        public bool SupportsRedirection { get; private set; }
 
         public string Server { get; private set; }
 

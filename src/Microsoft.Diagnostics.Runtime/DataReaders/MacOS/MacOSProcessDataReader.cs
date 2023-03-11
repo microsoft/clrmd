@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -13,6 +11,8 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
@@ -262,7 +262,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             }
         }
 
-        private unsafe T Read<T>(ref ulong address)
+        private sealed unsafe T Read<T>(ref ulong address)
             where T : unmanaged
         {
             T result = Read<T>(address);
@@ -328,7 +328,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             return true;
         }
 
-        private unsafe void LoadThreads()
+        private sealed unsafe void LoadThreads()
         {
             if (_threadActs.Count == 0)
             {

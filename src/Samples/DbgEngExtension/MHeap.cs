@@ -4,7 +4,7 @@ namespace DbgEngExtension
 {
     /// <summary>
     /// A simple version of !dumpheap to demonstrate creating a plugin.
-    /// Note that 
+    /// Note that
     /// </summary>
     public class MHeap : DbgEngCommand
     {
