@@ -74,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     // no point in handling errors here as the user can do nothing with them
                     // also if Dispose is called from the finalizer we could crash the process
-                    int status = (int)ptrace(PTRACE_DETACH, (int)tid, IntPtr.Zero, IntPtr.Zero);
+                    _ = ptrace(PTRACE_DETACH, (int)tid, IntPtr.Zero, IntPtr.Zero);
                 }
                 _suspended = false;
             }
@@ -134,7 +134,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return ReadMemoryReadv(address, buffer);
         }
 
-        private sealed unsafe int ReadMemoryReadv(ulong address, Span<byte> buffer)
+        private unsafe int ReadMemoryReadv(ulong address, Span<byte> buffer)
         {
             int readableBytesCount = this.GetReadableBytesCount(this._memoryMapEntries, address, buffer.Length);
             if (readableBytesCount <= 0)
@@ -373,7 +373,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         [DllImport(LibC)]
         private static extern int waitpid(int pid, IntPtr status, int options);
 
-        private sealed unsafe struct IOVEC
+        private unsafe struct IOVEC
         {
             public void* iov_base;
             public IntPtr iov_len;

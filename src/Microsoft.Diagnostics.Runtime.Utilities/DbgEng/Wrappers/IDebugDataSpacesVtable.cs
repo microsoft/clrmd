@@ -7,8 +7,9 @@ using System.Diagnostics.CodeAnalysis;
 #pragma warning disable CS0649 // field is never assigned
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
+    [SuppressMessage("Performance", "CA1823:Avoid unused private fields", Justification = "This is required for vtable layout")]
     [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "This is required for vtable layout")]
-    internal sealed readonly unsafe struct IDebugDataSpacesVtable
+    internal readonly unsafe struct IDebugDataSpacesVtable
     {
         private readonly nint QueryInterface;
         private readonly nint AddRef;

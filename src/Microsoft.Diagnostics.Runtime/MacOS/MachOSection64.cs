@@ -5,8 +5,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 {
     internal struct MachOSection64
     {
-        internal sealed unsafe fixed byte SectionName[16];
-        internal sealed unsafe fixed byte SegmentName[16];
+        internal unsafe fixed byte SectionName[16];
+        internal unsafe fixed byte SegmentName[16];
         internal readonly long Address;
         internal readonly long Size;
         internal readonly int Offset;

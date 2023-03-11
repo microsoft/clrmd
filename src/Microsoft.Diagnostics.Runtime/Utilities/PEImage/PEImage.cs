@@ -672,13 +672,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         internal T Read<T>(int offset) where T : unmanaged => Read<T>(ref offset);
 
-        internal sealed unsafe T Read<T>(ref int offset) where T : unmanaged
+        internal unsafe T Read<T>(ref int offset) where T : unmanaged
         {
             TryRead(ref offset, out T t);
             return t;
         }
 
-        internal sealed unsafe bool TryRead<T>(ref int offset, out T result) where T : unmanaged
+        internal unsafe bool TryRead<T>(ref int offset, out T result) where T : unmanaged
         {
             int size = Unsafe.SizeOf<T>();
             T t = default;
@@ -695,9 +695,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return true;
         }
 
-        internal sealed unsafe bool TryRead<T>(int offset, out T result) where T : unmanaged => TryRead(ref offset, out result);
+        internal unsafe bool TryRead<T>(int offset, out T result) where T : unmanaged => TryRead(ref offset, out result);
 
-        internal sealed unsafe bool TryRead<T>(out T result) where T : unmanaged
+        internal unsafe bool TryRead<T>(out T result) where T : unmanaged
         {
             int offset = _offset;
             return TryRead(ref offset, out result);

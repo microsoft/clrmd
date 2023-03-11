@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     [DynamicInterfaceCastableImplementation]
-    internal sealed unsafe interface IDebugSystemObjectsWrapper : IDebugSystemObjects
+    internal unsafe interface IDebugSystemObjectsWrapper : IDebugSystemObjects
     {
         int IDebugSystemObjects.ProcessSystemId
         {

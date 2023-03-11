@@ -117,7 +117,7 @@ namespace DbgEngExtension
             return null;
         }
 
-        private sealed unsafe bool ReadMemory(ulong start, ulong[] array, int size, out int bytesRead)
+        private unsafe bool ReadMemory(ulong start, ulong[] array, int size, out int bytesRead)
         {
             bytesRead = 0;
             fixed (ulong* ptr = array)
@@ -414,7 +414,7 @@ namespace DbgEngExtension
             }
         }
 
-        private sealed unsafe ulong GetStackPointer(Architecture arch, Span<byte> buffer, uint thread)
+        private unsafe ulong GetStackPointer(Architecture arch, Span<byte> buffer, uint thread)
         {
             ulong sp = 0;
 

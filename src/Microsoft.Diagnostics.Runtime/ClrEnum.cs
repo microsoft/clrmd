@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime
             return values.ToArray();
         }
 
-        private sealed unsafe object? GetValueForPointer(ClrElementType pdwCPlusTypeFlag, IntPtr ppValue)
+        private unsafe object? GetValueForPointer(ClrElementType pdwCPlusTypeFlag, IntPtr ppValue)
         {
             switch (pdwCPlusTypeFlag)
             {

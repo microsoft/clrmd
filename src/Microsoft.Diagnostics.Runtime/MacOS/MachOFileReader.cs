@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             return _stream.Read(buffer);
         }
 
-        internal sealed unsafe T Read<T>()
+        internal unsafe T Read<T>()
             where T : unmanaged
         {
             int size = sizeof(T);

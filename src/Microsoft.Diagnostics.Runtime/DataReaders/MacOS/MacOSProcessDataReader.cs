@@ -261,7 +261,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             }
         }
 
-        private sealed unsafe T Read<T>(ref ulong address)
+        private unsafe T Read<T>(ref ulong address)
             where T : unmanaged
         {
             T result = Read<T>(address);
@@ -327,7 +327,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             return true;
         }
 
-        private sealed unsafe void LoadThreads()
+        private unsafe void LoadThreads()
         {
             if (_threadActs.Count == 0)
             {

@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     [DynamicInterfaceCastableImplementation]
-    internal sealed unsafe interface IDebugDataSpacesWrapper : IDebugDataSpaces
+    internal unsafe interface IDebugDataSpacesWrapper : IDebugDataSpaces
     {
         int IDebugDataSpaces.WriteVirtual(ulong address, Span<byte> buffer, out int written)
         {

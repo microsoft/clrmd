@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
     [StructLayout(LayoutKind.Sequential)]
-    internal sealed unsafe struct DEBUG_MODULE_PARAMETERS
+    internal unsafe struct DEBUG_MODULE_PARAMETERS
     {
         public ulong Base;
         public int Size;

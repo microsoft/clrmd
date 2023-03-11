@@ -10,7 +10,7 @@ using System.Text;
 namespace Microsoft.Diagnostics.Runtime
 {
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    internal sealed unsafe struct ClrRuntimeInfo
+    internal unsafe struct ClrRuntimeInfo
     {
         public const string SymbolValue = "DotNetRuntimeInfo";
         public const int SignatureValueLength = 18;

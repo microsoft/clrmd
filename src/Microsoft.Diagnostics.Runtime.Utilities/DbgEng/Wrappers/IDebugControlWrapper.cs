@@ -11,7 +11,7 @@ using static System.Net.Mime.MediaTypeNames;
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     [DynamicInterfaceCastableImplementation]
-    internal sealed unsafe interface IDebugControlWrapper : IDebugControl
+    internal unsafe interface IDebugControlWrapper : IDebugControl
     {
         OSPlatform IDebugControl.OSPlatform
         {

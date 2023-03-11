@@ -169,7 +169,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        private sealed unsafe int GetDebugAttribute()
+        private unsafe int GetDebugAttribute()
         {
             MetadataImport? metadata = MetadataImport;
             if (metadata != null)

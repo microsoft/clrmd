@@ -224,17 +224,17 @@ namespace Microsoft.Diagnostics.Runtime
             return Type.Heap.GetObject(ReadValue<nuint>(indices));
         }
 
-        private sealed unsafe T ReadValue<T>(int index) where T : unmanaged
+        private unsafe T ReadValue<T>(int index) where T : unmanaged
         {
             return Type.Helpers.DataReader.Read<T>(GetElementAddress(sizeof(T), index));
         }
 
-        private sealed unsafe T ReadValue<T>(int[] indices) where T : unmanaged
+        private unsafe T ReadValue<T>(int[] indices) where T : unmanaged
         {
             return Type.Helpers.DataReader.Read<T>(GetElementAddress(sizeof(T), indices));
         }
 
-        private sealed unsafe ulong GetElementAddress(int elementSize, int index)
+        private unsafe ulong GetElementAddress(int elementSize, int index)
         {
             if (Rank != 1)
             {
@@ -266,7 +266,7 @@ namespace Microsoft.Diagnostics.Runtime
             return Address + (ulong)valueByteOffset;
         }
 
-        private sealed unsafe ulong GetElementAddress(int elementSize, int[] indices)
+        private unsafe ulong GetElementAddress(int elementSize, int[] indices)
         {
             if (indices is null)
             {
