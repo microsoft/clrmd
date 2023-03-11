@@ -242,7 +242,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             try
             {
-                return await _http.GetStringAsync(filePtrPath);
+                return await _http.GetStringAsync(filePtrPath).ConfigureAwait(false);
             }
             catch
             {

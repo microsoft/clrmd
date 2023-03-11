@@ -13,8 +13,7 @@ namespace DbgEngExtension
     {
         internal const string Command = "gctonative";
         internal const string All = "all";
-
-        const int Width = 120;
+        private const int Width = 120;
 
         public GCToNative(nint pUnknown, bool redirectConsoleOutput = true) : base(pUnknown, redirectConsoleOutput)
         {

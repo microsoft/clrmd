@@ -10,7 +10,7 @@ namespace DbgEngExtension
 {
     public class FindPointersIn : DbgEngCommand
     {
-        const int Width = 120;
+        private const int Width = 120;
 
         internal const string Command = "findpointersin";
         internal const string ExpandNonPinnedObjectsFlag = "expandNonPinnedObjects";

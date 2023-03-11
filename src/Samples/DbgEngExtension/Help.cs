@@ -7,8 +7,7 @@ namespace DbgEngExtension
     {
         internal const string Command = "help";
         private const string RootResource = "DbgEngExtension.Help.";
-
-        static readonly (string Variable, string Replacement)[] Replacements =
+        private static readonly (string Variable, string Replacement)[] Replacements =
         {
             ("$FINDPOINTERSIN", FindPointersIn.Command),
             ("$NONPINNEDFLAG", FindPointersIn.ExpandNonPinnedObjectsFlag),

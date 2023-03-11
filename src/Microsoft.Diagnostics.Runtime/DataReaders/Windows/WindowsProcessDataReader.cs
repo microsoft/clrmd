@@ -286,7 +286,9 @@ namespace Microsoft.Diagnostics.Runtime
         public static extern bool EnumProcessModules(IntPtr hProcess, [Out] IntPtr[]? lphModule, uint cb, [MarshalAs(UnmanagedType.U4)] out uint lpcbNeeded);
 
         [DllImport(Kernel32LibraryName, CharSet = CharSet.Unicode, SetLastError = true, EntryPoint = "K32GetModuleFileNameExW")]
+#pragma warning disable CA1838 // Avoid 'StringBuilder' parameters for P/Invokes
         public static extern uint GetModuleFileNameEx(IntPtr hProcess, IntPtr hModule, [Out] StringBuilder lpFilename, [MarshalAs(UnmanagedType.U4)] int nSize);
+#pragma warning restore CA1838 // Avoid 'StringBuilder' parameters for P/Invokes
 
         [DllImport(Kernel32LibraryName)]
         private static extern int ReadProcessMemory(

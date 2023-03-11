@@ -477,7 +477,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private bool ShouldVerifyMembers(ClrSegment seg, ClrObject obj)
         {
-            ShouldCheckBgcMark(seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep);
+            ClrHeapHelpers.ShouldCheckBgcMark(seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep);
             return FgcShouldConsiderObject(seg, obj, considerBgcMark, checkCurrentSweep, checkSavedSweep);
         }
 
@@ -517,14 +517,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return noBgcMark || BackgroundObjectMarked(heap, obj);
         }
 
-        const uint MarkBitPitch = 8;
-        const uint MarkWordWidth = 32;
-        const uint MarkWordSize = MarkBitPitch * MarkWordWidth;
-        const uint DtGcPageSize = 0x1000;
-        const uint CardWordWidth = 32;
+        private const uint MarkBitPitch = 8;
+        private const uint MarkWordWidth = 32;
+        private const uint MarkWordSize = MarkBitPitch * MarkWordWidth;
+        private const uint DtGcPageSize = 0x1000;
+        private const uint CardWordWidth = 32;
         private uint CardSize => ((uint)_memoryReader.PointerSize / 4) * DtGcPageSize / CardWordWidth;
 
-        private void ShouldCheckBgcMark(ClrSegment seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep)
+        private static void ShouldCheckBgcMark(ClrSegment seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep)
         {
             considerBgcMark = false;
             checkCurrentSweep = false;
@@ -577,8 +577,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return (entry & (1u << MarkBitOf(obj))) != 0;
         }
 
-        static int MarkBitOf(ulong address) => (int)((address / MarkBitPitch) % MarkWordWidth);
-        static ulong MarkWordOf(ulong address) => address / MarkWordSize;
+        private static int MarkBitOf(ulong address) => (int)((address / MarkBitPitch) % MarkWordWidth);
+        private static ulong MarkWordOf(ulong address) => address / MarkWordSize;
 
 
         public bool IsValidMethodTable(ulong mt)

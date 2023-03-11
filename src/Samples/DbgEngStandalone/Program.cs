@@ -27,7 +27,7 @@ string? dbgengPath = FindDbgEngPath();
 // IDebugClient.Create creates a COM wrapper object.  You can cast this object to dbgeng interfaces.
 using IDisposable dbgeng = IDebugClient.Create(dbgengPath);
 
-// All DbgEng interfaces are simply 
+// All DbgEng interfaces are simply
 IDebugClient client = (IDebugClient)dbgeng;
 IDebugControl control = (IDebugControl)dbgeng;
 
