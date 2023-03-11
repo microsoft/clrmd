@@ -16,3 +16,4 @@ Microsoft.Diagnostics.Runtime.Implementation.IJitManagerHelpers
 Microsoft.Diagnostics.Runtime.Implementation.IJitManagerHelpers.EnumerateNativeHeaps(Microsoft.Diagnostics.Runtime.ClrJitManager! clrJitManager) -> System.Collections.Generic.IEnumerable<Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo>!
 readonly Microsoft.Diagnostics.Runtime.DacInterface.JitCodeHeapInfo.Kind -> Microsoft.Diagnostics.Runtime.CodeHeapKind
 readonly Microsoft.Diagnostics.Runtime.DacInterface.JitManagerInfo.Kind -> Microsoft.Diagnostics.Runtime.CodeHeapKind
+Microsoft.Diagnostics.Runtime.ClrValueType.ClrValueType(ulong address, Microsoft.Diagnostics.Runtime.ClrType? type, bool interior) -> void

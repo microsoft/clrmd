@@ -8,6 +8,7 @@ Microsoft.Diagnostics.Runtime.ClrJitManager.Kind.get -> Microsoft.Diagnostics.Ru
 Microsoft.Diagnostics.Runtime.ClrJitManager.Runtime.get -> Microsoft.Diagnostics.Runtime.ClrRuntime!
 Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo.ClrNativeHeapInfo(ulong address, ulong? size, Microsoft.Diagnostics.Runtime.NativeHeapKind kind, bool current) -> void
 Microsoft.Diagnostics.Runtime.ClrNativeHeapInfo.IsCurrentBlock.get -> bool
+Microsoft.Diagnostics.Runtime.ClrValueType.ClrValueType(ulong address, Microsoft.Diagnostics.Runtime.ClrType? type, bool interior) -> void
 Microsoft.Diagnostics.Runtime.CodeHeapKind
 Microsoft.Diagnostics.Runtime.CodeHeapKind.Host = 1 -> Microsoft.Diagnostics.Runtime.CodeHeapKind
 Microsoft.Diagnostics.Runtime.CodeHeapKind.Loader = 0 -> Microsoft.Diagnostics.Runtime.CodeHeapKind
