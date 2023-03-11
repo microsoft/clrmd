@@ -158,7 +158,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 int last = fullPath.LastIndexOfAny(new char[] { '/', '\\' }) + 1;
 
-                string filePtrPath = fullPath.Substring(0, last) + "file.ptr";
+                string filePtrPath = string.Concat(fullPath.AsSpan(0, last), "file.ptr");
                 redirectedFile = GetStringOrNull(filePtrPath);
             }
 
@@ -186,7 +186,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Task<HttpResponseMessage> file = _http.GetAsync(fullPath);
             Task<HttpResponseMessage?> compressed = Task.FromResult<HttpResponseMessage?>(null);
 
-            string compressedPath = fullPath.Substring(0, fullPath.Length - 1) + '_';
+            string compressedPath = string.Concat(fullPath.AsSpan(0, fullPath.Length - 1), "_");
             if (SupportsCompression)
             {
                 compressed = _http.GetAsync(compressedPath)!;
