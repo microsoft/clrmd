@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
