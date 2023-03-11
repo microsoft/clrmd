@@ -325,16 +325,19 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             };
         }
 
-        public ClrThinlock? GetThinlock(ClrHeap heap, uint header)
+        public ClrThinLock? GetThinLock(ClrHeap heap, uint header)
         {
             if (!HasThinlock(header))
                 return null;
 
             (uint threadId, uint recursion) = GetThinlockData(header);
-
             ulong threadAddress = _sos.GetThreadFromThinlockId(threadId);
+
+            if (threadId == 0 && threadAddress == 0)
+                return null;
+
             ClrThread? thread = heap.Runtime.Threads.FirstOrDefault(t => t.Address == threadAddress);
-            return new ClrThinlock(thread, (int)recursion);
+            return new ClrThinLock(thread, (int)recursion);
         }
 
         private static bool HasThinlock(uint header)
