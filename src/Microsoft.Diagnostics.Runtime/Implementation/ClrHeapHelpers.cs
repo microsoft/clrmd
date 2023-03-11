@@ -373,7 +373,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             // Check object size
             int intSize = obj.Size > int.MaxValue ? int.MaxValue : (int)obj.Size;
-            if (obj.Size > seg.MaxObjectSize || obj + obj.Size > seg.ObjectRange.End)
+            if (obj + obj.Size > seg.ObjectRange.End || (!obj.IsFree && obj.Size > seg.MaxObjectSize))
                 return new ObjectCorruption(obj, _memoryReader.PointerSize, ObjectCorruptionKind.ObjectTooLarge);
 
             if (obj.IsFree)
