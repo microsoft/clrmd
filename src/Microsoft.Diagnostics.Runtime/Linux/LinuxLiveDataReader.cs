@@ -74,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     // no point in handling errors here as the user can do nothing with them
                     // also if Dispose is called from the finalizer we could crash the process
-                    _ = ptrace(PTRACE_DETACH, (int)tid, IntPtr.Zero, IntPtr.Zero);
+                    int _ = ptrace(PTRACE_DETACH, (int)tid, IntPtr.Zero, IntPtr.Zero);
                 }
                 _suspended = false;
             }
