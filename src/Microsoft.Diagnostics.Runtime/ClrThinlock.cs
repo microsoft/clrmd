@@ -3,7 +3,7 @@
     /// <summary>
     /// An object's thinlock.
     /// </summary>
-    public class ClrThinlock
+    public class ClrThinLock
     {
         /// <summary>
         /// The owning thread of this thinlock.
@@ -15,7 +15,7 @@
         /// </summary>
         public int Recursion { get; }
 
-        internal ClrThinlock(ClrThread? thread, int recursion)
+        internal ClrThinLock(ClrThread? thread, int recursion)
         {
             Thread = thread;
             Recursion = recursion;

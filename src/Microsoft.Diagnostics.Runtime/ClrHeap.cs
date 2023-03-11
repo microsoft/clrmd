@@ -668,13 +668,13 @@ namespace Microsoft.Diagnostics.Runtime
             return container;
         }
 
-        internal ClrThinlock? GetThinlock(ulong address)
+        internal ClrThinLock? GetThinlock(ulong address)
         {
             uint header = _memoryReader.Read<uint>(address - 4);
             if (header == 0)
                 return null;
 
-            return _helpers.GetThinlock(this, header);
+            return _helpers.GetThinLock(this, header);
         }
 
         /// <summary>
