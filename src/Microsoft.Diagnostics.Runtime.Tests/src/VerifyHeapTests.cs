@@ -230,7 +230,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Null(result);
 
             ClrObject free = heap.EnumerateObjects().First(obj => obj.IsFree);
-            foreach (var reference in obj.EnumerateReferencesWithFields())
+            foreach (ClrReference reference in obj.EnumerateReferencesWithFields())
             {
                 uint offset = (uint)IntPtr.Size + (uint)reference.Offset;
                 WriteAndRun(spaces, obj + offset, 0xccccc0, () =>

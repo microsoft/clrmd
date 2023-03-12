@@ -148,7 +148,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (IsServerMode)
             {
                 ClrDataAddress[] heapAddresses = _sos.GetHeapList(_gcInfo.HeapCount);
-                var heapsBuilder = ImmutableArray.CreateBuilder<ClrSubHeap>(heapAddresses.Length);
+                ImmutableArray<ClrSubHeap>.Builder heapsBuilder = ImmutableArray.CreateBuilder<ClrSubHeap>(heapAddresses.Length);
                 for (int i = 0; i < heapAddresses.Length; i++)
                 {
                     if (_sos.GetServerHeapDetails(heapAddresses[i], out HeapDetails heapData))

@@ -176,7 +176,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 Command.Run("Expand " + Command.Quote(tmpPath) + " " + Command.Quote(output));
                 MemoryStream ms = new();
-                using (var fs = File.OpenRead(output))
+                using (FileStream fs = File.OpenRead(output))
                     await fs.CopyToAsync(ms).ConfigureAwait(false);
 
                 ms.Position = 0;

@@ -93,7 +93,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (dllMain == IntPtr.Zero)
                     throw new ClrDiagnosticsException("Failed to obtain Dac DllMain");
 
-                var main = (delegate* unmanaged[Stdcall]<IntPtr, int, IntPtr, int>)dllMain;
+                delegate* unmanaged[Stdcall]<IntPtr, int, IntPtr, int> main = (delegate* unmanaged[Stdcall]<IntPtr, int, IntPtr, int>)dllMain;
                 main(dacLibrary, 1, IntPtr.Zero);
             }
 
@@ -103,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             DacDataTarget = new DacDataTarget(dataTarget, runtimeBaseAddress);
 
-            var func = (delegate* unmanaged[Stdcall]<in Guid, IntPtr, out IntPtr, int>)addr;
+            delegate* unmanaged[Stdcall]<in Guid, IntPtr, out IntPtr, int> func = (delegate* unmanaged[Stdcall]<in Guid, IntPtr, out IntPtr, int>)addr;
             Guid guid = new("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
 
 #if NET6_0_OR_GREATER
@@ -111,7 +111,7 @@ namespace Microsoft.Diagnostics.Runtime
             int res = func(guid, iDacDataTarget, out nint iUnk);
             Marshal.Release(iDacDataTarget);
 #else
-            LegacyDacDataTargetWrapper wrapper = new LegacyDacDataTargetWrapper(DacDataTarget, DacDataTarget.RuntimeBaseAddress != 0);
+            LegacyDacDataTargetWrapper wrapper = new(DacDataTarget, DacDataTarget.RuntimeBaseAddress != 0);
             int res = func(guid, wrapper.IDacDataTarget, out nint iUnk);
             GC.KeepAlive(wrapper);
 #endif

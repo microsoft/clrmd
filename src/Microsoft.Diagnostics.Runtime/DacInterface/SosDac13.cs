@@ -77,7 +77,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     {
                         if (hr = VTable.GetLoaderAllocatorHeaps(Self, loaderAllocator, addresses.Length, ptrAddresses, ptrKinds, out _))
                         {
-                            var result = new (ClrDataAddress, LoaderHeapKind)[needed];
+                            (ClrDataAddress, LoaderHeapKind)[] result = new (ClrDataAddress, LoaderHeapKind)[needed];
                             for (int i = 0; i < needed; i++)
                                 result[i] = (addresses[i], kinds[i]);
 

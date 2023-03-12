@@ -490,7 +490,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Frozen)
                 return address;
 
-            var allocationContexts = GetAllocationContexts();
+            Dictionary<ulong, ulong> allocationContexts = GetAllocationContexts();
 
             uint minObjSize = (uint)IntPtr.Size * 3;
             while (allocationContexts.TryGetValue(address, out ulong nextObj))
@@ -643,9 +643,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public IEnumerable<MemoryRange> EnumerateAllocationContexts()
         {
-            var allocationContexts = GetAllocationContexts();
+            Dictionary<ulong, ulong>? allocationContexts = GetAllocationContexts();
             if (allocationContexts is not null)
-                foreach (var kv in allocationContexts)
+                foreach (KeyValuePair<ulong, ulong> kv in allocationContexts)
                     yield return new(kv.Key, kv.Value);
         }
 
@@ -753,7 +753,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (considerDependantHandles)
             {
-                var dependent = GetDependentHandles();
+                (ulong Source, ulong Target)[] dependent = GetDependentHandles();
 
                 if (dependent.Length > 0)
                 {
@@ -829,7 +829,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (considerDependantHandles)
             {
-                var dependent = GetDependentHandles();
+                (ulong Source, ulong Target)[] dependent = GetDependentHandles();
 
                 if (dependent.Length > 0)
                 {
@@ -903,7 +903,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (considerDependantHandles)
             {
-                var dependent = GetDependentHandles();
+                (ulong Source, ulong Target)[] dependent = GetDependentHandles();
 
                 if (dependent.Length > 0)
                 {

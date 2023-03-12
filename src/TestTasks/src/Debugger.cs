@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
 
     internal class DebuggerStartInfo
     {
-        private readonly Dictionary<string, string> _environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string> _environment = new(StringComparer.OrdinalIgnoreCase);
         public string DbgEngDirectory { get; set; }
 
         public DebuggerStartInfo()
@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
     internal class Debugger : IDebugOutputCallbacks, IDebugEventCallbacks, IDisposable
     {
         #region Fields
-        private readonly StringBuilder _output = new StringBuilder();
+        private readonly StringBuilder _output = new();
         private bool _exited;
         private bool _processing;
 
@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
             if (string.IsNullOrEmpty(workingDirectory))
                 workingDirectory = Environment.CurrentDirectory;
 
-            DEBUG_CREATE_PROCESS_OPTIONS options = new DEBUG_CREATE_PROCESS_OPTIONS();
+            DEBUG_CREATE_PROCESS_OPTIONS options = new();
             options.CreateFlags = DEBUG_CREATE_PROCESS.DEBUG_PROCESS;
             int hr = _client.CreateProcessAndAttach(commandLine, workingDirectory, env, DEBUG_ATTACH.DEFAULT, options);
 

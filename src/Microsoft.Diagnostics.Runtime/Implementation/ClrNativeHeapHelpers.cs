@@ -56,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             List<ClrNativeHeapInfo>? codeLoaderHeaps = null;
 
-            foreach (var mem in _sos.GetCodeHeapList(jitManager.Address))
+            foreach (JitCodeHeapInfo mem in _sos.GetCodeHeapList(jitManager.Address))
             {
                 if (mem.Kind == CodeHeapKind.Loader)
                 {
@@ -118,7 +118,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             List<ClrNativeHeapInfo>? result = null;
 
-            var heaps = _sos13.GetLoaderAllocatorHeaps(loaderAllocator);
+            (ClrDataAddress Address, LoaderHeapKind Kind)[] heaps = _sos13.GetLoaderAllocatorHeaps(loaderAllocator);
             for (int i = 0; i < heaps.Length; i++)
             {
                 HResult hr = _sos13.TraverseLoaderHeap(heaps[i].Address, heaps[i].Kind, (address, size, current) =>

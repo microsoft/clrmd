@@ -190,7 +190,7 @@ namespace Microsoft.Diagnostics.Runtime
             HashSet<ulong> visited = new();
 
             // Ensure we are working on a consistent set of domains/modules
-            var domainData = GetAppDomainData();
+            ClrAppDomainData domainData = GetAppDomainData();
 
             // Walk domains
             if (domainData.SystemDomain is not null)

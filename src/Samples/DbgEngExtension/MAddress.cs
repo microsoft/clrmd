@@ -310,14 +310,14 @@ namespace DbgEngExtension
             {
                 foreach (ClrMemoryPointer mem in EnumerateClrMemoryAddresses())
                 {
-                    var found = ranges.Where(m => m.Start <= mem.Address && mem.Address < m.End).ToArray();
+                    AddressMemoryRange[] found = ranges.Where(m => m.Start <= mem.Address && mem.Address < m.End).ToArray();
 
                     if (found.Length == 0)
                         Trace.WriteLine($"Warning:  Could not find a memory range for {mem.Address:x} - {mem.Kind}.");
                     else if (found.Length > 1)
                         Trace.WriteLine($"Warning:  Found multiple memory ranges for entry {mem.Address:x} - {mem.Kind}.");
 
-                    foreach (var entry in found)
+                    foreach (AddressMemoryRange? entry in found)
                     {
                         if (entry.ClrMemoryKind != ClrMemoryKind.None && entry.ClrMemoryKind != mem.Kind)
                             Trace.WriteLine($"Warning:  Overwriting range {entry.Start:x} {entry.ClrMemoryKind} -> {mem.Kind}.");
@@ -452,15 +452,15 @@ namespace DbgEngExtension
         /// </summary>
         public IEnumerable<ClrMemoryPointer> EnumerateClrMemoryAddresses()
         {
-            foreach (var runtime in Runtimes)
+            foreach (ClrRuntime runtime in Runtimes)
             {
                 SOSDac sos = runtime.DacLibrary.SOSDacInterface;
                 foreach (JitManagerInfo jitMgr in sos.GetJitManagers())
                 {
-                    foreach (var handle in runtime.EnumerateHandles())
+                    foreach (ClrHandle handle in runtime.EnumerateHandles())
                         yield return new ClrMemoryPointer() { Kind = ClrMemoryKind.HandleTable, Address = handle.Address };
 
-                    foreach (var mem in sos.GetCodeHeapList(jitMgr.Address))
+                    foreach (JitCodeHeapInfo mem in sos.GetCodeHeapList(jitMgr.Address))
                         yield return new ClrMemoryPointer()
                         {
                             Address = mem.Address,
@@ -472,7 +472,7 @@ namespace DbgEngExtension
                             } 
                         };
 
-                    foreach (var seg in runtime.Heap.Segments)
+                    foreach (ClrSegment seg in runtime.Heap.Segments)
                     {
                         if (seg.CommittedMemory.Length > 0)
                             yield return new ClrMemoryPointer() { Address = seg.CommittedMemory.Start, Kind = ClrMemoryKind.GCHeapSegment };
@@ -490,7 +490,7 @@ namespace DbgEngExtension
                     if (runtime.SharedDomain is not null)
                         AddAppDomainHeaps(sos, runtime.SharedDomain.Address, heaps);
 
-                    foreach (var heap in heaps)
+                    foreach (ClrMemoryPointer heap in heaps)
                         if (seen.Add(heap.Address))
                             yield return heap;
 
@@ -499,7 +499,7 @@ namespace DbgEngExtension
                         heaps.Clear();
                         AddAppDomainHeaps(sos, address, heaps);
 
-                        foreach (var heap in heaps)
+                        foreach (ClrMemoryPointer heap in heaps)
                             if (seen.Add(heap.Address))
                                 yield return heap;
                     }

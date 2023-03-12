@@ -123,12 +123,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (domainStore.SharedDomain != 0)
                     domainData.SharedDomain = CreateAppDomain(domainStore.SharedDomain, "Shared Domain", domainData.Modules);
 
-                var builder = ImmutableArray.CreateBuilder<ClrAppDomain>(domainStore.AppDomainCount);
+                ImmutableArray<ClrAppDomain>.Builder builder = ImmutableArray.CreateBuilder<ClrAppDomain>(domainStore.AppDomainCount);
                 ClrDataAddress[] domainList = _sos.GetAppDomainList(domainStore.AppDomainCount);
 
                 for (int i = 0; i < domainList.Length; i++)
                 {
-                    var domain = CreateAppDomain(domainList[i], null, domainData.Modules);
+                    ClrAppDomain? domain = CreateAppDomain(domainList[i], null, domainData.Modules);
                     if (domain is not null)
                         builder.Add(domain);
                 }
@@ -176,7 +176,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             name ??= _sos.GetAppDomainName(domainAddress);
             ClrAppDomain result = new(Runtime, this, domainAddress, name, id);
 
-            var moduleBuilder = ImmutableArray.CreateBuilder<ClrModule>();
+            ImmutableArray<ClrModule>.Builder moduleBuilder = ImmutableArray.CreateBuilder<ClrModule>();
             foreach (ulong assembly in _sos.GetAssemblyList(domainAddress))
                 foreach (ulong moduleAddress in _sos.GetModuleList(assembly))
                 {

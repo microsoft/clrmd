@@ -126,13 +126,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 ulong value;
                 if (ElfFile.Header.Is64Bit)
                 {
-                    var elfauxv64 = auxvNote.ReadContents<ElfAuxv64>(ref position);
+                    ElfAuxv64 elfauxv64 = auxvNote.ReadContents<ElfAuxv64>(ref position);
                     type = elfauxv64.Type;
                     value = elfauxv64.Value;
                 }
                 else
                 {
-                    var elfauxv32 = auxvNote.ReadContents<ElfAuxv32>(ref position);
+                    ElfAuxv32 elfauxv32 = auxvNote.ReadContents<ElfAuxv32>(ref position);
                     type = elfauxv32.Type;
                     value = elfauxv32.Value;
                 }

@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime
             bool seenOne = false;
             ClrRuntime runtime = Object.Type.Heap.Runtime;
 
-            var methodPointerFields = Object.Type.Fields.Where(f => f.Name != null).Where(f => f.Name!.Equals("_methodPtr") || f.Name.Equals("_methodPtrAux"));
+            IEnumerable<ClrInstanceField> methodPointerFields = Object.Type.Fields.Where(f => f.Name != null).Where(f => f.Name!.Equals("_methodPtr") || f.Name.Equals("_methodPtrAux"));
             foreach (ClrInstanceField field in methodPointerFields)
             {
                 if (field.ElementType == ClrElementType.NativeInt)
@@ -108,7 +108,7 @@ namespace Microsoft.Diagnostics.Runtime
             bool seenAny = false;
             bool allNull = true;
 
-            foreach (var field in Object.Type.Fields)
+            foreach (ClrInstanceField field in Object.Type.Fields)
             {
                 seenAny |= field.Name == "_methodPtr" || field.Name == "_methodPtrAux";
                 allNull &= field.Name == null;

@@ -40,7 +40,7 @@ namespace DbgEngExtension
             AddressMemoryRange[] allRegions = address.EnumerateAddressSpace(tagClrMemoryRanges: true, includeReserveMemory: false, tagReserveMemoryHeuristically: false).ToArray();
 
             Console.WriteLine("Scanning for pinned objects...");
-            var ctx = CreateMemoryWalkContext();
+            MemoryWalkContext ctx = CreateMemoryWalkContext();
 
             foreach (string type in memTypes)
             {
@@ -55,7 +55,7 @@ namespace DbgEngExtension
 
                 foreach (AddressMemoryRange mem in matchingRanges.OrderBy(r => r.Start))
                 {
-                    var pointersFound = address.EnumerateRegionPointers(mem.Start, mem.End, allRegions).Select(r => (r.Pointer, r.MemoryRange));
+                    IEnumerable<(ulong Pointer, AddressMemoryRange MemoryRange)> pointersFound = address.EnumerateRegionPointers(mem.Start, mem.End, allRegions).Select(r => (r.Pointer, r.MemoryRange));
                     RegionPointers result = ProcessOneRegion(pinnedOnly, pointersFound, ctx);
 
                     WriteMemoryHeaderLine(mem);
@@ -128,7 +128,7 @@ namespace DbgEngExtension
             }
             else
             {
-                var gcResult = from obj in result.PinnedPointers
+                IEnumerable<(string Key, int, int, IEnumerable<ulong>)> gcResult = from obj in result.PinnedPointers
                                let name = obj.Type?.Name ?? "<unknown_object_types>"
                                group obj.Address by name into g
                                let Count = g.Count()
@@ -143,7 +143,7 @@ namespace DbgEngExtension
 
                 if (result.NonPinnedGCPointers.Count > 0)
                 {
-                    var v = new (string, int, int, IEnumerable<ulong>)[] { ("[Pointers to non-pinned objects]", result.NonPinnedGCPointers.Count, new HashSet<ulong>(result.NonPinnedGCPointers).Count, result.NonPinnedGCPointers) };
+                    (string, int, int, IEnumerable<ulong>)[] v = new (string, int, int, IEnumerable<ulong>)[] { ("[Pointers to non-pinned objects]", result.NonPinnedGCPointers.Count, new HashSet<ulong>(result.NonPinnedGCPointers).Count, result.NonPinnedGCPointers) };
                     gcResult = v.Concat(gcResult);
                 }
 
@@ -153,7 +153,7 @@ namespace DbgEngExtension
 
         private static void WriteUnresolvablePointerTable(RegionPointers result, bool forceTruncate)
         {
-            var unresolvedQuery = from item in result.UnresolvablePointers
+            IEnumerable<(string Key, int, int, IEnumerable<ulong>)> unresolvedQuery = from item in result.UnresolvablePointers
                                   let Name = item.Key.Image ?? item.Key.Name
                                   group item.Value by Name into g
                                   let All = g.SelectMany(r => r).ToArray()
@@ -173,7 +173,7 @@ namespace DbgEngExtension
 
         private void WriteResolvablePointerTable(MemoryWalkContext ctx, RegionPointers result, bool forceTruncate)
         {
-            var resolvedQuery = from ptr in result.ResolvablePointers.SelectMany(r => r.Value)
+            IEnumerable<(string, int, int, IEnumerable<ulong>)> resolvedQuery = from ptr in result.ResolvablePointers.SelectMany(r => r.Value)
                                 let r = ctx.ResolveSymbol(DebugSymbols, ptr)
                                 let name = r.Symbol ?? "<unknown_function>"
                                 group (ptr, r.Offset) by name into g
@@ -193,7 +193,7 @@ namespace DbgEngExtension
 
         private static void PrintPointerTable(string nameColumn, string truncatedName, bool forceTruncate, IEnumerable<(string Name, int Count, int Unique, IEnumerable<ulong> Pointers)> query)
         {
-            var resolved = query.ToArray();
+            (string Name, int Count, int Unique, IEnumerable<ulong> Pointers)[] resolved = query.ToArray();
             if (resolved.Length == 0)
                 return;
 
@@ -210,8 +210,8 @@ namespace DbgEngExtension
             table.Divider = "   ";
             table.WriteRowWithSpacing('-', nameColumn, "Unique", "Count", "RndPtr");
 
-            var items = truncate ? resolved.Take(multi) : resolved;
-            foreach (var (Name, Count, Unique, Pointers) in items)
+            IEnumerable<(string Name, int Count, int Unique, IEnumerable<ulong> Pointers)> items = truncate ? resolved.Take(multi) : resolved;
+            foreach ((string Name, int Count, int Unique, IEnumerable<ulong> Pointers) in items)
                 table.WriteRow(Name, Unique, Count, FindMostCommonPointer(Pointers));
 
             if (truncate)
@@ -280,7 +280,7 @@ namespace DbgEngExtension
 
             foreach (ClrRuntime runtime in Runtimes)
             {
-                foreach (var root in runtime.Heap.EnumerateRoots().Where(r => r.IsPinned))
+                foreach (ClrRoot? root in runtime.Heap.EnumerateRoots().Where(r => r.IsPinned))
                 {
                     if (root.Object.IsValid && !root.Object.IsFree)
                         if (seen.Add(root.Object))
@@ -324,7 +324,7 @@ namespace DbgEngExtension
 
             internal void AddRegionPointer(AddressMemoryRange range, ulong pointer, bool hasSymbols)
             {
-                var pointerMap = hasSymbols ? ResolvablePointers : UnresolvablePointers;
+                Dictionary<AddressMemoryRange, List<ulong>> pointerMap = hasSymbols ? ResolvablePointers : UnresolvablePointers;
 
                 if (!pointerMap.TryGetValue(range, out List<ulong>? pointers))
                     pointers = pointerMap[range] = new();
@@ -342,7 +342,7 @@ namespace DbgEngExtension
 
             private static void AddTo(Dictionary<AddressMemoryRange, List<ulong>> sourceDict, Dictionary<AddressMemoryRange, List<ulong>> destDict)
             {
-                foreach (var item in sourceDict)
+                foreach (KeyValuePair<AddressMemoryRange, List<ulong>> item in sourceDict)
                 {
                     if (destDict.TryGetValue(item.Key, out List<ulong>? values))
                         values.AddRange(item.Value);

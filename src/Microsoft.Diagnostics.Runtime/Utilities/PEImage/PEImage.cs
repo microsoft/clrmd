@@ -254,7 +254,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 if (!_pdbs.IsDefault)
                     return _pdbs;
 
-                var pdbs = ReadPdbs();
+                ImmutableArray<PdbInfo> pdbs = ReadPdbs();
                 _pdbs = pdbs;
                 return pdbs;
             }
@@ -727,7 +727,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         return ImmutableArray<PdbInfo>.Empty;
 
                     SeekTo(offset);
-                    var result = ImmutableArray.CreateBuilder<PdbInfo>(count);
+                    ImmutableArray<PdbInfo>.Builder result = ImmutableArray.CreateBuilder<PdbInfo>(count);
                     for (int i = 0; i < count; i++)
                     {
                         if (!TryRead(ref offset, out ImageDebugDirectory directory))

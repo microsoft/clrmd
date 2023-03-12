@@ -170,8 +170,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         private void CacheFields()
         {
-            var instanceFields = ImmutableArray.CreateBuilder<ClrInstanceField>();
-            var staticFields = ImmutableArray.CreateBuilder<ClrStaticField>();
+            ImmutableArray<ClrInstanceField>.Builder instanceFields = ImmutableArray.CreateBuilder<ClrInstanceField>();
+            ImmutableArray<ClrStaticField>.Builder staticFields = ImmutableArray.CreateBuilder<ClrStaticField>();
             foreach (ClrField field in Helpers.EnumerateFields(this))
             {
                 if (field is ClrInstanceField instanceField)

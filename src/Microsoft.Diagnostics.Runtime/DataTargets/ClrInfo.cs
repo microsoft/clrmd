@@ -81,14 +81,14 @@ namespace Microsoft.Diagnostics.Runtime
 
                         if (dacTargetPlatform is not null)
                         {
-                            var dacBuild = info.DacBuildId;
+                            ImmutableArray<byte> dacBuild = info.DacBuildId;
                             if (!dacBuild.IsDefaultOrEmpty)
                                 artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, targetPlatform, SymbolProperties.Self, dacBuild));
                         }
 
                         if (dbiTargetPlatform is not null)
                         {
-                            var dbiBuild = info.DbiBuildId;
+                            ImmutableArray<byte> dbiBuild = info.DbiBuildId;
                             if (!dbiBuild.IsDefaultOrEmpty)
                                 artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, targetPlatform, SymbolProperties.Self, dbiBuild));
                         }
@@ -144,7 +144,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                     if (IndexFileSize != 0 && IndexTimeStamp != 0)
                     {
-                        var dacLibraryInfo = new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp);
+                        DebugLibraryInfo dacLibraryInfo = new(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp);
                         if (foundLocalDac)
                             artifacts.Insert(0, dacLibraryInfo);
                         else
@@ -153,7 +153,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                     if (!BuildId.IsDefaultOrEmpty)
                     {
-                        var dacLibraryInfo = new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, BuildId);
+                        DebugLibraryInfo dacLibraryInfo = new(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, BuildId);
                         if (foundLocalDac)
                             artifacts.Insert(0, dacLibraryInfo);
                         else
@@ -224,7 +224,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             // Do NOT take a dependency on the order of enumerated libraries.  I reserve the right to change this at any time.
-            var ordered = from artifact in EnumerateUnique(artifacts)
+            IOrderedEnumerable<DebugLibraryInfo> ordered = from artifact in EnumerateUnique(artifacts)
                           orderby artifact.Kind,
                                   Path.GetFileName(artifact.FileName) == artifact.FileName, // if we have a full local path, put it first
                                   artifact.ArchivedUnder
@@ -244,7 +244,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private static string GetWindowsLongNameDac(ClrFlavor flavor, Architecture currentArchitecture, Architecture targetArchitecture, Version version)
         {
-            var dacNameBase = flavor == ClrFlavor.Core ? c_coreDacFileNameBase : c_desktopDacFileNameBase;
+            string dacNameBase = flavor == ClrFlavor.Core ? c_coreDacFileNameBase : c_desktopDacFileNameBase;
             return $"{dacNameBase}_{ArchitectureToName(currentArchitecture)}_{ArchitectureToName(targetArchitecture)}_{version.Major}.{version.Minor}.{version.Build}.{version.Revision:D2}.dll".ToLower();
         }
 

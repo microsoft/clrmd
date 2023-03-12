@@ -20,10 +20,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // We make sure SearchMemory will find things that are not pointer aligned with 'i' here.
             Span<byte> buffer = stackalloc byte[sizeof(ulong) + sizeof(int)];
 
-            foreach (var segment in heap.Segments)
+            foreach (ClrSegment segment in heap.Segments)
             {
-                HashSet<ulong> seen = new HashSet<ulong>() { 0 };
-                List<ClrObject> firstSeenObjectOfType = new List<ClrObject>();
+                HashSet<ulong> seen = new() { 0 };
+                List<ClrObject> firstSeenObjectOfType = new();
 
                 // We will search for method tables so make sure we
                 foreach (ClrObject obj in segment.EnumerateObjects())

@@ -164,7 +164,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         public MachOModule? GetModuleByBaseAddress(ulong baseAddress)
         {
-            var modules = ReadModules();
+            Dictionary<ulong, MachOModule> modules = ReadModules();
 
             modules.TryGetValue(baseAddress, out MachOModule? result);
             return result;

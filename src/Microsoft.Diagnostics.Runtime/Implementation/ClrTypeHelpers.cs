@@ -189,7 +189,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!_sos.GetMethodTableData(mt, out MethodTableData data) || data.NumMethods == 0)
                 return ImmutableArray<ClrMethod>.Empty;
 
-            var builder = ImmutableArray.CreateBuilder<ClrMethod>(data.NumMethods);
+            ImmutableArray<ClrMethod>.Builder builder = ImmutableArray.CreateBuilder<ClrMethod>(data.NumMethods);
             for (uint i = 0; i < data.NumMethods; i++)
             {
                 ulong slot = _sos.GetMethodTableSlot(mt, i);
@@ -253,7 +253,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (type is null)
             {
-                var sigParser = new Utilities.SigParser(fieldSig, sigLen);
+                Utilities.SigParser sigParser = new(fieldSig, sigLen);
                 if (sigParser.GetCallingConvInfo(out int sigType) && sigType == Utilities.SigParser.IMAGE_CEE_CS_CALLCONV_FIELD)
                 {
                     sigParser.SkipCustomModifiers();

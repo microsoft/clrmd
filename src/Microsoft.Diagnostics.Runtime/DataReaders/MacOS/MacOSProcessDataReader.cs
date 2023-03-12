@@ -252,7 +252,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         public unsafe bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
             LoadThreads();
-            if (!_threadActs.TryGetValue(threadID, out var threadAct))
+            if (!_threadActs.TryGetValue(threadID, out uint threadAct))
                 return false;
 
             int stateFlavor;

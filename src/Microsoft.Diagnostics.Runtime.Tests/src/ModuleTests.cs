@@ -49,8 +49,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            HashSet<ulong> seen = new HashSet<ulong> { 0 };
-            HashSet<ClrModule> seenModules = new HashSet<ClrModule> { null };
+            HashSet<ulong> seen = new() { 0 };
+            HashSet<ClrModule> seenModules = new() { null };
             foreach (ClrModule module in runtime.EnumerateModules())
             {
                 Assert.True(seenModules.Add(module));

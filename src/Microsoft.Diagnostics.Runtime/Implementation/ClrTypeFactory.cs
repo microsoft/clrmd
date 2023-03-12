@@ -352,11 +352,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             if (_modules is null)
             {
-                var modules = _heap.Runtime.EnumerateModules().ToDictionary(k => k.Address, v => v);
+                Dictionary<ulong, ClrModule> modules = _heap.Runtime.EnumerateModules().ToDictionary(k => k.Address, v => v);
                 Interlocked.CompareExchange(ref _modules, modules, null);
             }
 
-            _modules.TryGetValue(moduleAddress, out var module);
+            _modules.TryGetValue(moduleAddress, out ClrModule? module);
             return module;
         }
     }

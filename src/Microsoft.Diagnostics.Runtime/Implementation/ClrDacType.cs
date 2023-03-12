@@ -371,7 +371,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (address == 0)
                 return null;
 
-            var values = new T[count];
+            T[] values = new T[count];
             Span<byte> buffer = MemoryMarshal.Cast<T, byte>(values);
 
             if (DataReader.Read(address, buffer) == buffer.Length)

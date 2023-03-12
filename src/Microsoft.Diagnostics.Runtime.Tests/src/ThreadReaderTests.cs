@@ -61,7 +61,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             IThreadReader threadReader = (IThreadReader)dt.DataReader;
 
-            var items = threadReader.EnumerateOSThreadIds().ToArray();
+            uint[] items = threadReader.EnumerateOSThreadIds().ToArray();
 
             uint mainThreadId = runtime.GetMainThread().OSThreadId;
             Assert.Equal(mainThreadId, threadReader.EnumerateOSThreadIds().First());

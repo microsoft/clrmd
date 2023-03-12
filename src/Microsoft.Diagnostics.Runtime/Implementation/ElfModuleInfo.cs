@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ulong GetExportSymbolAddress(string symbol)
         {
-            if (_elf is null || !_elf.TryGetExportSymbol(symbol, out var address))
+            if (_elf is null || !_elf.TryGetExportSymbol(symbol, out ulong address))
                 return 0;
 
             return ImageBase + address;

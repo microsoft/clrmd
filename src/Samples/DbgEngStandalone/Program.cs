@@ -39,11 +39,11 @@ CheckHResult(hr, "WaitForEvent unexpectedly failed.");
 
 // DbgEngOutputHolder will capture output of the debugger.  Here we will print dbgeng
 // messages in Yellow with its output mask in Green as an example:
-using (DbgEngOutputHolder output = new DbgEngOutputHolder(client, DEBUG_OUTPUT.ALL))
+using (DbgEngOutputHolder output = new(client, DEBUG_OUTPUT.ALL))
 {
     output.OutputReceived += (text, flags) =>
     {
-        var oldColor = Console.ForegroundColor;
+        ConsoleColor oldColor = Console.ForegroundColor;
 
         Console.ForegroundColor = ConsoleColor.Green;
         Console.Write($"[{flags}] ");

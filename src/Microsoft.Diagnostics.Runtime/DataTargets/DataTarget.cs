@@ -157,7 +157,7 @@ namespace Microsoft.Diagnostics.Runtime
                 // We order this so .Net Core comes first, so if there's multiple CLRs we prefer
                 // to debug .Net Core (assuming the user is just debugging one of them)
 
-                var clrs = from module in EnumerateModules()
+                IEnumerable<ClrInfo> clrs = from module in EnumerateModules()
                            let clrInfo = ClrInfo.TryCreate(this, module)
                            where clrInfo != null
                            orderby clrInfo.Flavor descending, clrInfo.Version

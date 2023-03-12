@@ -247,7 +247,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
             DEBUG_MODULE_PARAMETERS[] moduleParams = new DEBUG_MODULE_PARAMETERS[bases.Length];
 
-            List<ModuleInfo> modules = new List<ModuleInfo>();
+            List<ModuleInfo> modules = new();
             HResult hr = DebugSymbols.GetModuleParameters(bases, moduleParams);
             if (hr)
             {
@@ -267,7 +267,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                         if (TargetPlatform == OSPlatform.Windows || moduleName.Contains("libcoreclr", StringComparison.OrdinalIgnoreCase))
                             GetVersionInfo(bases[i], moduleParams[i].Size);
 
-                        var module = ModuleInfo.TryCreate(this, bases[i], moduleName, (int)moduleParams[i].Size, (int)moduleParams[i].TimeDateStamp, version);
+                        ModuleInfo? module = ModuleInfo.TryCreate(this, bases[i], moduleName, (int)moduleParams[i].Size, (int)moduleParams[i].TimeDateStamp, version);
                         if (module is not null)
                             modules.Add(module);
                     }

@@ -81,7 +81,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                         break;
 
                     case LoadCommandType.Uuid:
-                        var uuid = DataReader.Read<UuidLoadCommand>(cmdAddress);
+                        UuidLoadCommand uuid = DataReader.Read<UuidLoadCommand>(cmdAddress);
                         if (uuid.Header.Kind == LoadCommandType.Uuid)
                         {
                             BuildId = uuid.BuildId.ToImmutableArray();
@@ -193,7 +193,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         private ulong GetAddressFromFileOffset(uint fileOffset)
         {
-            foreach (var seg in _segments)
+            foreach (MachOSegment seg in _segments)
                 if (seg.FileOffset <= fileOffset && fileOffset < seg.FileOffset + seg.FileSize)
                     return LoadBias + fileOffset + seg.Address - seg.FileOffset;
 

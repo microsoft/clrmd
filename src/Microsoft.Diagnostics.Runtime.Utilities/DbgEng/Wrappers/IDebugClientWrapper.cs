@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         {
             GetVTable(this, out nint self, out IDebugClientVtable* vtable);
             
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
             foreach (KeyValuePair<string, string> entry in environment)
             {
                 sb.Append(entry.Key);

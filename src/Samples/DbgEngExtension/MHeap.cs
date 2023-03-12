@@ -74,7 +74,7 @@ namespace DbgEngExtension
 
                     long totalObjects = 0;
                     ulong totalBytes = 0;
-                    foreach (var item in sizes.OrderBy(r => r.Value.TotalSize))
+                    foreach (KeyValuePair<string, (int Count, ulong TotalSize)> item in sizes.OrderBy(r => r.Value.TotalSize))
                     {
                         Console.WriteLine($"{item.Value.Count,12:n0}\t{item.Value.TotalSize,12:n0}\t{item.Key}");
 

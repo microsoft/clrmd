@@ -187,7 +187,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (markers is not null)
                     return markers;
 
-                var len = ObjectRange.Length switch
+                int len = ObjectRange.Length switch
                 {
                     < 8 * 1024 => 0,
                     < 64 * 1024 * 1024 => 64,
