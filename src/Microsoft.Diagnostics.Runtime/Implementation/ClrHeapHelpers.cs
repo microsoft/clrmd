@@ -333,7 +333,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             (uint threadId, uint recursion) = GetThinlockData(header);
             ulong threadAddress = _sos.GetThreadFromThinlockId(threadId);
 
-            if (threadId == 0 && threadAddress == 0)
+            if (threadAddress == 0)
                 return null;
 
             ClrThread? thread = heap.Runtime.Threads.FirstOrDefault(t => t.Address == threadAddress);
