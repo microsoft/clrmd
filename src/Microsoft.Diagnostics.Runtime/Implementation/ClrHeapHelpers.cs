@@ -24,6 +24,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly GCInfo _gcInfo;
         private HashSet<ulong>? _validMethodTables;
 
+        private const uint SyncBlockRecLevelMask = 0x0000FC00;
+        private const int SyncBlockRecLevelShift = 10;
+        private const uint SyncBlockThreadIdMask = 0x000003FF;
+        private const uint SyncBlockSpinLock = 0x10000000;
+        private const uint SyncBlockHashOrSyncBlockIndex = 0x08000000;
+        private const uint SyncBlockHashCodeIndex = 0x04000000;
+        private const int SyncBlockIndexBits = 26;
+        private const uint SyncBlockIndexMask = ((1u << SyncBlockIndexBits) - 1u);
+
         public bool IsServerMode => _gcInfo.ServerMode != 0;
 
         public bool AreGCStructuresValid => _gcInfo.GCStructuresValid != 0;
@@ -314,65 +323,76 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             };
         }
 
+        public ClrThinLock? GetThinLock(ClrHeap heap, uint header)
+        {
+            if (!HasThinlock(header))
+                return null;
+
+            (uint threadId, uint recursion) = GetThinlockData(header);
+            ulong threadAddress = _sos.GetThreadFromThinlockId(threadId);
+
+            if (threadAddress == 0)
+                return null;
+
+            ClrThread? thread = heap.Runtime.Threads.FirstOrDefault(t => t.Address == threadAddress);
+            return new ClrThinLock(thread, (int)recursion);
+        }
+
+        private static bool HasThinlock(uint header)
+        {
+            return (header & (SyncBlockHashOrSyncBlockIndex | SyncBlockSpinLock)) == 0 && (header & SyncBlockThreadIdMask) != 0;
+        }
+
+        private (uint ThreadId, uint Recursion) GetThinlockData(uint header)
+        {
+            uint threadId = header & SyncBlockThreadIdMask;
+            uint recursion = (header & SyncBlockRecLevelMask) >> SyncBlockRecLevelShift;
+
+            return (threadId, recursion);
+        }
+
         public ObjectCorruption? VerifyObject(SyncBlockContainer syncBlocks, ClrSegment seg, ClrObject obj)
         {
+            // Is the object address pointer aligned?
             if ((obj.Address & ((uint)_memoryReader.PointerSize - 1)) != 0)
                 return new ObjectCorruption(obj, 0, ObjectCorruptionKind.ObjectNotPointerAligned);
 
             if (!obj.IsFree)
             {
+                // Can we read the method table?
                 if (!_memoryReader.Read(obj.Address, out ulong mt))
                     return new ObjectCorruption(obj, 0, ObjectCorruptionKind.CouldNotReadMethodTable);
-                
+
+                // Is the method table we read valid?
                 if (!IsValidMethodTable(mt))
-                    return new ObjectCorruption(obj, 0, ObjectCorruptionKind.BadMethodTable);
+                    return new ObjectCorruption(obj, 0, ObjectCorruptionKind.InvalidMethodTable);
 
                 // This shouldn't happen if VerifyMethodTable above returns success, but we'll make sure.
                 if (obj.Type is null)
-                    return new ObjectCorruption(obj, 0, ObjectCorruptionKind.BadMethodTable);
+                    return new ObjectCorruption(obj, 0, ObjectCorruptionKind.InvalidMethodTable);
             }
 
+            // Check object size
             int intSize = obj.Size > int.MaxValue ? int.MaxValue : (int)obj.Size;
-            if (obj.Size > seg.MaxObjectSize || obj + obj.Size > seg.ObjectRange.End)
+            if (obj + obj.Size > seg.ObjectRange.End || (!obj.IsFree && obj.Size > seg.MaxObjectSize))
                 return new ObjectCorruption(obj, _memoryReader.PointerSize, ObjectCorruptionKind.ObjectTooLarge);
-
-            // SyncBlock
-            SyncBlock? blk = syncBlocks.TryGetSyncBlock(obj);
-            uint objHeader = _memoryReader.Read<uint>(obj - sizeof(uint));
-            if ((objHeader & HashOrSyncBlockIndex) != 0 && (objHeader & HashCodeIndex) == 0)
-            {
-                uint index = (objHeader & SyncBlockIndexMask);
-                int clrIndex = blk?.Index ?? -1;
-
-                if (index == 0)
-                    return new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockZero, -1, clrIndex);
-                else if (index != clrIndex)
-                    return new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockMismatch, (int)index, clrIndex);
-            }
-            else if (blk is not null)
-            {
-                return new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockMismatch, -1, blk.Index);
-            }
 
             if (obj.IsFree)
                 return null;
 
-            //verify members
+            // Validate members
             bool verifyMembers;
             try
             {
-                verifyMembers = ShouldVerifyMembers(seg, obj);
+                // Type can't be null, we checked above.  The compiler just get lost in the IsFree checks.
+                verifyMembers = obj.Type!.ContainsPointers && ShouldVerifyMembers(seg, obj);
             }
             catch (IOException)
             {
                 return new ObjectCorruption(obj, 0, ObjectCorruptionKind.CouldNotReadCardTable);
             }
 
-            if (!verifyMembers)
-                return null;
-
-            // Type can't be null, we checked above.  The compiler just get lost in the IsFree checks.
-            if (obj.Type!.ContainsPointers)
+            if (verifyMembers)
             {
                 GCDesc gcdesc = obj.Type!.GCDesc;
                 if (gcdesc.IsEmpty)
@@ -389,22 +409,46 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     if ((objRef & ((uint)_memoryReader.PointerSize - 1)) != 0)
                         return new ObjectCorruption(obj, offset, ObjectCorruptionKind.ObjectReferenceNotPointerAligned);
                     if (!_memoryReader.Read(objRef, out ulong mt) || !IsValidMethodTable(mt))
-                        return new ObjectCorruption(obj, offset, ObjectCorruptionKind.BadObjectReference);
-                    else if (mt == freeMt)
+                        return new ObjectCorruption(obj, offset, ObjectCorruptionKind.InvalidObjectReference);
+                    else if ((mt & ~1ul) == freeMt)
                         return new ObjectCorruption(obj, offset, ObjectCorruptionKind.FreeObjectReference);
                 }
 
                 ArrayPool<byte>.Shared.Return(buffer);
             }
 
+            // Object header validation tests:
+            uint objHeader = _memoryReader.Read<uint>(obj - sizeof(uint));
+
+            // Validate SyncBlock
+            SyncBlock? blk = syncBlocks.TryGetSyncBlock(obj);
+            if ((objHeader & SyncBlockHashOrSyncBlockIndex) != 0 && (objHeader & SyncBlockHashCodeIndex) == 0)
+            {
+                uint index = (objHeader & SyncBlockIndexMask);
+                int clrIndex = blk?.Index ?? -1;
+
+                if (index == 0)
+                    return new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockZero, -1, clrIndex);
+                else if (index != clrIndex)
+                    return new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockMismatch, (int)index, clrIndex);
+            }
+            else if (blk is not null)
+            {
+                return new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockMismatch, -1, blk.Index);
+            }
+
+            // Validate Thinlock
+            if (HasThinlock(objHeader))
+            {
+                ClrRuntime runtime = seg.SubHeap.Heap.Runtime;
+                (uint threadId, _) = GetThinlockData(objHeader);
+                ulong address = _sos.GetThreadFromThinlockId(threadId);
+                if (address == 0 || !runtime.Threads.Any(th => th.Address == address))
+                    return new ObjectCorruption(obj, -4, ObjectCorruptionKind.InvalidThinlock);
+            }
 
             return null;
         }
-
-        private const uint HashOrSyncBlockIndex = 0x08000000;
-        private const uint HashCodeIndex = 0x04000000;
-        private const int SyncBlockIndexBits = 26;
-        private const uint SyncBlockIndexMask = ((1u << SyncBlockIndexBits) - 1u);
 
         private bool ShouldVerifyMembers(ClrSegment seg, ClrObject obj)
         {
@@ -502,6 +546,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public bool IsValidMethodTable(ulong mt)
         {
+            // clear the mark bit
+            mt &= ~1ul;
+
             HashSet<ulong> validMts = _validMethodTables ??= new();
             lock (validMts)
                 if (validMts.Contains(mt))

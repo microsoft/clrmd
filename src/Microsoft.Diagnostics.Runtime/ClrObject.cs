@@ -157,6 +157,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public SyncBlock? SyncBlock => Type?.Heap.GetSyncBlock(Address);
 
+        public ClrThinLock? GetThinLock() => Type?.Heap.GetThinlock(Address);
+
         /// <summary>
         /// Returns true if this object is a COM class factory.
         /// </summary>
