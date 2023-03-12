@@ -328,7 +328,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (!HasThinlock(header))
                 return null;
 
-            (uint threadId, uint recursion) = GetThinlockData(header);
+            (uint threadId, uint recursion) = ClrHeapHelpers.GetThinlockData(header);
             ulong threadAddress = _sos.GetThreadFromThinlockId(threadId);
 
             if (threadAddress == 0)
@@ -343,7 +343,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return (header & (SyncBlockHashOrSyncBlockIndex | SyncBlockSpinLock)) == 0 && (header & SyncBlockThreadIdMask) != 0;
         }
 
-        private (uint ThreadId, uint Recursion) GetThinlockData(uint header)
+        private static (uint ThreadId, uint Recursion) GetThinlockData(uint header)
         {
             uint threadId = header & SyncBlockThreadIdMask;
             uint recursion = (header & SyncBlockRecLevelMask) >> SyncBlockRecLevelShift;
@@ -441,7 +441,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (HasThinlock(objHeader))
             {
                 ClrRuntime runtime = seg.SubHeap.Heap.Runtime;
-                (uint threadId, _) = GetThinlockData(objHeader);
+                (uint threadId, _) = ClrHeapHelpers.GetThinlockData(objHeader);
                 ulong address = _sos.GetThreadFromThinlockId(threadId);
                 if (address == 0 || !runtime.Threads.Any(th => th.Address == address))
                     return new ObjectCorruption(obj, -4, ObjectCorruptionKind.InvalidThinlock);
@@ -452,7 +452,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private bool ShouldVerifyMembers(ClrSegment seg, ClrObject obj)
         {
-            ShouldCheckBgcMark(seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep);
+            ClrHeapHelpers.ShouldCheckBgcMark(seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep);
             return FgcShouldConsiderObject(seg, obj, considerBgcMark, checkCurrentSweep, checkSavedSweep);
         }
 
@@ -495,7 +495,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private const uint CardWordWidth = 32;
         private uint CardSize => ((uint)_memoryReader.PointerSize / 4) * DtGcPageSize / CardWordWidth;
 
-        private void ShouldCheckBgcMark(ClrSegment seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep)
+        private static void ShouldCheckBgcMark(ClrSegment seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep)
         {
             considerBgcMark = false;
             checkCurrentSweep = false;
