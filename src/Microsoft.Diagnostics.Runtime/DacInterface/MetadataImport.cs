@@ -54,13 +54,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public MethodAttributes GetMethodAttributes(int token)
         {
-            HResult hr = VTable.GetMethodProps(Self, token, out int cls, null, 0, out int needed, out MethodAttributes result, out IntPtr sigBlob, out uint sigBlobLen, out uint codeRVA, out uint implFlags);
+            HResult hr = VTable.GetMethodProps(Self, token, out _, null, 0, out _, out MethodAttributes result, out _, out _, out _, out _);
             return hr ? result : default;
         }
 
         public uint GetRva(int token)
         {
-            HResult hr = VTable.GetRVA(Self, token, out uint rva, out uint flags);
+            HResult hr = VTable.GetRVA(Self, token, out uint rva, out _);
             return hr ? rva : 0;
         }
 
@@ -136,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         internal HResult GetTypeDefAttributes(int token, out TypeAttributes attrs)
         {
-            return VTable.GetTypeDefProps(Self, token, null, 0, out int needed, out attrs, out int extends);
+            return VTable.GetTypeDefProps(Self, token, null, 0, out _, out attrs, out _);
         }
 
         public string? GetTypeRefName(int token)

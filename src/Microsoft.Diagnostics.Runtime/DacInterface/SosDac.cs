@@ -34,11 +34,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public RejitData[] GetRejitData(ulong md, ulong ip = 0)
         {
-            HResult hr = VTable.GetMethodDescData(Self, md, ip, out MethodDescData data, 0, null, out int needed);
+            HResult hr = VTable.GetMethodDescData(Self, md, ip, out _, 0, null, out int needed);
             if (hr && needed >= 1)
             {
                 RejitData[] result = new RejitData[needed];
-                hr = VTable.GetMethodDescData(Self, md, ip, out data, result.Length, result, out needed);
+                hr = VTable.GetMethodDescData(Self, md, ip, out _, result.Length, result, out _);
                 if (hr)
                     return result;
             }
@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult GetMethodDescData(ulong md, ulong ip, out MethodDescData data)
         {
-            return VTable.GetMethodDescData(Self, md, ip, out data, 0, null, out int needed);
+            return VTable.GetMethodDescData(Self, md, ip, out data, 0, null, out _);
         }
 
         public HResult GetThreadStoreData(out ThreadStoreData data)
