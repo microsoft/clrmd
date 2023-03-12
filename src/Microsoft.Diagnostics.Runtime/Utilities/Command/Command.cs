@@ -82,8 +82,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// Output is captured and placed in the 'Output' property of the returned Command
         /// structure.
         /// </summary>
-        /// <param variable="commandLine">The command lineNumber to run as a subprocess</param>
-        /// <param variable="options">Additional qualifiers that control how the process is run</param>
+        /// <param name="commandLine">The command lineNumber to run as a subprocess</param>
+        /// <param name="options">Additional qualifiers that control how the process is run</param>
         /// <returns>A Command structure that can be queried to determine ExitCode, Output, etc.</returns>
         public static Command Run(string commandLine, CommandOptions options)
         {
@@ -102,8 +102,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// the result.  It does not wait for the command to complete, however you
         /// can call 'Wait' to do that, or use the 'Run' or 'RunToConsole' methods. */
         /// </summary>
-        /// <param variable="commandLine">The command lineNumber to run as a subprocess</param>
-        /// <param variable="options">Additional qualifiers that control how the process is run</param>
+        /// <param name="commandLine">The command lineNumber to run as a subprocess</param>
+        /// <param name="options">Additional qualifiers that control how the process is run</param>
         /// <returns>A Command structure that can be queried to determine ExitCode, Output, etc.</returns>
         public Command(string commandLine, CommandOptions options)
         {
@@ -194,7 +194,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         /// <summary>
         /// Create a subprocess to run 'commandLine' with no special options.
-        /// <param variable="commandLine">The command lineNumber to run as a subprocess</param>
+        /// <param name="commandLine">The command lineNumber to run as a subprocess</param>
         /// </summary>
         public Command(string commandLine)
             : this(commandLine, new CommandOptions())
