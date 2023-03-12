@@ -1,4 +1,7 @@
-﻿using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
 using System;
 using System.IO;
 using System.Linq;

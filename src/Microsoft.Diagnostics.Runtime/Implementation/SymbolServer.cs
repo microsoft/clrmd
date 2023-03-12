@@ -1,4 +1,7 @@
-﻿using Microsoft.Diagnostics.Runtime.Utilities;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
