@@ -1,11 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.InteropServices;
 using DbgEngExtension;
 using Microsoft.Diagnostics.Runtime;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
-using System.Runtime.InteropServices;
 
 if (args.Length != 1 || !File.Exists(args[0]))
     Exit("Usage:  DbgEngStandalone [dump-file-path]");

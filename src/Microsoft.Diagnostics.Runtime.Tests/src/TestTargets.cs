@@ -4,7 +4,6 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.DbgEng;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Xunit;
 

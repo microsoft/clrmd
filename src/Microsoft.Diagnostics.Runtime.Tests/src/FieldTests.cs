@@ -4,7 +4,6 @@
 using System;
 using System.Linq;
 using System.Reflection;
-using System.Xml.Linq;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests

@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
