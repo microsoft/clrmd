@@ -11,7 +11,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal unsafe class ClrRuntimeHelpers : IClrRuntimeHelpers, IClrAppDomainHelpers
+    internal sealed unsafe class ClrRuntimeHelpers : IClrRuntimeHelpers, IClrAppDomainHelpers
     {
         private ClrRuntime? _runtime;
 

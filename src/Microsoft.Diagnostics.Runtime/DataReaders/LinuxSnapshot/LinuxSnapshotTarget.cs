@@ -7,7 +7,7 @@ using Microsoft.Diagnostics.NETCore.Client;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class LinuxSnapshotTarget : CustomDataTarget
+    internal sealed class LinuxSnapshotTarget : CustomDataTarget
     {
         private readonly int _pid;
         private readonly string _filename;

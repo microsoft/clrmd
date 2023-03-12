@@ -48,11 +48,11 @@ public class Program
     {
     }
 
-    private class PrivateClass
+    private sealed class PrivateClass
     {
     }
 
-    internal class InternalClass
+    internal sealed class InternalClass
     {
     }
 
@@ -74,7 +74,7 @@ public class Program
 
     // TODO
     /*
-    protected internal class ProtectedInternalClass
+    protected internal sealed class ProtectedInternalClass
     {
     }
 

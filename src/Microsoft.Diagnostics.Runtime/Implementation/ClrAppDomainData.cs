@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ClrAppDomainData
+    internal sealed class ClrAppDomainData
     {
         public ClrAppDomain? SystemDomain { get; set; }
         public ClrAppDomain? SharedDomain { get; set; }

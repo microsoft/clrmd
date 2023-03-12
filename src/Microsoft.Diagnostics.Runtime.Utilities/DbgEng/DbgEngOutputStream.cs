@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
-    internal class DbgEngOutputStream : TextWriter
+    internal sealed class DbgEngOutputStream : TextWriter
     {
         private readonly IDebugClient _client;
         private readonly IDebugControl _control;

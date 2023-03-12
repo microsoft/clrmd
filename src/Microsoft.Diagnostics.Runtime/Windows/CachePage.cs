@@ -6,7 +6,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
-    internal class CachePage<T>
+    internal sealed class CachePage<T>
     {
         internal CachePage(T data, ulong dataExtent)
         {

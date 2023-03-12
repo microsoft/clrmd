@@ -5,7 +5,7 @@ using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal class ElfSymbolTable
+    internal sealed class ElfSymbolTable
     {
         private readonly Reader _reader;
         private readonly ulong _address;

@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
         Break = 0x80000003
     }
 
-    internal class DebuggerStartInfo
+    internal sealed class DebuggerStartInfo
     {
         private readonly Dictionary<string, string> _environment = new(StringComparer.OrdinalIgnoreCase);
         public string DbgEngDirectory { get; set; }
@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
         }
     }
 
-    internal class Debugger : IDebugOutputCallbacks, IDebugEventCallbacks, IDisposable
+    internal sealed class Debugger : IDebugOutputCallbacks, IDebugEventCallbacks, IDisposable
     {
         #region Fields
         private readonly StringBuilder _output = new();
@@ -178,7 +178,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
         #endregion
     }
 
-    internal class CreateProcessArgs
+    internal sealed class CreateProcessArgs
     {
         public ulong ImageFileHandle;
         public ulong Handle;

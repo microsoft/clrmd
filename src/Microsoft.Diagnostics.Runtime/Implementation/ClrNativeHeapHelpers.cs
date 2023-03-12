@@ -10,7 +10,7 @@ using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ClrNativeHeapHelpers : IClrNativeHeapHelpers
+    internal sealed class ClrNativeHeapHelpers : IClrNativeHeapHelpers
     {
         private NativeHeapKind[]? _heapNativeTypes;
         private readonly ClrInfo _clrInfo;

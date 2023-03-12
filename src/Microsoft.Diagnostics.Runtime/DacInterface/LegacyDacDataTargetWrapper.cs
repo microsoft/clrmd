@@ -10,7 +10,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [RequiresDynamicCode("Requires dynamic code generation to build interfaces.")]
-    internal unsafe class LegacyDacDataTargetWrapper : COMCallableIUnknown
+    internal sealed unsafe class LegacyDacDataTargetWrapper : COMCallableIUnknown
     {
         private readonly DacDataTarget _dacDataTarget;
 

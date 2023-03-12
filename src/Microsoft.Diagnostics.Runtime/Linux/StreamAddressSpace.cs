@@ -6,7 +6,7 @@ using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal class StreamAddressSpace : IAddressSpace
+    internal sealed class StreamAddressSpace : IAddressSpace
     {
         private readonly object _sync = new();
         private readonly Stream _stream;

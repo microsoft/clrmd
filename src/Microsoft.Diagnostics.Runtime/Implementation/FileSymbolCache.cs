@@ -12,7 +12,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class FileSymbolCache : FileLocatorBase
+    internal sealed class FileSymbolCache : FileLocatorBase
     {
         private readonly Dictionary<string, Task> _writingTo = new(GetEqualityComparer());
 

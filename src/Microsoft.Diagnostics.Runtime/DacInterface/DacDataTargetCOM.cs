@@ -11,7 +11,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    internal unsafe class DacDataTargetCOM : ComWrappers
+    internal sealed unsafe class DacDataTargetCOM : ComWrappers
     {
         private static readonly ComInterfaceEntry* s_wrapperEntry = InitializeComInterfaceEntry();
         public static DacDataTargetCOM Instance { get; } = new();

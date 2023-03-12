@@ -12,9 +12,9 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ClrDacType : ClrType
+    internal sealed class ClrDacType : ClrType
     {
-        protected IDataReader DataReader => Helpers.DataReader;
+        private IDataReader DataReader => Helpers.DataReader;
 
         private string? _name;
         private TypeAttributes _attributes;

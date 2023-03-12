@@ -3,7 +3,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal class ElfSectionHeader
+    internal sealed class ElfSectionHeader
     {
         public ElfSectionHeaderType Type { get; }
 

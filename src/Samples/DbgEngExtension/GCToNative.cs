@@ -343,7 +343,7 @@ namespace DbgEngExtension
             return k.Size;
         }
 
-        private class GCObjectToRange
+        private sealed class GCObjectToRange
         {
             public ulong GCPointer { get; }
             public ulong TargetSegmentPointer { get; }
@@ -358,7 +358,7 @@ namespace DbgEngExtension
             }
         }
 
-        private class KnownClrMemoryPointer
+        private sealed class KnownClrMemoryPointer
         {
             private const string NativeHeapMemoryBlock = "System.Reflection.Internal.NativeHeapMemoryBlock";
             private const string MetadataReader = "System.Reflection.Metadata.MetadataReader";

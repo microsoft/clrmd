@@ -11,7 +11,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class CoredumpReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader
+    internal sealed class CoredumpReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader
     {
         private readonly ElfCoreFile _core;
         private Dictionary<uint, IElfPRStatus>? _threads;

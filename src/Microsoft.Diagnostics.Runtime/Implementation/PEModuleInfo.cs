@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     /// <summary>
     /// A helper to implement <see cref="ModuleInfo"/> for PEImages.
     /// </summary>
-    internal class PEModuleInfo : ModuleInfo
+    internal sealed class PEModuleInfo : ModuleInfo
     {
         private readonly IDataReader _dataReader;
         private readonly bool _isVirtual;

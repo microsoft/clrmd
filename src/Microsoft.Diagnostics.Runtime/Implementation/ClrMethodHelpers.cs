@@ -6,7 +6,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ClrMethodHelpers : IClrMethodHelpers
+    internal sealed class ClrMethodHelpers : IClrMethodHelpers
     {
         private readonly ClrDataProcess _clrDataProcess;
         private readonly SOSDac _sos;

@@ -11,7 +11,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ClrTypeFactory : IClrTypeFactory
+    internal sealed class ClrTypeFactory : IClrTypeFactory
     {
         private const int mdtTypeDef = 0x02000000;
         private const int mdtTypeRef = 0x01000000;

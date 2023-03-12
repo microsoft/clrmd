@@ -6,7 +6,7 @@ using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal class ReaderStream : Stream
+    internal sealed class ReaderStream : Stream
     {
         private readonly Reader _reader;
         private readonly ulong _baseAddress;

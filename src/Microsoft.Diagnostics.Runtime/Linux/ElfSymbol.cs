@@ -3,7 +3,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal class ElfSymbol
+    internal sealed class ElfSymbol
     {
         public ElfSymbol(string name, ElfSymbolBind bind, ElfSymbolType type, long value, long size)
         {

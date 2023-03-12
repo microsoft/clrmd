@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    internal class NullBinaryLocator : IFileLocator
+    internal sealed class NullBinaryLocator : IFileLocator
     {
         private readonly IFileLocator _realLocator;
 

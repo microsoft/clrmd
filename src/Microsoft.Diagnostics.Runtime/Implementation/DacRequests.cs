@@ -3,7 +3,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class DacRequests
+    internal sealed class DacRequests
     {
         internal const uint VERSION = 0xe0000000U;
         internal const uint THREAD_STORE_DATA = 0xf0000000U;

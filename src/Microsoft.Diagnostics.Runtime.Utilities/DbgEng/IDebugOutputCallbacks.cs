@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
     }
 
 
-    internal unsafe class DebugOutputCallbacksCOM : ComWrappers
+    internal sealed unsafe class DebugOutputCallbacksCOM : ComWrappers
     {
         internal static Guid IID_IOutputCallbacks2 = new("67721fe9-56d2-4a44-a325-2b65513ce6eb");
         private static readonly ComInterfaceEntry* s_wrapperEntry = InitializeComInterfaceEntry();

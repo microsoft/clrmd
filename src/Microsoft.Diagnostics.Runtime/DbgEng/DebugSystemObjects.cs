@@ -119,7 +119,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         private int _systemId = -1;
 
-        private class SystemHolder : IDisposable
+        private sealed class SystemHolder : IDisposable
         {
             private static readonly object _sync = new();
 

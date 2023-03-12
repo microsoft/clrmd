@@ -10,7 +10,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ClrThreadHelpers : IClrThreadHelpers
+    internal sealed class ClrThreadHelpers : IClrThreadHelpers
     {
         private readonly ClrDataProcess _dac;
         private readonly SOSDac _sos;

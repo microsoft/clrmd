@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return stats;
         }
 
-        private class Stats
+        private sealed class Stats
         {
             public int A;
             public int B;

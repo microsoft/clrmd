@@ -9,7 +9,7 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal unsafe class Reader
+    internal sealed unsafe class Reader
     {
         public IAddressSpace DataSource { get; }
 

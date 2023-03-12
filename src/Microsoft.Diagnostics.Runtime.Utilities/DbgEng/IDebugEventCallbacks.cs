@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         DEBUG_STATUS OnSymbolChangeState(DEBUG_CSS flags, ulong argument) => DEBUG_STATUS.NO_CHANGE;
     }
 
-    internal unsafe class DebugEventCallbacksCOM : ComWrappers
+    internal sealed unsafe class DebugEventCallbacksCOM : ComWrappers
     {
         internal static Guid IID_IDebugEventCallbacksWide = new("0690e046-9c23-45ac-a04f-987ac29ad0d3");
         private static readonly ComInterfaceEntry* s_wrapperEntry = InitializeComInterfaceEntry();

@@ -3,7 +3,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ClrExtendedModuleData
+    internal sealed class ClrExtendedModuleData
     {
         public string? SimpleName { get; set; }
         public string? FileName { get; set; }

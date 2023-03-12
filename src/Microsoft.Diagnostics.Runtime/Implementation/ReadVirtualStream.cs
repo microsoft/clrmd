@@ -6,7 +6,7 @@ using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ReadVirtualStream : Stream
+    internal sealed class ReadVirtualStream : Stream
     {
         private long _pos;
         private readonly long _disp;
