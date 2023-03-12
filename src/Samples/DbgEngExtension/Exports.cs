@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 
 namespace DbgEngExtension
 {
-    public unsafe static class Exports
+    public static unsafe class Exports
     {
         [UnmanagedCallersOnly(EntryPoint = "mheap", CallConvs = new[] { typeof(CallConvStdcall) })]
         public static int ManagedHeap(nint pUnknown, nint args)
@@ -120,7 +120,7 @@ namespace DbgEngExtension
             return 0;
         }
 
-        static uint DEBUG_EXTENSION_VERSION(uint Major, uint Minor)
+        private static uint DEBUG_EXTENSION_VERSION(uint Major, uint Minor)
         {
             return (((Major) & 0xffff) << 16) | ((Minor) & 0xffff);
         }

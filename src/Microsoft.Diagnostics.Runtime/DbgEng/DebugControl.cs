@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
-    internal unsafe sealed class DebugControl : CallableCOMWrapper
+    internal sealed unsafe class DebugControl : CallableCOMWrapper
     {
         public const int INITIAL_BREAK = 0x20;
 

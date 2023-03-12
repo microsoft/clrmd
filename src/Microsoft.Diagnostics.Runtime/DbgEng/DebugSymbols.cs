@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
-    internal unsafe sealed class DebugSymbols : CallableCOMWrapper
+    internal sealed unsafe class DebugSymbols : CallableCOMWrapper
     {
         internal static readonly Guid IID_IDebugSymbols3 = new("f02fbecc-50ac-4f36-9ad9-c975e8f32ff8");
 

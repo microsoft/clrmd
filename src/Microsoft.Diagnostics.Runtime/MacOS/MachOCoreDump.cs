@@ -12,7 +12,7 @@ using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
-    internal unsafe sealed class MachOCoreDump : IDisposable
+    internal sealed unsafe class MachOCoreDump : IDisposable
     {
         private const uint X86_THREAD_STATE64 = 4;
         private const uint ARM_THREAD_STATE64 = 6;

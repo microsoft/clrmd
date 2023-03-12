@@ -9,7 +9,7 @@ using System.Reflection;
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "This is required for vtable layout")]
-    internal unsafe readonly struct IDebugControlVtable
+    internal readonly unsafe struct IDebugControlVtable
     {
         private readonly nint QueryInterface;
         private readonly nint AddRef;

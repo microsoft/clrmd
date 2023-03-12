@@ -20,8 +20,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
     /// </summary>
     internal sealed class AWEBasedCacheEntry : CacheEntryBase<UIntPtr>
     {
-        private readonly static uint VirtualAllocPageSize; // set in static ctor
-        private readonly static int SystemPageSize = Environment.SystemPageSize;
+        private static readonly uint VirtualAllocPageSize; // set in static ctor
+        private static readonly int SystemPageSize = Environment.SystemPageSize;
 
         private UIntPtr _pageFrameArray;
         private readonly int _pageFrameArrayItemCount;
@@ -130,7 +130,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return sizeRemoved;
         }
 
-        protected unsafe override uint InvokeCallbackWithDataPtr(CachePage<UIntPtr> page, Func<UIntPtr, ulong, uint> callback)
+        protected override unsafe uint InvokeCallbackWithDataPtr(CachePage<UIntPtr> page, Func<UIntPtr, ulong, uint> callback)
         {
             return callback(page.Data, page.DataExtent);
         }

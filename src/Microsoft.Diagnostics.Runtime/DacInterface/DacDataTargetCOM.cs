@@ -69,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
         }
 
-        private unsafe static class IDacDataTargetVtbl
+        private static unsafe class IDacDataTargetVtbl
         {
             public static IntPtr Create(IntPtr qi, IntPtr addRef, IntPtr release)
             {
@@ -180,7 +180,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        private unsafe static class IMetaDataLocatorVtbl
+        private static unsafe class IMetaDataLocatorVtbl
         {
             public static IntPtr Create(IntPtr qi, IntPtr addRef, IntPtr release)
             {
@@ -207,7 +207,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        private unsafe static class ICLRRuntimeLocatorVtbl
+        private static unsafe class ICLRRuntimeLocatorVtbl
         {
             public static IntPtr Create(IntPtr qi, IntPtr addRef, IntPtr release)
             {

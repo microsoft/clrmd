@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
-    internal unsafe sealed class DebugAdvanced : CallableCOMWrapper
+    internal sealed unsafe class DebugAdvanced : CallableCOMWrapper
     {
         internal static readonly Guid IID_IDebugAdvanced = new("f2df5f53-071f-47bd-9de6-5734c3fed689");
 

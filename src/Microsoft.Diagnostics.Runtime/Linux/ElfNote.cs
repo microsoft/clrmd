@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         internal ulong TotalSize => HeaderSize + Align4(Header.NameSize) + Align4(Header.ContentSize);
 
-        private unsafe static uint HeaderSize => (uint)sizeof(ElfNoteHeader);
+        private static unsafe uint HeaderSize => (uint)sizeof(ElfNoteHeader);
 
         /// <summary>
         /// Reads the contents of this note file.
