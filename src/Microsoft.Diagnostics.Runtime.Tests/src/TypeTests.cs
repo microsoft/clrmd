@@ -242,8 +242,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrHeap heap = runtime.Heap;
 
             IEnumerable<ClrRoot> fooRoots = from root in heap.EnumerateRoots()
-                                             where root.Object.Type.Name == "Foo"
-                                             select root;
+                                            where root.Object.Type.Name == "Foo"
+                                            select root;
 
             ClrRoot[] localVarRoots = fooRoots.Where(r => r.RootKind == ClrRootKind.Stack).ToArray();
 
@@ -609,8 +609,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             IEnumerable<ClrType> query = from obj in runtime.Heap.EnumerateObjects()
-                        where obj.Type?.Name?.StartsWith("Types+<Async>d__") == true
-                        select obj.Type;
+                                         where obj.Type?.Name?.StartsWith("Types+<Async>d__") == true
+                                         select obj.Type;
 
             ClrType clrType = query.Single();
             ClrInterface clrInterface = clrType.EnumerateInterfaces().Single();
@@ -625,8 +625,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             IEnumerable<ClrType> query = from obj in runtime.Heap.EnumerateObjects()
-                        where obj.Type?.Name == "System.String"
-                        select obj.Type;
+                                         where obj.Type?.Name == "System.String"
+                                         select obj.Type;
 
             ClrType clrType = query.First();
             // EnumerateInterfaces should not throw an exception

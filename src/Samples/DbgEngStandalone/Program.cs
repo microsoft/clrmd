@@ -25,7 +25,7 @@ string? dbgengPath = FindDbgEngPath();
 // IDebugClient.Create creates a COM wrapper object.  You can cast this object to dbgeng interfaces.
 using IDisposable dbgeng = IDebugClient.Create(dbgengPath);
 
-// All DbgEng interfaces are simply 
+// All DbgEng interfaces are simply
 IDebugClient client = (IDebugClient)dbgeng;
 IDebugControl control = (IDebugControl)dbgeng;
 
@@ -41,8 +41,7 @@ CheckHResult(hr, "WaitForEvent unexpectedly failed.");
 // messages in Yellow with its output mask in Green as an example:
 using (DbgEngOutputHolder output = new(client, DEBUG_OUTPUT.ALL))
 {
-    output.OutputReceived += (text, flags) =>
-    {
+    output.OutputReceived += (text, flags) => {
         ConsoleColor oldColor = Console.ForegroundColor;
 
         Console.ForegroundColor = ConsoleColor.Green;

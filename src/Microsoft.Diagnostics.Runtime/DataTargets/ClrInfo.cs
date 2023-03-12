@@ -116,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     bool foundLocalDac = false;
 
-                    // Check if the user has the same CLR installed locally, and if so 
+                    // Check if the user has the same CLR installed locally, and if so
                     string? directory = Path.GetDirectoryName(module.FileName);
                     if (!string.IsNullOrWhiteSpace(directory))
                     {
@@ -225,10 +225,10 @@ namespace Microsoft.Diagnostics.Runtime
 
             // Do NOT take a dependency on the order of enumerated libraries.  I reserve the right to change this at any time.
             IOrderedEnumerable<DebugLibraryInfo> ordered = from artifact in EnumerateUnique(artifacts)
-                          orderby artifact.Kind,
-                                  Path.GetFileName(artifact.FileName) == artifact.FileName, // if we have a full local path, put it first
-                                  artifact.ArchivedUnder
-                          select artifact;
+                                                           orderby artifact.Kind,
+                                                                   Path.GetFileName(artifact.FileName) == artifact.FileName, // if we have a full local path, put it first
+                                                                   artifact.ArchivedUnder
+                                                           select artifact;
 
             DebuggingLibraries = ordered.ToImmutableArray();
         }

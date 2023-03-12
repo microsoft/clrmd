@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public static DacDataTargetCOM Instance { get; } = new();
 
         /// <summary>
-        /// Returns a COM pointer to an IDacDataTarget 
+        /// Returns a COM pointer to an IDacDataTarget
         /// </summary>
         public static IntPtr CreateIDacDataTarget(DacDataTarget dacData)
         {

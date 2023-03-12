@@ -283,10 +283,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             do
             {
-                ReadPageDataFromOffset(pageIndex, inPageOffset, byteCount: 0, buffer: IntPtr.Zero, (data, dataLength) =>
-                    {
-                        return CacheEntryBase<T>.ProcessPageForSequenceTerminatingRead(data, dataLength, inPageOffset, terminatingSequence, bytesRead, ref trailingBytes, ref sawTerminatingSequence);
-                    });
+                ReadPageDataFromOffset(pageIndex, inPageOffset, byteCount: 0, buffer: IntPtr.Zero, (data, dataLength) => {
+                    return CacheEntryBase<T>.ProcessPageForSequenceTerminatingRead(data, dataLength, inPageOffset, terminatingSequence, bytesRead, ref trailingBytes, ref sawTerminatingSequence);
+                });
 
                 pageIndex++;
                 inPageOffset = 0;
@@ -303,7 +302,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         // 1) The length of 'terminatingSequence' can be basically anything. For a a common null-terminator style read it is dependent on the encoding the string in memory is in, which only the caller
         //    knows.
         //
-        // 2) We have to be careful if we have to read across a page boundary (or multiple), if the page isn't an even multiple of the terminating sequence length then we will have extra work to do, 
+        // 2) We have to be careful if we have to read across a page boundary (or multiple), if the page isn't an even multiple of the terminating sequence length then we will have extra work to do,
         //    specifically we carry over the 'left over' bytes from the last page (in trailingBytes) and append to them data from the current page to see if that forms a terminating sequence. If so
         //    we are done, if not we have to copy the trailing bytes to the output (bytesRead) and skip the ones we added to check for a terminator when we start reading this page. The act of doing
         //    this could cascade and cause THIS page to also have 'trailing bytes', so we must continue this little adventure until the string terminates.

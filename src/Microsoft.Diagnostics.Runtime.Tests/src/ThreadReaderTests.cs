@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             IThreadReader threadReader = (IThreadReader)dt.DataReader;
             uint[] threads = threadReader.EnumerateOSThreadIds().ToArray();
-            
+
             Assert.NotEmpty(threads);
             Assert.DoesNotContain(0u, threads);
 

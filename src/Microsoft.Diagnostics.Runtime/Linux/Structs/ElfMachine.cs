@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     internal enum ElfMachine : ushort
     {
         EM_NONE = 0,            /* No machine */
-        EM_386 = 3,	            /* Intel 80386 */
+        EM_386 = 3,             /* Intel 80386 */
         EM_PARISC = 15,         /* HPPA */
         EM_SPARC32PLUS = 18,    /* Sun's "v8plus" */
         EM_PPC = 20,            /* PowerPC */

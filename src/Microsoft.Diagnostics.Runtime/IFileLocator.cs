@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
-    /// An implementation of 
+    /// An implementation of
     /// </summary>
     public interface IFileLocator
     {
@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime
         string? FindElfImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildId, bool checkProperties);
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="fileName">The file name or path of the binary to locate.</param>
         /// <param name="archivedUnder">The file or keyword that this binary is archived under, <see langword="null"/> if its archived under its own properties.</param>

@@ -62,7 +62,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         {
             GetVTable(this, out nint self, out IDebugSystemObjectsVtable* vtable);
 
-            fixed (uint *sysPtr = sysIds)
+            fixed (uint* sysPtr = sysIds)
                 return vtable->GetThreadIdsByIndex(self, 0, sysIds.Length, null, sysPtr);
         }
 

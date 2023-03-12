@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Returns true if this object is a boxed struct or primitive type that 
+        /// Returns true if this object is a boxed struct or primitive type that
         /// </summary>
         public bool IsBoxedValue => Type != null && (Type.IsPrimitive || Type.IsValueType);
 

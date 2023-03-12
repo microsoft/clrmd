@@ -158,10 +158,10 @@ namespace Microsoft.Diagnostics.Runtime
                 // to debug .Net Core (assuming the user is just debugging one of them)
 
                 IEnumerable<ClrInfo> clrs = from module in EnumerateModules()
-                           let clrInfo = ClrInfo.TryCreate(this, module)
-                           where clrInfo != null
-                           orderby clrInfo.Flavor descending, clrInfo.Version
-                           select clrInfo;
+                                            let clrInfo = ClrInfo.TryCreate(this, module)
+                                            where clrInfo != null
+                                            orderby clrInfo.Flavor descending, clrInfo.Version
+                                            select clrInfo;
 
                 _clrs = clrs.ToImmutableArray();
             }
@@ -302,7 +302,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// of ClrMD is still responsible for suspending the process itself.  ClrMD does NOT support inspecting
         /// a running process and will produce undefined behavior when attempting to do so.
         /// </summary>
-        /// <param name="processId">The ID of the process to attach to.</param> 
+        /// <param name="processId">The ID of the process to attach to.</param>
         /// <param name="suspend">Whether or not to suspend the process.</param>
         /// <returns>A <see cref="DataTarget"/> instance.</returns>
         public static DataTarget AttachToProcess(int processId, bool suspend)
@@ -328,7 +328,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         /// <summary>
         /// Creates a snapshot of a running process and attaches to it.  This method will pause a running process
-        /// 
+        ///
         /// </summary>
         /// <param name="processId">The ID of the process to attach to.</param>
         /// <returns>A <see cref="DataTarget"/> instance.</returns>

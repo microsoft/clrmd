@@ -356,7 +356,7 @@ namespace Microsoft.Diagnostics.Runtime
                     ArrayPool<byte>.Shared.Return(_cache);
             }
 
-            
+
             public ulong Base { get; private set; }
             public int Length { get; private set; }
 
@@ -457,7 +457,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Finds the previous object on 
+        /// Finds the previous object on
         /// </summary>
         /// <param name="address">An address on any ClrSegment.</param>
         /// <param name="carefully">Whether to continue walking objects on a segment where we've encountered

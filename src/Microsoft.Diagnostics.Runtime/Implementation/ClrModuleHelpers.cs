@@ -48,8 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             int tokenType = kind == SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable ? mdtTypeDef : mdtTypeRef;
             List<(ulong MethodTable, int Token)> result = new();
-            _sos.TraverseModuleMap(kind, module.Address, (token, mt, _) =>
-            {
+            _sos.TraverseModuleMap(kind, module.Address, (token, mt, _) => {
                 result.Add((mt, token | tokenType));
             });
 

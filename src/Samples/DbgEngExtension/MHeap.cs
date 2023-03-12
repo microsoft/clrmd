@@ -7,7 +7,7 @@ namespace DbgEngExtension
 {
     /// <summary>
     /// A simple version of !dumpheap to demonstrate creating a plugin.
-    /// Note that 
+    /// Note that
     /// </summary>
     public class MHeap : DbgEngCommand
     {
@@ -55,7 +55,7 @@ namespace DbgEngExtension
                     string typeName = obj.Type?.Name ?? "<unknown type>";
 
                     if (!statOnly)
-                        Console.WriteLine($"{obj.Address,12:x} {obj.Type?.MethodTable??0,12:x} {typeName}");
+                        Console.WriteLine($"{obj.Address,12:x} {obj.Type?.MethodTable ?? 0,12:x} {typeName}");
 
                     sizes.TryGetValue(typeName, out (int Count, ulong TotalSize) item);
                     item.Count++;

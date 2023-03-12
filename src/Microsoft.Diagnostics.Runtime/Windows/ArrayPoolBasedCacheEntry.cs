@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         // Grab a shared buffer to use if there is one, or create one for the pool
                         byte[] data = ArrayPool<byte>.Shared.Rent((int)readSize);
 
-                        // NOTE: This looks sightly ridiculous but view.ReadArray<T> is TERRIBLE for primitive types like byte, it calls Marshal.PtrToStructure for EVERY item in the 
+                        // NOTE: This looks sightly ridiculous but view.ReadArray<T> is TERRIBLE for primitive types like byte, it calls Marshal.PtrToStructure for EVERY item in the
                         // array, the overhead of that call SWAMPS all access costs to the memory, and it is called N times (where N here is 4k), whereas memcpy just blasts the bits
                         // from one location to the other, it is literally a couple of orders of magnitude faster.
                         fixed (byte* pData = data)

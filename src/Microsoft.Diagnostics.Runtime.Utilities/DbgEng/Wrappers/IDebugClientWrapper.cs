@@ -21,10 +21,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             }
         }
 
-        int IDebugClient.CreateProcessAndAttach(string commandLine, string? directory, IEnumerable<KeyValuePair<string,string>> environment, DEBUG_ATTACH flags, in DEBUG_CREATE_PROCESS_OPTIONS options)
+        int IDebugClient.CreateProcessAndAttach(string commandLine, string? directory, IEnumerable<KeyValuePair<string, string>> environment, DEBUG_ATTACH flags, in DEBUG_CREATE_PROCESS_OPTIONS options)
         {
             GetVTable(this, out nint self, out IDebugClientVtable* vtable);
-            
+
             StringBuilder sb = new();
             foreach (KeyValuePair<string, string> entry in environment)
             {

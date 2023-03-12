@@ -209,8 +209,7 @@ namespace DbgEngExtension
                                   group mem by mem.Image into g
                                   let Size = g.Sum(k => (long)(k.End - k.Start))
                                   orderby Size descending
-                                  select new
-                                  {
+                                  select new {
                                       Image = g.Key,
                                       Count = g.Count(),
                                       Size
@@ -248,8 +247,7 @@ namespace DbgEngExtension
                               let Count = g.Count()
                               let Size = g.Sum(f => (long)(f.End - f.Start))
                               orderby Size descending
-                              select new
-                              {
+                              select new {
                                   Name = g.Key,
                                   Count,
                                   Size
@@ -290,7 +288,7 @@ namespace DbgEngExtension
         /// large chunk of memory and commit the beginning of it as it allocates more and more memory...the RESERVE
         /// region was actually "caused" by the Heap space before it).  Sometimes this will simply be wrong when
         /// a MEM_COMMIT region is next to an unrelated MEM_RESERVE region.
-        /// 
+        ///
         /// This is a heuristic, so use it accordingly.</param>
         /// <exception cref="InvalidOperationException">If !address fails we will throw InvalidOperationException.  This is usually
         /// because symbols for ntdll couldn't be found.</exception>
@@ -434,7 +432,7 @@ namespace DbgEngExtension
         /// memory and commit the beginning of it as it allocates more and more memory...the RESERVE region
         /// was actually "caused" by the Heap space before it).  Sometimes this will simply be wrong when
         /// a MEM_COMMIT region is next to an unrelated MEM_RESERVE region.
-        /// 
+        ///
         /// This is a heuristic, so use it accordingly.
         /// </summary>
         public static void CollapseReserveRegions(AddressMemoryRange[] ranges)
@@ -469,7 +467,7 @@ namespace DbgEngExtension
                                 CodeHeapKind.Loader => ClrMemoryKind.LoaderHeap,
                                 CodeHeapKind.Host => ClrMemoryKind.Host,
                                 _ => ClrMemoryKind.UnknownCodeHeap
-                            } 
+                            }
                         };
 
                     foreach (ClrSegment seg in runtime.Heap.Segments)

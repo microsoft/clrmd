@@ -106,7 +106,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             if (_stringTableAddress != 0)
             {
-                // First, search just the "external" export symbols 
+                // First, search just the "external" export symbols
                 if (TryLookupSymbol(_dysymtab.iextdefsym, _dysymtab.nextdefsym, symbol, out address))
                 {
                     return true;

@@ -195,8 +195,7 @@ namespace DbgEngExtension
                                                  let Count = g.Count()
                                                  let TotalSize = g.Sum(k => (long)GetSize(sizeHints, k))
                                                  orderby TotalSize descending, Name ascending
-                                                 select new
-                                                 {
+                                                 select new {
                                                      Name,
                                                      Count,
                                                      TotalSize,
@@ -229,17 +228,16 @@ namespace DbgEngExtension
                         Console.WriteLine($"Other memory pointer summary:");
 
                         var unknownMemQuery = from known in unknownObjPointers
-                                                let name = CollapseGenerics(known.Object.Type?.Name ?? "<unknown_type>")
-                                                group known by name into g
-                                                let Name = g.Key
-                                                let Count = g.Count()
-                                                orderby Count descending
-                                                select new
-                                                {
-                                                    Name,
-                                                    Count,
-                                                    Pointer = FindMostCommonPointer(g.Select(p => p.Pointer))
-                                                };
+                                              let name = CollapseGenerics(known.Object.Type?.Name ?? "<unknown_type>")
+                                              group known by name into g
+                                              let Name = g.Key
+                                              let Count = g.Count()
+                                              orderby Count descending
+                                              select new {
+                                                  Name,
+                                                  Count,
+                                                  Pointer = FindMostCommonPointer(g.Select(p => p.Pointer))
+                                              };
 
                         var unknownMem = unknownMemQuery.ToArray();
                         int maxNameLen = Math.Min(80, unknownMem.Max(r => r.Name.Length));
@@ -261,8 +259,8 @@ namespace DbgEngExtension
         private static (int Regions, ulong Bytes) GetSizes(Dictionary<ulong, KnownClrMemoryPointer> knownMemory, Dictionary<ulong, int> sizeHints)
         {
             IOrderedEnumerable<KnownClrMemoryPointer> ordered = from item in knownMemory.Values
-                          orderby item.Pointer ascending, item.Size descending
-                          select item;
+                                                                orderby item.Pointer ascending, item.Size descending
+                                                                select item;
 
             int totalRegions = 0;
             ulong totalBytes = 0;

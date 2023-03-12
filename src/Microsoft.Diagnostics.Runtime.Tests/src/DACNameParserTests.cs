@@ -185,7 +185,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             string input = "Microsoft.TeamFoundation.Git.Contracts.PathTable`1+PathTableRow`1[[System.String, mscorlib],[System.String, mscorlib]][]";
             string expectedResult = "Microsoft.TeamFoundation.Git.Contracts.PathTable<System.String>+PathTableRow<System.String>[]";
-                
+
             Assert.Equal(expectedResult, DACNameParser.Parse(input));
         }
     }

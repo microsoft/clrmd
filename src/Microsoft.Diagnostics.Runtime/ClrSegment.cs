@@ -177,7 +177,7 @@ namespace Microsoft.Diagnostics.Runtime
             return $"{Kind} [{Start:x12}, {End:x12}]";
         }
 
-        IEnumerable<IClrValue> IClrSegment.EnumerateObjects() =>EnumerateObjects().Cast<IClrValue>();
+        IEnumerable<IClrValue> IClrSegment.EnumerateObjects() => EnumerateObjects().Cast<IClrValue>();
 
         internal uint[] ObjectMarkers
         {

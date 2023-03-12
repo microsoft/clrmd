@@ -115,13 +115,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             }
 
             char[] buffer = ArrayPool<char>.Shared.Rent(size);
-            fixed(char* strPtr = buffer)
+            fixed (char* strPtr = buffer)
                 hr = vtable->GetModuleNameStringWide(self, which, DEBUG_ANY_ID, baseAddress, strPtr, size, out _);
 
             if (hr < 0)
                 name = string.Empty;
             else
-                name = new string(new Span<char>(buffer)[0..(size-1)]);
+                name = new string(new Span<char>(buffer)[0..(size - 1)]);
 
             ArrayPool<char>.Shared.Return(buffer);
 

@@ -80,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
             else
             {
-                // We can't add the lock memory privilege, so just fall back on our ArrayPool/MemoryMappedFile based cache 
+                // We can't add the lock memory privilege, so just fall back on our ArrayPool/MemoryMappedFile based cache
                 _cachedMemorySegments = new HeapSegmentDataCache(new ArrayPoolBasedCacheEntryFactory(stream, leaveOpen), entryCountWhenFull: (uint)_segments.Length, cacheIsFullyPopulatedBeforeUse: true, MaxCacheSize);
 
                 // Force creation of empty entries for each segment, this won't map the data in from disk but it WILL prevent us from needing to take any locks at the first level of the cache

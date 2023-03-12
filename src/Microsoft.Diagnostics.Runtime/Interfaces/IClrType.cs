@@ -8,7 +8,7 @@ using System.Reflection;
 
 namespace Microsoft.Diagnostics.Runtime.Interfaces
 {
-    public interface IClrType :IEquatable<IClrType>
+    public interface IClrType : IEquatable<IClrType>
     {
         ulong AssemblyLoadContextAddress { get; }
         IClrType? BaseType { get; }

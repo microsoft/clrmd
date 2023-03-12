@@ -241,9 +241,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             // Select all cache entries which aren't at their min-size
             //
-            // THREADING: We snapshot the LastAccessTickCount values here because there is the case where the Sort function will throw an exception if it tests two entries and the 
+            // THREADING: We snapshot the LastAccessTickCount values here because there is the case where the Sort function will throw an exception if it tests two entries and the
             // lhs rhs comparison is inconsistent when reversed (i.e. something like lhs < rhs is true but then rhs < lhs is also true). This sound illogical BUT it can happen
-            // if between the two comparisons the LastAccessTickCount changes (because other threads are concurrently accessing these same entries), in that case we would trigger 
+            // if between the two comparisons the LastAccessTickCount changes (because other threads are concurrently accessing these same entries), in that case we would trigger
             // this exception, which is bad :)
             //
             // TODO: CurrentSize is constantly in flux, other threads are paging data in and out, so while I can read it in the below Where call there is no guarantee that by the time I get

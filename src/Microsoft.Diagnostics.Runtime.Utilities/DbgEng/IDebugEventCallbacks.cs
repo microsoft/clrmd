@@ -70,7 +70,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                 const int total = 17;
                 int i = 0;
 
-                nint *vtable = (nint *)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(IDebugEventCallbacksWideVtable), sizeof(nint) * total);
+                nint* vtable = (nint*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(IDebugEventCallbacksWideVtable), sizeof(nint) * total);
 
                 vtable[i++] = qi;
                 vtable[i++] = addref;
@@ -96,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             }
 
             [UnmanagedCallersOnly]
-            private static int GetInterestMask(nint self, DEBUG_EVENT *pMask)
+            private static int GetInterestMask(nint self, DEBUG_EVENT* pMask)
             {
                 IDebugEventCallbacks callbacks = ComInterfaceDispatch.GetInstance<IDebugEventCallbacks>((ComInterfaceDispatch*)self);
                 *pMask = callbacks.EventInterestMask;
@@ -111,7 +111,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             }
 
             [UnmanagedCallersOnly]
-            private static DEBUG_STATUS Exception(nint self, EXCEPTION_RECORD64 *pException, uint firstChance)
+            private static DEBUG_STATUS Exception(nint self, EXCEPTION_RECORD64* pException, uint firstChance)
             {
                 IDebugEventCallbacks callbacks = ComInterfaceDispatch.GetInstance<IDebugEventCallbacks>((ComInterfaceDispatch*)self);
                 return callbacks.OnException(*pException, firstChance != 0);

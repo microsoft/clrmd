@@ -34,8 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (_sos13 is null)
                 return _heapNativeTypes = Array.Empty<NativeHeapKind>();
 
-            return _heapNativeTypes = _sos13.GetLoaderAllocatorHeapNames().Select(r => r switch
-            {
+            return _heapNativeTypes = _sos13.GetLoaderAllocatorHeapNames().Select(r => r switch {
                 "LowFrequencyHeap" => NativeHeapKind.LowFrequencyHeap,
                 "HighFrequencyHeap" => NativeHeapKind.HighFrequencyHeap,
                 "StubHeap" => NativeHeapKind.StubHeap,
@@ -121,8 +120,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             (ClrDataAddress Address, LoaderHeapKind Kind)[] heaps = _sos13.GetLoaderAllocatorHeaps(loaderAllocator);
             for (int i = 0; i < heaps.Length; i++)
             {
-                HResult hr = _sos13.TraverseLoaderHeap(heaps[i].Address, heaps[i].Kind, (address, size, current) =>
-                {
+                HResult hr = _sos13.TraverseLoaderHeap(heaps[i].Address, heaps[i].Kind, (address, size, current) => {
                     result ??= new(16);
                     result.Add(new(address, SanitizeSize(size), heapNativeTypes[i], current != 0));
                 });
@@ -169,8 +167,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private void TraverseOneStubKind(ClrAppDomain domain, List<ClrNativeHeapInfo> result, SOSDac.VCSHeapType vcsType, NativeHeapKind heapKind)
         {
             result.Clear();
-            HResult hr = _sos.TraverseStubHeap(domain.Address, vcsType, (address, size, current) =>
-            {
+            HResult hr = _sos.TraverseStubHeap(domain.Address, vcsType, (address, size, current) => {
                 result.Add(new(address, SanitizeSize(size), heapKind, current != 0));
             });
 
@@ -199,13 +196,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 ulong fixedHeapAddress = FixupHeapAddress(loaderHeap, loaderHeapKind, normalNeedsAdjustment);
 
-                HResult hr = _sos.TraverseLoaderHeap(fixedHeapAddress, (address, size, current) =>
-                {
+                HResult hr = _sos.TraverseLoaderHeap(fixedHeapAddress, (address, size, current) => {
                     result ??= new(8);
                     result.Add(new(address, SanitizeSize(size), nativeHeapKind, current != 0));
                 });
 
-                if (result is not null &&  result.Count > 0 && normalNeedsAdjustment)
+                if (result is not null && result.Count > 0 && normalNeedsAdjustment)
                 {
                     // If we adjusted the pointer and we can't read the resulting addresses, try again with the
                     // opposite setting.
@@ -216,8 +212,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         result.Clear();
                         fixedHeapAddress = FixupHeapAddress(loaderHeap, loaderHeapKind, !normalNeedsAdjustment);
 
-                        hr = _sos.TraverseLoaderHeap(fixedHeapAddress, (address, size, current) =>
-                        {
+                        hr = _sos.TraverseLoaderHeap(fixedHeapAddress, (address, size, current) => {
                             result ??= new(8);
                             result.Add(new(address, SanitizeSize(size), nativeHeapKind, current != 0));
                         });
@@ -255,8 +250,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (thunkHeapAddress != 0)
             {
                 List<ClrNativeHeapInfo>? heaps = null;
-                HResult hr = TraverseLoaderHeap(thunkHeapAddress, LoaderHeapKind.LoaderHeapKindNormal, (address, size, current) =>
-                {
+                HResult hr = TraverseLoaderHeap(thunkHeapAddress, LoaderHeapKind.LoaderHeapKindNormal, (address, size, current) => {
                     heaps ??= new(16);
                     heaps.Add(new(address, SanitizeSize(size), NativeHeapKind.ThunkHeap, current != 0));
                 });

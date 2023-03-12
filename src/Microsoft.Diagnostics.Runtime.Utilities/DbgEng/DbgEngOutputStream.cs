@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
         protected override void Dispose(bool disposing)
         {
-            if(disposing)
+            if (disposing)
             {
                 Console.SetOut(_previousConsoleOut);
                 if (_previousCallbacks is nint prev)
