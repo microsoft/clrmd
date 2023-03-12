@@ -36,9 +36,8 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (Object.Type is null)
-                {
                     return false;
-                }
+
 
                 return Object.TryReadField("_invocationCount", out int count) && count > 0;
             }
@@ -59,21 +58,15 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrDelegateTarget? GetDelegateTarget()
         {
             if (Object.Type is null)
-            {
                 throw new InvalidOperationException($"Object {this} is not a delegate.");
-            }
 
             if (!Object.TryReadObjectField("_target", out ClrObject target))
-            {
                 return null;
-            }
 
             bool seenOne = false;
             ClrRuntime runtime = Object.Type.Heap.Runtime;
 
-            IEnumerable<ClrInstanceField> methodPointerFields = Object.Type.Fields
-                .Where(f => f.Name != null)
-                .Where(f => f.Name!.Equals("_methodPtr") || f.Name.Equals("_methodPtrAux"));
+            var methodPointerFields = Object.Type.Fields.Where(f => f.Name != null).Where(f => f.Name!.Equals("_methodPtr") || f.Name.Equals("_methodPtrAux"));
             foreach (ClrInstanceField field in methodPointerFields)
             {
                 if (field.ElementType == ClrElementType.NativeInt)
@@ -84,9 +77,7 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         ClrMethod? result = runtime.GetMethodByInstructionPointer(targetMethod);
                         if (result is not null)
-                        {
                             return new ClrDelegateTarget(this, target, result);
-                        }
                     }
 
                     seenOne = true;
@@ -95,9 +86,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             // If we didn't see at least one "_methodPtr*" field then actually check if this is a delegate and throw appropriately.
             if (!seenOne && !Validate())
-            {
                 throw new InvalidOperationException($"Object {this} is not a delegate.");
-            }
 
             return null;
         }
@@ -109,21 +98,17 @@ namespace Microsoft.Diagnostics.Runtime
             // Note it's ok to be slow in this method because we are down a failure path that should usually not happen in practice.
 
             if (Object.Type is null)
-            {
                 return false;
-            }
 
             // If we have no fields then this isn't a delegate.
             if (Object.Type.Fields.Length == 0)
-            {
                 return false;
-            }
 
             // Assume this is a valid
             bool seenAny = false;
             bool allNull = true;
 
-            foreach (ClrInstanceField field in Object.Type.Fields)
+            foreach (var field in Object.Type.Fields)
             {
                 seenAny |= field.Name is "_methodPtr" or "_methodPtrAux";
                 allNull &= field.Name == null;
@@ -132,15 +117,11 @@ namespace Microsoft.Diagnostics.Runtime
             // If all field names were null then we cannot validate whether this was a delegate or not.  The case we are worried
             // about here is if we have no
             if (allNull)
-            {
                 return true;
-            }
 
             // If we saw fields we expected return it's valid even if we didn't understand this delegate.
             if (seenAny)
-            {
                 return true;
-            }
 
             ClrType? curr = Object.Type;
 
@@ -148,16 +129,12 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 // If we found System.Delegate, we are done.
                 if (curr.Name == DelegateType)
-                {
                     return true;
-                }
 
                 // If we found a blank name in mscorlib then we have a metadata problem, and we cannot validate this delegate.
                 // Don't throw an exception in this case.
                 if (curr.Name == null && curr.Module == Object.Type.Heap.Runtime.BaseClassLibrary)
-                {
                     return true;
-                }
             }
 
             // We are definitely not a delegate.
@@ -174,9 +151,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ClrDelegateTarget? first = GetDelegateTarget();
             if (first != null)
-            {
                 yield return first;
-            }
 
             // The call to GetDelegateMethod will validate that we are a valid object and a subclass of System.Delegate
             if (!Object.TryReadField("_invocationCount", out int count)
@@ -198,18 +173,14 @@ namespace Microsoft.Diagnostics.Runtime
                 foreach (UIntPtr ptr in pointers)
                 {
                     if (ptr == UIntPtr.Zero)
-                    {
                         continue;
-                    }
 
                     ClrObject delegateObj = heap.GetObject(ptr.ToUInt64());
                     if (delegateObj.IsDelegate)
                     {
                         ClrDelegateTarget? delegateTarget = new ClrDelegate(delegateObj).GetDelegateTarget();
                         if (delegateTarget is not null)
-                        {
                             yield return delegateTarget;
-                        }
                     }
                 }
             }

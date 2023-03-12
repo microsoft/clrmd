@@ -55,9 +55,7 @@ namespace DbgEngExtension
                     string typeName = obj.Type?.Name ?? "<unknown type>";
 
                     if (!statOnly)
-                    {
                         Console.WriteLine($"{obj.Address,12:x} {obj.Type?.MethodTable ?? 0,12:x} {typeName}");
-                    }
 
                     sizes.TryGetValue(typeName, out (int Count, ulong TotalSize) item);
                     item.Count++;
@@ -76,7 +74,7 @@ namespace DbgEngExtension
 
                     long totalObjects = 0;
                     ulong totalBytes = 0;
-                    foreach (KeyValuePair<string, (int Count, ulong TotalSize)> item in sizes.OrderBy(r => r.Value.TotalSize))
+                    foreach (var item in sizes.OrderBy(r => r.Value.TotalSize))
                     {
                         Console.WriteLine($"{item.Value.Count,12:n0}\t{item.Value.TotalSize,12:n0}\t{item.Key}");
 

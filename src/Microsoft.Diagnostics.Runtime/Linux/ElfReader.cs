@@ -25,9 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             T result;
             int read = DataSource.Read(position, new Span<byte>(&result, size));
             if (read == size)
-            {
                 return result;
-            }
 
             return null;
         }
@@ -39,9 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             T result;
             int read = DataSource.Read(position, new Span<byte>(&result, size));
             if (read != size)
-            {
                 throw new IOException();
-            }
 
             return result;
         }
@@ -53,9 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             T result;
             int read = DataSource.Read(position, new Span<byte>(&result, size));
             if (read != size)
-            {
                 throw new IOException();
-            }
 
             position += (uint)read;
             return result;
@@ -76,13 +70,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 for (int i = 0; !done && i < read; i++)
                 {
                     if (bytes[i] != 0)
-                    {
                         builder.Append((char)bytes[i]);
-                    }
                     else
-                    {
                         done = true;
-                    }
                 }
             }
 
@@ -98,23 +88,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 int read = DataSource.Read(position, buffer);
                 if (read == 0)
-                {
                     return string.Empty;
-                }
 
                 if (buffer[read - 1] == '\0')
-                {
                     read--;
-                }
 
                 return Encoding.ASCII.GetString(buffer.Slice(0, read));
             }
             finally
             {
                 if (array != null)
-                {
                     ArrayPool<byte>.Shared.Return(array);
-                }
             }
         }
     }

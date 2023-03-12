@@ -23,17 +23,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             string osKey;
 
             if (originalPlatform == OSPlatform.OSX)
-            {
                 osKey = MachOPlatformKey;
-            }
             else if (originalPlatform == OSPlatform.Linux)
-            {
                 osKey = ElfPlatformKey;
-            }
             else
-            {
                 return null;
-            }
 
             return GetUnixKey(osKey, fileName, archivedUnder, buildIdOrUUID);
         }
@@ -47,16 +41,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private static string? GetUnixKey(string osKey, string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildId)
         {
             if (buildId.IsDefaultOrEmpty)
-            {
                 return null;
-            }
 
             fileName = Path.GetFileName(fileName).ToLowerInvariant();
             string specialKey = "";
             if (archivedUnder == SymbolProperties.Coreclr)
-            {
                 specialKey = "coreclr-";
-            }
 
             string id = string.Join("", buildId.Select(b => b.ToString("x2")));
             return $"{fileName}/{osKey}-{specialKey}{id}/{fileName}";

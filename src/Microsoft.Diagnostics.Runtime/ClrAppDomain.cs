@@ -28,9 +28,7 @@ namespace Microsoft.Diagnostics.Runtime
         public bool Equals(ClrAppDomain? other)
         {
             if (other is IClrAppDomain domain)
-            {
                 return domain.Equals(this);
-            }
 
             return false;
         }
@@ -38,9 +36,7 @@ namespace Microsoft.Diagnostics.Runtime
         public override bool Equals(object? obj)
         {
             if (obj is IClrAppDomain domain)
-            {
                 return domain.Equals(this);
-            }
 
             return false;
         }

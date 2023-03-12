@@ -70,12 +70,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             foreach (ClrObject obj in heap.EnumerateObjects().Where(o => o.Type.Name == "SingleRef"))
             {
                 foreach (ClrObject reference in obj.EnumerateReferences(considerDependantHandles: true))
-                {
                     if (reference.Type.Name == "TargetType")
-                    {
                         return obj;
-                    }
-                }
             }
 
             throw new InvalidOperationException("Did not find a SingleRef pointing to a TargetType");
@@ -87,9 +83,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 ClrObject item1 = obj.ReadObjectField("Item1");
                 if (item1.Type?.Name == targetTypeName)
-                {
                     return obj;
-                }
             }
 
             throw new InvalidOperationException($"Did not find a SingleRef pointing to a {targetTypeName}.");
@@ -243,30 +237,22 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.True(rootPaths.Length >= 2);
 
             foreach (GCRootPath rootPath in rootPaths)
-            {
                 AssertPathIsCorrect(heap, rootPath.Path, rootPath.Path.First().Address, target);
-            }
 
             bool hasThread = false, hasStatic = false;
 
             foreach (GCRootPath rootPath in rootPaths)
             {
                 if (rootPath.Root.RootKind == ClrRootKind.PinnedHandle)
-                {
                     hasStatic = true;
-                }
                 else if (rootPath.Root.RootKind == ClrRootKind.Stack)
-                {
                     hasThread = true;
-                }
             }
 
             Assert.True(hasThread);
 
             if (mustContainStatic)
-            {
                 Assert.True(hasStatic);
-            }
         }
 
         [Fact]
@@ -334,9 +320,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(3, paths.Length);
 
             foreach (LinkedList<ClrObject> path in paths)
-            {
                 AssertPathIsCorrect(heap, path.ToImmutableArray(), source, target);
-            }
         }
 
         private static void GetKnownSourceAndTarget(ClrHeap heap, out ulong source, out ulong target)

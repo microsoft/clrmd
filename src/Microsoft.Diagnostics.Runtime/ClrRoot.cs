@@ -20,9 +20,7 @@ namespace Microsoft.Diagnostics.Runtime
         public override bool Equals(object? obj)
         {
             if (obj is IClrRoot other)
-            {
                 return other.Equals(this);
-            }
 
             return false;
         }
@@ -96,9 +94,7 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (_object.Address != 0)
-                {
                     return _object;
-                }
 
                 ClrObject obj = base.Object;
                 if (obj.Type is not null)

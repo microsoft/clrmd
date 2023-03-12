@@ -26,10 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ExceptionTestData testData = TestTargets.NestedExceptionData;
             Assert.Equal(testData.OuterExceptionMessage, ex.Message);
             if (ex.Type?.Name != null)
-            {
                 Assert.Equal(testData.OuterExceptionType, ex.Type?.Name);
-            }
-
             Assert.NotNull(ex.Inner);
         }
 

@@ -28,9 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.NotNull(type);
                 string name = type.Name;
                 if (type.Name == "Foo")
-                {
                     encounteredFoo = true;
-                }
 
                 count++;
 
@@ -100,9 +98,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             foreach (ClrSegment seg in heap.Segments)
             {
                 if (seg.Length == 0)
-                {
                     continue;
-                }
 
                 // Once without markers, once with
                 NextObjectWorker(heap, seg);
@@ -203,9 +199,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.Equal(objects[i].Type, obj.Type);
 
                 if ((i % 8) == 0)
-                {
                     runtime.FlushCachedData();
-                }
 
                 i++;
             }
@@ -251,19 +245,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.True(seg.Length == 0 || seg.CommittedMemory.Contains(seg.ObjectRange));
 
                 if (seg.Generation0.Length > 0)
-                {
                     Assert.True(seg.ObjectRange.Contains(seg.Generation0));
-                }
 
                 if (seg.Generation1.Length > 0)
-                {
                     Assert.True(seg.ObjectRange.Contains(seg.Generation1));
-                }
 
                 if (seg.Generation2.Length > 0)
-                {
                     Assert.True(seg.ObjectRange.Contains(seg.Generation2));
-                }
 
                 Assert.True(seg.Generation2.Start == seg.Start);
                 if (seg.Kind == GCSegmentKind.Ephemeral)
@@ -299,9 +287,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 // Ensure we haven't touched this segment yet.
                 for (int i = 0; i < seg.ObjectMarkers.Length; i++)
-                {
                     Assert.Equal(0u, seg.ObjectMarkers[i]);
-                }
 
                 // Walk the whole heap.
                 _ = seg.EnumerateObjects().Count();

@@ -45,13 +45,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private static void WalkEntry(IResourceNode entry, ref bool found, int depth = 0)
         {
-            foreach (IResourceNode child in entry.Children)
+            foreach (var child in entry.Children)
             {
                 WalkEntry(child, ref found, depth + 1);
 
                 if (child.Name == "CLRDEBUGINFO")
                 {
-                    ClrDebugResource dbg = child.Children.First().Read<ClrDebugResource>(0);
+                    var dbg = child.Children.First().Read<ClrDebugResource>(0);
 
                     Assert.NotEqual(0, dbg.dwDacSizeOfImage);
                     Assert.NotEqual(0, dbg.dwDacTimeStamp);

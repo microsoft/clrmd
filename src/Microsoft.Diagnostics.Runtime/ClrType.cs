@@ -138,18 +138,12 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (!_fields.IsDefault)
-                {
                     return _fields;
-                }
 
                 if (Helpers.CacheOptions.CacheFields)
-                {
                     CacheFields();
-                }
                 else
-                {
                     return Helpers.EnumerateFields(this).OfType<ClrInstanceField>().ToImmutableArray();
-                }
 
                 return _fields;
             }
@@ -163,18 +157,12 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (!_staticFields.IsDefault)
-                {
                     return _staticFields;
-                }
 
                 if (Helpers.CacheOptions.CacheFields)
-                {
                     CacheFields();
-                }
                 else
-                {
                     return Helpers.EnumerateFields(this).OfType<ClrStaticField>().ToImmutableArray();
-                }
 
                 return _staticFields;
             }
@@ -182,18 +170,14 @@ namespace Microsoft.Diagnostics.Runtime
 
         private void CacheFields()
         {
-            ImmutableArray<ClrInstanceField>.Builder instanceFields = ImmutableArray.CreateBuilder<ClrInstanceField>();
-            ImmutableArray<ClrStaticField>.Builder staticFields = ImmutableArray.CreateBuilder<ClrStaticField>();
+            var instanceFields = ImmutableArray.CreateBuilder<ClrInstanceField>();
+            var staticFields = ImmutableArray.CreateBuilder<ClrStaticField>();
             foreach (ClrField field in Helpers.EnumerateFields(this))
             {
                 if (field is ClrInstanceField instanceField)
-                {
                     instanceFields.Add(instanceField);
-                }
                 else if (field is ClrStaticField staticField)
-                {
                     staticFields.Add(staticField);
-                }
             }
 
             _fields = instanceFields.ToImmutableArray();
@@ -208,15 +192,11 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (!_methods.IsDefault)
-                {
                     return _methods;
-                }
 
                 ImmutableArray<ClrMethod> methods = Helpers.GetMethodsForType(this);
                 if (Helpers.CacheOptions.CacheMethods)
-                {
                     _methods = methods;
-                }
 
                 return methods;
 
@@ -340,36 +320,24 @@ namespace Microsoft.Diagnostics.Runtime
         public bool Equals(ClrType? other)
         {
             if (ReferenceEquals(this, other))
-            {
                 return true;
-            }
 
             if (other is null)
-            {
                 return false;
-            }
 
             if (MethodTable != 0 && other.MethodTable != 0)
-            {
                 return MethodTable == other.MethodTable;
-            }
 
             if (other.IsPointer)
-            {
                 return ComponentType == other.ComponentType;
-            }
 
             if (IsPrimitive && other.IsPrimitive && ElementType != ClrElementType.Unknown)
-            {
                 return ElementType == other.ElementType;
-            }
 
             // Ok we aren't a primitive type, or a pointer, and our MethodTables are 0.  Last resort is to
             // check if we resolved from the same token out of the same module.
             if (Module != null && MetadataToken != 0)
-            {
                 return Module == other.Module && MetadataToken == other.MetadataToken;
-            }
 
             return false;
         }
@@ -383,36 +351,24 @@ namespace Microsoft.Diagnostics.Runtime
         bool IEquatable<IClrType>.Equals(IClrType? other)
         {
             if (ReferenceEquals(this, other))
-            {
                 return true;
-            }
 
             if (other is null)
-            {
                 return false;
-            }
 
             if (MethodTable != 0 && other.MethodTable != 0)
-            {
                 return MethodTable == other.MethodTable;
-            }
 
             if (other.IsPointer && ComponentType != null && ComponentType != this)
-            {
                 return ComponentType.Equals(other.ComponentType);
-            }
 
             if (IsPrimitive && other.IsPrimitive && ElementType != ClrElementType.Unknown)
-            {
                 return ElementType == other.ElementType;
-            }
 
             // Ok we aren't a primitive type, or a pointer, and our MethodTables are 0.  Last resort is to
             // check if we resolved from the same token out of the same module.
             if (Module != null && MetadataToken != 0)
-            {
                 return Module.Equals(other.Module) && MetadataToken == other.MetadataToken;
-            }
 
             return false;
         }
@@ -420,9 +376,7 @@ namespace Microsoft.Diagnostics.Runtime
         public static bool operator ==(ClrType? left, ClrType? right)
         {
             if (right is null)
-            {
                 return left is null;
-            }
 
             return right.Equals(left);
         }

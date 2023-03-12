@@ -38,19 +38,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Stats stats = new();
             foreach (ClrObject obj in objs)
             {
-                ClrType type = obj.Type;
+                var type = obj.Type;
                 if (type.Name == "SampleA")
-                {
                     stats.A++;
-                }
                 else if (type.Name == "SampleB")
-                {
                     stats.B++;
-                }
                 else if (type.Name == "SampleC")
-                {
                     stats.C++;
-                }
             }
 
             return stats;

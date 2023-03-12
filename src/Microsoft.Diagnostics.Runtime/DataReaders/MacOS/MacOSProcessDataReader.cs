@@ -30,9 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         {
             int status = Native.kill(processId, 0);
             if (status < 0 && Marshal.GetLastWin32Error() != Native.EPERM)
-            {
                 throw new ArgumentException("The process is not running");
-            }
 
             ProcessId = processId;
 
@@ -40,9 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             int kr = Native.task_for_pid(_machTaskSelf, processId, out int task);
             if (kr != 0)
-            {
                 throw new ClrDiagnosticsException($"task_for_pid failed with status code 0x{kr:x}");
-            }
 
             _task = task;
 
@@ -51,9 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 status = Native.ptrace(Native.PT_ATTACH, processId);
 
                 if (status >= 0)
-                {
                     status = Native.waitpid(processId, IntPtr.Zero, 0);
-                }
 
                 if (status < 0)
                 {
@@ -89,14 +83,10 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         private void Dispose(bool disposing)
         {
             if (_disposed)
-            {
                 return;
-            }
 
             foreach (uint threadAct in _threadActs.Values)
-            {
                 _ = Native.mach_port_deallocate(_machTaskSelf, threadAct);
-            }
 
             if (_suspended)
             {
@@ -108,13 +98,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                     // We don't want to bring down the process from the finalizer thread.
                     // We'll only throw here if we are in a dispose call.
                     if (disposing)
-                    {
                         throw new ClrDiagnosticsException($"Could not detach from process {ProcessId}, errno: {errno}");
-                    }
                     else
-                    {
                         Trace.WriteLine($"Could not detach from process {ProcessId}, errno: {errno}");
-                    }
                 }
 
                 _suspended = false;
@@ -135,9 +121,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             int taskInfoCount = Native.TASK_DYLD_INFO_COUNT;
             int kr = Native.task_info(_task, Native.TASK_DYLD_INFO, out Native.task_dyld_info dyldInfo, ref taskInfoCount);
             if (kr != 0)
-            {
                 throw new ClrDiagnosticsException();
-            }
 
             Native.dyld_all_image_infos infos = Read<Native.dyld_all_image_infos>(dyldInfo.all_image_info_addr);
             for (uint i = 0; i < infos.infoArrayCount; i++)
@@ -157,9 +141,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             {
                 T result;
                 if (Native.vm_read_overwrite(_task, address + index * (uint)sizeof(T), sizeof(T), &result, out _) != 0)
-                {
                     return default;
-                }
 
                 return result;
             }
@@ -176,13 +158,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                     for (int i = 0; !done && i < read; i++)
                     {
                         if (bytes[i] != 0)
-                        {
                             builder.Append((char)bytes[i]);
-                        }
                         else
-                        {
                             done = true;
-                        }
                     }
                 }
 
@@ -193,9 +171,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         public unsafe Version? GetVersionInfo(ulong baseAddress)
         {
             if (!Read(baseAddress, out MachOHeader64 header) || header.Magic != MachOHeader64.ExpectedMagic)
-            {
                 return null;
-            }
 
             baseAddress += (uint)sizeof(MachOHeader64);
 
@@ -221,9 +197,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                                 long dataOffset = section.Address;
                                 long dataSize = section.Size;
                                 if (this.GetVersionInfo(baseAddress + (ulong)dataOffset, (ulong)dataSize, out Version? version))
-                                {
                                     return version;
-                                }
                             }
                         }
 
@@ -253,9 +227,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             {
                 int kr = Native.vm_read_overwrite(_task, address, readable, ptr, out long read);
                 if (kr != 0)
-                {
                     return 0;
-                }
 
                 return (int)read;
             }
@@ -280,10 +252,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         public unsafe bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
             LoadThreads();
-            if (!_threadActs.TryGetValue(threadID, out uint threadAct))
-            {
+            if (!_threadActs.TryGetValue(threadID, out var threadAct))
                 return false;
-            }
 
             int stateFlavor;
             int stateCount;
@@ -302,9 +272,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 {
                     int kr = Native.thread_get_state(threadAct, stateFlavor, new IntPtr(data), ref stateCount);
                     if (kr != 0)
-                    {
                         return false;
-                    }
                 }
 
                 switch (Architecture)
@@ -334,9 +302,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 uint* threads = null;
                 int kr = Native.task_threads(_task, &threads, out uint threadsCount);
                 if (kr != 0)
-                {
                     throw new ClrDiagnosticsException($"task_threads failed with status code 0x{kr:x}");
-                }
 
                 try
                 {
@@ -345,9 +311,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                         int threadInfoCount = Native.THREAD_IDENTIFIER_INFO_COUNT;
                         kr = Native.thread_info(threads[i], Native.THREAD_IDENTIFIER_INFO, out Native.thread_identifier_info identifierInfo, ref threadInfoCount);
                         if (kr != 0)
-                        {
                             continue;
-                        }
 
                         _threadActs.Add(identifierInfo.thread_id, threads[i]);
                     }
@@ -369,16 +333,10 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             {
                 int kr = Native.mach_vm_region(_task, ref address, out ulong size, Native.VM_REGION_BASIC_INFO_64, out Native.vm_region_basic_info_64 info, ref infoCount, out _);
                 if (kr != 0)
-                {
                     if (kr != Native.KERN_INVALID_ADDRESS)
-                    {
                         throw new ClrDiagnosticsException();
-                    }
                     else
-                    {
                         break;
-                    }
-                }
 
                 ulong endAddress = address + size;
                 result.Add(new MemoryRegion

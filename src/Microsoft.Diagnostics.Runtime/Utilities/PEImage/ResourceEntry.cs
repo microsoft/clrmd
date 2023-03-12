@@ -102,9 +102,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             GetDataVaAndSize(out int va, out int size);
             if (size == 0 || va == 0)
-            {
                 return 0;
-            }
 
             return Image.Read(va + offset, span);
         }
@@ -120,9 +118,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             int size = Unsafe.SizeOf<T>();
             GetDataVaAndSize(out int va, out int sectionSize);
             if (va == 0 || sectionSize < size + offset)
-            {
                 return default;
-            }
 
             T output;
             int read = Image.Read(va + offset, new Span<byte>(&output, size));
@@ -137,14 +133,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             get
             {
                 if (!_children.IsDefault)
-                {
                     return _children;
-                }
 
                 if (IsLeaf)
-                {
                     return _children = ImmutableArray<IResourceNode>.Empty;
-                }
 
                 try
                 {
@@ -160,19 +152,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     for (int i = 0; i < count; i++)
                     {
                         if (!Image.TryRead<ImageResourceDirectoryEntry>(ref offset, out ImageResourceDirectoryEntry entry))
-                        {
                             break;
-                        }
 
                         string name;
                         if (!entry.IsStringName)
-                        {
                             name = ImageResourceDirectoryEntry.GetTypeNameForTypeId(entry.Id);
-                        }
                         else
-                        {
                             name = GetName(entry.NameOffset, resourceStartFileOffset);
-                        }
 
                         result.Add(new ResourceEntry(Image, this, name, entry.IsLeaf, resourceStartFileOffset + entry.DataOffset));
                     }
@@ -194,9 +180,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             int offset = _offset;
 
             if (Image.TryRead<IMAGE_RESOURCE_DIRECTORY>(ref offset, out IMAGE_RESOURCE_DIRECTORY hdr))
-            {
                 return (offset, hdr);
-            }
 
             // Returning default will mean that our count will == 0, so we don't have to turn this
             // into "bool TryGetHeader".
@@ -211,9 +195,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             // Cap the length of the string we will read
             len = Math.Min(len, MaxNameLength);
             if (len == 0)
-            {
                 return string.Empty;
-            }
 
             char[] buffer = ArrayPool<char>.Shared.Rent(len);
             try
@@ -223,9 +205,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                 int i = 0;
                 while (i < len && buffer[i] != 0)
-                {
                     i++;
-                }
 
                 return new string(buffer, 0, i);
             }

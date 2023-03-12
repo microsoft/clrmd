@@ -19,14 +19,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         protected CallableCOMWrapper(CallableCOMWrapper toClone)
         {
             if (toClone is null)
-            {
                 throw new ArgumentNullException(nameof(toClone));
-            }
 
             if (toClone._disposed)
-            {
                 throw new ObjectDisposedException(GetType().FullName);
-            }
 
             Self = toClone.Self;
             _unknownVTable = toClone._unknownVTable;

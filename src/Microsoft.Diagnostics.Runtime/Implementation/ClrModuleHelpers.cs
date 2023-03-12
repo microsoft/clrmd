@@ -28,9 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             using ClrDataModule? dataModule = _sos.GetClrDataModule(module.Address);
             if (dataModule is null || !dataModule.GetModuleData(out ExtendedModuleData data))
-            {
                 return new();
-            }
 
             return new()
             {

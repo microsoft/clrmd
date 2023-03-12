@@ -40,9 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 RejitData[] result = new RejitData[needed];
                 hr = VTable.GetMethodDescData(Self, md, ip, out _, result.Length, result, out _);
                 if (hr)
-                {
                     return result;
-                }
             }
 
             return Array.Empty<RejitData>();
@@ -62,9 +60,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.GetTLSIndex(Self, out uint index);
             if (hr)
-            {
                 return index;
-            }
 
             return uint.MaxValue;
         }
@@ -73,9 +69,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.GetThreadFromThinlockID(Self, id, out ClrDataAddress thread);
             if (hr)
-            {
                 return thread;
-            }
 
             return default;
         }
@@ -83,15 +77,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public string? GetMethodDescName(ulong md)
         {
             if (md == 0)
-            {
                 return null;
-            }
 
             HResult hr = VTable.GetMethodDescName(Self, md, 0, null, out int needed);
             if (!hr)
-            {
                 return null;
-            }
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(needed * sizeof(char));
             try
@@ -101,9 +91,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 {
                     hr = VTable.GetMethodDescName(Self, md, needed, bufferPtr, out actuallyNeeded);
                     if (!hr)
-                    {
                         return null;
-                    }
                 }
 
                 // Patch for a bug on sos side :
@@ -118,9 +106,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     {
                         hr = VTable.GetMethodDescName(Self, md, actuallyNeeded, bufferPtr, out actuallyNeeded);
                         if (!hr)
-                        {
                             return null;
-                        }
                     }
                 }
 
@@ -135,15 +121,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public ulong GetMethodTableSlot(ulong mt, uint slot)
         {
             if (mt == 0)
-            {
                 return 0;
-            }
 
             HResult hr = VTable.GetMethodTableSlot(Self, mt, slot, out ClrDataAddress ip);
             if (hr)
-            {
                 return ip;
-            }
 
             return 0;
         }
@@ -157,9 +139,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.GetILForModule(Self, moduleAddr, rva, out ClrDataAddress result);
             if (hr)
-            {
                 return result;
-            }
 
             return 0;
         }
@@ -171,9 +151,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             {
                 HResult hr = VTable.GetCCWInterfaces(Self, ccw, count, ptr, out int pNeeded);
                 if (hr)
-                {
                     return data;
-                }
             }
 
             return null;
@@ -186,9 +164,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             {
                 HResult hr = VTable.GetRCWInterfaces(Self, ccw, count, ptr, out int pNeeded);
                 if (hr)
-                {
                     return data;
-                }
             }
 
             return null;
@@ -243,9 +219,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.GetMethodDescPtrFromFrame(Self, frame, out ClrDataAddress data);
             if (hr)
-            {
                 return data;
-            }
 
             return default;
         }
@@ -254,9 +228,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.GetMethodDescPtrFromIP(Self, frame, out ClrDataAddress data);
             if (hr)
-            {
                 return data;
-            }
 
             return default;
         }
@@ -294,15 +266,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public ClrDataModule? GetClrDataModule(ulong module)
         {
             if (module == 0)
-            {
                 return null;
-            }
 
             HResult hr = VTable.GetModule(Self, module, out IntPtr iunk);
             if (hr)
-            {
                 return new ClrDataModule(_library, iunk);
-            }
 
             return null;
         }
@@ -310,27 +278,19 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public MetadataImport? GetMetadataImport(ulong module)
         {
             if (module == 0)
-            {
                 return null;
-            }
 
             HResult hr = VTable.GetModule(Self, module, out IntPtr iunk);
             if (!hr)
-            {
                 return null;
-            }
 
             // Make sure we can successfully QueryInterface for IMetaDataImport.  This may fail if
             // we do not have all of the relevant metadata mapped into memory either through the dump
             // or via the binary locator.
             if (QueryInterface(iunk, MetadataImport.IID_IMetaDataImport, out IntPtr pTmp))
-            {
                 Release(pTmp);
-            }
             else
-            {
                 return null;
-            }
 
             try
             {
@@ -362,9 +322,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             HResult hr = VTable.GetAssemblyData(Self, domain, assembly, out data);
             if (!hr && data.Address == assembly)
-            {
                 return HResult.S_FALSE;
-            }
 
             return hr;
         }
@@ -377,9 +335,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             HResult hr = VTable.GetAppDomainData(Self, addr, out data);
             if (!hr && data.Address == addr && data.StubHeap != 0)
-            {
                 return HResult.S_FALSE;
-            }
 
             return hr;
         }
@@ -429,14 +385,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = func(Self, addr, 0, null, out int needed);
             if (!hr)
-            {
                 return null;
-            }
 
             if (needed == 0)
-            {
                 return string.Empty;
-            }
 
             byte[]? array = null;
             int size = needed * sizeof(char);
@@ -445,28 +397,20 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             try
             {
                 fixed (byte* bufferPtr = buffer)
-                {
                     hr = func(Self, addr, needed, bufferPtr, out needed);
-                }
 
                 if (!hr)
-                {
                     return null;
-                }
 
                 if (skipNull)
-                {
                     needed--;
-                }
 
                 return Encoding.Unicode.GetString(buffer.Slice(0, needed * sizeof(char)));
             }
             finally
             {
                 if (array != null)
-                {
                     ArrayPool<byte>.Shared.Return(array);
-                }
             }
         }
 
@@ -474,14 +418,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = func(Self, addr, 0, null, out int needed);
             if (!hr)
-            {
                 return null;
-            }
 
             if (needed == 0)
-            {
                 return string.Empty;
-            }
 
             byte[]? array = null;
             Span<byte> buffer = needed <= 32 ? stackalloc byte[needed] : (array = ArrayPool<byte>.Shared.Rent(needed)).AsSpan(0, needed);
@@ -489,29 +429,21 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             try
             {
                 fixed (byte* bufferPtr = buffer)
-                {
                     hr = func(Self, addr, needed, bufferPtr, out needed);
-                }
 
                 if (!hr)
-                {
                     return null;
-                }
 
                 int len = buffer.IndexOf((byte)'\0');
                 if (len >= 0)
-                {
                     needed = len;
-                }
 
                 return Encoding.ASCII.GetString(buffer.Slice(0, needed));
             }
             finally
             {
                 if (array != null)
-                {
                     ArrayPool<byte>.Shared.Return(array);
-                }
             }
         }
 
@@ -519,9 +451,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.GetMethodTableForEEClass(Self, eeclass, out ClrDataAddress data);
             if (hr)
-            {
                 return data;
-            }
 
             return default;
         }
@@ -537,9 +467,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (count <= 0)
             {
                 if (func(Self, address, 0, null, out needed) < 0)
-                {
                     return Array.Empty<ClrDataAddress>();
-                }
 
                 count = needed;
             }
@@ -547,9 +475,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             // We ignore the return value here since the list may be partially filled
             ClrDataAddress[] modules = new ClrDataAddress[count];
             fixed (ClrDataAddress* ptr = modules)
-            {
                 func(Self, address, modules.Length, ptr, out needed);
-            }
 
             return modules;
         }
@@ -559,9 +485,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (count <= 0)
             {
                 if (!GetAppDomainStoreData(out AppDomainStoreData addata))
-                {
                     return Array.Empty<ClrDataAddress>();
-                }
 
                 count = addata.AppDomainCount;
             }
@@ -618,9 +542,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.GetJitManagerList(Self, 0, null, out int needed);
             if (!hr || needed == 0)
-            {
                 return Array.Empty<JitManagerInfo>();
-            }
 
             JitManagerInfo[] result = new JitManagerInfo[needed];
             fixed (JitManagerInfo* ptr = result)
@@ -634,9 +556,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.GetCodeHeapList(Self, jitManager, 0, null, out int needed);
             if (!hr || needed == 0)
-            {
                 return Array.Empty<JitCodeHeapInfo>();
-            }
 
             JitCodeHeapInfo[] result = new JitCodeHeapInfo[needed];
             fixed (JitCodeHeapInfo* ptr = result)
@@ -697,9 +617,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     SOSHandleEnum result = new(_library, ptrEnum);
                     int count = result.Release();
                     if (count == 0)
-                    {
                         throw new InvalidOperationException($"We expected to borrow a reference from GetHandleEnumForTypes, but instead fully released the object!");
-                    }
 
                     return result;
                 }
@@ -716,9 +634,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 SOSHandleEnum result = new(_library, ptrEnum);
                 int count = result.Release();
                 if (count == 0)
-                {
                     throw new InvalidOperationException($"We expected to borrow a reference from GetHandleEnum, but instead fully released the object!");
-                }
 
                 return result;
             }
@@ -735,9 +651,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 SOSStackRefEnum result = new(_library, ptrEnum);
                 int count = result.Release();
                 if (count == 0)
-                {
                     throw new InvalidOperationException($"We expected to borrow a reference from GetStackReferences, but instead fully released the object!");
-                }
 
                 return result;
             }
@@ -749,9 +663,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.GetMethodDescFromToken(Self, module, token, out ClrDataAddress md);
             if (hr)
-            {
                 return md;
-            }
 
             return 0;
         }

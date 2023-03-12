@@ -65,18 +65,14 @@ namespace Microsoft.Diagnostics.Runtime
                         {
                             (int timeStamp, int fileSize) = info.DacPEProperties;
                             if (timeStamp != 0 && fileSize != 0)
-                            {
                                 artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, SymbolProperties.Self, fileSize, timeStamp));
-                            }
                         }
 
                         if (dbiTargetPlatform is not null)
                         {
                             (int timeStamp, int fileSize) = info.DbiPEProperties;
                             if (timeStamp != 0 && fileSize != 0)
-                            {
                                 artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, SymbolProperties.Self, fileSize, timeStamp));
-                            }
                         }
                     }
                     else
@@ -85,20 +81,16 @@ namespace Microsoft.Diagnostics.Runtime
 
                         if (dacTargetPlatform is not null)
                         {
-                            ImmutableArray<byte> dacBuild = info.DacBuildId;
+                            var dacBuild = info.DacBuildId;
                             if (!dacBuild.IsDefaultOrEmpty)
-                            {
                                 artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, targetPlatform, SymbolProperties.Self, dacBuild));
-                            }
                         }
 
                         if (dbiTargetPlatform is not null)
                         {
-                            ImmutableArray<byte> dbiBuild = info.DbiBuildId;
+                            var dbiBuild = info.DbiBuildId;
                             if (!dbiBuild.IsDefaultOrEmpty)
-                            {
                                 artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, targetPlatform, SymbolProperties.Self, dbiBuild));
-                            }
                         }
                     }
                 }
@@ -114,9 +106,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             // Long-name dac
             if (dt.DataReader.TargetPlatform == OSPlatform.Windows && Version.Major != 0)
-            {
                 artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, GetWindowsLongNameDac(flavor, currentArch, targetArch, Version), currentArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp));
-            }
 
             // Short-name dac under CLR's properties
             if (targetPlatform == currentPlatform)
@@ -156,26 +146,18 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         DebugLibraryInfo dacLibraryInfo = new(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp);
                         if (foundLocalDac)
-                        {
                             artifacts.Insert(0, dacLibraryInfo);
-                        }
                         else
-                        {
                             artifacts.Add(dacLibraryInfo);
-                        }
                     }
 
                     if (!BuildId.IsDefaultOrEmpty)
                     {
-                        DebugLibraryInfo dacLibraryInfo = new(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, BuildId);
+                        var dacLibraryInfo = new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, BuildId);
                         if (foundLocalDac)
-                        {
                             artifacts.Insert(0, dacLibraryInfo);
-                        }
                         else
-                        {
                             artifacts.Add(dacLibraryInfo);
-                        }
                     }
                 }
 
@@ -200,40 +182,28 @@ namespace Microsoft.Diagnostics.Runtime
                     // We currently only support cross-os debugging on windows targeting linux or os x runtimes.  So if we have windows properties,
                     // then we only generate one artifact (the target one).
                     if (dacTargetPlatform is not null)
-                    {
                         artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp));
-                    }
 
                     if (dbiTargetPlatform is not null)
-                    {
                         artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, SymbolProperties.Coreclr, IndexFileSize, IndexTimeStamp));
-                    }
                 }
 
                 if (!BuildId.IsDefaultOrEmpty)
                 {
                     if (dacTargetPlatform is not null)
-                    {
                         artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, BuildId));
-                    }
 
                     if (dbiTargetPlatform is not null)
-                    {
                         artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, BuildId));
-                    }
 
                     if (currentPlatform == OSPlatform.Windows)
                     {
                         // If we are running from Windows, we can target Linux and OS X dumps. We do build cross-os, cross-architecture debug libraries to run on Windows x64 or x86
                         if (dacCurrentPlatform is not null)
-                        {
                             artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, currentArch, currentPlatform, SymbolProperties.Coreclr, BuildId));
-                        }
 
                         if (dbiCurrentPlatform is not null)
-                        {
                             artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiCurrentPlatform, currentArch, currentPlatform, SymbolProperties.Coreclr, BuildId));
-                        }
                     }
                 }
             }
@@ -246,14 +216,10 @@ namespace Microsoft.Diagnostics.Runtime
                 if (resource.dwVersion == 0)
                 {
                     if (dacTargetPlatform is not null && resource.dwDacTimeStamp != 0 && resource.dwDacSizeOfImage != 0)
-                    {
                         artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacTargetPlatform, targetArch, SymbolProperties.Self, resource.dwDacSizeOfImage, resource.dwDacTimeStamp));
-                    }
 
                     if (dbiTargetPlatform is not null && resource.dwDbiTimeStamp != 0 && resource.dwDbiSizeOfImage != 0)
-                    {
                         artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dbi, dbiTargetPlatform, targetArch, SymbolProperties.Self, resource.dwDbiSizeOfImage, resource.dwDbiTimeStamp));
-                    }
                 }
             }
 
@@ -272,12 +238,8 @@ namespace Microsoft.Diagnostics.Runtime
             HashSet<DebugLibraryInfo> seen = new();
 
             foreach (DebugLibraryInfo library in artifacts)
-            {
                 if (seen.Add(library))
-                {
                     yield return library;
-                }
-            }
         }
 
         private static string GetWindowsLongNameDac(ClrFlavor flavor, Architecture currentArchitecture, Architecture targetArchitecture, Version version)
@@ -298,27 +260,19 @@ namespace Microsoft.Diagnostics.Runtime
         internal static ClrInfo? TryCreate(DataTarget dataTarget, ModuleInfo module)
         {
             if (dataTarget is null)
-            {
                 throw new ArgumentNullException(nameof(dataTarget));
-            }
 
             if (module is null)
-            {
                 throw new ArgumentNullException(nameof(module));
-            }
 
             if (IsSupportedRuntime(module, out ClrFlavor flavor))
-            {
                 return new ClrInfo(dataTarget, flavor, module, 0);
-            }
 
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || Path.GetExtension(module.FileName).Equals(".exe", StringComparison.OrdinalIgnoreCase))
             {
                 ulong singleFileRuntimeInfo = module.GetExportSymbolAddress(ClrRuntimeInfo.SymbolValue);
                 if (singleFileRuntimeInfo != 0)
-                {
                     return new ClrInfo(dataTarget, ClrFlavor.Core, module, singleFileRuntimeInfo);
-                }
             }
 
             return null;
@@ -329,25 +283,17 @@ namespace Microsoft.Diagnostics.Runtime
             if (flavor == ClrFlavor.Core)
             {
                 if (targetPlatform == OSPlatform.Windows)
-                {
                     return c_windowsDbiFileName;
-                }
                 else if (targetPlatform == OSPlatform.Linux)
-                {
                     return c_linuxCoreDbiFileName;
-                }
                 else if (targetPlatform == OSPlatform.OSX)
-                {
                     return c_macOSCoreDbiFileName;
-                }
             }
 
             if (flavor == ClrFlavor.Desktop)
             {
                 if (targetPlatform == OSPlatform.Windows)
-                {
                     return c_windowsDbiFileName;
-                }
             }
 
             return null;
@@ -358,25 +304,17 @@ namespace Microsoft.Diagnostics.Runtime
             if (flavor == ClrFlavor.Core)
             {
                 if (targetPlatform == OSPlatform.Windows)
-                {
                     return c_coreDacFileName;
-                }
                 else if (targetPlatform == OSPlatform.Linux)
-                {
                     return c_linuxCoreDacFileName;
-                }
                 else if (targetPlatform == OSPlatform.OSX)
-                {
                     return c_macOSCoreDacFileName;
-                }
             }
 
             if (flavor == ClrFlavor.Desktop)
             {
                 if (targetPlatform == OSPlatform.Windows)
-                {
                     return c_desktopDacFileName;
-                }
             }
 
             return null;
@@ -480,9 +418,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrRuntime CreateRuntime(DacLibrary dacLibrary)
         {
             if (IntPtr.Size != DataTarget.DataReader.PointerSize)
-            {
                 throw new InvalidOperationException("Mismatched pointer size between this process and the dac.");
-            }
 
             return new ClrRuntime(this, dacLibrary);
         }
@@ -504,22 +440,16 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrRuntime CreateRuntime(string dacPath, bool ignoreMismatch)
         {
             if (string.IsNullOrEmpty(dacPath))
-            {
                 throw new ArgumentNullException(nameof(dacPath));
-            }
 
             if (!File.Exists(dacPath))
-            {
                 throw new FileNotFoundException(dacPath);
-            }
 
             if (!ignoreMismatch && !IsSingleFile)
             {
                 DataTarget.PlatformFunctions.GetFileVersion(dacPath, out int major, out int minor, out int revision, out int patch);
                 if (major != Version.Major || minor != Version.Minor || revision != Version.Build || patch != Version.Revision)
-                {
                     throw new ClrDiagnosticsException($"Mismatched dac. Dac version: {major}.{minor}.{revision}.{patch}, expected: {Version}.");
-                }
             }
 
             DacLibrary dacLibrary = new(DataTarget, dacPath, ModuleInfo.ImageBase);
@@ -533,9 +463,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrRuntime CreateRuntime()
         {
             if (IntPtr.Size != DataTarget.DataReader.PointerSize)
-            {
                 throw new InvalidOperationException("Mismatched pointer size between this process and the dac.");
-            }
 
             OSPlatform currentPlatform = GetCurrentPlatform();
             Architecture currentArch = RuntimeInformation.ProcessArchitecture;
@@ -564,24 +492,16 @@ namespace Microsoft.Diagnostics.Runtime
                         if (!dac.IndexBuildId.IsDefaultOrEmpty)
                         {
                             if (dac.Platform == OSPlatform.Windows)
-                            {
                                 dacPath = locator.FindPEImage(dac.FileName, SymbolProperties.Coreclr, dac.IndexBuildId, DataTarget.DataReader.TargetPlatform, checkProperties: false);
-                            }
                             else if (dac.Platform == OSPlatform.Linux)
-                            {
                                 dacPath = locator.FindElfImage(dac.FileName, SymbolProperties.Coreclr, dac.IndexBuildId, checkProperties: false);
-                            }
                             else if (dac.Platform == OSPlatform.OSX)
-                            {
                                 dacPath = locator.FindMachOImage(dac.FileName, SymbolProperties.Coreclr, dac.IndexBuildId, checkProperties: false);
-                            }
                         }
                         else if (dac.IndexTimeStamp != 0 && dac.IndexFileSize != 0)
                         {
                             if (dac.Platform == OSPlatform.Windows)
-                            {
                                 dacPath = DataTarget.FileLocator?.FindPEImage(dac.FileName, dac.IndexTimeStamp, dac.IndexFileSize, checkProperties: false);
-                            }
                         }
                     }
                 }
@@ -601,15 +521,11 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             if (exception is not null)
-            {
                 throw exception;
-            }
 
             // We should have had at least one dac enumerated if this is a supported scenario.
             if (!foundOne)
-            {
                 ThrowCrossDebugError(currentPlatform);
-            }
 
             throw new FileNotFoundException("Could not find matching DAC for this runtime.");
         }
@@ -626,22 +542,13 @@ namespace Microsoft.Diagnostics.Runtime
         {
             OSPlatform currentPlatform;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
                 currentPlatform = OSPlatform.Windows;
-            }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
                 currentPlatform = OSPlatform.Linux;
-            }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
                 currentPlatform = OSPlatform.OSX;
-            }
             else
-            {
                 throw new PlatformNotSupportedException();
-            }
-
             return currentPlatform;
         }
 

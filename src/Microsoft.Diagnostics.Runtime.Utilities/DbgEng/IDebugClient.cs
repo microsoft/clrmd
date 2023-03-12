@@ -15,15 +15,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             if (dbgengDirectory is not null)
             {
                 if (!Directory.Exists(dbgengDirectory))
-                {
                     throw new DirectoryNotFoundException(dbgengDirectory);
-                }
 
                 dbgengPath = Path.Combine(dbgengDirectory, DbgEngCom.DbgEngDll);
                 if (!File.Exists(dbgengPath))
-                {
                     throw new FileNotFoundException($"Did not find {DbgEngCom.DbgEngDll} in '{dbgengPath}'.", dbgengPath);
-                }
 
                 // We will opportunistically load these dlls, but it's not fatal if missing
                 NativeMethods.LoadLibrary(Path.Combine(dbgengDirectory, "dbgcore.dll"));
@@ -32,17 +28,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
             nint dbgengBase = NativeMethods.LoadLibrary(dbgengPath);
             if (dbgengBase == 0)
-            {
                 throw new FileLoadException($"Could not load '{dbgengPath}'.");
-            }
 
             int hr = NativeMethods.DebugCreate(in DbgEngWrapper.IID_IDebugClient5, out nint pUnknown);
 
             object obj = DbgEngComWrappers.GetOrCreateObjectForComInstance(pUnknown, CreateObjectFlags.UniqueInstance);
             if (hr > 0)
-            {
                 Marshal.Release(pUnknown);
-            }
 
             return (IDisposable)obj;
         }

@@ -21,9 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             : base(library?.OwningLibrary, IID_IXCLRDataProcess, pUnknown)
         {
             if (library is null)
-            {
                 throw new ArgumentNullException(nameof(library));
-            }
 
             _library = library;
         }
@@ -39,9 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             IntPtr result = QueryInterface(SOSDac.IID_ISOSDac);
             if (result == IntPtr.Zero)
-            {
                 return null;
-            }
 
             try
             {
@@ -57,9 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             IntPtr result = QueryInterface(SOSDac6.IID_ISOSDac6);
             if (result == IntPtr.Zero)
-            {
                 return null;
-            }
 
             try
             {
@@ -75,9 +69,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             IntPtr result = QueryInterface(SOSDac8.IID_ISOSDac8);
             if (result == IntPtr.Zero)
-            {
                 return null;
-            }
 
             try
             {
@@ -93,9 +85,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             IntPtr result = QueryInterface(SOSDac12.IID_ISOSDac12);
             if (result == IntPtr.Zero)
-            {
                 return null;
-            }
 
             try
             {
@@ -111,9 +101,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             IntPtr result = QueryInterface(SOSDac13.IID_ISOSDac13);
             if (result == IntPtr.Zero)
-            {
                 return null;
-            }
 
             try
             {
@@ -134,18 +122,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             fixed (byte* pInput = input)
             fixed (byte* pOutput = output)
-            {
                 return VTable.Request(Self, reqCode, input.Length, pInput, output.Length, pOutput);
-            }
         }
 
         public ClrStackWalk? CreateStackWalk(uint id, uint flags)
         {
             HResult hr = VTable.GetTaskByOSThreadID(Self, id, out IntPtr pUnkTask);
             if (!hr)
-            {
                 return null;
-            }
 
             using ClrDataTask dataTask = new(_library, pUnkTask);
             // There's a bug in certain runtimes where we will fail to release data deep in the runtime
@@ -156,10 +140,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             ClrStackWalk? res = dataTask.CreateStackWalk(_library, flags);
             int released = Release();
             if (released == count && res is null)
-            {
                 Release();
-            }
-
             return res;
         }
 
@@ -169,16 +150,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             HResult hr = VTable.StartEnumMethodInstancesByAddress(Self, addr, IntPtr.Zero, out ClrDataAddress handle);
             if (!hr)
-            {
                 return result;
-            }
 
             try
             {
                 while (VTable.EnumMethodInstanceByAddress(Self, ref handle, out IntPtr method) == HResult.S_OK)
-                {
                     result.Add(new ClrDataMethod(_library, method));
-                }
             }
             finally
             {

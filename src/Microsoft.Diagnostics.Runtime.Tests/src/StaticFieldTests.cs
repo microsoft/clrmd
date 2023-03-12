@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrType strType = runtime.Heap.StringType;
-            System.Collections.Immutable.ImmutableArray<ClrStaticField> statics = strType.StaticFields;
+            var statics = strType.StaticFields;
             ulong valueSlot = Assert.Single(statics).GetAddress(runtime.AppDomains[0]);
             Assert.NotEqual(0ul, valueSlot);
 

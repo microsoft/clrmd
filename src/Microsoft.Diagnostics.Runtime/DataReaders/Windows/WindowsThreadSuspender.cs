@@ -51,9 +51,7 @@ namespace Microsoft.Diagnostics.Runtime.DataReaders.Windows
                         if (thread != null)
                         {
                             if (suspendedThreads.Contains(thread.Id))
-                            {
                                 continue;
-                            }
 
                             using SafeWin32Handle threadHandle = WindowsProcessDataReader.OpenThread(ThreadAccess.SUSPEND_RESUME, false, (uint)thread.Id);
                             if (threadHandle.IsInvalid || WindowsProcessDataReader.SuspendThread(threadHandle.DangerousGetHandle()) == -1)
@@ -70,9 +68,7 @@ namespace Microsoft.Diagnostics.Runtime.DataReaders.Windows
                 // If we fail to suspend any thread then we didn't have permission.  We'll throw an exception in that case.  If
                 // we fail to suspend a few of the threads we'll treat that as non-fatal.
                 if (permissionFailure && suspendedThreads.Count == 0)
-                {
                     throw new InvalidOperationException($"Unable to suspend threads of process {_pid:x}.");
-                }
 
                 int[] result = suspendedThreads.ToArray();
                 suspendedThreads = null;
@@ -81,9 +77,7 @@ namespace Microsoft.Diagnostics.Runtime.DataReaders.Windows
             finally
             {
                 if (suspendedThreads != null)
-                {
                     ResumeThreads(suspendedThreads);
-                }
             }
         }
 

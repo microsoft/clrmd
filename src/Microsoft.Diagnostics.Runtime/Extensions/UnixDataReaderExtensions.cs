@@ -16,9 +16,7 @@ namespace Microsoft.Diagnostics.Runtime
             foreach (ElfProgramHeader programHeader in loadedFile.ProgramHeaders)
             {
                 if (programHeader.Type == ElfProgramHeaderType.Load && programHeader.IsWritable)
-                {
                     return GetVersionInfo(dataReader, baseAddress + programHeader.VirtualAddress, programHeader.VirtualSize, out version);
-                }
             }
 
             version = null;
@@ -81,27 +79,19 @@ namespace Microsoft.Diagnostics.Runtime
 
                     curr = 0;
                     if (i == span.Length)
-                    {
                         break;
-                    }
 
                     if (++position == 4 || span[i] == ' ')
-                    {
                         break;
-                    }
                 }
 
                 // skip bits like "-beta"
                 if ('0' <= span[i] && span[i] <= '9')
-                {
                     curr = curr * 10 + (span[i] - '0');
-                }
 
                 // In this case I don't know what we are parsing but it's not a version
                 if (curr > int.MaxValue)
-                {
                     return null;
-                }
             }
 
             return new System.Version(major, minor, rev, patch);

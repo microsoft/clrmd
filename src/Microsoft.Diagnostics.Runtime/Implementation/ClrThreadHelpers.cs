@@ -28,9 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             using SOSStackRefEnum? stackRefEnum = _sos.EnumerateStackRefs(thread.OSThreadId);
             if (stackRefEnum is null)
-            {
                 yield break;
-            }
 
             ClrStackFrame[] stack = thread.EnumerateStackTrace().Take(2048).ToArray();
 
@@ -46,9 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 for (uint i = 0; i < fetched && i < refs.Length; ++i)
                 {
                     if (refs[i].Object == 0)
-                    {
                         continue;
-                    }
 
                     bool interior = (refs[i].Flags & GCInteriorFlag) == GCInteriorFlag;
                     bool isPinned = (refs[i].Flags & GCPinnedFlag) == GCPinnedFlag;
@@ -64,15 +60,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                         // If not, this may be a pointer to an object.
                         if (segment is null && DataReader.ReadPointer(obj, out obj))
-                        {
                             segment = heap.GetSegmentByAddress(obj);
-                        }
 
                         // Only yield return if we find a valid object on the heap
                         if (segment is not null)
-                        {
                             yield return new ClrStackRoot(refs[i].Address, heap.GetObject(obj), isInterior: true, isPinned: isPinned, heap: heap, frame: frame);
-                        }
                     }
                     else
                     {
@@ -89,9 +81,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             using ClrStackWalk? stackwalk = _dac.CreateStackWalk(thread.OSThreadId, 0xf);
             if (stackwalk is null)
-            {
                 yield break;
-            }
 
             int ipOffset;
             int spOffset;
@@ -130,9 +120,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 do
                 {
                     if (!stackwalk.GetContext(contextFlags, contextSize, out _, context))
-                    {
                         break;
-                    }
 
                     ulong ip = context.AsSpan().AsPointer(ipOffset);
                     ulong sp = context.AsSpan().AsPointer(spOffset);
@@ -173,9 +161,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 ulong md = _sos.GetMethodDescPtrFromFrame(sp);
                 if (md != 0)
-                {
                     innerMethod = runtime.GetMethodByHandle(md);
-                }
 
                 return new ClrStackFrame(thread, context, ip, sp, ClrStackFrameKind.Runtime, innerMethod, frameName);
             }

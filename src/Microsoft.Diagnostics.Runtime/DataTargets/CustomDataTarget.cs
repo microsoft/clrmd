@@ -66,9 +66,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (disposing)
             {
                 if (DataReader is IDisposable disposable)
-                {
                     disposable.Dispose();
-                }
             }
         }
 

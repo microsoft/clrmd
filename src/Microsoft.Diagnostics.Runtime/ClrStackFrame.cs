@@ -71,9 +71,7 @@ namespace Microsoft.Diagnostics.Runtime
         public override string? ToString()
         {
             if (Kind == ClrStackFrameKind.ManagedMethod)
-            {
                 return Method?.Signature;
-            }
 
             int methodLen = 0;
             int methodTypeLen = 0;
@@ -82,9 +80,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 methodLen = Method?.Name?.Length ?? 0;
                 if (Method?.Type?.Name != null)
-                {
                     methodTypeLen = Method.Type.Name.Length;
-                }
             }
 
             int frameLen = FrameName?.Length ?? 0;

@@ -27,9 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS.Structs
             get
             {
                 fixed (byte* ptr = SegName)
-                {
                     return Encoding.ASCII.GetString(ptr, 16).TrimEnd((char)0);
-                }
             }
         }
     }

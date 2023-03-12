@@ -23,9 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.GetILAddressMap(Self, 0, out uint needed, null);
             if (!hr)
-            {
                 return null;
-            }
 
             ILToNativeMap[] map = new ILToNativeMap[needed];
 

@@ -31,25 +31,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // We won't recover from Module being null, so we'll return an empty params list from that.
             ClrModule? module = Module;
             if (module is null)
-            {
                 yield break;
-            }
 
             // We'll return default if we can't get MetdataImport.  This effectively means we'll try again
             // to get MetadataImport later.
             MetadataImport? import = module.MetadataImport;
             if (import == null)
-            {
                 yield break;
-            }
 
             foreach (int token in import.EnumerateGenericParams(MetadataToken))
-            {
                 if (import.GetGenericParamProps(token, out int index, out GenericParameterAttributes attributes, out string? name))
-                {
                     yield return new ClrGenericParameter(token, index, attributes, name);
-                }
-            }
         }
 
         public override string? Name
@@ -63,18 +55,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 {
                     // GetTypeName returns whether the value should be cached or not.
                     if (!Helpers.TryGetTypeName(MethodTable, out string? name))
-                    {
                         return name;
-                    }
 
                     // Cache the result or "string.Empty" for null.
                     _name = name ?? string.Empty;
                 }
 
                 if (_name.Length == 0)
-                {
                     return null;
-                }
 
                 return _name;
             }
@@ -113,9 +101,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             // If there are no methods, preempt the expensive work to create methods
             if (data.NumMethods == 0)
-            {
                 _methods = ImmutableArray<ClrMethod>.Empty;
-            }
 
             DebugOnlyLoadLazyValues();
         }
@@ -131,15 +117,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private GCDesc GetOrCreateGCDesc()
         {
             if (!ContainsPointers || !_gcDesc.IsEmpty)
-            {
                 return _gcDesc;
-            }
 
             IDataReader reader = Helpers.DataReader;
             if (reader is null)
-            {
                 return default;
-            }
 
             DebugOnly.Assert(MethodTable != 0, "Attempted to fill GC desc with a constructed (not real) type.");
             if (!reader.Read(MethodTable - (ulong)IntPtr.Size, out int entries))
@@ -150,9 +132,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             // Get entries in map
             if (entries < 0)
-            {
                 entries = -entries;
-            }
 
             int slots = 1 + entries * 2;
             byte[] buffer = new byte[slots * IntPtr.Size];
@@ -172,9 +152,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             MetadataImport? import = Module?.MetadataImport;
             if (import is null)
-            {
                 yield break;
-            }
 
             foreach (int token in import.EnumerateInterfaceImpls(MetadataToken))
             {
@@ -182,9 +160,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 {
                     ClrInterface? result = GetInterface(import, mdIFace);
                     if (result != null)
-                    {
                         yield return result;
-                    }
                 }
             }
         }
@@ -202,9 +178,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 ClrInterface? type = null;
                 if (extends != 0 && extends != 0x01000000)
-                {
                     type = GetInterface(import, extends);
-                }
 
                 result = new ClrInterface(name, type);
             }
@@ -215,35 +189,23 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private ClrElementType GetElementType()
         {
             if (_elementType != ClrElementType.Unknown)
-            {
                 return _elementType;
-            }
 
             if (this == Heap.ObjectType)
-            {
                 return _elementType = ClrElementType.Object;
-            }
 
             if (this == Heap.StringType)
-            {
                 return _elementType = ClrElementType.String;
-            }
 
             if (ComponentSize > 0)
-            {
                 return _elementType = StaticSize > (uint)(3 * IntPtr.Size) ? ClrElementType.Array : ClrElementType.SZArray;
-            }
 
             ClrType? baseType = BaseType;
             if (baseType is null)
-            {
                 return _elementType = ClrElementType.Object;
-            }
 
             if (baseType == Heap.ObjectType)
-            {
                 return _elementType = ClrElementType.Class;
-            }
 
             if (baseType.Name != "System.ValueType")
             {
@@ -278,16 +240,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 ClrType? type = this;
                 while (type != null)
-                {
                     if (type == Heap.ExceptionType)
-                    {
                         return true;
-                    }
                     else
-                    {
                         type = type.BaseType;
-                    }
-                }
 
                 return false;
             }
@@ -298,12 +254,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             get
             {
                 for (ClrType? type = this; type != null; type = type.BaseType)
-                {
                     if (type.Name == "System.Enum")
-                    {
                         return true;
-                    }
-                }
 
                 return false;
             }
@@ -312,9 +264,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ClrEnum AsEnum()
         {
             if (!IsEnum)
-            {
                 throw new InvalidOperationException($"{Name ?? nameof(ClrType)} is not an enum.  You must call {nameof(ClrType.IsEnum)} before using {nameof(AsEnum)}.");
-            }
 
             return new ClrEnum(this);
         }
@@ -341,9 +291,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             get
             {
                 if (_loaderAllocatorHandle != ulong.MaxValue - 1)
-                {
                     return _loaderAllocatorHandle;
-                }
 
                 ulong handle = Helpers.GetLoaderAllocatorHandle(MethodTable);
                 _loaderAllocatorHandle = handle;
@@ -356,9 +304,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             get
             {
                 if (_assemblyLoadContextHandle != ulong.MaxValue - 1)
-                {
                     return _assemblyLoadContextHandle;
-                }
 
                 return _assemblyLoadContextHandle = Helpers.GetAssemblyLoadContextAddress(MethodTable);
             }
@@ -375,9 +321,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ulong GetArrayElementAddress(ulong objRef, int index)
         {
             if (ComponentSize == 0)
-            {
                 throw new InvalidOperationException($"{Name} is not an array.");
-            }
 
             if (_baseArrayOffset == 0)
             {
@@ -392,9 +336,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 else if (componentType != null)
                 {
                     if (!componentType.IsObjectReference)
-                    {
                         _baseArrayOffset = IntPtr.Size * 2;
-                    }
                 }
                 else
                 {
@@ -408,9 +350,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override T[]? ReadArrayElements<T>(ulong objRef, int start, int count)
         {
             if (ComponentSize == 0)
-            {
                 throw new InvalidOperationException($"{Name} is not an array.");
-            }
 
             ulong address = GetArrayElementAddress(objRef, start);
             ClrType? componentType = ComponentType;
@@ -426,22 +366,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
 
             if (cet == ClrElementType.Unknown)
-            {
                 return null;
-            }
 
             if (address == 0)
-            {
                 return null;
-            }
 
-            T[] values = new T[count];
+            var values = new T[count];
             Span<byte> buffer = MemoryMarshal.Cast<T, byte>(values);
 
             if (DataReader.Read(address, buffer) == buffer.Length)
-            {
                 return values;
-            }
 
             return null;
         }
@@ -452,9 +386,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private void InitFlags()
         {
             if (_attributes != 0 || Module is null)
-            {
                 return;
-            }
 
             MetadataImport? import = Module?.MetadataImport;
             if (import is null)
@@ -464,9 +396,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
 
             if (!import.GetTypeDefAttributes(MetadataToken, out _attributes) || _attributes == 0)
-            {
                 _attributes = (TypeAttributes)0x70000000;
-            }
         }
 
         public override TypeAttributes TypeAttributes
@@ -474,10 +404,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             get
             {
                 if (_attributes == 0)
-                {
                     InitFlags();
-                }
-
                 return _attributes;
             }
         }

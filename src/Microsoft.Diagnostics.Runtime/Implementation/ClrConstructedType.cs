@@ -26,18 +26,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (IsPointer)
                 {
                     for (int i = 0; i < _ranks; i++)
-                    {
                         sb.Append('*');
-                    }
                 }
                 else
                 {
                     sb.Append('[');
                     for (int i = 0; i < _ranks - 1; i++)
-                    {
                         sb.Append(',');
-                    }
-
                     sb.Append(']');
                 }
 
@@ -53,9 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _ranks = ranks;
 
             if (ranks <= 0)
-            {
                 throw new ArgumentException($"{nameof(ranks)} must be 1 or greater.");
-            }
 
             _fields = ImmutableArray<ClrInstanceField>.Empty;
             _staticFields = ImmutableArray<ClrStaticField>.Empty;

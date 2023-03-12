@@ -37,15 +37,11 @@ namespace Microsoft.Diagnostics.Runtime
                 Process process = Process.GetProcessById(processId);
                 int hr = PssCaptureSnapshot(process.Handle, PSS_CAPTURE_FLAGS.PSS_CAPTURE_VA_CLONE, IntPtr.Size == 8 ? 0x0010001F : 0x0001003F, out _snapshotHandle);
                 if (hr != 0)
-                {
                     throw new InvalidOperationException($"Could not create snapshot to process. Error {hr}.");
-                }
 
                 hr = PssQuerySnapshot(_snapshotHandle, PSS_QUERY_INFORMATION_CLASS.PSS_QUERY_VA_CLONE_INFORMATION, out _cloneHandle, IntPtr.Size);
                 if (hr != 0)
-                {
                     throw new InvalidOperationException($"Could not create snapshot to process. Error {hr}.");
-                }
 
                 ProcessId = GetProcessId(_cloneHandle);
             }
@@ -59,9 +55,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (_process == IntPtr.Zero)
             {
                 if (!WindowsFunctions.IsProcessRunning(ProcessId))
-                {
                     throw new ArgumentException($"Process {processId} is not running.");
-                }
 
                 int hr = Marshal.GetLastWin32Error();
                 throw new ArgumentException($"Could not attach to process {processId}, error: {hr:x}");
@@ -76,9 +70,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             if (mode == WindowsProcessDataReaderMode.Suspend)
-            {
                 _suspension = new WindowsThreadSuspender(ProcessId);
-            }
         }
 
         private void Dispose(bool _)
@@ -97,15 +89,11 @@ namespace Microsoft.Diagnostics.Runtime
                     DebugOnly.Assert(hr == 0);
 
                     if (hr != 0)
-                    {
                         Trace.WriteLine($"Unable to free the snapshot of the process we took: hr={hr}");
-                    }
                 }
 
                 if (_process != IntPtr.Zero)
-                {
                     WindowsFunctions.NativeMethods.CloseHandle(_process);
-                }
 
                 if (_originalPid != 0)
                 {
@@ -152,9 +140,7 @@ namespace Microsoft.Diagnostics.Runtime
             IntPtr[] modules = new IntPtr[needed / IntPtr.Size];
 
             if (!EnumProcessModules(_process, modules, needed, out _))
-            {
                 throw new InvalidOperationException("Unable to get process modules.");
-            }
 
             List<ModuleInfo> result = new(modules.Length);
 
@@ -174,9 +160,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 Version? version = null;
                 if (DataTarget.PlatformFunctions.GetFileVersion(fileName, out int major, out int minor, out int revision, out int patch))
-                {
                     version = new Version(major, minor, revision, patch);
-                }
 
                 ModuleInfo module = new PEModuleInfo(this, baseAddr, fileName, true, timestamp, filesize, version);
                 result.Add(module);
@@ -210,9 +194,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             bool amd64 = Architecture == Architecture.X64;
             if (context.Length < 4 || (amd64 && context.Length < 0x34))
-            {
                 return false;
-            }
 
             if (amd64)
             {
@@ -233,14 +215,10 @@ namespace Microsoft.Diagnostics.Runtime
 
             using SafeWin32Handle thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadID);
             if (thread.IsInvalid)
-            {
                 return false;
-            }
 
             fixed (byte* ptr = context)
-            {
                 return GetThreadContext(thread.DangerousGetHandle(), new IntPtr(ptr));
-            }
         }
 
         private void GetFileProperties(ulong moduleBase, out int filesize, out int timestamp)
@@ -267,14 +245,10 @@ namespace Microsoft.Diagnostics.Runtime
                         const int timeDataOffset = 4;
                         const int imageSizeOffset = 0x4c;
                         if (Read(moduleBase + sigOffset + (ulong)sigLength + timeDataOffset, buffer) == buffer.Length)
-                        {
                             timestamp = buffer.AsInt32();
-                        }
 
                         if (Read(moduleBase + sigOffset + (ulong)sigLength + imageSizeOffset, buffer) == buffer.Length)
-                        {
                             filesize = buffer.AsInt32();
-                        }
                     }
                 }
             }

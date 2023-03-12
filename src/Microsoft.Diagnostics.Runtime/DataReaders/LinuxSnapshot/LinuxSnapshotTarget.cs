@@ -55,9 +55,7 @@ namespace Microsoft.Diagnostics.Runtime
             finally
             {
                 if (dumpPath != null)
-                {
                     File.Delete(dumpPath);
-                }
             }
         }
     }

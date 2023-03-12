@@ -27,9 +27,7 @@ namespace Microsoft.Diagnostics.Runtime
         internal ClrException(IClrTypeHelpers helpers, ClrThread? thread, ClrObject obj)
         {
             if (obj.IsNull)
-            {
                 throw new InvalidOperationException($"Cannot construct a ClrException from a null object.");
-            }
 
             _helpers = helpers ?? throw new ArgumentNullException(nameof(helpers));
             _object = obj;
@@ -65,21 +63,15 @@ namespace Microsoft.Diagnostics.Runtime
                 uint offset = GetMessageOffset(Type);
                 DebugOnly.Assert(offset != uint.MaxValue);
                 if (offset == 0)
-                {
                     return null;
-                }
 
                 ulong address = _helpers.DataReader.ReadPointer(Address + offset);
                 if (address == 0)
-                {
                     return null;
-                }
 
                 ClrObject obj = _helpers.Heap.GetObject(address);
                 if (obj.IsValid)
-                {
                     return obj.AsString();
-                }
 
                 return null;
             }
@@ -96,16 +88,12 @@ namespace Microsoft.Diagnostics.Runtime
                 DebugOnly.Assert(offset != uint.MaxValue);
 
                 if (offset == 0)
-                {
                     return null;
-                }
 
                 ulong address = _helpers.DataReader.ReadPointer(Address + offset);
                 ClrObject obj = _helpers.Heap.GetObject(address);
                 if (obj.IsNull)
-                {
                     return null;
-                }
 
                 return obj.AsException();
             }
@@ -122,9 +110,7 @@ namespace Microsoft.Diagnostics.Runtime
                 DebugOnly.Assert(offset != uint.MaxValue);
 
                 if (offset == 0)
-                {
                     return 0;
-                }
 
                 DebugOnly.Assert(offset != uint.MaxValue);
                 return _helpers.DataReader.Read<int>(Address + offset);
@@ -157,9 +143,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrField? field = type?.Fields.FirstOrDefault(f => f.Name == "_stackTrace");
 
             if (field != null && field.Offset >= 0)
-            {
                 return (uint)(field.Offset + IntPtr.Size);
-            }
 
             uint result = _helpers.Heap.Runtime.ClrInfo.Flavor switch
             {
@@ -188,9 +172,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrField? field = type?.Fields.FirstOrDefault(f => f.Name == "_innerException");
 
             if (field != null && field.Offset >= 0)
-            {
                 return (uint)(field.Offset + IntPtr.Size);
-            }
 
             uint result = _helpers.Heap.Runtime.ClrInfo.Flavor switch
             {
@@ -219,9 +201,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrField? field = type?.Fields.FirstOrDefault(f => f.Name == "_HResult");
 
             if (field != null && field.Offset >= 0)
-            {
                 return (uint)(field.Offset + IntPtr.Size);
-            }
 
             uint result = _helpers.Heap.Runtime.ClrInfo.Flavor switch
             {
@@ -250,9 +230,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrField? field = type?.Fields.FirstOrDefault(f => f.Name == "_message");
 
             if (field != null && field.Offset >= 0)
-            {
                 return (uint)(field.Offset + IntPtr.Size);
-            }
 
             uint result = _helpers.Heap.Runtime.ClrInfo.Flavor switch
             {
@@ -281,30 +259,22 @@ namespace Microsoft.Diagnostics.Runtime
             uint offset = GetStackTraceOffset(obj.Type);
             DebugOnly.Assert(offset != uint.MaxValue);
             if (offset == 0)
-            {
                 return ImmutableArray<ClrStackFrame>.Empty;
-            }
 
             ulong address = _helpers.DataReader.ReadPointer(obj.Address + offset);
             ClrObject _stackTrace = _helpers.Heap.GetObject(address);
 
             if (_stackTrace.IsNull)
-            {
                 return ImmutableArray<ClrStackFrame>.Empty;
-            }
 
             int len = _stackTrace.AsArray().Length;
             if (len == 0)
-            {
                 return ImmutableArray<ClrStackFrame>.Empty;
-            }
 
             int elementSize = IntPtr.Size * 4;
             ulong dataPtr = _stackTrace + (ulong)(IntPtr.Size * 2);
             if (!_helpers.DataReader.ReadPointer(dataPtr, out ulong count))
-            {
                 return ImmutableArray<ClrStackFrame>.Empty;
-            }
 
             ImmutableArray<ClrStackFrame>.Builder result = ImmutableArray.CreateBuilder<ClrStackFrame>((int)count);
             result.Count = result.Capacity;

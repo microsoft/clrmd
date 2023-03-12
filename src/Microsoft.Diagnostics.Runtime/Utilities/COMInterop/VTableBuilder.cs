@@ -37,21 +37,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public void AddMethod(Delegate func, bool validate = false)
         {
             if (func is null)
-            {
                 throw new ArgumentNullException(nameof(func));
-            }
 
             if (_complete)
-            {
                 throw new InvalidOperationException();
-            }
 
             if (_forceValidation || validate)
             {
                 if (func.Method.GetParameters().First().ParameterType != typeof(IntPtr))
-                {
                     throw new InvalidOperationException();
-                }
             }
 
             _delegates.Add(func);
@@ -65,9 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public IntPtr Complete()
         {
             if (_complete)
-            {
                 throw new InvalidOperationException();
-            }
 
             _complete = true;
 
@@ -83,9 +75,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             *vtable++ = new IntPtr(iunk.Release);
 
             foreach (Delegate d in _delegates)
-            {
                 *vtable++ = Marshal.GetFunctionPointerForDelegate(d);
-            }
 
             _wrapper.RegisterInterface(_guid, obj, _delegates);
             return obj;

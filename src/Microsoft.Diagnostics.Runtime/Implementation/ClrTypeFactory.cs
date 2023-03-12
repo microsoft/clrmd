@@ -50,9 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 {
                     int token = 0;
                     if (_sos.GetMethodTableData(_commonMTs.StringMethodTable, out MethodTableData mtd))
-                    {
                         token = (int)mtd.Token;
-                    }
 
                     stringType = new ClrStringType(_objectHelpers, _heap, _commonMTs.StringMethodTable, token);
                 }
@@ -75,21 +73,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (mtd.ParentMethodTable != 0)
             {
                 lock (_types)
-                {
                     if (!_types.TryGetValue(mtd.ParentMethodTable, out baseType))
-                    {
                         throw new InvalidOperationException($"Base type for '{typeName}' was not pre-created from MethodTable {mtd.ParentMethodTable:x}.");
-                    }
-                }
             }
 
             ClrDacType result = new(_objectHelpers, heap, baseType, null, bcl, mt, mtd, typeName);
 
             // Regardless of caching options, we always cache important system types and basic types
             lock (_types)
-            {
                 _types[mt] = result;
-            }
 
             return result;
         }
@@ -97,9 +89,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public ClrType? GetOrCreateType(ulong mt, ulong obj)
         {
             if (mt == 0)
-            {
                 return null;
-            }
 
             // Remove marking bit.
             mt &= ~1ul;
@@ -108,34 +98,26 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (existing != null)
             {
                 if (obj != 0 && existing.ComponentSize != 0 && existing.ComponentType is null && existing is ClrDacType type)
-                {
                     type.SetComponentType(TryGetComponentType(obj));
-                }
 
                 return existing;
             }
 
             if (!_sos.GetMethodTableData(mt, out MethodTableData mtd))
-            {
                 return null;
-            }
 
             ClrType? baseType = GetOrCreateType(mtd.ParentMethodTable, 0);
             ClrModule? module = GetModule(mtd.Module);
             ClrType? componentType = null;
 
             if (obj != 0 && mtd.ComponentSize != 0)
-            {
                 componentType = TryGetComponentType(obj);
-            }
 
             ClrType result = new ClrDacType(_objectHelpers, _heap, baseType, componentType, module, mt, mtd);
             if (_options.CacheTypes)
             {
                 lock (_types)
-                {
                     _types[mt] = result;
-                }
             }
 
             return result;
@@ -155,14 +137,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // ECMA 335 - II.23.2.12 - Type
 
             if (!parser.GetElemType(out ClrElementType etype))
-            {
                 return null;
-            }
 
             if (etype.IsPrimitive() || etype == ClrElementType.Void || etype == ClrElementType.Object || etype == ClrElementType.String)
-            {
                 return GetOrCreateBasicType(etype);
-            }
 
             if (etype == ClrElementType.Array)
             {
@@ -171,35 +149,21 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 // II.23.2.13
                 if (!parser.GetData(out int rank))
-                {
                     return null;
-                }
 
                 if (!parser.GetData(out int numSizes))
-                {
                     return null;
-                }
 
                 for (int i = 0; i < numSizes; i++)
-                {
                     if (!parser.GetData(out _))
-                    {
                         return null;
-                    }
-                }
 
                 if (!parser.GetData(out int numLowBounds))
-                {
                     return null;
-                }
 
                 for (int i = 0; i < numLowBounds; i++)
-                {
                     if (!parser.GetData(out _))
-                    {
                         return null;
-                    }
-                }
 
                 // We should probably use sizes and lower bounds, but this is so rare I won't worry about it for now
                 ClrType? result = GetOrCreateArrayType(innerType, rank);
@@ -209,9 +173,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (etype == ClrElementType.Class || etype == ClrElementType.Struct)
             {
                 if (!parser.GetToken(out int token))
-                {
                     return null;
-                }
 
                 ClrType? result = module != null ? GetOrCreateTypeFromToken(module, token) : null;
                 result ??= GetOrCreateBasicType(etype);
@@ -222,9 +184,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (etype == ClrElementType.FunctionPointer)
             {
                 if (!parser.GetToken(out _))
-                {
                     return null;
-                }
 
                 // We don't have a type for function pointers so we'll make it a void pointer
                 ClrType inner = GetOrCreateBasicType(ClrElementType.Void);
@@ -234,25 +194,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (etype == ClrElementType.GenericInstantiation)
             {
                 if (!parser.GetElemType(out ClrElementType _))
-                {
                     return null;
-                }
 
                 if (!parser.GetToken(out int token))
-                {
                     return null;
-                }
 
                 if (!parser.GetData(out int count))
-                {
                     return null;
-                }
 
                 // Even though we don't make use of these types we need to move past them in the parser.
                 for (int i = 0; i < count; i++)
-                {
                     GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters);
-                }
 
                 ClrType? result = GetOrCreateTypeFromToken(module, token);
                 return result;
@@ -261,15 +213,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (etype == ClrElementType.MVar || etype == ClrElementType.Var)
             {
                 if (!parser.GetData(out int index))
-                {
                     return null;
-                }
 
                 ClrGenericParameter[] param = (etype == ClrElementType.Var ? typeParameters : methodParameters).ToArray();
                 if (index < 0 || index >= param.Length)
-                {
                     return null;
-                }
 
                 return new ClrGenericType(_objectHelpers, _heap, module, param[index]);
             }
@@ -277,9 +225,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (etype == ClrElementType.Pointer)
             {
                 if (!parser.SkipCustomModifiers())
-                {
                     return null;
-                }
 
                 ClrType? innerType = GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters) ?? GetOrCreateBasicType(ClrElementType.Void);
                 return GetOrCreatePointerType(innerType, 1);
@@ -288,9 +234,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (etype == ClrElementType.SZArray)
             {
                 if (!parser.SkipCustomModifiers())
-                {
                     return null;
-                }
 
                 ClrType? innerType = GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters) ?? GetOrCreateBasicType(ClrElementType.Void);
                 return GetOrCreateArrayType(innerType, 1);
@@ -303,23 +247,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public ClrType? GetOrCreateTypeFromToken(ClrModule? module, int token)
         {
             if (module is null)
-            {
                 return null;
-            }
 
             IEnumerable<(ulong MethodTable, int Token)> tokenMap;
             if ((token & mdtTypeDef) != 0)
-            {
                 tokenMap = module.EnumerateTypeDefToMethodTableMap();
-            }
             else if ((token & mdtTypeRef) != 0)
-            {
                 tokenMap = module.EnumerateTypeRefToMethodTableMap();
-            }
             else
-            {
                 return null;
-            }
 
             ulong mt = tokenMap.FirstOrDefault(r => r.Token == token).MethodTable;
 
@@ -336,14 +272,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (_sos.GetObjectData(obj, out ObjectData data))
             {
                 if (data.ElementTypeHandle != 0)
-                {
                     result = GetOrCreateType(data.ElementTypeHandle, 0);
-                }
 
                 if (result is null && data.ElementType != 0)
-                {
                     result = GetOrCreateBasicType((ClrElementType)data.ElementType);
-                }
             }
 
             return result;
@@ -355,9 +287,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             // We'll assume 'Class' is just System.Object
             if (basicType == ClrElementType.Class)
-            {
                 basicType = ClrElementType.Object;
-            }
 
             ClrType?[]? basicTypes = _basicTypes;
             if (basicTypes is null)
@@ -396,9 +326,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                             count++;
 
                             if (count == 16)
-                            {
                                 break;
-                            }
                         }
                     }
                 }
@@ -411,15 +339,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             int index = (int)basicType - 1;
             if (index < 0 || index > basicTypes.Length)
-            {
                 throw new ArgumentException($"Cannot create type for ClrElementType {basicType}");
-            }
 
             ClrType? result = basicTypes[index];
             if (result is not null)
-            {
                 return result;
-            }
 
             return basicTypes[index] = new ClrPrimitiveType(_objectHelpers, bcl, _heap, basicType);
         }
@@ -428,11 +352,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             if (_modules is null)
             {
-                Dictionary<ulong, ClrModule> modules = _heap.Runtime.EnumerateModules().ToDictionary(k => k.Address, v => v);
+                var modules = _heap.Runtime.EnumerateModules().ToDictionary(k => k.Address, v => v);
                 Interlocked.CompareExchange(ref _modules, modules, null);
             }
 
-            _modules.TryGetValue(moduleAddress, out ClrModule? module);
+            _modules.TryGetValue(moduleAddress, out var module);
             return module;
         }
     }

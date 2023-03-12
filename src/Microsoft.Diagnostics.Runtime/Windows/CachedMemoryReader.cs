@@ -52,9 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 // of memory (in the extreme we can end using 64k of VM to store < 100 bytes), in this case we will force the cache technology to be the array pool.
                 int segmentsBelow64K = _segments.Sum((hs) => hs.Size < sysInfo.dwAllocationGranularity ? 1 : 0);
                 if (segmentsBelow64K > (int)(_segments.Length * 0.80))
-                {
                     CacheTechnology = CacheTechnology.ArrayPool;
-                }
             }
 
             if ((CacheTechnology == CacheTechnology.AWE) &&
@@ -75,9 +73,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 // Force the cache entry creation, this is because the AWE factory will read the heap segment data from the file into physical memory, it is FAR
                 // better for perf if we read it all in one continuous go instead of piece-meal as needed and it allows us to elide locks on the first level of the cache.
                 foreach (MinidumpSegment segment in _segments)
-                {
                     _cachedMemorySegments.CreateAndAddEntry(segment);
-                }
 
                 // We are done using the shared segment so we can release it now
                 cacheEntryFactory.DeleteSharedSegment();
@@ -90,9 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 // Force creation of empty entries for each segment, this won't map the data in from disk but it WILL prevent us from needing to take any locks at the first level of the cache
                 // (the individual entries, when asked for data requiring page-in or when evicting data in page-out will still take locks for consistency).
                 foreach (MinidumpSegment segment in _segments)
-                {
                     _cachedMemorySegments.CreateAndAddEntry(segment);
-                }
             }
         }
 
@@ -109,9 +103,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public override unsafe int Read(ulong address, Span<byte> buffer)
         {
             fixed (void* pBuffer = buffer)
-            {
                 return TryReadMemory(address, buffer.Length, new IntPtr(pBuffer));
-            }
         }
 
         internal int TryReadMemory(ulong address, int byteCount, IntPtr buffer)
@@ -121,9 +113,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             // quick check if the address is before our first segment or after our last
             if ((address < segments[0].VirtualAddress) || (address > (lastKnownSegment.VirtualAddress + lastKnownSegment.Size)))
-            {
                 return 0;
-            }
 
             int curSegmentIndex = -1;
             MinidumpSegment targetSegment;
@@ -145,16 +135,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 {
                     // It would be beyond the end of the memory segments we have
                     if (memorySegmentStartIndex == ~segments.Length)
-                    {
                         return 0;
-                    }
 
                     // This is the index of the first segment of memory whose start address is GREATER than the given address.
                     int insertionIndex = ~memorySegmentStartIndex;
                     if (insertionIndex == 0)
-                    {
                         return 0;
-                    }
 
                     // Grab the segment before this one, as it must be the one that contains this address
                     curSegmentIndex = insertionIndex - 1;
@@ -166,9 +152,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             // This can only be true if we went into the else block above, located a segment BEYOND the given address, backed up one segment and the address
             // isn't inside that segment. This means we don't have the requested memory in the dump.
             if (address > targetSegment.End)
-            {
                 return 0;
-            }
 
             IntPtr insertionPtr = buffer;
             int totalBytes = 0;
@@ -227,9 +211,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             // NOTE: We assume the caller has triggered cachedMemorySegments initialization in the fetching of the MemorySegmentData they have given us
             if (_cachedMemorySegments.TryGetCacheEntry(memorySegment.VirtualAddress, out SegmentCacheEntry? entry))
-            {
                 return entry!;
-            }
 
             return _cachedMemorySegments.CreateAndAddEntry(memorySegment);
         }
@@ -245,9 +227,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             _cachedMemorySegments.Dispose();
             if (!_leaveOpen)
-            {
                 _rvaStream?.Dispose();
-            }
         }
     }
 }

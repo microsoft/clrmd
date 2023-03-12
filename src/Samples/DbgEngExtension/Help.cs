@@ -29,9 +29,7 @@ namespace DbgEngExtension
         public void Show(string command)
         {
             if (string.IsNullOrWhiteSpace(command))
-            {
                 command = "help";
-            }
 
             string help = GetRawHelp(command);
             help = ReplaceVariables(help);
@@ -43,9 +41,9 @@ namespace DbgEngExtension
             int index = command.IndexOf('$');
             while (index > 0 && index < command.Length - 1)
             {
-                ReadOnlySpan<char> span = command.AsSpan(index);
+                var span = command.AsSpan(index);
 
-                foreach ((string name, string replacement) in Replacements)
+                foreach (var (name, replacement) in Replacements)
                 {
                     if (span.Length >= name.Length && name.AsSpan().SequenceEqual(span[..name.Length]))
                     {
@@ -62,7 +60,7 @@ namespace DbgEngExtension
 
         private static string GetRawHelp(string command)
         {
-            System.Reflection.Assembly assembly = typeof(Help).Assembly;
+            var assembly = typeof(Help).Assembly;
             string[] resources = assembly.GetManifestResourceNames();
 
             foreach (string file in resources.Where(f => f.StartsWith(RootResource)))
@@ -72,18 +70,14 @@ namespace DbgEngExtension
                 {
                     Stream? stream = assembly.GetManifestResourceStream(file);
                     if (stream is null)
-                    {
                         return $"Failed to read help stream {file}.";
-                    }
 
                     return new StreamReader(stream).ReadToEnd();
                 }
             }
 
             if (command != "help")
-            {
                 return GetRawHelp("help");
-            }
 
             return $"No help found for command '{command}'.";
         }

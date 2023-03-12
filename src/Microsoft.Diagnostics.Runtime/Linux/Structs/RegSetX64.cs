@@ -41,9 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public bool CopyContext(Span<byte> context)
         {
             if (context.Length < AMD64Context.Size)
-            {
                 return false;
-            }
 
             ref AMD64Context contextRef = ref Unsafe.As<byte, AMD64Context>(ref MemoryMarshal.GetReference(context));
 

@@ -52,9 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             // NOTE: The caller ensures this method is not called concurrently
 
             if (HeapSegmentCacheEventSource.Instance.IsEnabled())
-            {
                 HeapSegmentCacheEventSource.Instance.PageInDataStart((long)(_segmentData.VirtualAddress + pageAlignedOffset), EntryPageSize);
-            }
 
             uint readSize;
             if (pageAlignedOffset + EntryPageSize <= _segmentData.Size)
@@ -79,9 +77,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     {
                         view.SafeMemoryMappedViewHandle.AcquirePointer(ref pViewLoc);
                         if (pViewLoc == null)
-                        {
                             throw new InvalidOperationException("Failed to acquire the underlying memory mapped view pointer. This is unexpected");
-                        }
 
                         pViewLoc += viewOffset;
 
@@ -101,18 +97,14 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     finally
                     {
                         if (pViewLoc != null)
-                        {
                             view.SafeMemoryMappedViewHandle.ReleasePointer();
-                        }
                     }
                 }
             }
             catch (Exception ex)
             {
                 if (HeapSegmentCacheEventSource.Instance.IsEnabled())
-                {
                     HeapSegmentCacheEventSource.Instance.PageInDataFailed(ex.Message);
-                }
 
                 pageInFailed = true;
                 throw;
@@ -120,9 +112,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             finally
             {
                 if (!pageInFailed && HeapSegmentCacheEventSource.Instance.IsEnabled())
-                {
                     HeapSegmentCacheEventSource.Instance.PageInDataEnd((int)readSize);
-                }
             }
         }
 

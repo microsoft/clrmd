@@ -19,9 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         internal static ElfStringTable? Create(Reader reader, ulong stringTableVA, ulong stringTableSize)
         {
             if (stringTableVA == 0 || stringTableSize == 0)
-            {
                 return null;
-            }
 
             try
             {

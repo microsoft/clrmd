@@ -62,9 +62,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             MetadataImport? import = Module?.MetadataImport;
             if (import is null)
-            {
                 yield break;
-            }
 
             foreach (int token in import.EnumerateInterfaceImpls(MetadataToken))
             {
@@ -72,9 +70,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 {
                     ClrInterface? result = GetInterface(import, mdIFace);
                     if (result != null)
-                    {
                         yield return result;
-                    }
                 }
             }
         }
@@ -92,9 +88,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 ClrInterface? type = null;
                 if (extends != 0 && extends != 0x01000000)
-                {
                     type = GetInterface(import, extends);
-                }
 
                 result = new ClrInterface(name, type);
             }

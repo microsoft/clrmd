@@ -30,9 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public static unsafe int Release(IntPtr pUnk)
         {
             if (pUnk == IntPtr.Zero)
-            {
                 return 0;
-            }
 
             IUnknownVTable* vtable = *(IUnknownVTable**)pUnk;
 
@@ -44,9 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             result = IntPtr.Zero;
 
             if (pUnk == IntPtr.Zero)
-            {
                 return HResult.E_INVALIDARG;
-            }
 
             IUnknownVTable* vtable = *(IUnknownVTable**)pUnk;
 

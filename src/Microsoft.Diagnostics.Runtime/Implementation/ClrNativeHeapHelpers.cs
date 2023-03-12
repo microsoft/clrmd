@@ -29,14 +29,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private NativeHeapKind[] GetNativeHeaps()
         {
             if (_heapNativeTypes is not null)
-            {
                 return _heapNativeTypes;
-            }
 
             if (_sos13 is null)
-            {
                 return _heapNativeTypes = Array.Empty<NativeHeapKind>();
-            }
 
             return _heapNativeTypes = _sos13.GetLoaderAllocatorHeapNames().Select(r => r switch {
                 "LowFrequencyHeap" => NativeHeapKind.LowFrequencyHeap,
@@ -59,16 +55,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             List<ClrNativeHeapInfo>? codeLoaderHeaps = null;
 
-            foreach (JitCodeHeapInfo mem in _sos.GetCodeHeapList(jitManager.Address))
+            foreach (var mem in _sos.GetCodeHeapList(jitManager.Address))
             {
                 if (mem.Kind == CodeHeapKind.Loader)
                 {
                     codeLoaderHeaps?.Clear();
 
                     foreach (ClrNativeHeapInfo heap in LegacyEnumerateLoaderAllocatorHeaps(mem.Address, LoaderHeapKind.LoaderHeapKindExplicitControl, NativeHeapKind.LoaderCodeHeap))
-                    {
                         yield return heap;
-                    }
                 }
                 else if (mem.Kind == CodeHeapKind.Host)
                 {
@@ -85,9 +79,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public IEnumerable<ClrNativeHeapInfo> EnumerateNativeHeaps(ClrAppDomain domain)
         {
             if (domain is null)
-            {
                 yield break;
-            }
 
             ulong loaderAllocator;
             if (_sos13 is not null
@@ -95,31 +87,21 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 && GetNativeHeaps().Length > 0)
             {
                 foreach (ClrNativeHeapInfo heap in EnumerateLoaderAllocatorNativeHeaps(loaderAllocator))
-                {
                     yield return heap;
-                }
             }
             else if (_sos.GetAppDomainData(domain.Address, out AppDomainData data))
             {
                 foreach (ClrNativeHeapInfo heapInfo in LegacyEnumerateLoaderAllocatorHeaps(data.StubHeap, LoaderHeapKind.LoaderHeapKindNormal, NativeHeapKind.StubHeap))
-                {
                     yield return heapInfo;
-                }
 
                 foreach (ClrNativeHeapInfo heapInfo in LegacyEnumerateLoaderAllocatorHeaps(data.HighFrequencyHeap, LoaderHeapKind.LoaderHeapKindNormal, NativeHeapKind.HighFrequencyHeap))
-                {
                     yield return heapInfo;
-                }
 
                 foreach (ClrNativeHeapInfo heapInfo in LegacyEnumerateLoaderAllocatorHeaps(data.LowFrequencyHeap, LoaderHeapKind.LoaderHeapKindNormal, NativeHeapKind.LowFrequencyHeap))
-                {
                     yield return heapInfo;
-                }
 
                 foreach (ClrNativeHeapInfo heapInfo in LegacyEnumerateStubHeaps(domain))
-                {
                     yield return heapInfo;
-                }
             }
         }
 
@@ -135,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             List<ClrNativeHeapInfo>? result = null;
 
-            (ClrDataAddress Address, LoaderHeapKind Kind)[] heaps = _sos13.GetLoaderAllocatorHeaps(loaderAllocator);
+            var heaps = _sos13.GetLoaderAllocatorHeaps(loaderAllocator);
             for (int i = 0; i < heaps.Length; i++)
             {
                 HResult hr = _sos13.TraverseLoaderHeap(heaps[i].Address, heaps[i].Kind, (address, size, current) => {
@@ -146,9 +128,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (hr && result is not null)
                 {
                     foreach (ClrNativeHeapInfo info in result)
-                    {
                         yield return info;
-                    }
                 }
 
                 result?.Clear();
@@ -161,39 +141,27 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             TraverseOneStubKind(domain, result, SOSDac.VCSHeapType.IndcellHeap, NativeHeapKind.IndirectionCellHeap);
             foreach (ClrNativeHeapInfo heap in result)
-            {
                 yield return heap;
-            }
 
             TraverseOneStubKind(domain, result, SOSDac.VCSHeapType.LookupHeap, NativeHeapKind.LookupHeap);
             foreach (ClrNativeHeapInfo heap in result)
-            {
                 yield return heap;
-            }
 
             TraverseOneStubKind(domain, result, SOSDac.VCSHeapType.ResolveHeap, NativeHeapKind.ResolveHeap);
             foreach (ClrNativeHeapInfo heap in result)
-            {
                 yield return heap;
-            }
 
             TraverseOneStubKind(domain, result, SOSDac.VCSHeapType.DispatchHeap, NativeHeapKind.DispatchHeap);
             foreach (ClrNativeHeapInfo heap in result)
-            {
                 yield return heap;
-            }
 
             TraverseOneStubKind(domain, result, SOSDac.VCSHeapType.CacheEntryHeap, NativeHeapKind.CacheEntryHeap);
             foreach (ClrNativeHeapInfo heap in result)
-            {
                 yield return heap;
-            }
 
             TraverseOneStubKind(domain, result, SOSDac.VCSHeapType.VtableHeap, NativeHeapKind.VtableHeap);
             foreach (ClrNativeHeapInfo heap in result)
-            {
                 yield return heap;
-            }
         }
 
         private void TraverseOneStubKind(ClrAppDomain domain, List<ClrNativeHeapInfo> result, SOSDac.VCSHeapType vcsType, NativeHeapKind heapKind)
@@ -204,9 +172,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             });
 
             if (!hr)
-            {
                 result.Clear();
-            }
         }
 
         private IEnumerable<ClrNativeHeapInfo> LegacyEnumerateLoaderAllocatorHeaps(ulong loaderHeap, LoaderHeapKind loaderHeapKind, NativeHeapKind nativeHeapKind)
@@ -257,9 +223,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 // This likely means that loaderHeap points to bad memory and we should ignore this entire
                 // enumeration.
                 if (hr && result != null)
-                {
                     return result;
-                }
             }
 
             return Enumerable.Empty<ClrNativeHeapInfo>();
@@ -270,16 +234,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (normalNeedsAdjustment)
             {
                 if (loaderHeapKind == LoaderHeapKind.LoaderHeapKindNormal)
-                {
                     loaderHeap += (uint)_dataReader.PointerSize;
-                }
             }
             else
             {
                 if (loaderHeapKind == LoaderHeapKind.LoaderHeapKindExplicitControl)
-                {
                     loaderHeap -= (uint)_dataReader.PointerSize;
-                }
             }
 
             return loaderHeap;
@@ -296,9 +256,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 });
 
                 if (hr && heaps is not null && heaps.Count > 0)
-                {
                     return heaps;
-                }
             }
 
             return Enumerable.Empty<ClrNativeHeapInfo>();
@@ -309,9 +267,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // If TraverseHeap returns a negative size or a size that's too large, we'll treat
             // this as not having size info.  This shouldn't happen in practice.
             if (size < 0 || size > int.MaxValue)
-            {
                 return null;
-            }
 
             return (ulong)size;
         }
@@ -322,9 +278,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private static HResult TraverseLoaderHeap(ClrInfo clrInfo, SOSDac sos, SOSDac13? sos13, ulong address, LoaderHeapKind kind, uint pointerSize, SOSDac.LoaderHeapTraverse callback)
         {
             if (address == 0)
-            {
                 return HResult.E_INVALIDARG;
-            }
 
             HResult hr;
             if (sos13 is not null)
@@ -339,9 +293,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 // See note below, .Net 7 inverts the logic that everything else uses.
 
                 if (kind == LoaderHeapKind.LoaderHeapKindNormal)
-                {
                     address += pointerSize;
-                }
 
                 hr = sos.TraverseLoaderHeap(address, callback);
             }
@@ -354,9 +306,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 // the enumeration code will work properly.
 
                 if (kind == LoaderHeapKind.LoaderHeapKindExplicitControl)
-                {
                     address -= pointerSize;
-                }
 
                 hr = sos.TraverseLoaderHeap(address, callback);
             }

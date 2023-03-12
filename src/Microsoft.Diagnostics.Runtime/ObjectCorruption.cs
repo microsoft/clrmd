@@ -41,19 +41,13 @@ namespace Microsoft.Diagnostics.Runtime
         public override string ToString()
         {
             if (Kind == ObjectCorruptionKind.None)
-            {
                 return "";
-            }
 
             string offset = "";
             if (Offset > 0)
-            {
                 offset = $"+{Offset:x}";
-            }
             else if (Offset < 0)
-            {
                 offset = $"-{Math.Abs(Offset):x}";
-            }
 
             string type = Object.Type?.Name != null ? $" {Object.Type.Name}" : "";
 

@@ -160,9 +160,7 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (_debugMode == int.MaxValue)
-                {
                     _debugMode = GetDebugAttribute();
-                }
 
                 DebugOnly.Assert(_debugMode != int.MaxValue);
                 return (DebuggableAttribute.DebuggingModes)_debugMode;
@@ -222,14 +220,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (string.IsNullOrEmpty(Name))
             {
                 if (!string.IsNullOrEmpty(AssemblyName))
-                {
                     return AssemblyName;
-                }
 
                 if (IsDynamic)
-                {
                     return "dynamic";
-                }
             }
 
             return Name;
@@ -250,9 +244,7 @@ namespace Microsoft.Diagnostics.Runtime
                     using ReadVirtualStream stream = new(_helpers.DataReader, (long)ImageBase, (long)(Size > 0 ? Size : int.MaxValue));
                     using PEImage pefile = new(stream, leaveOpen: true, isVirtual: virt);
                     if (pefile.IsValid)
-                    {
                         _pdb = pefile.DefaultPdb;
-                    }
                 }
 
                 return _pdb;
@@ -264,14 +256,10 @@ namespace Microsoft.Diagnostics.Runtime
         public bool Equals(ClrModule? other)
         {
             if (ReferenceEquals(this, other))
-            {
                 return true;
-            }
 
             if (other is null)
-            {
                 return false;
-            }
 
             return Address == other.Address;
         }
@@ -279,14 +267,10 @@ namespace Microsoft.Diagnostics.Runtime
         public bool Equals(IClrModule? other)
         {
             if (ReferenceEquals(this, other))
-            {
                 return true;
-            }
 
             if (other is null)
-            {
                 return false;
-            }
 
             return Address == other.Address;
         }
@@ -296,9 +280,7 @@ namespace Microsoft.Diagnostics.Runtime
         public static bool operator ==(ClrModule? left, ClrModule? right)
         {
             if (right is null)
-            {
                 return left is null;
-            }
 
             return right.Equals(left);
         }

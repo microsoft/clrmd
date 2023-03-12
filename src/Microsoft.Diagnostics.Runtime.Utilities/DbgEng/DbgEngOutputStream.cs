@@ -25,9 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         public override void Write(string? value)
         {
             if (value is not null)
-            {
                 _control.Write(DEBUG_OUTPUT.NORMAL, value);
-            }
         }
 
         public override Encoding Encoding => Encoding.Unicode;
@@ -38,9 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             {
                 Console.SetOut(_previousConsoleOut);
                 if (_previousCallbacks is nint prev)
-                {
                     _client.SetOutputCallbacks(prev);
-                }
             }
         }
 

@@ -25,9 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 ClrType type = runtime.GetTypeByMethodTable(mt);
                 if (type != null)
-                {
                     yield return type;
-                }
             }
         }
 
@@ -40,9 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 ClrType type = runtime.GetTypeByMethodTable(mt);
                 if (type.Name == typeName)
-                {
                     return type;
-                }
             }
 
             return null;
@@ -75,9 +71,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             HashSet<T> set = new();
             foreach (T t in self)
-            {
                 set.Add(t);
-            }
 
             return set;
         }
@@ -139,12 +133,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             GC.WaitForPendingFinalizers();
 
             foreach (string directory in Directory.EnumerateDirectories(Environment.CurrentDirectory))
-            {
                 if (directory.Contains(Helpers.TempRoot))
-                {
                     Directory.Delete(directory, true);
-                }
-            }
         }
     }
 }

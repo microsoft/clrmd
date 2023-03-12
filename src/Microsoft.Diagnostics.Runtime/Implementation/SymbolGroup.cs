@@ -31,9 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 string? result = locator.FindPEImage(fileName, buildTimeStamp, imageSize, checkProperties);
                 if (result != null)
-                {
                     return result;
-                }
             }
 
             return null;
@@ -45,9 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 string? result = locator.FindPEImage(fileName, archivedUnder, buildIdOrUUID, originalPlatform, checkProperties);
                 if (result != null)
-                {
                     return result;
-                }
             }
 
             return null;
@@ -59,9 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 string? result = locator.FindElfImage(fileName, archivedUnder, buildId, checkProperties);
                 if (result != null)
-                {
                     return result;
-                }
             }
 
             return null;
@@ -73,9 +67,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 string? result = locator.FindMachOImage(fileName, archivedUnder, uuid, checkProperties);
                 if (result != null)
-                {
                     return result;
-                }
             }
             return null;
         }
@@ -84,9 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             FileSymbolCache? cache = s_cache;
             if (cache != null)
-            {
                 return cache;
-            }
 
             // We always expect to be able to create a temporary directory
             Directory.CreateDirectory(s_defaultCacheLocation);
@@ -107,9 +97,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             foreach ((string? Cache, string[] Servers) in symbolPath.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(EnumerateEntries))
             {
                 if (Servers.Length == 0)
-                {
                     continue;
-                }
 
                 FileSymbolCache cache = defaultCache;
                 if (Cache != null && !defaultCache.Location.Equals(Cache, FileSymbolCache.IsCaseInsensitiveFileSystem ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
@@ -150,14 +138,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
 
             if (single != null)
-            {
                 return single;
-            }
 
             if (locators.Count == 0)
-            {
                 return new SymbolServer(defaultCache, SymbolServer.Msdl);
-            }
 
             return new SymbolGroup(locators);
         }
@@ -165,17 +149,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private static (string? Cache, string[] Servers) EnumerateEntries(string part)
         {
             if (!part.Contains('*'))
-            {
                 return (null, new string[] { part });
-            }
 
             string[] split = part.Split('*');
             DebugOnly.Assert(split.Length > 1);
 
             if (split[0].Equals("cache"))
-            {
                 return (split[1], split.Skip(2).ToArray());
-            }
+
 
             if (split[0].Equals("symsrv", StringComparison.OrdinalIgnoreCase))
             {
@@ -183,9 +164,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 // Convert symsrv*symstore.dll*DownStream*server -> srv*DownStream*server
 
                 if (split.Length < 3)
-                {
                     return (null, new string[] { part });
-                }
 
                 split = new string[] { "srv" }.Concat(split.Skip(2)).ToArray();
             }
@@ -196,17 +175,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 string? cache = split[1];
 
                 if (string.IsNullOrWhiteSpace(cache))
-                {
                     cache = null;
-                }
 
                 // e.g. "svr*http://symbols.com/"
                 if (split.Length == 2)
                 {
                     if (cache is null)
-                    {
                         return (split[1], split.Skip(2).ToArray());
-                    }
 
                     return (null, new string[] { cache });
                 }

@@ -45,14 +45,10 @@ namespace Microsoft.Diagnostics.Runtime
         public bool Equals(ClrInterface? other)
         {
             if (ReferenceEquals(this, other))
-            {
                 return true;
-            }
 
             if (other is null)
-            {
                 return false;
-            }
 
             return Name == other.Name && BaseInterface == other.BaseInterface;
         }
@@ -66,14 +62,10 @@ namespace Microsoft.Diagnostics.Runtime
             int hashCode = 0;
 
             if (Name != null)
-            {
                 hashCode ^= Name.GetHashCode();
-            }
 
             if (BaseInterface != null)
-            {
                 hashCode ^= BaseInterface.GetHashCode();
-            }
 
             return hashCode;
         }
@@ -81,9 +73,7 @@ namespace Microsoft.Diagnostics.Runtime
         public static bool operator ==(ClrInterface? left, ClrInterface? right)
         {
             if (right is null)
-            {
                 return left is null;
-            }
 
             return right.Equals(left);
         }

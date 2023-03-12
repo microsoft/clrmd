@@ -14,9 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             GetVTable(this, out nint self, out IDebugAdvancedVtable* vtable);
 
             fixed (byte* ptr = buffer)
-            {
                 return vtable->GetThreadContext(self, ptr, buffer.Length);
-            }
         }
 
         private static void GetVTable(object ths, out nint self, out IDebugAdvancedVtable* vtable)

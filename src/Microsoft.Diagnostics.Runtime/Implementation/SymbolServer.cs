@@ -27,9 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         internal SymbolServer(FileSymbolCache cache, string server)
         {
             if (cache is null)
-            {
                 throw new ArgumentNullException(nameof(cache));
-            }
 
             _cache = cache;
             Server = server;
@@ -58,21 +56,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             string? result = _cache.FindElfImage(fileName, archivedUnder, buildId, checkProperties);
             if (result != null)
-            {
                 return result;
-            }
 
             string? key = base.FindElfImage(fileName, archivedUnder, buildId, checkProperties);
             if (key == null)
-            {
                 return null;
-            }
 
             Stream? stream = FindFileOnServer(key).Result;
             if (stream != null)
-            {
                 return _cache.Store(stream, key);
-            }
 
             return null;
         }
@@ -81,21 +73,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             string? result = _cache.FindMachOImage(fileName, archivedUnder, uuid, checkProperties);
             if (result != null)
-            {
                 return result;
-            }
 
             string? key = base.FindMachOImage(fileName, archivedUnder, uuid, checkProperties);
             if (key == null)
-            {
                 return null;
-            }
 
             Stream? stream = FindFileOnServer(key).Result;
             if (stream != null)
-            {
                 return _cache.Store(stream, key);
-            }
 
             return null;
         }
@@ -104,21 +90,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             string? result = _cache.FindPEImage(fileName, buildTimeStamp, imageSize, checkProperties);
             if (result != null)
-            {
                 return result;
-            }
 
             string? key = base.FindPEImage(fileName, buildTimeStamp, imageSize, checkProperties);
             if (key == null)
-            {
                 return null;
-            }
 
             Stream? stream = FindFileOnServer(key).Result;
             if (stream != null)
-            {
                 return _cache.Store(stream, key);
-            }
 
             return null;
         }
@@ -127,21 +107,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             string? result = _cache.FindPEImage(fileName, archivedUnder, buildIdOrUUID, originalPlatform, checkProperties);
             if (result != null)
-            {
                 return result;
-            }
 
             string? key = base.FindPEImage(fileName, archivedUnder, buildIdOrUUID, originalPlatform, checkProperties);
             if (key == null)
-            {
                 return null;
-            }
 
             Stream? stream = FindFileOnServer(key).Result;
             if (stream != null)
-            {
                 return _cache.Store(stream, key);
-            }
 
             return null;
         }
@@ -174,9 +148,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         path = path.Substring(5);
 
                         if (File.Exists(path))
-                        {
                             return File.OpenRead(path);
-                        }
                     }
                 }
                 catch (Exception ex)
@@ -192,19 +164,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             string compressedPath = fullPath.Substring(0, fullPath.Length - 1) + '_';
 #pragma warning restore CA1845 // Use span-based 'string.Concat'
             if (SupportsCompression)
-            {
                 compressed = _http.GetAsync(compressedPath)!;
-            }
 
             HttpResponseMessage fileResponse = await file.ConfigureAwait(false);
             if (fileResponse.IsSuccessStatusCode)
-            {
                 return await fileResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
-            }
             else
-            {
                 fileResponse.Dispose();
-            }
 
             HttpResponseMessage? compressedResponse = await compressed.ConfigureAwait(false);
             if (compressedResponse is not null && compressedResponse.IsSuccessStatusCode)
@@ -214,23 +180,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 Command.Run("Expand " + Command.Quote(tmpPath) + " " + Command.Quote(output));
                 MemoryStream ms = new();
-                using (FileStream fs = File.OpenRead(output))
-                {
+                using (var fs = File.OpenRead(output))
                     await fs.CopyToAsync(ms).ConfigureAwait(false);
-                }
 
                 ms.Position = 0;
                 try
                 {
                     if (File.Exists(output))
-                    {
                         File.Delete(output);
-                    }
 
                     if (File.Exists(tmpPath))
-                    {
                         File.Delete(tmpPath);
-                    }
                 }
                 catch
                 {

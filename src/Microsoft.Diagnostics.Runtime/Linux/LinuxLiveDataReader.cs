@@ -33,9 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             int status = kill(processId, 0);
             if (status < 0 && Marshal.GetLastWin32Error() != EPERM)
-            {
                 throw new ArgumentException("The process is not running");
-            }
 
             ProcessId = processId;
             _memoryMapEntries = LoadMemoryMaps();
@@ -64,13 +62,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private void Dispose(bool _)
         {
             if (_disposed)
-            {
                 return;
-            }
 
             if (_suspended)
             {
-                foreach (uint tid in _threadIDs)
+                foreach (var tid in _threadIDs)
                 {
                     // no point in handling errors here as the user can do nothing with them
                     // also if Dispose is called from the finalizer we could crash the process
@@ -102,16 +98,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private ModuleInfo GetModuleInfo(IDataReader reader, ulong baseAddress, string filePath, bool isVirtual)
         {
             if (reader.Read<ushort>(baseAddress) == 0x5a4d)
-            {
                 return new PEModuleInfo(reader, baseAddress, filePath, isVirtual);
-            }
 
             long size = 0;
             FileInfo fileInfo = new(filePath);
             if (fileInfo.Exists)
-            {
                 size = fileInfo.Length;
-            }
 
             return new ElfModuleInfo(reader, GetElfFile(baseAddress), baseAddress, size, filePath);
         }
@@ -181,9 +173,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             LoadThreads();
             if (!_threadIDs.Contains(threadID) || Architecture == Architecture.X86)
-            {
                 return false;
-            }
 
             int regSize = Architecture switch
             {
@@ -231,12 +221,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             HashSet<uint> tracees = new();
             bool makesProgress = true;
             // Make up to maxPasses to be sure to attach to the threads that could have been created in the meantime
-            for (int i = 0; makesProgress && i < maxPasses; i++)
+            for (var i = 0; makesProgress && i < maxPasses; i++)
             {
                 makesProgress = false;
                 // GetThreads could throw during enumeration. It means the process was killed so no cleanup is needed.
-                IEnumerable<uint> threads = GetThreads(ProcessId);
-                foreach (uint tid in threads)
+                var threads = GetThreads(ProcessId);
+                foreach (var tid in threads)
                 {
                     if (tracees.Contains(tid))
                     {
@@ -244,7 +234,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         continue;
                     }
 
-                    int status = (int)ptrace(PTRACE_ATTACH, (int)tid, IntPtr.Zero, IntPtr.Zero);
+                    var status = (int)ptrace(PTRACE_ATTACH, (int)tid, IntPtr.Zero, IntPtr.Zero);
                     if (status >= 0)
                     {
                         status = waitpid((int)tid, IntPtr.Zero, 0);

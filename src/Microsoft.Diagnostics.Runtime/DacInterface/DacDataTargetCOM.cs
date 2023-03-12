@@ -28,9 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             Marshal.Release(iUnk);
 
             if (result)
-            {
                 return iDacDataTarget;
-            }
 
             return IntPtr.Zero;
         }
@@ -119,9 +117,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
                 string? imagePath = Marshal.PtrToStringUni(imagePathPtr);
                 if (imagePath is null)
-                {
                     return HResult.E_INVALIDARG;
-                }
 
                 *pBaseAddress = dacDataTarget.GetImageBase(imagePath);
                 return *pBaseAddress != 0 ? HResult.S_OK : HResult.E_FAIL;
@@ -205,9 +201,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
                 string? fileName = Marshal.PtrToStringUni(fileNamePtr);
                 if (fileName is null)
-                {
                     return HResult.E_INVALIDARG;
-                }
 
                 return dacDataTarget.GetMetadata(fileName, imageTimestamp, imageSize, mvid, mdRva, flags, bufferSize, buffer, dataSize);
             }

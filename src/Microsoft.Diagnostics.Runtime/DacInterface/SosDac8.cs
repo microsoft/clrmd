@@ -33,9 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             {
                 HResult hr = VTable.GetNumberGenerations(Self, out int generations);
                 if (hr)
-                {
                     return generations;
-                }
 
                 return 0;
             }
@@ -45,18 +43,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.GetGenerationTable(Self, 0, null, out int needed);
             if (!hr)
-            {
                 return null;
-            }
 
             GenerationData[] data = new GenerationData[needed];
             fixed (GenerationData* ptr = data)
             {
                 hr = VTable.GetGenerationTable(Self, needed, ptr, out _);
                 if (!hr)
-                {
                     return null;
-                }
             }
 
             return data;
@@ -66,18 +60,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.GetGenerationTableSvr(Self, heap, 0, null, out int needed);
             if (!hr)
-            {
                 return null;
-            }
 
             GenerationData[] data = new GenerationData[needed];
             fixed (GenerationData* ptr = data)
             {
                 hr = VTable.GetGenerationTableSvr(Self, heap, needed, ptr, out _);
                 if (!hr)
-                {
                     return null;
-                }
             }
 
             return data;
@@ -87,18 +77,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.GetFinalizationFillPointers(Self, 0, null, out int needed);
             if (!hr)
-            {
                 return null;
-            }
 
             ClrDataAddress[] pointers = new ClrDataAddress[needed];
             fixed (ClrDataAddress* ptr = pointers)
             {
                 hr = VTable.GetFinalizationFillPointers(Self, needed, ptr, out _);
                 if (!hr)
-                {
                     return null;
-                }
             }
 
             return pointers;
@@ -108,18 +94,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.GetFinalizationFillPointersSvr(Self, heap, 0, null, out int needed);
             if (!hr)
-            {
                 return null;
-            }
 
             ClrDataAddress[] pointers = new ClrDataAddress[needed];
             fixed (ClrDataAddress* ptr = pointers)
             {
                 hr = VTable.GetFinalizationFillPointersSvr(Self, heap, needed, ptr, out _);
                 if (!hr)
-                {
                     return null;
-                }
             }
 
             return pointers;

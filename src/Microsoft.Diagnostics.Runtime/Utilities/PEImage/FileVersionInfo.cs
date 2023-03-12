@@ -40,9 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             ReadOnlySpan<char> fileVersionKey = "VS_VERSION_INFO".AsSpan();
             int fileVersionIndex = dataAsString.IndexOf(fileVersionKey);
             if (fileVersionIndex < 0)
-            {
                 return null;
-            }
 
             dataAsString = dataAsString.Slice(fileVersionIndex + fileVersionKey.Length);
             ReadOnlySpan<byte> asBytes = MemoryMarshal.Cast<char, byte>(dataAsString);
@@ -59,18 +57,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             int fileVersionIndex = dataAsString.IndexOf(fileVersionKey);
             if (fileVersionIndex < 0)
-            {
                 return null;
-            }
 
             dataAsString = dataAsString.Slice(fileVersionIndex + fileVersionKey.Length);
             dataAsString = dataAsString.TrimStart('\0');
 
             int endIndex = dataAsString.IndexOf('\0');
             if (endIndex < 0)
-            {
                 return null;
-            }
 
             return dataAsString.Slice(0, endIndex).ToString();
         }

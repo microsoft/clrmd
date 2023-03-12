@@ -82,9 +82,7 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<GCRootPath> EnumerateGCRoots(ulong target, bool returnOnlyFullyUniquePaths, int maxDegreeOfParallelism, IEnumerable<ClrRoot> roots, CancellationToken cancellationToken = default)
         {
             if (roots is null)
-            {
                 throw new ArgumentNullException(nameof(roots));
-            }
 
             bool parallel = Heap.Runtime.IsThreadSafe && maxDegreeOfParallelism > 1;
 
@@ -102,9 +100,7 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     LinkedList<ClrObject>? path = PathsTo(processedObjects, knownEndPoints, root.Object, target, returnOnlyFullyUniquePaths, cancellationToken).FirstOrDefault();
                     if (path != null)
-                    {
                         yield return new GCRootPath(root, path.ToImmutableArray());
-                    }
 
                     if (count != processedObjects.Count)
                     {
@@ -128,15 +124,11 @@ namespace Microsoft.Diagnostics.Runtime
 
 #pragma warning disable CA2016 // Forward the 'CancellationToken' parameter to methods that take one (BlockingCollection is unbounded so Add will not block)
                 foreach (ClrRoot root in roots)
-                {
                     queue.Add(root);
-                }
 
                 // Add one sentinel value for every thread
                 for (int i = 0; i < threads.Length; i++)
-                {
                     queue.Add(null);
-                }
 #pragma warning restore CA2016 // Forward the 'CancellationToken' parameter to methods that take one
 
                 queue.CompleteAdding();
@@ -151,14 +143,10 @@ namespace Microsoft.Diagnostics.Runtime
                     while (!threads[i].Join(100))
                     {
                         if (cancellationToken.IsCancellationRequested)
-                        {
                             yield break;
-                        }
 
                         while (results.TryDequeue(out GCRootPath result))
-                        {
                             yield return result;
-                        }
                     }
 
                     if (count != processedObjects.Count)
@@ -171,9 +159,7 @@ namespace Microsoft.Diagnostics.Runtime
                 // We could have raced to put an object in the results queue while joining the last thread, so we need to drain the
                 // results queue one last time.
                 while (results.TryDequeue(out GCRootPath result))
-                {
                     yield return result;
-                }
 
                 if (count != processedObjects.Count)
                 {
@@ -206,9 +192,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 if (root == null)
-                {
                     break;
-                }
 
                 foreach (LinkedList<ClrObject> path in PathsTo(seen, knownEndPoints, root.Object, target, returnOnlyFullyUniquePaths, cancellationToken))
                 {
@@ -217,9 +201,7 @@ namespace Microsoft.Diagnostics.Runtime
                         results.Enqueue(new GCRootPath(root, path.ToImmutableArray()));
 
                         if (!all)
-                        {
                             break;
-                        }
                     }
                 }
             }
@@ -312,14 +294,10 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             if (returnOnlyFullyUniquePaths && !deadEnds.Add(source.Address))
-            {
                 yield break;
-            }
 
             if (source.Type is null)
-            {
                 yield break;
-            }
 
             if (source.Address == target)
             {
@@ -354,9 +332,7 @@ namespace Microsoft.Diagnostics.Runtime
             while (path.Count > 0)
             {
                 if (cancellationToken.IsCancellationRequested)
-                {
                     yield break;
-                }
 
                 TraceFullPath(null, path);
                 PathEntry last = path.Last!.Value;
@@ -376,35 +352,25 @@ namespace Microsoft.Diagnostics.Runtime
                     do
                     {
                         if (cancellationToken.IsCancellationRequested)
-                        {
                             yield break;
-                        }
 
                         ClrObject next = last.Todo.Pop();
 
                         // Now that we are in the process of adding 'next' to the path, don't ever consider
                         // this object in the future.
                         if (returnOnlyFullyUniquePaths ? deadEnds.Add(next.Address) : deadEnds.Contains(next.Address))
-                        {
                             continue;
-                        }
 
                         if (knownEndPoints != null)
-                        {
                             lock (knownEndPoints)
-                            {
                                 if (knownEndPoints.TryGetValue(next.Address, out LinkedListNode<ClrObject>? end))
                                 {
                                     TraceFullPath(path, end);
                                     yield return GetResult(end);
                                 }
-                            }
-                        }
 
                         if (!processing.Add(next.Address))
-                        {
                             continue;
-                        }
 
                         // We should never reach the 'end' here, as we always check if we found the target
                         // value when adding refs below.
@@ -493,9 +459,7 @@ namespace Microsoft.Diagnostics.Runtime
                 LinkedList<ClrObject> result = new(path.Select(p => p.Object));
 
                 for (; end != null; end = end.Next)
-                {
                     result.AddLast(end.Value);
-                }
 
                 if (knownEndPoints != null)
                 {
@@ -505,9 +469,7 @@ namespace Microsoft.Diagnostics.Runtime
                         {
                             ulong address = node.Value.Address;
                             if (knownEndPoints.ContainsKey(address))
-                            {
                                 break;
-                            }
 
                             knownEndPoints[address] = node;
                         }
@@ -536,9 +498,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             List<string> list = new();
             for (LinkedListNode<ClrObject>? node = tmp; node != null; node = node.Next)
-            {
                 list.Add(node.Value.ToString());
-            }
 
             return list;
         }
@@ -547,13 +507,9 @@ namespace Microsoft.Diagnostics.Runtime
         private static void TraceFullPath(string? prefix, LinkedList<PathEntry> path)
         {
             if (!string.IsNullOrWhiteSpace(prefix))
-            {
                 prefix += ": ";
-            }
             else
-            {
                 prefix = string.Empty;
-            }
 
             Debug.WriteLine(prefix + string.Join(" ", path.Select(p => p.Object.ToString())));
         }

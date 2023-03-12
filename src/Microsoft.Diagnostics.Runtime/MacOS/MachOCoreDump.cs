@@ -47,17 +47,11 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             Parent = parent;
 
             fixed (MachHeader64* header = &_header)
-            {
                 if (stream.Read(new Span<byte>(header, sizeof(MachHeader64))) != sizeof(MachHeader64))
-                {
                     throw new IOException($"Failed to read header from {displayName}.");
-                }
-            }
 
             if (_header.Magic != MachHeader64.Magic64)
-            {
                 throw new InvalidDataException($"'{displayName}' does not have a valid Mach-O header.");
-            }
 
             _stream = stream;
             _leaveOpen = leaveOpen;
@@ -170,7 +164,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         public MachOModule? GetModuleByBaseAddress(ulong baseAddress)
         {
-            Dictionary<ulong, MachOModule> modules = ReadModules();
+            var modules = ReadModules();
 
             modules.TryGetValue(baseAddress, out MachOModule? result);
             return result;
@@ -188,9 +182,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             int read = ReadMemory(address, new Span<byte>(&t, sizeof(T)));
             if (read == sizeof(T))
-            {
                 return t;
-            }
 
             return default;
         }
@@ -198,9 +190,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         public int ReadMemory(ulong address, Span<byte> buffer)
         {
             if (address == 0)
-            {
                 return 0;
-            }
 
             int read = 0;
             while (buffer.Length > 0 && FindSegmentContaining(address, out MachOSegment seg))
@@ -208,9 +198,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 ulong offset = address - seg.Address;
                 int len = Math.Min(buffer.Length, (int)(seg.Size - offset));
                 if (len == 0)
-                {
                     break;
-                }
 
                 long position = (long)(seg.FileOffset + offset);
                 lock (_sync)
@@ -218,9 +206,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                     _stream.Seek(position, SeekOrigin.Begin);
                     int count = _stream.Read(buffer.Slice(0, len));
                     if (count == 0)
-                    {
                         break;
-                    }
 
                     read += count;
                     address += (uint)count;
@@ -242,21 +228,13 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             {
                 int count = ReadMemory(address + (uint)read, buffer);
                 if (count <= 0)
-                {
                     return sb.ToString();
-                }
 
                 foreach (byte b in buffer)
-                {
                     if (b == 0)
-                    {
                         return sb.ToString();
-                    }
                     else
-                    {
                         sb.Append((char)b);
-                    }
-                }
 
                 read += count;
             }
@@ -265,9 +243,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         private Dictionary<ulong, MachOModule> ReadModules()
         {
             if (_modules != null)
-            {
                 return _modules;
-            }
 
             _dylinker ??= FindDylinker(firstPass: true) ?? FindDylinker(firstPass: false);
 
@@ -308,13 +284,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 ulong end = seg.FileSize;
 
                 if (firstPass)
-                {
                     end = skip * firstPassAttemptCount;
-                }
                 else
-                {
                     start = skip * firstPassAttemptCount;
-                }
 
                 for (ulong offset = start; offset < end; offset += skip)
                 {
@@ -360,9 +332,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         public void Dispose()
         {
             if (!_leaveOpen)
-            {
                 _stream.Dispose();
-            }
         }
     }
 }

@@ -127,9 +127,7 @@ namespace Microsoft.Diagnostics.Runtime
             ulong mt = _memoryReader.ReadPointer(objRef);
 
             if (mt == 0)
-            {
                 return null;
-            }
 
             return _typeFactory.GetOrCreateType(mt, objRef);
         }
@@ -150,12 +148,8 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<ClrObject> EnumerateObjects(bool carefully)
         {
             foreach (ClrSegment segment in Segments)
-            {
                 foreach (ClrObject obj in EnumerateObjects(segment, carefully))
-                {
                     yield return obj;
-                }
-            }
         }
 
 
@@ -167,26 +161,18 @@ namespace Microsoft.Diagnostics.Runtime
             foreach (ClrSegment seg in Segments)
             {
                 if (!range.Overlaps(seg.ObjectRange))
-                {
                     continue;
-                }
 
                 ulong start = seg.FirstObjectAddress;
                 if (seg.ObjectRange.Contains(range.Start))
-                {
                     start = range.Start;
-                }
 
                 foreach (ClrObject obj in EnumerateObjects(seg, start, carefully))
                 {
                     if (range.Contains(obj.Address))
-                    {
                         yield return obj;
-                    }
                     else if (range.End < obj)
-                    {
                         break;
-                    }
                 }
             }
         }
@@ -199,17 +185,13 @@ namespace Microsoft.Diagnostics.Runtime
         internal ObjectCorruption? VerifyObject(ClrObject obj, ClrSegment? seg)
         {
             if (obj.IsNull)
-            {
                 return null;
-            }
 
             if (seg is null || !seg.ObjectRange.Contains(obj))
             {
                 seg = GetSegmentByAddress(obj);
                 if (seg is null)
-                {
                     return new(obj, 0, ObjectCorruptionKind.ObjectNotOnTheHeap);
-                }
             }
 
             return _helpers.VerifyObject(GetSyncBlocks(), seg, obj);
@@ -268,20 +250,14 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<ObjectCorruption> VerifyHeap(IEnumerable<ClrObject> objects)
         {
             foreach (ClrObject obj in objects)
-            {
                 if (IsObjectCorrupted(obj, out ObjectCorruption? result))
-                {
                     yield return result;
-                }
-            }
         }
 
         internal IEnumerable<ClrObject> EnumerateObjects(ClrSegment segment, ulong startAddress, bool carefully)
         {
             if (!segment.ObjectRange.Contains(startAddress))
-            {
                 yield break;
-            }
 
             ulong markerStep = GetMarkerStep(segment);
 
@@ -293,13 +269,9 @@ namespace Microsoft.Diagnostics.Runtime
 
             ulong obj;
             if (startAddress == segment.FirstObjectAddress || segment.ObjectMarkers.Length == 0)
-            {
                 obj = segment.FirstObjectAddress;
-            }
             else
-            {
                 obj = segment.ObjectMarkers.Select(m => segment.FirstObjectAddress + m).Where(m => m <= startAddress).Max();
-            }
 
             using MemoryCache cache = new(_memoryReader, segment);
 
@@ -308,9 +280,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!cache.ReadPointer(obj, out ulong mt))
                 {
                     if (!carefully)
-                    {
                         break;
-                    }
 
                     obj = FindNextValidObject(segment, pointerSize + objSkip, obj, cache);
                     continue;
@@ -322,9 +292,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (type is null)
                 {
                     if (!carefully)
-                    {
                         break;
-                    }
 
                     obj = FindNextValidObject(segment, pointerSize, obj + objSkip, cache);
                     continue;
@@ -332,9 +300,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 ulong segmentOffset = obj - segment.ObjectRange.Start;
                 if (segmentOffset >= (currStep + 1) * markerStep && currStep < segment.ObjectMarkers.Length && segmentOffset <= uint.MaxValue)
-                {
                     segment.ObjectMarkers[currStep++] = (uint)segmentOffset;
-                }
 
                 ulong size;
                 if (type.ComponentSize == 0)
@@ -346,9 +312,7 @@ namespace Microsoft.Diagnostics.Runtime
                     if (!cache.ReadUInt32(obj + pointerSize, out uint count))
                     {
                         if (!carefully)
-                        {
                             break;
-                        }
 
                         obj = FindNextValidObject(segment, pointerSize, obj + objSkip, cache);
                         continue;
@@ -356,18 +320,14 @@ namespace Microsoft.Diagnostics.Runtime
 
                     // Strings in v4+ contain a trailing null terminator not accounted for.
                     if (StringType == type)
-                    {
                         count++;
-                    }
 
                     size = count * (ulong)type.ComponentSize + (ulong)type.StaticSize;
                 }
 
                 size = Align(size, segment);
                 if (size < minObjSize)
-                {
                     size = minObjSize;
-                }
 
                 obj += size;
                 obj = SkipAllocationContext(segment, obj);
@@ -387,17 +347,13 @@ namespace Microsoft.Diagnostics.Runtime
                 _pointerSize = reader.PointerSize;
                 _requiredSize = (uint)_pointerSize * 3;
                 if (segment.Kind != GCSegmentKind.Large)
-                {
                     _cache = ArrayPool<byte>.Shared.Rent(EnumerateBufferSize);
-                }
             }
 
             public void Dispose()
             {
                 if (_cache is not null)
-                {
                     ArrayPool<byte>.Shared.Return(_cache);
-                }
             }
 
 
@@ -407,9 +363,7 @@ namespace Microsoft.Diagnostics.Runtime
             public bool ReadPointer(ulong address, out ulong value)
             {
                 if (!EnsureInCache(address))
-                {
                     return _memoryReader.ReadPointer(address, out value);
-                }
 
                 int offset = (int)(address - Base);
                 value = _cache.AsSpan().AsPointer(offset);
@@ -419,9 +373,7 @@ namespace Microsoft.Diagnostics.Runtime
             public bool ReadUInt32(ulong address, out uint value)
             {
                 if (!EnsureInCache(address))
-                {
                     return _memoryReader.Read(address, out value);
-                }
 
                 int offset = (int)(address - Base);
                 value = _cache.AsSpan().AsUInt32(offset);
@@ -432,15 +384,11 @@ namespace Microsoft.Diagnostics.Runtime
             private bool EnsureInCache(ulong address)
             {
                 if (_cache is null)
-                {
                     return false;
-                }
 
                 ulong end = Base + (uint)Length;
                 if (Base <= address && address + _requiredSize < end)
-                {
                     return true;
-                }
 
                 Base = address;
                 Length = _memoryReader.Read(address, _cache);
@@ -463,16 +411,12 @@ namespace Microsoft.Diagnostics.Runtime
                 obj += pointerSize;
 
                 if (!cache.ReadPointer(obj, out ulong mt))
-                {
                     return 0;
-                }
 
                 if (mt > 0x1000)
                 {
                     if (_helpers.IsValidMethodTable(mt))
-                    {
                         break;
-                    }
                 }
             }
 
@@ -483,13 +427,9 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ulong markerStep;
             if (segment.ObjectMarkers.Length == 0)
-            {
                 markerStep = segment.ObjectRange.Length + 1;
-            }
             else
-            {
                 markerStep = segment.ObjectRange.Length / ((uint)segment.ObjectMarkers.Length + 2);
-            }
 
             return markerStep;
         }
@@ -506,18 +446,12 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ClrSegment? seg = GetSegmentByAddress(address);
             if (seg is null)
-            {
                 return default;
-            }
 
             ulong start = seg.ObjectMarkers.Select(m => seg.FirstObjectAddress + m).Where(m => m <= address).Max();
             foreach (ClrObject obj in EnumerateObjects(seg, start, carefully))
-            {
                 if (address < obj)
-                {
                     return obj;
-                }
-            }
 
             return default;
         }
@@ -535,9 +469,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ClrSegment? seg = GetSegmentByAddress(address);
             if (seg is null || address <= seg.FirstObjectAddress)
-            {
                 return default;
-            }
 
             ulong start = seg.ObjectMarkers.Select(m => seg.FirstObjectAddress + m).Where(m => m < address).Max();
 
@@ -545,9 +477,7 @@ namespace Microsoft.Diagnostics.Runtime
             foreach (ClrObject obj in EnumerateObjects(seg, start, carefully))
             {
                 if (obj >= address)
-                {
                     return last;
-                }
 
                 last = obj;
             }
@@ -558,11 +488,9 @@ namespace Microsoft.Diagnostics.Runtime
         private ulong SkipAllocationContext(ClrSegment seg, ulong address)
         {
             if (seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Frozen)
-            {
                 return address;
-            }
 
-            Dictionary<ulong, ulong> allocationContexts = GetAllocationContexts();
+            var allocationContexts = GetAllocationContexts();
 
             uint minObjSize = (uint)IntPtr.Size * 3;
             while (allocationContexts.TryGetValue(address, out ulong nextObj))
@@ -570,15 +498,11 @@ namespace Microsoft.Diagnostics.Runtime
                 nextObj += Align(minObjSize, seg);
 
                 if (address >= nextObj || address >= seg.End)
-                {
                     return 0;
-                }
 
                 // Only if there's data corruption:
                 if (address >= nextObj || address >= seg.End)
-                {
                     return 0;
-                }
 
                 address = nextObj;
             }
@@ -592,18 +516,12 @@ namespace Microsoft.Diagnostics.Runtime
             ulong AlignLargeConst = 7;
 
             if (IntPtr.Size == 4)
-            {
                 AlignConst = 3;
-            }
             else
-            {
                 AlignConst = 7;
-            }
 
             if (seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Pinned)
-            {
                 return (size + AlignLargeConst) & ~AlignLargeConst;
-            }
 
             return (size + AlignConst) & ~AlignConst;
         }
@@ -622,9 +540,7 @@ namespace Microsoft.Diagnostics.Runtime
             foreach (ClrHandle handle in Runtime.EnumerateHandles())
             {
                 if (handle.IsStrong)
-                {
                     yield return handle;
-                }
 
                 if (handle.RootKind == ClrRootKind.AsyncPinnedHandle && handle.Object.IsValid)
                 {
@@ -644,9 +560,7 @@ namespace Microsoft.Diagnostics.Runtime
                                 ClrObject innerObj = array.GetObjectValue(i);
 
                                 if (innerObj.IsValid)
-                                {
                                     yield return new ClrHandle(handle.AppDomain, innerAddress, innerObj, handle.HandleKind);
-                                }
                             }
                         }
                     }
@@ -655,18 +569,12 @@ namespace Microsoft.Diagnostics.Runtime
 
             // Finalization Queue
             foreach (ClrRoot root in EnumerateFinalizerRoots())
-            {
                 yield return root;
-            }
 
             // Threads
             foreach (ClrThread thread in Runtime.Threads.Where(t => t.IsAlive))
-            {
                 foreach (ClrRoot root in thread.EnumerateStackRoots())
-                {
                     yield return root;
-                }
-            }
         }
 
         private (ulong Address, ClrObject obj) GetObjectAndAddress(ClrObject containing, string fieldName)
@@ -681,9 +589,7 @@ namespace Microsoft.Diagnostics.Runtime
                     ClrObject obj = GetObject(objPtr);
 
                     if (obj.IsValid)
-                    {
                         return (address, obj);
-                    }
                 }
             }
 
@@ -696,23 +602,17 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrSegment? GetSegmentByAddress(ulong address)
         {
             if (Segments.Length == 0)
-            {
                 return null;
-            }
 
             ClrSegment? curr = _currSegment;
             if (curr is not null && curr.ObjectRange.Contains(address))
-            {
                 return curr;
-            }
 
             if (Segments[0].FirstObjectAddress <= address && address < Segments[Segments.Length - 1].End)
             {
                 int index = Segments.Search(address, (seg, value) => seg.ObjectRange.CompareTo(value));
                 if (index == -1)
-                {
                     return null;
-                }
 
                 curr = Segments[index];
                 _currSegment = curr;
@@ -743,14 +643,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public IEnumerable<MemoryRange> EnumerateAllocationContexts()
         {
-            Dictionary<ulong, ulong>? allocationContexts = GetAllocationContexts();
+            var allocationContexts = GetAllocationContexts();
             if (allocationContexts is not null)
-            {
-                foreach (KeyValuePair<ulong, ulong> kv in allocationContexts)
-                {
+                foreach (var kv in allocationContexts)
                     yield return new(kv.Key, kv.Value);
-                }
-            }
         }
 
         public IEnumerable<SyncBlock> EnumerateSyncBlocks() => GetSyncBlocks();
@@ -785,16 +681,12 @@ namespace Microsoft.Diagnostics.Runtime
         internal SyncBlockComFlags GetComFlags(ulong obj)
         {
             if (obj == 0)
-            {
                 return SyncBlockComFlags.None;
-            }
 
             const ulong mask = ~0xe000000000000000;
             ulong lastComFlags = _lastComFlags;
             if ((lastComFlags & mask) == obj)
-            {
                 return (SyncBlockComFlags)(lastComFlags >> 61);
-            }
 
             SyncBlock? syncBlk = GetSyncBlock(obj);
             SyncBlockComFlags flags = syncBlk?.ComFlags ?? SyncBlockComFlags.None;
@@ -822,19 +714,14 @@ namespace Microsoft.Diagnostics.Runtime
 
                 // Strings in v4+ contain a trailing null terminator not accounted for.
                 if (StringType == type)
-                {
                     count++;
-                }
 
                 size = count * (ulong)type.ComponentSize + (ulong)type.StaticSize;
             }
 
             uint minSize = (uint)IntPtr.Size * 3;
             if (size < minSize)
-            {
                 size = minSize;
-            }
-
             return size;
         }
 
@@ -853,13 +740,11 @@ namespace Microsoft.Diagnostics.Runtime
         internal IEnumerable<ClrObject> EnumerateObjectReferences(ulong obj, ClrType type, bool carefully, bool considerDependantHandles)
         {
             if (type is null)
-            {
                 throw new ArgumentNullException(nameof(type));
-            }
 
             if (considerDependantHandles)
             {
-                (ulong Source, ulong Target)[] dependent = GetDependentHandles();
+                var dependent = GetDependentHandles();
 
                 if (dependent.Length > 0)
                 {
@@ -867,9 +752,7 @@ namespace Microsoft.Diagnostics.Runtime
                     if (index != -1)
                     {
                         while (index >= 1 && dependent[index - 1].Source == obj)
-                        {
                             index--;
-                        }
 
                         while (index < dependent.Length && dependent[index].Source == obj)
                         {
@@ -884,9 +767,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 ulong la = _memoryReader.ReadPointer(type.LoaderAllocatorHandle);
                 if (la != 0)
-                {
                     yield return new(la, GetObjectType(la));
-                }
             }
 
             if (type.ContainsPointers)
@@ -899,15 +780,11 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         ClrSegment? seg = GetSegmentByAddress(obj);
                         if (seg is null)
-                        {
                             yield break;
-                        }
 
                         bool large = seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Pinned;
                         if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
-                        {
                             yield break;
-                        }
                     }
 
                     int intSize = (int)size;
@@ -916,9 +793,7 @@ namespace Microsoft.Diagnostics.Runtime
                     if (read > IntPtr.Size)
                     {
                         foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
-                        {
                             yield return new(reference, GetObjectType(reference));
-                        }
                     }
 
                     ArrayPool<byte>.Shared.Return(buffer);
@@ -941,13 +816,11 @@ namespace Microsoft.Diagnostics.Runtime
         internal IEnumerable<ClrReference> EnumerateReferencesWithFields(ulong obj, ClrType type, bool carefully, bool considerDependantHandles)
         {
             if (type is null)
-            {
                 throw new ArgumentNullException(nameof(type));
-            }
 
             if (considerDependantHandles)
             {
-                (ulong Source, ulong Target)[] dependent = GetDependentHandles();
+                var dependent = GetDependentHandles();
 
                 if (dependent.Length > 0)
                 {
@@ -955,9 +828,7 @@ namespace Microsoft.Diagnostics.Runtime
                     if (index != -1)
                     {
                         while (index >= 1 && dependent[index - 1].Source == obj)
-                        {
                             index--;
-                        }
 
                         while (index < dependent.Length && dependent[index].Source == obj)
                         {
@@ -979,15 +850,11 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         ClrSegment? seg = GetSegmentByAddress(obj);
                         if (seg is null)
-                        {
                             yield break;
-                        }
 
                         bool large = seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Pinned;
                         if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
-                        {
                             yield break;
-                        }
                     }
 
                     int intSize = (int)size;
@@ -1023,13 +890,11 @@ namespace Microsoft.Diagnostics.Runtime
         internal IEnumerable<ulong> EnumerateReferenceAddresses(ulong obj, ClrType type, bool carefully, bool considerDependantHandles)
         {
             if (type is null)
-            {
                 throw new ArgumentNullException(nameof(type));
-            }
 
             if (considerDependantHandles)
             {
-                (ulong Source, ulong Target)[] dependent = GetDependentHandles();
+                var dependent = GetDependentHandles();
 
                 if (dependent.Length > 0)
                 {
@@ -1037,14 +902,10 @@ namespace Microsoft.Diagnostics.Runtime
                     if (index != -1)
                     {
                         while (index >= 1 && dependent[index - 1].Source == obj)
-                        {
                             index--;
-                        }
 
                         while (index < dependent.Length && dependent[index].Source == obj)
-                        {
                             yield return dependent[index++].Target;
-                        }
                     }
                 }
             }
@@ -1059,15 +920,11 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         ClrSegment? seg = GetSegmentByAddress(obj);
                         if (seg is null)
-                        {
                             yield break;
-                        }
 
                         bool large = seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Pinned;
                         if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
-                        {
                             yield break;
-                        }
                     }
 
                     int intSize = (int)size;
@@ -1090,23 +947,15 @@ namespace Microsoft.Diagnostics.Runtime
         {
             Dictionary<ulong, ulong>? result = _allocationContexts;
             if (result is not null)
-            {
                 return result;
-            }
 
             result = new();
             foreach (MemoryRange allocContext in _helpers.EnumerateThreadAllocationContexts())
-            {
                 result[allocContext.Start] = allocContext.End;
-            }
 
             foreach (ClrSubHeap subHeap in SubHeaps)
-            {
                 if (subHeap.AllocationContext.Start < subHeap.AllocationContext.End)
-                {
                     result[subHeap.AllocationContext.Start] = subHeap.AllocationContext.End;
-                }
-            }
 
             Interlocked.CompareExchange(ref _allocationContexts, result, null);
             return result;
@@ -1116,9 +965,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             (ulong Source, ulong Target)[]? handles = _dependentHandles;
             if (handles is not null)
-            {
                 return handles;
-            }
 
             handles = _helpers.EnumerateDependentHandles().OrderBy(r => r.Source).ToArray();
 
@@ -1134,16 +981,12 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     ulong obj = _memoryReader.ReadPointer(ptr);
                     if (obj == 0)
-                    {
                         continue;
-                    }
 
                     ulong mt = _memoryReader.ReadPointer(obj);
                     ClrType? type = _typeFactory.GetOrCreateType(mt, obj);
                     if (type != null)
-                    {
                         yield return new ClrRoot(ptr, new ClrObject(obj, type), ClrRootKind.FinalizerQueue, isInterior: false, isPinned: false);
-                    }
                 }
             }
         }
@@ -1152,9 +995,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             SubHeapData? data = _subHeapData;
             if (data is not null)
-            {
                 return data;
-            }
 
             data = new(_helpers.GetSubHeaps(this));
             Interlocked.CompareExchange(ref _subHeapData, data, null);
@@ -1168,14 +1009,10 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrType? GetTypeByName(ClrModule module, string name)
         {
             if (name is null)
-            {
                 throw new ArgumentNullException(nameof(name));
-            }
 
             if (name.Length == 0)
-            {
                 throw new ArgumentException($"{nameof(name)} cannot be empty");
-            }
 
             return FindTypeName(module.EnumerateTypeDefToMethodTableMap(), name);
         }
@@ -1188,13 +1025,9 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 ClrType? type = _typeFactory.TryGetType(mt);
                 if (type is null)
-                {
                     lookup.Add(mt);
-                }
                 else if (type.Name == name)
-                {
                     return type;
-                }
             }
 
             // Since we didn't find pre-constructed types matching, look up the names for all
@@ -1203,9 +1036,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 string? typeName = _typeFactory.GetTypeName(mt);
                 if (typeName == name)
-                {
                     return _typeFactory.GetOrCreateType(mt, 0);
-                }
             }
 
             return null;
@@ -1214,16 +1045,11 @@ namespace Microsoft.Diagnostics.Runtime
         internal ClrException? GetExceptionObject(ulong objAddress, ClrThread? thread)
         {
             if (objAddress == 0)
-            {
                 return null;
-            }
 
             ClrObject obj = GetObject(objAddress);
             if (obj.IsValid && !obj.IsException)
-            {
                 return null;
-            }
-
             return new ClrException(obj.Type?.Helpers ?? FreeType.Helpers, thread, obj);
         }
 
@@ -1250,14 +1076,10 @@ namespace Microsoft.Diagnostics.Runtime
         IClrType? IClrHeap.GetTypeByName(IClrModule module, string name)
         {
             if (name is null)
-            {
                 throw new ArgumentNullException(nameof(name));
-            }
 
             if (name.Length == 0)
-            {
                 throw new ArgumentException($"{nameof(name)} cannot be empty");
-            }
 
             return FindTypeName(module.EnumerateTypeDefToMethodTableMap(), name);
         }

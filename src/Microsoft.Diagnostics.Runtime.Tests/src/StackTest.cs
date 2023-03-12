@@ -16,13 +16,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.NestedException.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            ClrStackFrame[] items = runtime.GetMainThread().EnumerateStackTrace().Where(f => f.Kind == ClrStackFrameKind.ManagedMethod).ToArray();
+            var items = runtime.GetMainThread().EnumerateStackTrace().Where(f => f.Kind == ClrStackFrameKind.ManagedMethod).ToArray();
 
             Assert.Equal(frames.Length, items.Length);
             for (int i = 0; i < frames.Length; i++)
-            {
                 Assert.StartsWith(frames[i], items[i].Method.Name);
-            }
         }
     }
 }

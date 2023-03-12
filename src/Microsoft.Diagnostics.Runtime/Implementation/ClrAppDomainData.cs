@@ -18,14 +18,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         internal ClrAppDomain? GetDomainByAddress(ulong address)
         {
             if (SystemDomain is not null && SystemDomain.Address == address)
-            {
                 return SystemDomain;
-            }
 
             if (SharedDomain is not null && SharedDomain.Address == address)
-            {
                 return SharedDomain;
-            }
 
             return AppDomains.FirstOrDefault(x => x.Address == address);
         }

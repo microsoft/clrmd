@@ -35,9 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public HResult GetContext(uint contextFlags, int contextBufSize, out int contextSize, byte[] buffer)
         {
             fixed (byte* ptr = buffer)
-            {
                 return VTable.GetContext(Self, contextFlags, contextBufSize, out contextSize, ptr);
-            }
         }
     }
 

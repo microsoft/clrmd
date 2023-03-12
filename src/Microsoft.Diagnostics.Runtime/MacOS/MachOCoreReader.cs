@@ -44,9 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         public unsafe bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
             if (!_core.Threads.TryGetValue(threadID, out thread_state_t thread))
-            {
                 return false;
-            }
 
             switch (Architecture)
             {

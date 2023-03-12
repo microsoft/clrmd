@@ -66,9 +66,7 @@ namespace Microsoft.Diagnostics.Runtime
         public void SetSymbolPath(string symbolPath)
         {
             if (symbolPath is null)
-            {
                 throw new ArgumentNullException(nameof(symbolPath));
-            }
 
             FileLocator = SymbolGroup.CreateFromSymbolPath(symbolPath);
         }
@@ -80,9 +78,7 @@ namespace Microsoft.Diagnostics.Runtime
                 lock (_pefileCache)
                 {
                     foreach (PEImage? img in _pefileCache.Values)
-                    {
                         img?.Dispose();
-                    }
 
                     _pefileCache.Clear();
                 }
@@ -95,14 +91,10 @@ namespace Microsoft.Diagnostics.Runtime
         internal PEImage? LoadPEImage(string fileName, int timeStamp, int fileSize, bool checkProperties, ulong imageBase)
         {
             if (_disposed)
-            {
                 throw new ObjectDisposedException(nameof(DataTarget));
-            }
 
             if (string.IsNullOrEmpty(fileName))
-            {
                 return null;
-            }
 
             string key = $"{fileName}/{timeStamp:x}{fileSize:x}";
 
@@ -111,9 +103,7 @@ namespace Microsoft.Diagnostics.Runtime
             lock (_pefileCache)
             {
                 if (_pefileCache.TryGetValue(key, out result))
-                {
                     return result;
-                }
             }
 
             string? path = FileLocator?.FindPEImage(fileName, timeStamp, fileSize, checkProperties);
@@ -122,9 +112,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 result = new PEImage(File.OpenRead(path), false, imageBase);
                 if (!result.IsValid)
-                {
                     result = null;
-                }
             }
             else
             {
@@ -161,9 +149,7 @@ namespace Microsoft.Diagnostics.Runtime
         private ImmutableArray<ClrInfo> GetOrCreateClrVersions()
         {
             if (_disposed)
-            {
                 throw new ObjectDisposedException(nameof(DataTarget));
-            }
 
             if (_clrs.IsDefault)
             {
@@ -188,14 +174,10 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<ModuleInfo> EnumerateModules()
         {
             if (_disposed)
-            {
                 throw new ObjectDisposedException(nameof(DataTarget));
-            }
 
             if (_modules != null)
-            {
                 return _modules;
-            }
 
             char[] invalid = Path.GetInvalidPathChars();
             ModuleInfo[] modules = DataReader.EnumerateModules().Where(m => m.FileName != null && m.FileName.IndexOfAny(invalid) < 0).ToArray();
@@ -225,29 +207,15 @@ namespace Microsoft.Diagnostics.Runtime
             try
             {
                 if (displayName is null)
-                {
                     throw new ArgumentNullException(nameof(displayName));
-                }
-
                 if (stream is null)
-                {
                     throw new ArgumentNullException(nameof(stream));
-                }
-
                 if (stream.Position != 0)
-                {
                     throw new ArgumentException("Stream must be at position 0", nameof(stream));
-                }
-
                 if (!stream.CanSeek)
-                {
                     throw new ArgumentException("Stream must be seekable", nameof(stream));
-                }
-
                 if (!stream.CanRead)
-                {
                     throw new ArgumentException("Stream must be readable", nameof(stream));
-                }
 
                 cacheOptions ??= new CacheOptions();
 
@@ -273,10 +241,7 @@ namespace Microsoft.Diagnostics.Runtime
             catch
             {
                 if (leaveOpen)
-                {
                     stream?.Dispose();
-                }
-
                 throw;
             }
         }
@@ -290,15 +255,9 @@ namespace Microsoft.Diagnostics.Runtime
         public static DataTarget LoadDump(string filePath, CacheOptions? cacheOptions = null)
         {
             if (filePath is null)
-            {
                 throw new ArgumentNullException(nameof(filePath));
-            }
-
             if (!File.Exists(filePath))
-            {
                 throw new FileNotFoundException($"Could not open dump file '{filePath}'.", filePath);
-            }
-
             FileStream stream = File.OpenRead(filePath);
             return LoadDump(filePath, stream, cacheOptions, leaveOpen: false);
         }
@@ -310,9 +269,7 @@ namespace Microsoft.Diagnostics.Runtime
             stream.Position -= readCount; // Reset stream position
 
             if (readCount != span.Length)
-            {
                 throw new InvalidDataException("Unable to load the header.");
-            }
 
             uint first = Unsafe.As<byte, uint>(ref span[0]);
             DumpFileFormat format = first switch
@@ -329,17 +286,11 @@ namespace Microsoft.Diagnostics.Runtime
             if (format == DumpFileFormat.Unknown)
             {
                 if (span[0] == 'B' && span[1] == 'Z')           // BZip2
-                {
                     format = DumpFileFormat.CompressedArchive;
-                }
                 else if (span[0] == 0x1f && span[1] == 0x8b)    // GZip
-                {
                     format = DumpFileFormat.CompressedArchive;
-                }
                 else if (span[0] == 0x50 && span[1] == 0x4b)    // Zip
-                {
                     format = DumpFileFormat.CompressedArchive;
-                }
             }
 
             return format;
@@ -412,9 +363,7 @@ namespace Microsoft.Diagnostics.Runtime
         public static DataTarget CreateFromDbgEng(IntPtr pDebugClient)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
                 throw GetPlatformException();
-            }
 
             CustomDataTarget customTarget = new(new DbgEngDataReader(pDebugClient));
             return new DataTarget(customTarget);

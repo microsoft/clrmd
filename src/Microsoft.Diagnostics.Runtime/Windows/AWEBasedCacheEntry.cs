@@ -49,9 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             ThrowIfDisposed();
 
             if (HeapSegmentCacheEventSource.Instance.IsEnabled())
-            {
                 HeapSegmentCacheEventSource.Instance.PageOutDataStart();
-            }
 
             long sizeRemoved = 0;
 
@@ -116,9 +114,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                 // We are done if we didn't encounter any busy (locked) pages
                 if (!encounteredBusyPage)
-                {
                     break;
-                }
             }
 
             // Correct our size based on how much data we could remove
@@ -131,9 +127,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             } while (Interlocked.CompareExchange(ref _entrySize, newCurrent, oldCurrent) != oldCurrent);
 
             if (HeapSegmentCacheEventSource.Instance.IsEnabled())
-            {
                 HeapSegmentCacheEventSource.Instance.PageOutDataEnd(sizeRemoved);
-            }
 
             return sizeRemoved;
         }
@@ -171,9 +165,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
 
             if (HeapSegmentCacheEventSource.Instance.IsEnabled())
-            {
                 HeapSegmentCacheEventSource.Instance.PageInDataStart((long)(_segmentData.VirtualAddress + pageAlignedOffset), (long)readSize);
-            }
 
             ulong startingMemoryPageNumber = (pageAlignedOffset / (ulong)AWEBasedCacheEntry.SystemPageSize);
 
@@ -187,9 +179,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 // fragmentation, it marks the excess space as 'Unusable Space'
                 UIntPtr vmPtr = CacheNativeMethods.Memory.VirtualAlloc(EntryPageSize, CacheNativeMethods.Memory.VirtualAllocType.Reserve | CacheNativeMethods.Memory.VirtualAllocType.Physical, CacheNativeMethods.Memory.MemoryProtection.ReadWrite);
                 if (vmPtr == UIntPtr.Zero)
-                {
                     throw new Win32Exception(Marshal.GetLastWin32Error());
-                }
 
                 ulong numberOfPages = readSize / (uint)AWEBasedCacheEntry.SystemPageSize + (((readSize % (ulong)AWEBasedCacheEntry.SystemPageSize) == 0) ? 0u : 1u);
 
@@ -201,23 +191,17 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 );
 
                 if (!mapPhysicalPagesResult)
-                {
                     throw new Win32Exception(Marshal.GetLastWin32Error());
-                }
 
                 if (HeapSegmentCacheEventSource.Instance.IsEnabled())
-                {
                     HeapSegmentCacheEventSource.Instance.PageInDataEnd((int)readSize);
-                }
 
                 return (vmPtr, readSize);
             }
             catch (Exception ex)
             {
                 if (HeapSegmentCacheEventSource.Instance.IsEnabled())
-                {
                     HeapSegmentCacheEventSource.Instance.PageInDataFailed(ex.Message);
-                }
 
                 throw;
             }

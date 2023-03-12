@@ -85,18 +85,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 ModuleInfo curr = modules[i];
 
                 if (curr.ImageBase <= address && address < curr.ImageBase + (ulong)curr.IndexFileSize)
-                {
                     return curr;
-                }
 
                 if (curr.ImageBase < address)
-                {
                     min = i + 1;
-                }
                 else
-                {
                     max = i - 1;
-                }
             }
 
             return null;
@@ -110,9 +104,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             {
                 string? moduleName = Path.GetFileNameWithoutExtension(module.FileName);
                 if (imagePath.Equals(moduleName, StringComparison.CurrentCultureIgnoreCase) && module.ImageBase != 0)
-                {
                     return module.ImageBase;
-                }
             }
 
             return 0;
@@ -166,9 +158,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             Span<byte> span = new(context.ToPointer(), contextSize);
             if (_dataReader.GetThreadContext(threadID, contextFlags, span))
-            {
                 return true;
-            }
 
             return false;
         }
@@ -185,16 +175,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             int* pDataSize)
         {
             if (buffer == IntPtr.Zero)
-            {
                 return HResult.E_INVALIDARG;
-            }
 
             // We do not put a using statement here to prevent needing to load/unload the binary over and over.
             PEImage? peimage = _dataTarget.LoadPEImage(fileName, imageTimestamp, imageSize, checkProperties: true, imageBase: 0);
             if (peimage is null)
-            {
                 return HResult.E_FAIL;
-            }
 
             int rva = (int)mdRva;
             int size = (int)bufferSize;
@@ -202,9 +188,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             {
                 ImageDataDirectory metadata = peimage.MetadataDirectory;
                 if (metadata.VirtualAddress == 0)
-                {
                     return HResult.E_FAIL;
-                }
 
                 rva = metadata.VirtualAddress;
                 size = Math.Min(size, metadata.Size);
@@ -214,9 +198,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             {
                 int read = peimage.Read(rva, new Span<byte>(buffer.ToPointer(), size));
                 if (pDataSize != null)
-                {
                     *pDataSize = read;
-                }
             }
 
             return HResult.S_OK;

@@ -42,17 +42,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private void AssertModuleDoesntContainDomains(ClrModule module, params ClrAppDomain[] domainList)
         {
             foreach (ClrAppDomain domain in domainList)
-            {
                 Assert.DoesNotContain(domain.Modules, m => m.Name == module.Name);
-            }
         }
 
         private void AssertModuleContainsDomains(ClrModule module, params ClrAppDomain[] domainList)
         {
             foreach (ClrAppDomain domain in domainList)
-            {
                 Assert.Contains(domain.Modules, m => m.Name == module.Name);
-            }
         }
 
         [FrameworkFact]
@@ -144,9 +140,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             Dictionary<string, ClrModule> result = new(StringComparer.OrdinalIgnoreCase);
             foreach (ClrModule module in domain.Modules)
-            {
                 result.Add(Path.GetFileName(module.Name), module);
-            }
 
             return result;
         }

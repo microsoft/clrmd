@@ -44,9 +44,7 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<ClrObject> EnumerateReferences(bool carefully = false, bool considerDependantHandles = true)
         {
             if (Type is null)
-            {
                 return Enumerable.Empty<ClrObject>();
-            }
 
             return Type.Heap.EnumerateObjectReferences(Address, Type, carefully, considerDependantHandles);
         }
@@ -66,9 +64,7 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<ClrReference> EnumerateReferencesWithFields(bool carefully = false, bool considerDependantHandles = true)
         {
             if (Type is null)
-            {
                 return Enumerable.Empty<ClrReference>();
-            }
 
             return Type.Heap.EnumerateReferencesWithFields(Address, Type, carefully, considerDependantHandles);
         }
@@ -87,9 +83,7 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<ulong> EnumerateReferenceAddresses(bool carefully = false, bool considerDependantHandles = true)
         {
             if (Type is null)
-            {
                 return Enumerable.Empty<ulong>();
-            }
 
             return Type.Heap.EnumerateReferenceAddresses(Address, Type, carefully, considerDependantHandles);
         }
@@ -108,9 +102,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             IClrTypeHelpers? helpers = Helpers;
             if (helpers is null)
-            {
                 return default;
-            }
 
             return helpers.DataReader.Read<T>(Address + (ulong)IntPtr.Size);
         }
@@ -120,14 +112,10 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrException? AsException()
         {
             if (!IsException)
-            {
                 throw new InvalidOperationException($"Object {Address:x} is not an Exception.");
-            }
 
             if (Type is null || !Type.IsException)
-            {
                 return null;
-            }
 
             return new ClrException(Helpers, null, this);
         }
@@ -191,9 +179,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ComCallableWrapper? GetComCallableWrapper()
         {
             if (IsNull || !IsValid || !HasComCallableWrapper)
-            {
                 return null;
-            }
 
             return Helpers.CreateCCWForObject(Address);
         }
@@ -205,9 +191,7 @@ namespace Microsoft.Diagnostics.Runtime
         public RuntimeCallableWrapper? GetRuntimeCallableWrapper()
         {
             if (IsNull || !IsValid)
-            {
                 return null;
-            }
 
             return Helpers.CreateRCWForObject(Address);
         }
@@ -230,9 +214,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ClrType type = GetTypeOrThrow();
             if (!type.IsArray)
-            {
                 throw new InvalidOperationException($"Object {Address:x} is not an array, type is '{type.Name}'.");
-            }
 
             return new ClrArray(Address, type);
         }
@@ -264,34 +246,24 @@ namespace Microsoft.Diagnostics.Runtime
         {
             result = default;
             if (fieldName is null)
-            {
                 return false;
-            }
 
             ClrType? type = Type;
             if (type is null)
-            {
                 return false;
-            }
 
             ClrInstanceField? field = type.GetFieldByName(fieldName);
             if (field is null)
-            {
                 return false;
-            }
 
             if (!field.IsObjectReference)
-            {
                 return false;
-            }
 
             ClrHeap heap = type.Heap;
 
             ulong addr = field.GetAddress(Address);
             if (!type.Helpers.DataReader.ReadPointer(addr, out ulong obj))
-            {
                 return false;
-            }
 
             result = heap.GetObject(obj);
             return true;
@@ -310,17 +282,13 @@ namespace Microsoft.Diagnostics.Runtime
             ClrType type = GetTypeOrThrow();
             ClrInstanceField? field = type.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
             if (!field.IsObjectReference)
-            {
                 throw new ArgumentException($"Field '{type.Name}.{fieldName}' is not an object reference.");
-            }
 
             ClrHeap heap = type.Heap;
 
             ulong addr = field.GetAddress(Address);
             if (!type.Helpers.DataReader.ReadPointer(addr, out ulong obj))
-            {
                 return default;
-            }
 
             return heap.GetObject(obj);
         }
@@ -331,14 +299,10 @@ namespace Microsoft.Diagnostics.Runtime
 
             ClrInstanceField field = type.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
             if (!field.IsValueType)
-            {
                 throw new ArgumentException($"Field '{type.Name}.{fieldName}' is not a ValueClass.");
-            }
 
             if (field.Type is null)
-            {
                 throw new InvalidOperationException("Field does not have an associated class.");
-            }
 
             ulong addr = field.GetAddress(Address);
             return new ClrValueType(addr, field.Type, true);
@@ -350,25 +314,17 @@ namespace Microsoft.Diagnostics.Runtime
 
             ClrType? type = Type;
             if (type is null)
-            {
                 return false;
-            }
 
             ClrInstanceField? field = type.GetFieldByName(fieldName);
             if (field is null)
-            {
                 return false;
-            }
 
             if (!field.IsValueType)
-            {
                 return false;
-            }
 
             if (field.Type is null)
-            {
                 return false;
-            }
 
             ulong addr = field.GetAddress(Address);
             result = new ClrValueType(addr, field.Type, true);
@@ -405,21 +361,15 @@ namespace Microsoft.Diagnostics.Runtime
             result = default;
 
             if (fieldName is null)
-            {
                 return false;
-            }
 
             ClrType? type = Type;
             if (type is null)
-            {
                 return false;
-            }
 
             ClrInstanceField? field = type.GetFieldByName(fieldName);
             if (field is null)
-            {
                 return false;
-            }
 
             result = field.Read<T>(Address, interior: false);
             return true;
@@ -438,12 +388,8 @@ namespace Microsoft.Diagnostics.Runtime
                 // Max depth = 8 should be enough to find a delegate type
                 ClrType? type = Type;
                 for (int i = 0; i < 8 && type != null; i++, type = type.BaseType)
-                {
                     if (type.Name == ClrDelegate.DelegateType)
-                    {
                         return true;
-                    }
-                }
 
                 return false;
             }
@@ -460,9 +406,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrDelegate AsDelegate()
         {
             if (!IsDelegate)
-            {
                 throw new InvalidOperationException($"Object {Address:x} is not a delegate, type is '{Type?.Name}'.");
-            }
 
             return new ClrDelegate(this);
         }
@@ -489,14 +433,10 @@ namespace Microsoft.Diagnostics.Runtime
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
             IDataReader dataReader = Helpers.DataReader;
             if (!dataReader.ReadPointer(address, out ulong strPtr))
-            {
                 return null;
-            }
 
             if (strPtr == 0)
-            {
                 return null;
-            }
 
             return Helpers.ReadString(strPtr, maxLength);
         }
@@ -505,9 +445,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ClrType type = GetTypeOrThrow();
             if (!type.IsString)
-            {
                 throw new InvalidOperationException($"Object {Address:x} is not a string, actual type: {Type?.Name ?? "null"}.");
-            }
 
             return Helpers.ReadString(Address, maxLength);
         }
@@ -517,15 +455,11 @@ namespace Microsoft.Diagnostics.Runtime
             ClrType type = GetTypeOrThrow();
 
             if (IsNull)
-            {
                 throw new InvalidOperationException($"Cannot get field from null object.");
-            }
 
             ClrInstanceField field = type.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
             if (field.ElementType != element)
-            {
                 throw new InvalidOperationException($"Field '{type.Name}.{fieldName}' is not of type '{typeName}'.");
-            }
 
             ulong address = field.GetAddress(Address);
             return address;
@@ -534,14 +468,10 @@ namespace Microsoft.Diagnostics.Runtime
         private ClrType GetTypeOrThrow()
         {
             if (IsNull)
-            {
                 throw new InvalidOperationException("Object is null.");
-            }
 
             if (!IsValid)
-            {
                 throw new InvalidOperationException($"Object {Address:x} is corrupted, could not determine type.");
-            }
 
             return Type!;
         }
@@ -558,9 +488,7 @@ namespace Microsoft.Diagnostics.Runtime
         public override bool Equals([NotNullWhen(true)] object? obj)
         {
             if (obj is IClrValue value)
-            {
                 return value.Equals(this);
-            }
 
             return false;
         }

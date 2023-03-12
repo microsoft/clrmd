@@ -33,9 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
                 string value = entry.Value;
                 if (value.Length > 0 && value.Contains(' ') && value[0] != '"' && value[^1] != '"')
-                {
                     value = '"' + value + '"';
-                }
 
                 sb.Append(value);
                 sb.Append('\0');
@@ -76,9 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             GetVTable(this, out nint self, out IDebugClientVtable* vtable);
 
             fixed (char* filenamePtr = filename)
-            {
                 return vtable->OpenDumpFileWide(self, filenamePtr, 0);
-            }
         }
 
         void IDebugClient.WriteDumpFile(string filename, DEBUG_DUMP qualifier, DEBUG_FORMAT format, string? comment)
@@ -92,9 +88,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             nint pCallbacks = 0;
             int hr = vtable->GetOutputCallbacksWide(self, &pCallbacks);
             if (hr != 0)
-            {
                 return 0;
-            }
 
             return pCallbacks;
         }
@@ -132,9 +126,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             nint pCallbacks = 0;
             int hr = vtable->GetEventCallbacksWide(self, &pCallbacks);
             if (hr != 0)
-            {
                 return 0;
-            }
 
             return pCallbacks;
         }

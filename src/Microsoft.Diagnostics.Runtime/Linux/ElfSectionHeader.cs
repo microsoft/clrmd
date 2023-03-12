@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (is64bit)
             {
-                ElfSectionHeader64 header = reader.Read<ElfSectionHeader64>(headerPositon);
+                var header = reader.Read<ElfSectionHeader64>(headerPositon);
                 Type = header.Type;
                 NameIndex = header.NameIndex;
                 VirtualAddress = header.VirtualAddress;
@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
             else
             {
-                ElfSectionHeader32 header = reader.Read<ElfSectionHeader32>(headerPositon);
+                var header = reader.Read<ElfSectionHeader32>(headerPositon);
                 Type = header.Type;
                 NameIndex = header.NameIndex;
                 VirtualAddress = header.VirtualAddress;

@@ -239,9 +239,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             set
             {
                 if (outputStream != null)
-                {
                     throw new Exception("OutputFile and OutputStream can not both be set");
-                }
 
                 outputFile = value;
             }
@@ -267,9 +265,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             set
             {
                 if (outputFile != null)
-                {
                     throw new Exception("OutputFile and OutputStream can not both be set");
-                }
 
                 outputStream = value;
             }

@@ -45,9 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         internal static ElfSymbolTable? Create(Reader reader, bool is64Bit, ulong symbolTableVA, ElfStringTable? stringTable)
         {
             if (symbolTableVA == 0 || stringTable is null)
-            {
                 return null;
-            }
 
             try
             {

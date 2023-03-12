@@ -39,9 +39,7 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         ulong ret = new Span<byte>(buffer).AsPointer((int)offset);
                         if (ret != 0)
-                        {
                             yield return (ret, (int)offset);
-                        }
 
                         offset += IntPtr.Size;
                     }
@@ -65,9 +63,7 @@ namespace Microsoft.Diagnostics.Runtime
                         {
                             ulong ret = new Span<byte>(buffer).AsPointer((int)offset);
                             if (ret != 0)
-                            {
                                 yield return (ret, (int)offset);
-                            }
 
                             offset += IntPtr.Size;
                         } while (offset < stop);
@@ -82,9 +78,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             int offset = i * IntPtr.Size;
             if (IntPtr.Size == 4)
-            {
                 return BitConverter.ToUInt16(_data, curr + offset);
-            }
 
             return BitConverter.ToInt32(_data, curr + offset);
         }
@@ -93,9 +87,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             int offset = i * IntPtr.Size + IntPtr.Size / 2;
             if (IntPtr.Size == 4)
-            {
                 return BitConverter.ToInt16(_data, curr + offset);
-            }
 
             return BitConverter.ToInt32(_data, curr + offset);
         }
@@ -103,9 +95,7 @@ namespace Microsoft.Diagnostics.Runtime
         private int GetSeriesSize(int curr)
         {
             if (IntPtr.Size == 4)
-            {
                 return BitConverter.ToInt32(_data, curr);
-            }
 
             return (int)BitConverter.ToInt64(_data, curr);
         }
@@ -114,13 +104,9 @@ namespace Microsoft.Diagnostics.Runtime
         {
             long offset;
             if (IntPtr.Size == 4)
-            {
                 offset = BitConverter.ToUInt32(_data, curr + IntPtr.Size);
-            }
             else
-            {
                 offset = BitConverter.ToInt64(_data, curr + IntPtr.Size);
-            }
 
             return offset;
         }
@@ -143,9 +129,7 @@ namespace Microsoft.Diagnostics.Runtime
         private int GetNumSeries()
         {
             if (IntPtr.Size == 4)
-            {
                 return BitConverter.ToInt32(_data, _data.Length - IntPtr.Size);
-            }
 
             return (int)BitConverter.ToInt64(_data, _data.Length - IntPtr.Size);
         }

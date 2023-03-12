@@ -16,9 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS.Structs
             get
             {
                 fixed (byte* sig = _signature)
-                {
                     return Encoding.ASCII.GetString(sig, 16).TrimEnd((char)0);
-                }
             }
         }
 

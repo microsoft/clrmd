@@ -17,9 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS.Structs
             get
             {
                 fixed (byte* ptr = Uuid)
-                {
                     return new ReadOnlySpan<byte>(ptr, 16).ToArray();
-                }
             }
         }
     }

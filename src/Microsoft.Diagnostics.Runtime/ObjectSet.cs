@@ -136,9 +136,7 @@ namespace Microsoft.Diagnostics.Runtime
         public virtual void Clear()
         {
             for (int i = 0; i < _segments.Length; i++)
-            {
                 _segments[i].Objects.SetAll(false);
-            }
 
             Count = 0;
         }

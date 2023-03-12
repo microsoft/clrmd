@@ -28,9 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             {
                 HResult hr = VTable.Request(Self, DACDATAMODULEPRIV_REQUEST_GET_MODULEDATA, 0, null, sizeof(ExtendedModuleData), dataPtr);
                 if (!hr)
-                {
                     data = default;
-                }
 
                 return hr;
             }
@@ -40,15 +38,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.GetName(Self, 0, out int nameLength, null);
             if (!hr)
-            {
                 return null;
-            }
 
             string name = new('\0', nameLength - 1);
             fixed (char* namePtr = name)
-            {
                 hr = VTable.GetName(Self, nameLength, out _, namePtr);
-            }
 
             return hr ? name : null;
         }

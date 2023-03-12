@@ -132,9 +132,7 @@ namespace Microsoft.Diagnostics.Runtime
         public override bool Equals(object? obj)
         {
             if (obj is IClrThread thread)
-            {
                 return thread.Equals(this);
-            }
 
             return false;
         }
@@ -153,9 +151,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 ulong ptr = _exceptionHandle;
                 if (ptr == 0)
-                {
                     return null;
-                }
 
                 ulong obj = _helpers.DataReader.ReadPointer(ptr);
                 ClrException? ex = Runtime.Heap.GetExceptionObject(obj, this);

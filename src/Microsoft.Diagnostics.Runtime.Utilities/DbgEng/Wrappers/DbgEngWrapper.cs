@@ -37,45 +37,31 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         internal DbgEngWrapper(nint pUnknown)
         {
             if (Interlocked.Exchange(ref _alive, 1) == 1)
-            {
                 throw new NotSupportedException($"DbgEng doesn't properly handle multiple instances simultaneously.  This can lead to some undefined behavior.");
-            }
 
             int hr = Marshal.QueryInterface(pUnknown, ref IID_IDebugClient5, out _client);
             if (hr != 0)
-            {
                 throw new NotSupportedException($"This IUnknown pointer does not implement IDebugClient5.");
-            }
 
             hr = Marshal.QueryInterface(pUnknown, ref IID_IDebugControl5, out _control);
             if (hr != 0)
-            {
                 _control = 0;
-            }
 
             hr = Marshal.QueryInterface(pUnknown, ref IID_IDebugDataSpaces2, out _spaces);
             if (hr != 0)
-            {
                 _spaces = 0;
-            }
 
             hr = Marshal.QueryInterface(pUnknown, ref IID_IDebugSymbols3, out _symbols);
             if (hr != 0)
-            {
                 _symbols = 0;
-            }
 
             hr = Marshal.QueryInterface(pUnknown, ref IID_IDebugSystemObjects3, out _systemObjects);
             if (hr != 0)
-            {
                 _systemObjects = 0;
-            }
 
             hr = Marshal.QueryInterface(pUnknown, ref IID_IDebugAdvanced, out _advanced);
             if (hr != 0)
-            {
                 _advanced = 0;
-            }
         }
 
         ~DbgEngWrapper()
@@ -102,29 +88,22 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         public RuntimeTypeHandle GetInterfaceImplementation(RuntimeTypeHandle interfaceType)
         {
             if (interfaceType.Equals(typeof(IDebugClient).TypeHandle))
-            {
                 return typeof(IDebugClientWrapper).TypeHandle;
-            }
+
             else if (interfaceType.Equals(typeof(IDebugControl).TypeHandle))
-            {
                 return typeof(IDebugControlWrapper).TypeHandle;
-            }
+
             else if (interfaceType.Equals(typeof(IDebugDataSpaces).TypeHandle))
-            {
                 return typeof(IDebugDataSpacesWrapper).TypeHandle;
-            }
+
             else if (interfaceType.Equals(typeof(IDebugSymbols).TypeHandle))
-            {
                 return typeof(IDebugSymbolsWrapper).TypeHandle;
-            }
+
             else if (interfaceType.Equals(typeof(IDebugSystemObjects).TypeHandle))
-            {
                 return typeof(IDebugSystemObjectsWrapper).TypeHandle;
-            }
+
             else if (interfaceType.Equals(typeof(IDebugAdvanced).TypeHandle))
-            {
                 return typeof(IDebugAdvancedWrapper).TypeHandle;
-            }
 
             return default;
         }
@@ -132,29 +111,22 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         public bool IsInterfaceImplemented(RuntimeTypeHandle interfaceType, bool throwIfNotImplemented)
         {
             if (_client != 0 && interfaceType.Equals(typeof(IDebugClient).TypeHandle))
-            {
                 return true;
-            }
+
             else if (_control != 0 && interfaceType.Equals(typeof(IDebugControl).TypeHandle))
-            {
                 return true;
-            }
+
             else if (_spaces != 0 && interfaceType.Equals(typeof(IDebugDataSpaces).TypeHandle))
-            {
                 return true;
-            }
+
             else if (_symbols != 0 && interfaceType.Equals(typeof(IDebugSymbols).TypeHandle))
-            {
                 return true;
-            }
+
             else if (_systemObjects != 0 && interfaceType.Equals(typeof(IDebugSystemObjects).TypeHandle))
-            {
                 return true;
-            }
+
             else if (_advanced != 0 && interfaceType.Equals(typeof(IDebugAdvanced).TypeHandle))
-            {
                 return true;
-            }
 
             return false;
         }

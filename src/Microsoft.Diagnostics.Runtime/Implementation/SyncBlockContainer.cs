@@ -19,12 +19,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public SyncBlockContainer(IEnumerable<SyncBlock> syncBlocks)
         {
             _syncBlocks = syncBlocks.ToArray();
-            foreach (SyncBlock item in _syncBlocks)
+            foreach (var item in _syncBlocks)
             {
                 if (item.Object != 0)
-                {
                     _mapping[item.Object] = item;
-                }
             }
         }
 

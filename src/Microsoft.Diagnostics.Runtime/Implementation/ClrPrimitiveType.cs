@@ -15,9 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             : base(helpers)
         {
             if (helpers is null)
-            {
                 throw new ArgumentNullException(nameof(helpers));
-            }
 
             Module = module ?? throw new ArgumentNullException(nameof(module));
             Heap = heap ?? throw new ArgumentNullException(nameof(heap));

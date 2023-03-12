@@ -46,19 +46,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             int version = 0;
             if (!_dac.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))))
-            {
                 throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data.  Failed to request DacVersion.");
-            }
 
             if (version != 9)
-            {
                 throw new NotSupportedException($"The CLR debugging layer reported a version of {version} which this build of ClrMD does not support.");
-            }
 
             if (!_sos.GetThreadStoreData(out _threadStore))
-            {
                 throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data.    Failed to request ThreadStoreData.");
-            }
         }
 
         public void Dispose()
@@ -84,18 +78,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             get
             {
                 if (_runtime is null)
-                {
                     throw new InvalidOperationException($"Must set {nameof(ClrRuntimeHelpers)}.{nameof(Runtime)} before using it!");
-                }
 
                 return _runtime;
             }
             set
             {
                 if (_runtime is not null && _runtime != value)
-                {
                     throw new InvalidOperationException($"Cannot change {nameof(ClrRuntimeHelpers)}.{nameof(Runtime)}!");
-                }
 
                 _runtime = value;
             }
@@ -130,32 +120,24 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 domainData.SystemDomain = CreateAppDomain(domainStore.SystemDomain, "System Domain", domainData.Modules);
 
                 if (domainStore.SharedDomain != 0)
-                {
                     domainData.SharedDomain = CreateAppDomain(domainStore.SharedDomain, "Shared Domain", domainData.Modules);
-                }
 
-                ImmutableArray<ClrAppDomain>.Builder builder = ImmutableArray.CreateBuilder<ClrAppDomain>(domainStore.AppDomainCount);
+                var builder = ImmutableArray.CreateBuilder<ClrAppDomain>(domainStore.AppDomainCount);
                 ClrDataAddress[] domainList = _sos.GetAppDomainList(domainStore.AppDomainCount);
 
                 for (int i = 0; i < domainList.Length; i++)
                 {
-                    ClrAppDomain? domain = CreateAppDomain(domainList[i], null, domainData.Modules);
+                    var domain = CreateAppDomain(domainList[i], null, domainData.Modules);
                     if (domain is not null)
-                    {
                         builder.Add(domain);
-                    }
                 }
 
                 domainData.AppDomains = builder.MoveToImmutable();
 
                 ClrModule? bcl = null;
                 if (_sos.GetCommonMethodTables(out CommonMethodTables mts))
-                {
                     if (_sos.GetMethodTableData(mts.ObjectMethodTable, out MethodTableData mtData))
-                    {
                         domainData.Modules.TryGetValue(mtData.Module, out bcl);
-                    }
-                }
 
                 if (bcl is null)
                 {
@@ -188,16 +170,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             int id = -1;
             if (_sos.GetAppDomainData(domainAddress, out AppDomainData data))
-            {
                 id = data.Id;
-            }
 
             name ??= _sos.GetAppDomainName(domainAddress);
             ClrAppDomain result = new(Runtime, this, domainAddress, name, id);
 
-            ImmutableArray<ClrModule>.Builder moduleBuilder = ImmutableArray.CreateBuilder<ClrModule>();
+            var moduleBuilder = ImmutableArray.CreateBuilder<ClrModule>();
             foreach (ulong assembly in _sos.GetAssemblyList(domainAddress))
-            {
                 foreach (ulong moduleAddress in _sos.GetModuleList(assembly))
                 {
                     if (modules.TryGetValue(moduleAddress, out ClrModule? module))
@@ -207,19 +186,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     else
                     {
                         if (_sos.GetModuleData(moduleAddress, out ModuleData moduleData))
-                        {
                             module = new(result, moduleAddress, _moduleHelpers, moduleData);
-                        }
                         else
-                        {
                             module = new(result, _moduleHelpers, moduleAddress);
-                        }
 
                         modules.Add(moduleAddress, module);
                         moduleBuilder.Add(module);
                     }
                 }
-            }
 
             result.Modules = moduleBuilder.MoveOrCopyToImmutable();
             return result;
@@ -228,15 +202,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public ClrMethod? GetMethodByMethodDesc(ulong methodDesc)
         {
             if (!_sos.GetMethodDescData(methodDesc, 0, out MethodDescData mdData))
-            {
                 return null;
-            }
 
             ClrType? type = Runtime.Heap.GetTypeByMethodTable(mdData.MethodTable);
             if (type is null)
-            {
                 return null;
-            }
 
             return type.Methods.FirstOrDefault(m => m.MethodDesc == methodDesc);
         }
@@ -247,14 +217,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (md == 0)
             {
                 if (!_sos.GetCodeHeaderData(ip, out CodeHeaderData codeHeaderData))
-                {
                     return null;
-                }
 
                 if ((md = codeHeaderData.MethodDesc) == 0)
-                {
                     return null;
-                }
             }
 
             return GetMethodByMethodDesc(md);
@@ -272,9 +238,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             for (i = 0; i < _threadStore.ThreadCount && seen.Add(addr); i++)
             {
                 if (!_sos.GetThreadData(addr, out ThreadData threadData))
-                {
                     break;
-                }
 
                 yield return new(helpers, Runtime, domainData.GetDomainByAddress(threadData.Domain), addr, threadData);
 
@@ -289,9 +253,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public ulong GetLoaderAllocator(ClrAppDomain domain)
         {
             if (_sos13 is null)
-            {
                 return 0;
-            }
 
             return _sos13.GetDomainLoaderAllocator(domain.Address);
         }
@@ -299,9 +261,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public IEnumerable<ClrJitManager> EnumerateClrJitManagers()
         {
             foreach (JitManagerInfo jitMgr in _sos.GetJitManagers())
-            {
                 yield return new ClrJitManager(Runtime, jitMgr, GetNativeHeapHelpers());
-            }
         }
 
         public IEnumerable<ClrHandle> EnumerateHandles()
@@ -319,9 +279,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             using SOSHandleEnum? handleEnum = _sos.EnumerateHandles();
             if (handleEnum is null)
-            {
                 yield break;
-            }
 
             ClrHeap heap = runtime.Heap;
             int fetched;
@@ -353,14 +311,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                 uint refCount = 0;
 
                                 if (handles[i].IsPegged != 0)
-                                {
                                     refCount = handles[i].JupiterRefCount;
-                                }
 
                                 if (refCount < handles[i].RefCount)
-                                {
                                     refCount = handles[i].RefCount;
-                                }
 
                                 if (!clrObj.IsNull)
                                 {
@@ -373,9 +327,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                     {
                                         RuntimeCallableWrapper? rcw = clrObj.GetRuntimeCallableWrapper();
                                         if (rcw != null && refCount < rcw.RefCount)
-                                        {
                                             refCount = (uint)rcw.RefCount;
-                                        }
                                     }
                                 }
 

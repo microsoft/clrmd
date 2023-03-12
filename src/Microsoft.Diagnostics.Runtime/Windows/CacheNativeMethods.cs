@@ -228,23 +228,17 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             internal static unsafe bool EnableDisablePrivilege(string PrivilegeName, bool enable)
             {
                 if (!OpenProcessToken(Process.GetCurrentProcess().Handle, TokenAccessLevels.AdjustPrivileges | TokenAccessLevels.Query, out IntPtr processToken))
-                {
                     return false;
-                }
 
                 TOKEN_PRIVILEGES tokenPrivleges = new() { PrivilegeCount = 1 };
 
                 if (!LookupPrivilegeValue(lpSystemName: null, PrivilegeName, out LUID luid))
-                {
                     return false;
-                }
 
                 tokenPrivleges.Privileges.LUID = luid;
                 tokenPrivleges.Privileges.Attributes = enable ? LuidAttributes.Enabled : LuidAttributes.Disabled;
                 if (AdjustTokenPrivileges(processToken, disableAllPrivleges: false, ref tokenPrivleges, bufferLength: (uint)sizeof(TOKEN_PRIVILEGES), out _, out _) == 0)
-                {
                     return false;
-                }
 
                 int returnCode = Marshal.GetLastWin32Error();
                 return returnCode != ERROR_NOT_ALL_ASSIGNED;

@@ -23,9 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.CreateStackWalk(Self, flags, out IntPtr pUnk);
             if (!hr)
-            {
                 return null;
-            }
 
             return new ClrStackWalk(library, pUnk);
         }

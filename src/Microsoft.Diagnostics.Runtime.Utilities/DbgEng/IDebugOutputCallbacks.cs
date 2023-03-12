@@ -37,9 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         protected override unsafe ComInterfaceEntry* ComputeVtables(object obj, CreateComInterfaceFlags flags, out int count)
         {
             if (obj is not IDebugOutputCallbacks)
-            {
                 throw new InvalidOperationException($"Type '{obj.GetType().FullName}' is not an instance of {nameof(IDebugOutputCallbacks)}");
-            }
 
             count = 1;
             return s_wrapperEntry;

@@ -29,9 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         internal PEImage? GetPEImage()
         {
             if (_peImage is not null || _loaded)
-            {
                 return _peImage;
-            }
 
             try
             {
@@ -65,9 +63,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             get
             {
                 if (_version is not null)
-                {
                     return _version;
-                }
 
                 System.Version version = GetPEImage()?.GetFileVersionInfo()?.Version ?? new System.Version();
                 _version = version;
@@ -81,9 +77,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             get
             {
                 if (_pdb is not null)
-                {
                     return _pdb;
-                }
 
                 PdbInfo? pdb = GetPEImage()?.DefaultPdb;
                 _pdb = pdb;
@@ -97,9 +91,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             get
             {
                 if (_isManaged is bool result)
-                {
                     return result;
-                }
 
                 result = GetPEImage()?.IsManaged ?? false;
                 _isManaged = result;
@@ -149,9 +141,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             PEImage? img = GetPEImage();
             if (img is not null && img.TryGetExportSymbol(symbol, out ulong offset) && offset != 0)
-            {
                 return ImageBase + offset;
-            }
 
             return 0;
         }
@@ -161,9 +151,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _filesize = indexFileSize;
             _timestamp = indexTimeStamp;
             if (_version is null && version is not null)
-            {
                 _version = version;
-            }
         }
 
         public override IResourceNode? ResourceRoot => GetPEImage()?.Resources;
@@ -172,14 +160,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             : base(imageBase, fileName)
         {
             if (dataReader is null)
-            {
                 throw new ArgumentNullException(nameof(dataReader));
-            }
 
             if (fileName is null)
-            {
                 throw new ArgumentNullException(nameof(fileName));
-            }
 
             _dataReader = dataReader;
             _isVirtual = isVirtualHint;
