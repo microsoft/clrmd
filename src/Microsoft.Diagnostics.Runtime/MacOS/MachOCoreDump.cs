@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             for (int i = 0; i < _header.NumberCommands; i++)
             {
                 long position = stream.Position;
-                LoadCommandHeader loadCommand = new();
+                LoadCommandHeader loadCommand = default(LoadCommandHeader);
                 stream.Read(new Span<byte>(&loadCommand, sizeof(LoadCommandHeader)));
 
                 long next = position + loadCommand.Size;
@@ -325,7 +325,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 }
             }
 
-            seg = new MachOSegment();
+            seg = default(MachOSegment);
             return false;
         }
 

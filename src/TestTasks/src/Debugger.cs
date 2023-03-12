@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
             if (string.IsNullOrEmpty(workingDirectory))
                 workingDirectory = Environment.CurrentDirectory;
 
-            DEBUG_CREATE_PROCESS_OPTIONS options = new();
+            DEBUG_CREATE_PROCESS_OPTIONS options = default(DEBUG_CREATE_PROCESS_OPTIONS);
             options.CreateFlags = DEBUG_CREATE_PROCESS.DEBUG_PROCESS;
             int hr = _client.CreateProcessAndAttach(commandLine, workingDirectory, env, DEBUG_ATTACH.DEFAULT, options);
 

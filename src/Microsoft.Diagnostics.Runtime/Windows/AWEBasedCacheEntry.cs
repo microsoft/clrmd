@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         static AWEBasedCacheEntry()
         {
-            CacheNativeMethods.Util.SYSTEM_INFO sysInfo = new();
+            CacheNativeMethods.Util.SYSTEM_INFO sysInfo = default(CacheNativeMethods.Util.SYSTEM_INFO);
             CacheNativeMethods.Util.GetSystemInfo(ref sysInfo);
 
             AWEBasedCacheEntry.VirtualAllocPageSize = sysInfo.dwAllocationGranularity;

@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             if (CacheTechnology == CacheTechnology.AWE)
             {
-                CacheNativeMethods.Util.SYSTEM_INFO sysInfo = new();
+                CacheNativeMethods.Util.SYSTEM_INFO sysInfo = default(CacheNativeMethods.Util.SYSTEM_INFO);
                 CacheNativeMethods.Util.GetSystemInfo(ref sysInfo);
 
                 // The AWE cache allocates on VirtualAlloc sized pages, which are 64k, if the majority of heap segments in the dump are < 64k this can be wasteful

@@ -178,7 +178,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ulong address = GetAddress(appDomain);
             if (address == 0 || !_helpers.DataReader.ReadPointer(address, out ulong obj) || obj == 0)
-                return new ClrObject();
+                return default(ClrObject);
 
             return ContainingType.Heap.GetObject(obj);
         }
@@ -200,7 +200,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ulong address = GetAddress(appDomain);
             if (address == 0)
-                return new ClrValueType();
+                return default(ClrValueType);
 
             return new ClrValueType(address, Type, interior: true);
         }
