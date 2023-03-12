@@ -186,8 +186,10 @@ namespace Microsoft.Diagnostics.Runtime
 
         #region Debug Registers
 
+#pragma warning disable CA1823 // Avoid unused private fields. See https://github.com/dotnet/roslyn/issues/37593
         private const int ARM64_MAX_BREAKPOINTS = 8;
         private const int ARM64_MAX_WATCHPOINTS = 2;
+#pragma warning restore CA1823 // Avoid unused private fields
 
         [Register(RegisterType.Debug)]
         [FieldOffset(0x318)]

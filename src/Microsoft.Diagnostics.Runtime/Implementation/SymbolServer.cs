@@ -158,7 +158,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 int last = fullPath.LastIndexOfAny(new char[] { '/', '\\' }) + 1;
 
+#pragma warning disable CA1845 // Use span-based 'string.Concat'
                 string filePtrPath = fullPath.Substring(0, last) + "file.ptr";
+#pragma warning restore CA1845 // Use span-based 'string.Concat'
                 redirectedFile = GetStringOrNull(filePtrPath);
             }
 
@@ -186,7 +188,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Task<HttpResponseMessage> file = _http.GetAsync(fullPath);
             Task<HttpResponseMessage?> compressed = Task.FromResult<HttpResponseMessage?>(null);
 
+#pragma warning disable CA1845 // Use span-based 'string.Concat'
             string compressedPath = fullPath.Substring(0, fullPath.Length - 1) + '_';
+#pragma warning restore CA1845 // Use span-based 'string.Concat'
             if (SupportsCompression)
             {
                 compressed = _http.GetAsync(compressedPath)!;

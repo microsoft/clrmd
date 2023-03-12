@@ -523,7 +523,9 @@ dotnet_diagnostic.CA2019.severity = warning
 dotnet_diagnostic.CA2020.severity = warning
 
 # CA2021: Do not call Enumerable.Cast<T> or Enumerable.OfType<T> with incompatible types
-dotnet_diagnostic.CA2021.severity = warning
+# turning this into a suggestion until https://github.com/dotnet/roslyn-analyzers/pull/6528 gets merged.
+dotnet_diagnostic.CA2021.severity = suggestion
+
 # CA2100: Review SQL queries for security vulnerabilities
 dotnet_diagnostic.CA2100.severity = none
 
