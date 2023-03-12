@@ -25,6 +25,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// Whether or not to attempt to use special OS memory features such as AWE on
         /// Windows.
         /// </summary>
-        public bool UseOSMemoryFeatures { get; set; } = false;
+        public bool UseOSMemoryFeatures { get; set; }
     }
 }

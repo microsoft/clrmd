@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly HttpClient _http = new();
 
         public bool SupportsCompression { get; private set; } = true;
-        public bool SupportsRedirection { get; private set; } = false;
+        public bool SupportsRedirection { get; private set; }
 
         public string Server { get; private set; }
 
