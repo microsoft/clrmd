@@ -348,6 +348,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (ret != null)
                 return ret;
 
+#pragma warning disable CA1847 // Use char literal for a single character lookup. Not in NS2.0
             if (!commandExe.Contains("\\"))
             {
                 foreach (string path in Paths)
@@ -358,6 +359,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         return ret;
                 }
             }
+#pragma warning restore CA1847 // Use char literal for a single character lookup
 
             return null;
         }

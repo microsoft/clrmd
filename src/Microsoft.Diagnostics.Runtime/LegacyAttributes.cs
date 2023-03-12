@@ -50,7 +50,9 @@ namespace System.Diagnostics.CodeAnalysis
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Constructor | AttributeTargets.Method, Inherited = false)]
     internal sealed class RequiresDynamicCodeAttribute : Attribute
     {
+#pragma warning disable IDE0060 // Remove unused parameter
         public RequiresDynamicCodeAttribute(string message) { }
+#pragma warning restore IDE0060 // Remove unused parameter
     }
 }
 #endif

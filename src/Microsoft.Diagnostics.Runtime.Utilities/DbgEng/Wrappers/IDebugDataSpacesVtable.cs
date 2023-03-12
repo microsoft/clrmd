@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "This is required for vtable layout")]
+    [SuppressMessage("Performance", "CA1823:Avoid unused private fields", Justification = "VTable Layout")]
     internal readonly unsafe struct IDebugDataSpacesVtable
     {
         private readonly nint QueryInterface;

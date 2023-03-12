@@ -7,6 +7,8 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// A method's mapping from IL to native offsets.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1823:Avoid unused private fields", Justification = "Native Definition")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "Native Definition")]
     public struct ILToNativeMap
     {
         /// <summary>
@@ -33,8 +35,6 @@ namespace Microsoft.Diagnostics.Runtime
             return $"{ILOffset,2:X} - [{StartAddress:X}-{EndAddress:X}]";
         }
 
-#pragma warning disable 0169
-#pragma warning disable IDE0051 // Remove unused private members
         /// <summary>
         /// Reserved.
         /// </summary>

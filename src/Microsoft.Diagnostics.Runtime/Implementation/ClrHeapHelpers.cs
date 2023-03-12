@@ -491,9 +491,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private const uint MarkBitPitch = 8;
         private const uint MarkWordWidth = 32;
         private const uint MarkWordSize = MarkBitPitch * MarkWordWidth;
+
+#pragma warning disable IDE0051 // Remove unused private members. This is information we'd like to keep.
         private const uint DtGcPageSize = 0x1000;
         private const uint CardWordWidth = 32;
         private uint CardSize => ((uint)_memoryReader.PointerSize / 4) * DtGcPageSize / CardWordWidth;
+#pragma warning restore IDE0051 // Remove unused private members
 
         private static void ShouldCheckBgcMark(ClrSegment seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep)
         {
