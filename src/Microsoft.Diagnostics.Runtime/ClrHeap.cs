@@ -299,7 +299,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 ulong segmentOffset = obj - segment.ObjectRange.Start;
-                if (segmentOffset >= (currStep + 1) * markerStep && currStep < segment.ObjectMarkers.Length && segmentOffset <= uint.MaxValue)
+                if (currStep < segment.ObjectMarkers.Length && segmentOffset >= (currStep + 1) * markerStep && segmentOffset <= uint.MaxValue)
                     segment.ObjectMarkers[currStep++] = (uint)segmentOffset;
 
                 ulong size;
@@ -448,7 +448,11 @@ namespace Microsoft.Diagnostics.Runtime
             if (seg is null)
                 return default;
 
-            ulong start = seg.ObjectMarkers.Select(m => seg.FirstObjectAddress + m).Where(m => m <= address).Max();
+            ulong start = seg.FirstObjectAddress;
+
+            if (seg.ObjectMarkers.Length > 0)
+                start = seg.ObjectMarkers.Select(m => seg.FirstObjectAddress + m).Where(m => m <= address).Max();
+
             foreach (ClrObject obj in EnumerateObjects(seg, start, carefully))
                 if (address < obj)
                     return obj;
@@ -457,7 +461,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Finds the previous object on
+        /// Finds the previous object on the given segment.
         /// </summary>
         /// <param name="address">An address on any ClrSegment.</param>
         /// <param name="carefully">Whether to continue walking objects on a segment where we've encountered
@@ -471,7 +475,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (seg is null || address <= seg.FirstObjectAddress)
                 return default;
 
-            ulong start = seg.ObjectMarkers.Select(m => seg.FirstObjectAddress + m).Where(m => m < address).Max();
+            ulong start = seg.FirstObjectAddress;
+
+            if (seg.ObjectMarkers.Length > 0)
+                start = seg.ObjectMarkers.Select(m => seg.FirstObjectAddress + m).Where(m => m < address).Max();
 
             ClrObject last = default;
             foreach (ClrObject obj in EnumerateObjects(seg, start, carefully))
