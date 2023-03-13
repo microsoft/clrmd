@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         private static uint InitVirtualAllocPageSize()
         {
-            CacheNativeMethods.Util.SYSTEM_INFO sysInfo = default(CacheNativeMethods.Util.SYSTEM_INFO);
+            CacheNativeMethods.Util.SYSTEM_INFO sysInfo = default;
             CacheNativeMethods.Util.GetSystemInfo(ref sysInfo);
 
             return sysInfo.dwAllocationGranularity;

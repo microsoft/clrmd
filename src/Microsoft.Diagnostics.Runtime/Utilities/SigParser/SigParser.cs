@@ -304,7 +304,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!sigTemp.PeekByte(out byte bElementType))
                 return false;
 
-            while (bElementType == ELEMENT_TYPE_CMOD_REQD || bElementType == ELEMENT_TYPE_CMOD_OPT)
+            while (bElementType is ELEMENT_TYPE_CMOD_REQD or ELEMENT_TYPE_CMOD_OPT)
             {
                 sigTemp.SkipBytes(1);
                 if (!sigTemp.GetToken(out _))
@@ -340,10 +340,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!sigTemp.PeekByte(out byte bElementType))
                 return false;
 
-            while (bElementType == ELEMENT_TYPE_CMOD_REQD ||
-                bElementType == ELEMENT_TYPE_CMOD_OPT ||
-                bElementType == ELEMENT_TYPE_MODIFIER ||
-                bElementType == ELEMENT_TYPE_PINNED)
+            while (bElementType is ELEMENT_TYPE_CMOD_REQD or
+                ELEMENT_TYPE_CMOD_OPT or
+                ELEMENT_TYPE_MODIFIER or
+                ELEMENT_TYPE_PINNED)
             {
                 sigTemp.SkipBytes(1);
 
@@ -495,7 +495,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!GetCallingConvInfo(out int uCallConv))
                 return false;
 
-            if (uCallConv == IMAGE_CEE_CS_CALLCONV_FIELD || uCallConv == IMAGE_CEE_CS_CALLCONV_LOCAL_SIG)
+            if (uCallConv is IMAGE_CEE_CS_CALLCONV_FIELD or IMAGE_CEE_CS_CALLCONV_LOCAL_SIG)
                 return false;
 
             // Skip type parameter count

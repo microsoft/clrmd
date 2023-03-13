@@ -110,8 +110,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             foreach (ClrInstanceField field in Object.Type.Fields)
             {
-                seenAny |= field.Name == "_methodPtr" || field.Name == "_methodPtrAux";
-                allNull &= field.Name == null;
+                seenAny |= field.Name is "_methodPtr" or "_methodPtrAux";
+                allNull &= field.Name is null;
             }
 
             // If all field names were null then we cannot validate whether this was a delegate or not.  The case we are worried

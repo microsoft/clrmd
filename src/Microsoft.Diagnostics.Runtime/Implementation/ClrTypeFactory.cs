@@ -170,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return result;
             }
 
-            if (etype == ClrElementType.Class || etype == ClrElementType.Struct)
+            if (etype is ClrElementType.Class or ClrElementType.Struct)
             {
                 if (!parser.GetToken(out int token))
                     return null;
@@ -210,7 +210,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return result;
             }
 
-            if (etype == ClrElementType.MVar || etype == ClrElementType.Var)
+            if (etype is ClrElementType.MVar or ClrElementType.Var)
             {
                 if (!parser.GetData(out int index))
                     return null;

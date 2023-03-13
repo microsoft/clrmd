@@ -447,7 +447,7 @@ namespace DbgEngExtension
 
             private bool SetValue(DEBUG_SYMTYPE symbolType, AddressMemoryRange range, string? filename)
             {
-                bool hasSymbols = symbolType != DEBUG_SYMTYPE.DEFERRED && symbolType != DEBUG_SYMTYPE.NONE;
+                bool hasSymbols = symbolType is not DEBUG_SYMTYPE.DEFERRED and not DEBUG_SYMTYPE.NONE;
                 _imageHasSymbols.Add(range, hasSymbols);
 
                 if (filename is not null)

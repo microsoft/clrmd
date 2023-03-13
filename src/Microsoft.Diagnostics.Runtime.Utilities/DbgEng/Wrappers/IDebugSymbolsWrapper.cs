@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
                 if (hr < 0)
                     return null;
-                else if (size == 0 || size == 1)
+                else if (size is 0 or 1)
                     return string.Empty;
 
                 char[] buffer = ArrayPool<char>.Shared.Rent(size);
@@ -175,7 +175,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                 return false;
             }
 
-            if (size == 0 || size == 1)
+            if (size is 0 or 1)
             {
                 name = string.Empty;
                 return true;

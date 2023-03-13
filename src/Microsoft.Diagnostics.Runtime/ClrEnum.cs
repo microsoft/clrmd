@@ -83,46 +83,23 @@ namespace Microsoft.Diagnostics.Runtime
             return values.ToArray();
         }
 
-        private unsafe object? GetValueForPointer(ClrElementType pdwCPlusTypeFlag, IntPtr ppValue)
+        private unsafe object? GetValueForPointer(ClrElementType pdwCPlusTypeFlag, IntPtr ppValue) => pdwCPlusTypeFlag switch
         {
-            switch (pdwCPlusTypeFlag)
-            {
-                case ClrElementType.Boolean:
-                    return *(byte*)ppValue;
-
-                case ClrElementType.Char:
-                    return *(char*)ppValue;
-
-                case ClrElementType.Double:
-                    return *(double*)ppValue;
-                case ClrElementType.Float:
-                    return *(float*)ppValue;
-
-                case ClrElementType.Int8:
-                    return *(sbyte*)ppValue;
-                case ClrElementType.Int16:
-                    return *(short*)ppValue;
-                case ClrElementType.Int32:
-                    return *(int*)ppValue;
-                case ClrElementType.Int64:
-                    return *(long*)ppValue;
-
-                case ClrElementType.UInt8:
-                    return *(byte*)ppValue;
-                case ClrElementType.UInt16:
-                    return *(ushort*)ppValue;
-                case ClrElementType.UInt32:
-                    return *(uint*)ppValue;
-                case ClrElementType.UInt64:
-                    return *(ulong*)ppValue;
-
-                case ClrElementType.NativeInt:
-                    return *(nint*)ppValue;
-                case ClrElementType.NativeUInt:
-                    return *(nuint*)ppValue;
-            }
-
-            return null;
-        }
+            ClrElementType.Boolean => *(byte*)ppValue,
+            ClrElementType.Char => *(char*)ppValue,
+            ClrElementType.Double => *(double*)ppValue,
+            ClrElementType.Float => *(float*)ppValue,
+            ClrElementType.Int8 => *(sbyte*)ppValue,
+            ClrElementType.Int16 => *(short*)ppValue,
+            ClrElementType.Int32 => *(int*)ppValue,
+            ClrElementType.Int64 => *(long*)ppValue,
+            ClrElementType.UInt8 => *(byte*)ppValue,
+            ClrElementType.UInt16 => *(ushort*)ppValue,
+            ClrElementType.UInt32 => *(uint*)ppValue,
+            ClrElementType.UInt64 => *(ulong*)ppValue,
+            ClrElementType.NativeInt => *(nint*)ppValue,
+            ClrElementType.NativeUInt => *(nuint*)ppValue,
+            _ => null,
+        };
     }
 }

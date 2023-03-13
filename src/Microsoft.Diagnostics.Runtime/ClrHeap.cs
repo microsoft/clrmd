@@ -487,7 +487,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ulong SkipAllocationContext(ClrSegment seg, ulong address)
         {
-            if (seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Frozen)
+            if (seg.Kind is GCSegmentKind.Large or GCSegmentKind.Frozen)
                 return address;
 
             Dictionary<ulong, ulong> allocationContexts = GetAllocationContexts();
@@ -520,7 +520,7 @@ namespace Microsoft.Diagnostics.Runtime
             else
                 AlignConst = 7;
 
-            if (seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Pinned)
+            if (seg.Kind is GCSegmentKind.Large or GCSegmentKind.Pinned)
                 return (size + AlignLargeConst) & ~AlignLargeConst;
 
             return (size + AlignConst) & ~AlignConst;
@@ -791,7 +791,7 @@ namespace Microsoft.Diagnostics.Runtime
                         if (seg is null)
                             yield break;
 
-                        bool large = seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Pinned;
+                        bool large = seg.Kind is GCSegmentKind.Large or GCSegmentKind.Pinned;
                         if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
                             yield break;
                     }
@@ -861,7 +861,7 @@ namespace Microsoft.Diagnostics.Runtime
                         if (seg is null)
                             yield break;
 
-                        bool large = seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Pinned;
+                        bool large = seg.Kind is GCSegmentKind.Large or GCSegmentKind.Pinned;
                         if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
                             yield break;
                     }
@@ -931,7 +931,7 @@ namespace Microsoft.Diagnostics.Runtime
                         if (seg is null)
                             yield break;
 
-                        bool large = seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Pinned;
+                        bool large = seg.Kind is GCSegmentKind.Large or GCSegmentKind.Pinned;
                         if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
                             yield break;
                     }

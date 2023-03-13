@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 // skip bits like "-beta"
-                if ('0' <= span[i] && span[i] <= '9')
+                if (span[i] is >= (byte)'0' and <= (byte)'9')
                     curr = curr * 10 + (span[i] - '0');
 
                 // In this case I don't know what we are parsing but it's not a version

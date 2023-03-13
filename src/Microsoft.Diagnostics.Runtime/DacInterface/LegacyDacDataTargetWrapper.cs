@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private int GetPointerSize(IntPtr _, out int pointerSize)
         {
             pointerSize = _dacDataTarget.PointerSize;
-            return pointerSize == 4 || pointerSize == 8 ? HResult.S_OK : HResult.E_FAIL;
+            return pointerSize is 4 or 8 ? HResult.S_OK : HResult.E_FAIL;
         }
 
         private int GetImageBase(IntPtr _, string imagePath, out ulong baseAddress)

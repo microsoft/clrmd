@@ -192,9 +192,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             // We prefer to pull contexts from the *ListStreams but if those don't exist or are missing threads
             // we still want threadIDs which don't have context records for IDataReader.EnumerateThreads.
             IOrderedEnumerable<MinidumpDirectory> directories = from d in _directories
-                                                                where d.StreamType == MinidumpStreamType.ThreadListStream ||
-                                                                      d.StreamType == MinidumpStreamType.ThreadExListStream ||
-                                                                      d.StreamType == MinidumpStreamType.ThreadInfoListStream
+                                                                where d.StreamType is MinidumpStreamType.ThreadListStream or
+                                                                      MinidumpStreamType.ThreadExListStream or
+                                                                      MinidumpStreamType.ThreadInfoListStream
                                                                 orderby d.StreamType ascending
                                                                 select d;
 
@@ -203,7 +203,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             byte[] buffer = ArrayPool<byte>.Shared.Rent(1024);
             try
             {
-                foreach (MinidumpDirectory directory in _directories.Where(d => d.StreamType == MinidumpStreamType.ThreadListStream || d.StreamType == MinidumpStreamType.ThreadExListStream))
+                foreach (MinidumpDirectory directory in _directories.Where(d => d.StreamType is MinidumpStreamType.ThreadListStream or MinidumpStreamType.ThreadExListStream))
                 {
                     if (directory.StreamType == MinidumpStreamType.ThreadListStream)
                     {

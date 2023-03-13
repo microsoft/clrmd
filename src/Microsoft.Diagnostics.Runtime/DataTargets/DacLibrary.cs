@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 dacLibrary = DataTarget.PlatformFunctions.LoadLibrary(dacPath);
             }
-            catch (Exception e) when (e is DllNotFoundException || e is BadImageFormatException)
+            catch (Exception e) when (e is DllNotFoundException or BadImageFormatException)
             {
                 throw new ClrDiagnosticsException("Failed to load dac: " + e.Message, e);
             }

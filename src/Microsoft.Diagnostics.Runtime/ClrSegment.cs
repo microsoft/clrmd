@@ -97,7 +97,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns true if the objects in this segment are pinned and cannot be relocated.
         /// </summary>
-        public bool IsPinned => Kind == GCSegmentKind.Pinned || Kind == GCSegmentKind.Large || Kind == GCSegmentKind.Frozen;
+        public bool IsPinned => Kind is GCSegmentKind.Pinned or GCSegmentKind.Large or GCSegmentKind.Frozen;
 
         /// <summary>
         /// The memory range for Generation 0 on this segment.  This will be empty if this is not an ephemeral segment.

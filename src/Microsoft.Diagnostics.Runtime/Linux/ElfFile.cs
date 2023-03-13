@@ -78,7 +78,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     return true;
                 }
             }
-            catch (Exception ex) when (ex is IOException || ex is InvalidDataException)
+            catch (Exception ex) when (ex is IOException or InvalidDataException)
             {
             }
             offset = 0;

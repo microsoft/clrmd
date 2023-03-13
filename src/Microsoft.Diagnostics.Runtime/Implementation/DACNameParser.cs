@@ -535,7 +535,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private static bool ShouldContinueParsing(ParsingState state)
         {
-            return ((state != ParsingState.Done) && (state != ParsingState.Error));
+            return (state is not ParsingState.Done and not ParsingState.Error);
         }
 
         // Special cases:
@@ -626,7 +626,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     {
                         if (curPos + 1 != name.Length)
                         {
-                            if (name[curPos + 1] == GenericArgListOrArrayEndSpecifier || name[curPos + 1] == ArgSeperator)
+                            if (name[curPos + 1] is GenericArgListOrArrayEndSpecifier or ArgSeperator)
                                 return (ParsingState.ParsingArraySpecifier, curPos);
                             else if (name[curPos + 1] == GenericArgListOrArrayStartSpecifier)
                                 return (ParsingState.ParsingGenericArgs, curPos + 2);

@@ -266,7 +266,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             // If TraverseHeap returns a negative size or a size that's too large, we'll treat
             // this as not having size info.  This shouldn't happen in practice.
-            if (size < 0 || size > int.MaxValue)
+            if (size is < 0 or > int.MaxValue)
                 return null;
 
             return (ulong)size;

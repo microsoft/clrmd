@@ -177,7 +177,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (name != null)
             {
                 ClrInterface? type = null;
-                if (extends != 0 && extends != 0x01000000)
+                if (extends is not 0 and not 0x01000000)
                     type = GetInterface(import, extends);
 
                 result = new ClrInterface(name, type);
