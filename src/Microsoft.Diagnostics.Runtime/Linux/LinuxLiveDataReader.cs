@@ -306,7 +306,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
                 else if (parts.Length == 6)
                 {
-                    path = parts[5].StartsWith("[") ? string.Empty : parts[5];
+                    path = parts[5].StartsWith("[", StringComparison.Ordinal) ? string.Empty : parts[5];
                 }
                 else
                 {

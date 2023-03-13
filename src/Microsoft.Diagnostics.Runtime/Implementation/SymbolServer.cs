@@ -143,7 +143,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 try
                 {
-                    if (path.StartsWith("PATH:"))
+                    if (path.StartsWith("PATH:", StringComparison.Ordinal))
                     {
                         path = path.Substring(5);
 
