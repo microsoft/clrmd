@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     [StructLayout(LayoutKind.Sequential)]
-    internal unsafe struct IDebugClientVtable
+    internal readonly unsafe struct IDebugClientVtable
     {
         private readonly nint QueryInterface;
         private readonly nint AddRef;
