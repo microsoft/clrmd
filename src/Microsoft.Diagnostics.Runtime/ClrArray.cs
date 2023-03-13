@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// Represents an array in the target process.
     /// </summary>
-    public struct ClrArray : IClrArray, IEquatable<ClrArray>
+    public struct ClrArray : IClrArray
     {
         /// <summary>
         /// Gets the address of the object.
@@ -91,6 +91,8 @@ namespace Microsoft.Diagnostics.Runtime
             ClrObject clrObject => Address == clrObject.Address,
             _ => false
         };
+
+        public bool Equals(ClrArray other) => Address == other.Address;
 
         /// <summary>
         /// Returns the hash code for this <see cref="ClrArray"/>.
@@ -292,7 +294,5 @@ namespace Microsoft.Diagnostics.Runtime
         IClrValue IClrArray.GetStructValue(int index) => GetStructValue(index);
 
         IClrValue IClrArray.GetStructValue(params int[] indices) => GetStructValue(indices);
-
-        public bool Equals(ClrArray other) => Equals(other);
     }
 }
