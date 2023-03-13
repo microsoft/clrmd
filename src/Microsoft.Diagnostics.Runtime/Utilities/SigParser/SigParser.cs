@@ -606,39 +606,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return true;
         }
 
-        private const int mdtModule = 0x00000000;
         private const int mdtTypeRef = 0x01000000;
         private const int mdtTypeDef = 0x02000000;
-        private const int mdtFieldDef = 0x04000000;
-        private const int mdtMethodDef = 0x06000000;
-        private const int mdtParamDef = 0x08000000;
-        private const int mdtInterfaceImpl = 0x09000000;
-        private const int mdtMemberRef = 0x0a000000;
-        private const int mdtCustomAttribute = 0x0c000000;
-        private const int mdtPermission = 0x0e000000;
-        private const int mdtSignature = 0x11000000;
-        private const int mdtEvent = 0x14000000;
-        private const int mdtProperty = 0x17000000;
-        private const int mdtMethodImpl = 0x19000000;
-        private const int mdtModuleRef = 0x1a000000;
         private const int mdtTypeSpec = 0x1b000000;
-        private const int mdtAssembly = 0x20000000;
-        private const int mdtAssemblyRef = 0x23000000;
-        private const int mdtFile = 0x26000000;
-        private const int mdtExportedType = 0x27000000;
-        private const int mdtManifestResource = 0x28000000;
-        private const int mdtGenericParam = 0x2a000000;
-        private const int mdtMethodSpec = 0x2b000000;
-        private const int mdtGenericParamConstraint = 0x2c000000;
-
-        private const int mdtString = 0x70000000;
-        private const int mdtName = 0x71000000;
         private const int mdtBaseType = 0x72000000; // Leave this on the high end value. This does not correspond to metadata table
 
         private static readonly int[] s_tkCorEncodeToken = { mdtTypeDef, mdtTypeRef, mdtTypeSpec, mdtBaseType };
-
-        private const int IMAGE_CEE_CS_CALLCONV_DEFAULT = 0x0;
-
         public const int IMAGE_CEE_CS_CALLCONV_VARARG = 0x5;
         public const int IMAGE_CEE_CS_CALLCONV_FIELD = 0x6;
         public const int IMAGE_CEE_CS_CALLCONV_LOCAL_SIG = 0x7;
