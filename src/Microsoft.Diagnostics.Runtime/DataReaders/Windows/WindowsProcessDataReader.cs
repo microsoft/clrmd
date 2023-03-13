@@ -155,7 +155,12 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     uint res = GetModuleFileNameEx(_process, ptr, buffer, BufferSize);
                     DebugOnly.Assert(res != 0);
-                    fileName = new(buffer);
+
+                    int len = Array.IndexOf(buffer, (char)0);
+                    if (len >= 0)
+                        fileName = new(buffer, 0, len);
+                    else
+                        fileName = new(buffer);
                 }
                 finally
                 {
