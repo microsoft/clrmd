@@ -1,4 +1,7 @@
-﻿using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
 using System;
 using System.IO;
 using System.Linq;
@@ -46,13 +49,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.Empty(heap.VerifyHeap());
 
-            WriteAndRun(spaces, obj, 0xcccccccc, () =>
-            {
+            WriteAndRun(spaces, obj, 0xcccccccc, () => {
                 Assert.True(heap.IsObjectCorrupted(obj, out ObjectCorruption objCorruption));
                 Assert.NotNull(objCorruption);
 
-                WriteAndRun(spaces, arr, 0xcccccccc, () =>
-                {
+                WriteAndRun(spaces, arr, 0xcccccccc, () => {
                     Assert.True(heap.IsObjectCorrupted(arr, out ObjectCorruption arrCorruption));
                     Assert.NotNull(arrCorruption);
 
@@ -86,8 +87,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrObject obj = FindMostInterestingObject(heap);
             ClrSegment segment = heap.GetSegmentByAddress(obj);
 
-            WriteAndRun(spaces, obj, 0xcccccccc, () =>
-            {
+            WriteAndRun(spaces, obj, 0xcccccccc, () => {
                 Assert.True(heap.IsObjectCorrupted(obj, out ObjectCorruption objCorruption));
                 Assert.NotNull(objCorruption);
 
@@ -150,8 +150,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.False(heap.IsObjectCorrupted(obj, out ObjectCorruption result));
             Assert.Null(result);
 
-            WriteAndRun(spaces, obj - 4, (ushort)0, () =>
-            {
+            WriteAndRun(spaces, obj - 4, (ushort)0, () => {
                 Assert.True(heap.IsObjectCorrupted(obj, out ObjectCorruption result));
                 Assert.NotNull(result);
 
@@ -176,8 +175,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.False(heap.IsObjectCorrupted(obj, out ObjectCorruption result));
             Assert.Null(result);
 
-            WriteAndRun(spaces, obj - 4, (ushort)0xcc, () =>
-            {
+            WriteAndRun(spaces, obj - 4, (ushort)0xcc, () => {
                 Assert.True(heap.IsObjectCorrupted(obj, out ObjectCorruption result));
                 Assert.NotNull(result);
 
@@ -193,12 +191,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.Types.LoadFullDumpWithDbgEng(GCMode.Server);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             IDebugDataSpaces spaces = GetDataReader(dt).DebugDataSpaces;
-            
+
             ClrHeap heap = runtime.Heap;
             ClrObject obj = FindMostInterestingObject(heap);
 
-            WriteAndRun(spaces, obj, 0xcccccc, () =>
-            {
+            WriteAndRun(spaces, obj, 0xcccccc, () => {
                 Assert.True(heap.IsObjectCorrupted(obj, out ObjectCorruption result));
                 Assert.NotNull(result);
 
@@ -227,11 +224,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Null(result);
 
             ClrObject free = heap.EnumerateObjects().First(obj => obj.IsFree);
-            foreach (var reference in obj.EnumerateReferencesWithFields())
+            foreach (ClrReference reference in obj.EnumerateReferencesWithFields())
             {
                 uint offset = (uint)IntPtr.Size + (uint)reference.Offset;
-                WriteAndRun(spaces, obj + offset, 0xccccc0, () =>
-                {
+                WriteAndRun(spaces, obj + offset, 0xccccc0, () => {
                     Assert.True(heap.IsObjectCorrupted(obj, out ObjectCorruption result));
                     Assert.NotNull(result);
 
@@ -240,8 +236,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     Assert.Equal((int)offset, result.Offset);
                 });
 
-                WriteAndRun(spaces, obj + offset, 0xcccccc, () =>
-                {
+                WriteAndRun(spaces, obj + offset, 0xcccccc, () => {
                     Assert.True(heap.IsObjectCorrupted(obj, out ObjectCorruption result));
                     Assert.NotNull(result);
 
@@ -251,8 +246,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 });
 
 
-                WriteAndRun(spaces, obj + offset, (ulong)free, () =>
-                {
+                WriteAndRun(spaces, obj + offset, (ulong)free, () => {
                     Assert.True(heap.IsObjectCorrupted(obj, out ObjectCorruption result));
                     Assert.NotNull(result);
 
@@ -278,8 +272,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.False(heap.IsObjectCorrupted(obj, out ObjectCorruption result));
             Assert.Null(result);
 
-            WriteAndRun(spaces, obj + (uint)IntPtr.Size, 0xcccccccc, () =>
-            {
+            WriteAndRun(spaces, obj + (uint)IntPtr.Size, 0xcccccccc, () => {
                 Assert.True(heap.IsObjectCorrupted(obj, out ObjectCorruption result));
                 Assert.NotNull(result);
 
@@ -290,7 +283,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         private static unsafe void WriteAndRun<T>(IDebugDataSpaces spaces, ulong location, T value, Action action)
-            where T: unmanaged
+            where T : unmanaged
         {
             byte[] old = new byte[sizeof(T)];
             byte[] newBuffer = new byte[sizeof(T)];

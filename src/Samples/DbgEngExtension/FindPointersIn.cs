@@ -1,4 +1,7 @@
-﻿using Microsoft.Diagnostics.Runtime;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Microsoft.Diagnostics.Runtime;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
 using static DbgEngExtension.MAddress;
@@ -7,7 +10,7 @@ namespace DbgEngExtension
 {
     public class FindPointersIn : DbgEngCommand
     {
-        const int Width = 120;
+        private const int Width = 120;
 
         internal const string Command = "findpointersin";
         internal const string ExpandNonPinnedObjectsFlag = "expandNonPinnedObjects";
@@ -37,7 +40,7 @@ namespace DbgEngExtension
             AddressMemoryRange[] allRegions = address.EnumerateAddressSpace(tagClrMemoryRanges: true, includeReserveMemory: false, tagReserveMemoryHeuristically: false).ToArray();
 
             Console.WriteLine("Scanning for pinned objects...");
-            var ctx = CreateMemoryWalkContext();
+            MemoryWalkContext ctx = CreateMemoryWalkContext();
 
             foreach (string type in memTypes)
             {
@@ -52,7 +55,7 @@ namespace DbgEngExtension
 
                 foreach (AddressMemoryRange mem in matchingRanges.OrderBy(r => r.Start))
                 {
-                    var pointersFound = address.EnumerateRegionPointers(mem.Start, mem.End, allRegions).Select(r => (r.Pointer, r.MemoryRange));
+                    IEnumerable<(ulong Pointer, AddressMemoryRange MemoryRange)> pointersFound = address.EnumerateRegionPointers(mem.Start, mem.End, allRegions).Select(r => (r.Pointer, r.MemoryRange));
                     RegionPointers result = ProcessOneRegion(pinnedOnly, pointersFound, ctx);
 
                     WriteMemoryHeaderLine(mem);
@@ -125,22 +128,22 @@ namespace DbgEngExtension
             }
             else
             {
-                var gcResult = from obj in result.PinnedPointers
-                               let name = obj.Type?.Name ?? "<unknown_object_types>"
-                               group obj.Address by name into g
-                               let Count = g.Count()
-                               orderby Count descending
-                               select
-                               (
-                                   g.Key,
-                                   Count,
-                                   new HashSet<ulong>(g).Count,
-                                   g.AsEnumerable()
-                               );
+                IEnumerable<(string Key, int, int, IEnumerable<ulong>)> gcResult = from obj in result.PinnedPointers
+                                                                                   let name = obj.Type?.Name ?? "<unknown_object_types>"
+                                                                                   group obj.Address by name into g
+                                                                                   let Count = g.Count()
+                                                                                   orderby Count descending
+                                                                                   select
+                                                                                   (
+                                                                                       g.Key,
+                                                                                       Count,
+                                                                                       new HashSet<ulong>(g).Count,
+                                                                                       g.AsEnumerable()
+                                                                                   );
 
                 if (result.NonPinnedGCPointers.Count > 0)
                 {
-                    var v = new (string, int, int, IEnumerable<ulong>)[] { ("[Pointers to non-pinned objects]", result.NonPinnedGCPointers.Count, new HashSet<ulong>(result.NonPinnedGCPointers).Count, result.NonPinnedGCPointers) };
+                    (string, int, int, IEnumerable<ulong>)[] v = new (string, int, int, IEnumerable<ulong>)[] { ("[Pointers to non-pinned objects]", result.NonPinnedGCPointers.Count, new HashSet<ulong>(result.NonPinnedGCPointers).Count, result.NonPinnedGCPointers) };
                     gcResult = v.Concat(gcResult);
                 }
 
@@ -150,19 +153,19 @@ namespace DbgEngExtension
 
         private static void WriteUnresolvablePointerTable(RegionPointers result, bool forceTruncate)
         {
-            var unresolvedQuery = from item in result.UnresolvablePointers
-                                  let Name = item.Key.Image ?? item.Key.Name
-                                  group item.Value by Name into g
-                                  let All = g.SelectMany(r => r).ToArray()
-                                  let Count = All.Length
-                                  orderby Count descending
-                                  select
-                                  (
-                                      g.Key,
-                                      Count,
-                                      new HashSet<ulong>(All).Count,
-                                      All.AsEnumerable()
-                                  );
+            IEnumerable<(string Key, int, int, IEnumerable<ulong>)> unresolvedQuery = from item in result.UnresolvablePointers
+                                                                                      let Name = item.Key.Image ?? item.Key.Name
+                                                                                      group item.Value by Name into g
+                                                                                      let All = g.SelectMany(r => r).ToArray()
+                                                                                      let Count = All.Length
+                                                                                      orderby Count descending
+                                                                                      select
+                                                                                      (
+                                                                                          g.Key,
+                                                                                          Count,
+                                                                                          new HashSet<ulong>(All).Count,
+                                                                                          All.AsEnumerable()
+                                                                                      );
 
 
             PrintPointerTable("Region", "[Unique Pointers to Unique Regions]", forceTruncate, unresolvedQuery);
@@ -170,27 +173,27 @@ namespace DbgEngExtension
 
         private void WriteResolvablePointerTable(MemoryWalkContext ctx, RegionPointers result, bool forceTruncate)
         {
-            var resolvedQuery = from ptr in result.ResolvablePointers.SelectMany(r => r.Value)
-                                let r = ctx.ResolveSymbol(DebugSymbols, ptr)
-                                let name = r.Symbol ?? "<unknown_function>"
-                                group (ptr, r.Offset) by name into g
-                                let Count = g.Count()
-                                let UniqueOffsets = new HashSet<int>(g.Select(g => g.Offset))
-                                orderby Count descending
-                                select
-                                (
-                                    FixTypeName(g.Key, UniqueOffsets),
-                                    Count,
-                                    UniqueOffsets.Count,
-                                    g.Select(r => r.ptr)
-                                );
+            IEnumerable<(string, int, int, IEnumerable<ulong>)> resolvedQuery = from ptr in result.ResolvablePointers.SelectMany(r => r.Value)
+                                                                                let r = ctx.ResolveSymbol(DebugSymbols, ptr)
+                                                                                let name = r.Symbol ?? "<unknown_function>"
+                                                                                group (ptr, r.Offset) by name into g
+                                                                                let Count = g.Count()
+                                                                                let UniqueOffsets = new HashSet<int>(g.Select(g => g.Offset))
+                                                                                orderby Count descending
+                                                                                select
+                                                                                (
+                                                                                    FixTypeName(g.Key, UniqueOffsets),
+                                                                                    Count,
+                                                                                    UniqueOffsets.Count,
+                                                                                    g.Select(r => r.ptr)
+                                                                                );
 
             PrintPointerTable("Symbol", "[Unique Pointers]", forceTruncate, resolvedQuery);
         }
 
         private static void PrintPointerTable(string nameColumn, string truncatedName, bool forceTruncate, IEnumerable<(string Name, int Count, int Unique, IEnumerable<ulong> Pointers)> query)
         {
-            var resolved = query.ToArray();
+            (string Name, int Count, int Unique, IEnumerable<ulong> Pointers)[] resolved = query.ToArray();
             if (resolved.Length == 0)
                 return;
 
@@ -203,12 +206,14 @@ namespace DbgEngExtension
             int nameLen = Math.Min(80, maxNameLen);
             nameLen = Math.Max(nameLen, truncatedName.Length);
 
-            TableOutput table = new((nameLen, ""), (12, "n0"), (12, "n0"), (12, "x"));
-            table.Divider = "   ";
+            TableOutput table = new((nameLen, ""), (12, "n0"), (12, "n0"), (12, "x"))
+            {
+                Divider = "   "
+            };
             table.WriteRowWithSpacing('-', nameColumn, "Unique", "Count", "RndPtr");
 
-            var items = truncate ? resolved.Take(multi) : resolved;
-            foreach (var (Name, Count, Unique, Pointers) in items)
+            IEnumerable<(string Name, int Count, int Unique, IEnumerable<ulong> Pointers)> items = truncate ? resolved.Take(multi) : resolved;
+            foreach ((string Name, int Count, int Unique, IEnumerable<ulong> Pointers) in items)
                 table.WriteRow(Name, Unique, Count, FindMostCommonPointer(Pointers));
 
             if (truncate)
@@ -277,7 +282,7 @@ namespace DbgEngExtension
 
             foreach (ClrRuntime runtime in Runtimes)
             {
-                foreach (var root in runtime.Heap.EnumerateRoots().Where(r => r.IsPinned))
+                foreach (ClrRoot? root in runtime.Heap.EnumerateRoots().Where(r => r.IsPinned))
                 {
                     if (root.Object.IsValid && !root.Object.IsFree)
                         if (seen.Add(root.Object))
@@ -290,7 +295,7 @@ namespace DbgEngExtension
                     {
                         if (!obj.IsFree && obj.IsValid)
                             pinned.Add(obj);
-                    }    
+                    }
                 }
             }
 
@@ -321,7 +326,7 @@ namespace DbgEngExtension
 
             internal void AddRegionPointer(AddressMemoryRange range, ulong pointer, bool hasSymbols)
             {
-                var pointerMap = hasSymbols ? ResolvablePointers : UnresolvablePointers;
+                Dictionary<AddressMemoryRange, List<ulong>> pointerMap = hasSymbols ? ResolvablePointers : UnresolvablePointers;
 
                 if (!pointerMap.TryGetValue(range, out List<ulong>? pointers))
                     pointers = pointerMap[range] = new();
@@ -339,7 +344,7 @@ namespace DbgEngExtension
 
             private static void AddTo(Dictionary<AddressMemoryRange, List<ulong>> sourceDict, Dictionary<AddressMemoryRange, List<ulong>> destDict)
             {
-                foreach (var item in sourceDict)
+                foreach (KeyValuePair<AddressMemoryRange, List<ulong>> item in sourceDict)
                 {
                     if (destDict.TryGetValue(item.Key, out List<ulong>? values))
                         values.AddRange(item.Value);
@@ -353,7 +358,7 @@ namespace DbgEngExtension
         {
             private readonly Dictionary<string, bool> _imageByNameHasSymbols = new();
             private readonly Dictionary<AddressMemoryRange, bool> _imageHasSymbols = new();
-            private readonly Dictionary<ulong, (string?,int)> _resolved = new();
+            private readonly Dictionary<ulong, (string?, int)> _resolved = new();
             private readonly ClrObject[] _pinned;
 
             public MemoryWalkContext(IEnumerable<ClrObject> pinnedObjects)
@@ -396,11 +401,11 @@ namespace DbgEngExtension
 
             public (string? Symbol, int Offset) ResolveSymbol(IDebugSymbols symbols, ulong ptr)
             {
-                if (_resolved.TryGetValue(ptr, out (string?,int) result))
+                if (_resolved.TryGetValue(ptr, out (string?, int) result))
                     return result;
 
                 // _resolved is just a cache.  Don't let it get so big we eat all of the memory.
-                if (_resolved.Count > 16*1024)
+                if (_resolved.Count > 16 * 1024)
                     _resolved.Clear();
 
                 if (symbols.GetNameByOffset(ptr, out string? name, out ulong displacement))
@@ -444,7 +449,7 @@ namespace DbgEngExtension
 
             private bool SetValue(DEBUG_SYMTYPE symbolType, AddressMemoryRange range, string? filename)
             {
-                bool hasSymbols = symbolType != DEBUG_SYMTYPE.DEFERRED && symbolType != DEBUG_SYMTYPE.NONE;
+                bool hasSymbols = symbolType is not DEBUG_SYMTYPE.DEFERRED and not DEBUG_SYMTYPE.NONE;
                 _imageHasSymbols.Add(range, hasSymbols);
 
                 if (filename is not null)

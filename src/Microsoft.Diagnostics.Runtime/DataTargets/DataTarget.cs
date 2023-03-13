@@ -1,11 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Implementation;
-using Microsoft.Diagnostics.Runtime.Interfaces;
-using Microsoft.Diagnostics.Runtime.MacOS;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -14,6 +9,10 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Interfaces;
+using Microsoft.Diagnostics.Runtime.MacOS;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -27,7 +26,6 @@ namespace Microsoft.Diagnostics.Runtime
         private ImmutableArray<ClrInfo> _clrs;
         private ModuleInfo[]? _modules;
         private readonly Dictionary<string, PEImage?> _pefileCache = new(StringComparer.OrdinalIgnoreCase);
-        private readonly object _sync = new();
 
         /// <summary>
         /// Gets the data reader for this instance.
@@ -158,11 +156,11 @@ namespace Microsoft.Diagnostics.Runtime
                 // We order this so .Net Core comes first, so if there's multiple CLRs we prefer
                 // to debug .Net Core (assuming the user is just debugging one of them)
 
-                var clrs = from module in EnumerateModules()
-                           let clrInfo = ClrInfo.TryCreate(this, module)
-                           where clrInfo != null
-                           orderby clrInfo.Flavor descending, clrInfo.Version
-                           select clrInfo;
+                IEnumerable<ClrInfo> clrs = from module in EnumerateModules()
+                                            let clrInfo = ClrInfo.TryCreate(this, module)
+                                            where clrInfo != null
+                                            orderby clrInfo.Flavor descending, clrInfo.Version
+                                            select clrInfo;
 
                 _clrs = clrs.ToImmutableArray();
             }
@@ -303,7 +301,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// of ClrMD is still responsible for suspending the process itself.  ClrMD does NOT support inspecting
         /// a running process and will produce undefined behavior when attempting to do so.
         /// </summary>
-        /// <param name="processId">The ID of the process to attach to.</param> 
+        /// <param name="processId">The ID of the process to attach to.</param>
         /// <param name="suspend">Whether or not to suspend the process.</param>
         /// <returns>A <see cref="DataTarget"/> instance.</returns>
         public static DataTarget AttachToProcess(int processId, bool suspend)
@@ -329,7 +327,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         /// <summary>
         /// Creates a snapshot of a running process and attaches to it.  This method will pause a running process
-        /// 
+        ///
         /// </summary>
         /// <param name="processId">The ID of the process to attach to.</param>
         /// <returns>A <see cref="DataTarget"/> instance.</returns>

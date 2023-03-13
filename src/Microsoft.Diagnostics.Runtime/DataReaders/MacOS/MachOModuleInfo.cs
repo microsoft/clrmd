@@ -1,10 +1,13 @@
-﻿using Microsoft.Diagnostics.Runtime.MacOS.Structs;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 using System;
 using System.Collections.Immutable;
+using Microsoft.Diagnostics.Runtime.MacOS.Structs;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
-    internal class MachOModuleInfo : ModuleInfo
+    internal sealed class MachOModuleInfo : ModuleInfo
     {
         private readonly MachOModule? _module;
         private Version? _version;

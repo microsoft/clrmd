@@ -1,8 +1,11 @@
-﻿using DbgEngExtension;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Runtime.InteropServices;
+using DbgEngExtension;
 using Microsoft.Diagnostics.Runtime;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
-using System.Runtime.InteropServices;
 
 if (args.Length != 1 || !File.Exists(args[0]))
     Exit("Usage:  DbgEngStandalone [dump-file-path]");
@@ -22,7 +25,7 @@ string? dbgengPath = FindDbgEngPath();
 // IDebugClient.Create creates a COM wrapper object.  You can cast this object to dbgeng interfaces.
 using IDisposable dbgeng = IDebugClient.Create(dbgengPath);
 
-// All DbgEng interfaces are simply 
+// All DbgEng interfaces are simply
 IDebugClient client = (IDebugClient)dbgeng;
 IDebugControl control = (IDebugControl)dbgeng;
 
@@ -36,11 +39,10 @@ CheckHResult(hr, "WaitForEvent unexpectedly failed.");
 
 // DbgEngOutputHolder will capture output of the debugger.  Here we will print dbgeng
 // messages in Yellow with its output mask in Green as an example:
-using (DbgEngOutputHolder output = new DbgEngOutputHolder(client, DEBUG_OUTPUT.ALL))
+using (DbgEngOutputHolder output = new(client, DEBUG_OUTPUT.ALL))
 {
-    output.OutputReceived += (text, flags) =>
-    {
-        var oldColor = Console.ForegroundColor;
+    output.OutputReceived += (text, flags) => {
+        ConsoleColor oldColor = Console.ForegroundColor;
 
         Console.ForegroundColor = ConsoleColor.Green;
         Console.Write($"[{flags}] ");

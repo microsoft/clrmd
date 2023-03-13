@@ -1,16 +1,14 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Reflection;
+using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -150,7 +148,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (IsServerMode)
             {
                 ClrDataAddress[] heapAddresses = _sos.GetHeapList(_gcInfo.HeapCount);
-                var heapsBuilder = ImmutableArray.CreateBuilder<ClrSubHeap>(heapAddresses.Length);
+                ImmutableArray<ClrSubHeap>.Builder heapsBuilder = ImmutableArray.CreateBuilder<ClrSubHeap>(heapAddresses.Length);
                 for (int i = 0; i < heapAddresses.Length; i++)
                 {
                     if (_sos.GetServerHeapDetails(heapAddresses[i], out HeapDetails heapData))
@@ -330,7 +328,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (!HasThinlock(header))
                 return null;
 
-            (uint threadId, uint recursion) = GetThinlockData(header);
+            (uint threadId, uint recursion) = ClrHeapHelpers.GetThinlockData(header);
             ulong threadAddress = _sos.GetThreadFromThinlockId(threadId);
 
             if (threadAddress == 0)
@@ -345,7 +343,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return (header & (SyncBlockHashOrSyncBlockIndex | SyncBlockSpinLock)) == 0 && (header & SyncBlockThreadIdMask) != 0;
         }
 
-        private (uint ThreadId, uint Recursion) GetThinlockData(uint header)
+        private static (uint ThreadId, uint Recursion) GetThinlockData(uint header)
         {
             uint threadId = header & SyncBlockThreadIdMask;
             uint recursion = (header & SyncBlockRecLevelMask) >> SyncBlockRecLevelShift;
@@ -443,7 +441,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (HasThinlock(objHeader))
             {
                 ClrRuntime runtime = seg.SubHeap.Heap.Runtime;
-                (uint threadId, _) = GetThinlockData(objHeader);
+                (uint threadId, _) = ClrHeapHelpers.GetThinlockData(objHeader);
                 ulong address = _sos.GetThreadFromThinlockId(threadId);
                 if (address == 0 || !runtime.Threads.Any(th => th.Address == address))
                     return new ObjectCorruption(obj, -4, ObjectCorruptionKind.InvalidThinlock);
@@ -454,7 +452,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private bool ShouldVerifyMembers(ClrSegment seg, ClrObject obj)
         {
-            ShouldCheckBgcMark(seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep);
+            ClrHeapHelpers.ShouldCheckBgcMark(seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep);
             return FgcShouldConsiderObject(seg, obj, considerBgcMark, checkCurrentSweep, checkSavedSweep);
         }
 
@@ -490,14 +488,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return noBgcMark || BackgroundObjectMarked(heap, obj);
         }
 
-        const uint MarkBitPitch = 8;
-        const uint MarkWordWidth = 32;
-        const uint MarkWordSize = MarkBitPitch * MarkWordWidth;
-        const uint DtGcPageSize = 0x1000;
-        const uint CardWordWidth = 32;
-        private uint CardSize => ((uint)_memoryReader.PointerSize / 4) * DtGcPageSize / CardWordWidth;
+        private const uint MarkBitPitch = 8;
+        private const uint MarkWordWidth = 32;
+        private const uint MarkWordSize = MarkBitPitch * MarkWordWidth;
 
-        private void ShouldCheckBgcMark(ClrSegment seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep)
+#pragma warning disable IDE0051 // Remove unused private members. This is information we'd like to keep.
+        private const uint DtGcPageSize = 0x1000;
+        private const uint CardWordWidth = 32;
+        private uint CardSize => ((uint)_memoryReader.PointerSize / 4) * DtGcPageSize / CardWordWidth;
+#pragma warning restore IDE0051 // Remove unused private members
+
+        private static void ShouldCheckBgcMark(ClrSegment seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep)
         {
             considerBgcMark = false;
             checkCurrentSweep = false;
@@ -542,8 +543,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return (entry & (1u << MarkBitOf(obj))) != 0;
         }
 
-        static int MarkBitOf(ulong address) => (int)((address / MarkBitPitch) % MarkWordWidth);
-        static ulong MarkWordOf(ulong address) => address / MarkWordSize;
+        private static int MarkBitOf(ulong address) => (int)((address / MarkBitPitch) % MarkWordWidth);
+        private static ulong MarkWordOf(ulong address) => address / MarkWordSize;
 
 
         public bool IsValidMethodTable(ulong mt)

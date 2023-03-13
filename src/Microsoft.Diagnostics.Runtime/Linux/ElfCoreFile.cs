@@ -1,6 +1,5 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Buffers;
@@ -25,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private ElfVirtualAddressSpace? _virtualAddressSpace;
 
         /// <summary>
-        /// All coredumps are themselves ELF files.  This property returns the ElfFile that represents this coredump.  
+        /// All coredumps are themselves ELF files.  This property returns the ElfFile that represents this coredump.
         /// </summary>
         public ElfFile ElfFile { get; }
 
@@ -37,8 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             ElfMachine architecture = ElfFile.Header.Architecture;
 
-            return GetNotes(ElfNoteType.PrpsStatus).Select<ElfNote, IElfPRStatus>(r =>
-            {
+            return GetNotes(ElfNoteType.PrpsStatus).Select<ElfNote, IElfPRStatus>(r => {
                 return architecture switch
                 {
                     ElfMachine.EM_X86_64 => r.ReadContents<ElfPRStatusX64>(0),
@@ -127,13 +125,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 ulong value;
                 if (ElfFile.Header.Is64Bit)
                 {
-                    var elfauxv64 = auxvNote.ReadContents<ElfAuxv64>(ref position);
+                    ElfAuxv64 elfauxv64 = auxvNote.ReadContents<ElfAuxv64>(ref position);
                     type = elfauxv64.Type;
                     value = elfauxv64.Value;
                 }
                 else
                 {
-                    var elfauxv32 = auxvNote.ReadContents<ElfAuxv32>(ref position);
+                    ElfAuxv32 elfauxv32 = auxvNote.ReadContents<ElfAuxv32>(ref position);
                     type = elfauxv32.Type;
                     value = elfauxv32.Value;
                 }
@@ -152,7 +150,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             ElfNote fileNote = GetNotes(ElfNoteType.File).Single();
 
             ulong position = 0;
-            ulong entryCount = 0;
+            ulong entryCount;
             if (ElfFile.Header.Is64Bit)
             {
                 ElfFileTableHeader64 header = fileNote.ReadContents<ElfFileTableHeader64>(ref position);

@@ -1,12 +1,11 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.IO;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
-    internal class ElfSymbolTable
+    internal sealed class ElfSymbolTable
     {
         private readonly Reader _reader;
         private readonly ulong _address;

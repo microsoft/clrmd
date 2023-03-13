@@ -1,12 +1,11 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.DacInterface;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -88,7 +87,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (name != null)
             {
                 ClrInterface? type = null;
-                if (extends != 0 && extends != 0x01000000)
+                if (extends is not 0 and not 0x01000000)
                     type = GetInterface(import, extends);
 
                 result = new ClrInterface(name, type);

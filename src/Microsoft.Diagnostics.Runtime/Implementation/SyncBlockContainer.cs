@@ -1,4 +1,6 @@
-﻿using System;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public SyncBlockContainer(IEnumerable<SyncBlock> syncBlocks)
         {
             _syncBlocks = syncBlocks.ToArray();
-            foreach (var item in _syncBlocks)
+            foreach (SyncBlock item in _syncBlocks)
             {
                 if (item.Object != 0)
                     _mapping[item.Object] = item;

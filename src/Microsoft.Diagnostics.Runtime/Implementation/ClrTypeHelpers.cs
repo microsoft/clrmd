@@ -1,5 +1,6 @@
-﻿using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Implementation;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -7,10 +8,12 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal class ClrTypeHelpers : IClrTypeHelpers, IClrFieldHelpers
+    internal sealed class ClrTypeHelpers : IClrTypeHelpers, IClrFieldHelpers
     {
         private readonly uint _firstChar = (uint)IntPtr.Size + 4;
         private readonly uint _stringLength = (uint)IntPtr.Size;
@@ -186,7 +189,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!_sos.GetMethodTableData(mt, out MethodTableData data) || data.NumMethods == 0)
                 return ImmutableArray<ClrMethod>.Empty;
 
-            var builder = ImmutableArray.CreateBuilder<ClrMethod>(data.NumMethods);
+            ImmutableArray<ClrMethod>.Builder builder = ImmutableArray.CreateBuilder<ClrMethod>(data.NumMethods);
             for (uint i = 0; i < data.NumMethods; i++)
             {
                 ulong slot = _sos.GetMethodTableSlot(mt, i);
@@ -250,7 +253,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (type is null)
             {
-                var sigParser = new Utilities.SigParser(fieldSig, sigLen);
+                Utilities.SigParser sigParser = new(fieldSig, sigLen);
                 if (sigParser.GetCallingConvInfo(out int sigType) && sigType == Utilities.SigParser.IMAGE_CEE_CS_CALLCONV_FIELD)
                 {
                     sigParser.SkipCustomModifiers();

@@ -1,6 +1,9 @@
-﻿using Microsoft.Diagnostics.Runtime;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 using System.Diagnostics;
 using System.Text;
+using Microsoft.Diagnostics.Runtime;
 using static DbgEngExtension.MAddress;
 
 namespace DbgEngExtension
@@ -10,8 +13,7 @@ namespace DbgEngExtension
     {
         internal const string Command = "gctonative";
         internal const string All = "all";
-
-        const int Width = 120;
+        private const int Width = 120;
 
         public GCToNative(nint pUnknown, bool redirectConsoleOutput = true) : base(pUnknown, redirectConsoleOutput)
         {
@@ -70,13 +72,13 @@ namespace DbgEngExtension
             Console.WriteLine("Walking GC heap to find pointers...");
             Dictionary<ClrSegment, List<GCObjectToRange>> segmentLists = new();
 
-            var items = Runtimes
+            IEnumerable<(ClrSegment Segment, ulong Address, ulong Pointer, AddressMemoryRange MemoryRange)> items = Runtimes
                             .SelectMany(r => r.Heap.Segments)
                             .SelectMany(Segment => maddressHelper
                                                     .EnumerateRegionPointers(Segment.ObjectRange.Start, Segment.ObjectRange.End, ranges)
                                                     .Select(regionPointer => (Segment, regionPointer.Address, regionPointer.Pointer, regionPointer.MemoryRange)));
 
-            foreach (var item in items)
+            foreach ((ClrSegment Segment, ulong Address, ulong Pointer, AddressMemoryRange MemoryRange) item in items)
             {
                 if (!segmentLists.TryGetValue(item.Segment, out List<GCObjectToRange>? list))
                     list = segmentLists[item.Segment] = new();
@@ -173,7 +175,7 @@ namespace DbgEngExtension
                         };
 
                         allOut.WriteRowWithSpacing('-', "Pointer", "Size", "Object", "Type");
-                        foreach (var entry in allPointers)
+                        foreach ((ulong Pointer, ulong Size, ulong Object, string Type) entry in allPointers)
                             if (entry.Size == 0)
                                 allOut.WriteRow(entry.Pointer, "", entry.Object, entry.Type);
                             else
@@ -193,8 +195,7 @@ namespace DbgEngExtension
                                                  let Count = g.Count()
                                                  let TotalSize = g.Sum(k => (long)GetSize(sizeHints, k))
                                                  orderby TotalSize descending, Name ascending
-                                                 select new
-                                                 {
+                                                 select new {
                                                      Name,
                                                      Count,
                                                      TotalSize,
@@ -227,17 +228,16 @@ namespace DbgEngExtension
                         Console.WriteLine($"Other memory pointer summary:");
 
                         var unknownMemQuery = from known in unknownObjPointers
-                                                let name = CollapseGenerics(known.Object.Type?.Name ?? "<unknown_type>")
-                                                group known by name into g
-                                                let Name = g.Key
-                                                let Count = g.Count()
-                                                orderby Count descending
-                                                select new
-                                                {
-                                                    Name,
-                                                    Count,
-                                                    Pointer = FindMostCommonPointer(g.Select(p => p.Pointer))
-                                                };
+                                              let name = CollapseGenerics(known.Object.Type?.Name ?? "<unknown_type>")
+                                              group known by name into g
+                                              let Name = g.Key
+                                              let Count = g.Count()
+                                              orderby Count descending
+                                              select new {
+                                                  Name,
+                                                  Count,
+                                                  Pointer = FindMostCommonPointer(g.Select(p => p.Pointer))
+                                              };
 
                         var unknownMem = unknownMemQuery.ToArray();
                         int maxNameLen = Math.Min(80, unknownMem.Max(r => r.Name.Length));
@@ -258,15 +258,15 @@ namespace DbgEngExtension
 
         private static (int Regions, ulong Bytes) GetSizes(Dictionary<ulong, KnownClrMemoryPointer> knownMemory, Dictionary<ulong, int> sizeHints)
         {
-            var ordered = from item in knownMemory.Values
-                          orderby item.Pointer ascending, item.Size descending
-                          select item;
+            IOrderedEnumerable<KnownClrMemoryPointer> ordered = from item in knownMemory.Values
+                                                                orderby item.Pointer ascending, item.Size descending
+                                                                select item;
 
             int totalRegions = 0;
             ulong totalBytes = 0;
             ulong prevEnd = 0;
 
-            foreach (var item in ordered)
+            foreach (KnownClrMemoryPointer? item in ordered)
             {
                 ulong size = GetSize(sizeHints, item);
 
@@ -341,7 +341,7 @@ namespace DbgEngExtension
             return k.Size;
         }
 
-        private class GCObjectToRange
+        private sealed class GCObjectToRange
         {
             public ulong GCPointer { get; }
             public ulong TargetSegmentPointer { get; }
@@ -356,7 +356,7 @@ namespace DbgEngExtension
             }
         }
 
-        private class KnownClrMemoryPointer
+        private sealed class KnownClrMemoryPointer
         {
             private const string NativeHeapMemoryBlock = "System.Reflection.Internal.NativeHeapMemoryBlock";
             private const string MetadataReader = "System.Reflection.Metadata.MetadataReader";

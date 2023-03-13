@@ -1,6 +1,5 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Diagnostics;
@@ -226,7 +225,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             [DllImport("kernel32.dll", SetLastError = true)]
             internal static extern void GetSystemInfo(ref SYSTEM_INFO lpSystemInfo);
 
-            internal unsafe static bool EnableDisablePrivilege(string PrivilegeName, bool enable)
+            internal static unsafe bool EnableDisablePrivilege(string PrivilegeName, bool enable)
             {
                 if (!OpenProcessToken(Process.GetCurrentProcess().Handle, TokenAccessLevels.AdjustPrivileges | TokenAccessLevels.Query, out IntPtr processToken))
                     return false;

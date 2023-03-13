@@ -1,4 +1,7 @@
-﻿using System.Runtime.InteropServices;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
@@ -59,7 +62,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         {
             GetVTable(this, out nint self, out IDebugSystemObjectsVtable* vtable);
 
-            fixed (uint *sysPtr = sysIds)
+            fixed (uint* sysPtr = sysIds)
                 return vtable->GetThreadIdsByIndex(self, 0, sysIds.Length, null, sysPtr);
         }
 

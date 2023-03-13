@@ -1,13 +1,12 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System.Diagnostics.Tracing;
 
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
     [EventSource(Guid = "8C190136-52CE-4070-BBF1-2EF1E1368B5A", Name = "Microsoft.Diagnostics.Runtime.Windows.HeapSegmentCacheProvider")]
-    internal class HeapSegmentCacheEventSource : EventSource
+    internal sealed class HeapSegmentCacheEventSource : EventSource
     {
         internal static readonly HeapSegmentCacheEventSource Instance = new();
 

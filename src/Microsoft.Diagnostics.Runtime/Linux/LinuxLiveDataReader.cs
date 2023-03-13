@@ -1,9 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
-using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -12,6 +9,8 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -67,11 +66,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             if (_suspended)
             {
-                foreach (var tid in _threadIDs)
+                foreach (uint tid in _threadIDs)
                 {
                     // no point in handling errors here as the user can do nothing with them
                     // also if Dispose is called from the finalizer we could crash the process
-                    var status = (int)ptrace(PTRACE_DETACH, (int)tid, IntPtr.Zero, IntPtr.Zero);
+                    ptrace(PTRACE_DETACH, (int)tid, IntPtr.Zero, IntPtr.Zero);
                 }
                 _suspended = false;
             }
@@ -137,12 +136,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             fixed (byte* ptr = buffer)
             {
-                var local = new IOVEC
+                IOVEC local = new()
                 {
                     iov_base = ptr,
                     iov_len = (IntPtr)readableBytesCount
                 };
-                var remote = new IOVEC
+                IOVEC remote = new()
                 {
                     iov_base = (void*)address,
                     iov_len = (IntPtr)readableBytesCount
@@ -219,15 +218,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private void LoadThreadsAndAttach()
         {
             const int maxPasses = 100;
-            var tracees = new HashSet<uint>();
-            var makesProgress = true;
+            HashSet<uint> tracees = new();
+            bool makesProgress = true;
             // Make up to maxPasses to be sure to attach to the threads that could have been created in the meantime
-            for (var i = 0; makesProgress && i < maxPasses; i++)
+            for (int i = 0; makesProgress && i < maxPasses; i++)
             {
                 makesProgress = false;
                 // GetThreads could throw during enumeration. It means the process was killed so no cleanup is needed.
-                var threads = GetThreads(ProcessId);
-                foreach (var tid in threads)
+                IEnumerable<uint> threads = GetThreads(ProcessId);
+                foreach (uint tid in threads)
                 {
                     if (tracees.Contains(tid))
                     {
@@ -235,7 +234,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         continue;
                     }
 
-                    var status = (int)ptrace(PTRACE_ATTACH, (int)tid, IntPtr.Zero, IntPtr.Zero);
+                    int status = (int)ptrace(PTRACE_ATTACH, (int)tid, IntPtr.Zero, IntPtr.Zero);
                     if (status >= 0)
                     {
                         status = waitpid((int)tid, IntPtr.Zero, 0);
@@ -307,7 +306,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
                 else if (parts.Length == 6)
                 {
-                    path = parts[5].StartsWith("[") ? string.Empty : parts[5];
+                    path = parts[5].StartsWith("[", StringComparison.Ordinal) ? string.Empty : parts[5];
                 }
                 else
                 {

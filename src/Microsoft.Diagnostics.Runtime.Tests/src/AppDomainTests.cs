@@ -1,6 +1,5 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -139,7 +138,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private static Dictionary<string, ClrModule> GetDomainModuleDictionary(ClrAppDomain domain)
         {
-            Dictionary<string, ClrModule> result = new Dictionary<string, ClrModule>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, ClrModule> result = new(StringComparer.OrdinalIgnoreCase);
             foreach (ClrModule module in domain.Modules)
                 result.Add(Path.GetFileName(module.Name), module);
 

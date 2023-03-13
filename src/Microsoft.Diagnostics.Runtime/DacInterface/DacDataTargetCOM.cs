@@ -1,24 +1,23 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 #if NET6_0_OR_GREATER
-using Microsoft.Diagnostics.Runtime.DbgEng;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Collections;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.DbgEng;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    internal unsafe class DacDataTargetCOM : ComWrappers
+    internal sealed unsafe class DacDataTargetCOM : ComWrappers
     {
         private static readonly ComInterfaceEntry* s_wrapperEntry = InitializeComInterfaceEntry();
         public static DacDataTargetCOM Instance { get; } = new();
 
         /// <summary>
-        /// Returns a COM pointer to an IDacDataTarget 
+        /// Returns a COM pointer to an IDacDataTarget
         /// </summary>
         public static IntPtr CreateIDacDataTarget(DacDataTarget dacData)
         {
@@ -70,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
         }
 
-        private unsafe static class IDacDataTargetVtbl
+        private static unsafe class IDacDataTargetVtbl
         {
             public static IntPtr Create(IntPtr qi, IntPtr addRef, IntPtr release)
             {
@@ -181,7 +180,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        private unsafe static class IMetaDataLocatorVtbl
+        private static unsafe class IMetaDataLocatorVtbl
         {
             public static IntPtr Create(IntPtr qi, IntPtr addRef, IntPtr release)
             {
@@ -208,7 +207,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        private unsafe static class ICLRRuntimeLocatorVtbl
+        private static unsafe class ICLRRuntimeLocatorVtbl
         {
             public static IntPtr Create(IntPtr qi, IntPtr addRef, IntPtr release)
             {

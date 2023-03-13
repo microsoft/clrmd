@@ -1,11 +1,13 @@
-﻿namespace DbgEngExtension
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+namespace DbgEngExtension
 {
     public class Help : DbgEngCommand
     {
         internal const string Command = "help";
         private const string RootResource = "DbgEngExtension.Help.";
-
-        static readonly (string Variable, string Replacement)[] Replacements =
+        private static readonly (string Variable, string Replacement)[] Replacements =
         {
             ("$FINDPOINTERSIN", FindPointersIn.Command),
             ("$NONPINNEDFLAG", FindPointersIn.ExpandNonPinnedObjectsFlag),
@@ -39,9 +41,9 @@
             int index = command.IndexOf('$');
             while (index > 0 && index < command.Length - 1)
             {
-                var span = command.AsSpan(index);
+                ReadOnlySpan<char> span = command.AsSpan(index);
 
-                foreach (var (name, replacement) in Replacements)
+                foreach ((string name, string replacement) in Replacements)
                 {
                     if (span.Length >= name.Length && name.AsSpan().SequenceEqual(span[..name.Length]))
                     {
@@ -58,7 +60,7 @@
 
         private static string GetRawHelp(string command)
         {
-            var assembly = typeof(Help).Assembly;
+            System.Reflection.Assembly assembly = typeof(Help).Assembly;
             string[] resources = assembly.GetManifestResourceNames();
 
             foreach (string file in resources.Where(f => f.StartsWith(RootResource)))

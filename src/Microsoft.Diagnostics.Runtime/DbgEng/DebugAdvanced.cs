@@ -1,15 +1,14 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
-    internal unsafe sealed class DebugAdvanced : CallableCOMWrapper
+    internal sealed unsafe class DebugAdvanced : CallableCOMWrapper
     {
         internal static readonly Guid IID_IDebugAdvanced = new("f2df5f53-071f-47bd-9de6-5734c3fed689");
 

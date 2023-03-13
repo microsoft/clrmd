@@ -1,6 +1,5 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -70,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public static HashSet<T> Unique<T>(this IEnumerable<T> self)
         {
-            HashSet<T> set = new HashSet<T>();
+            HashSet<T> set = new();
             foreach (T t in self)
                 set.Add(t);
 
@@ -108,11 +107,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         private static string _userSetWorkingPath;
-        private static readonly Lazy<string> _workingPath = new Lazy<string>(CreateWorkingPath, true);
+        private static readonly Lazy<string> _workingPath = new(CreateWorkingPath, true);
 
         private static string CreateWorkingPath()
         {
-            Random r = new Random();
+            Random r = new();
             string path;
             do
             {

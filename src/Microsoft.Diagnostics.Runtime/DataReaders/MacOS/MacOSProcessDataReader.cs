@@ -1,9 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -13,6 +10,8 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
@@ -253,7 +252,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         public unsafe bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
             LoadThreads();
-            if (!_threadActs.TryGetValue(threadID, out var threadAct))
+            if (!_threadActs.TryGetValue(threadID, out uint threadAct))
                 return false;
 
             int stateFlavor;

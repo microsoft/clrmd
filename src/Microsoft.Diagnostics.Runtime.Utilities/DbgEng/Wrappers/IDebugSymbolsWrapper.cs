@@ -1,4 +1,7 @@
-﻿using System.Buffers;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -17,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
                 if (hr < 0)
                     return null;
-                else if (size == 0 || size == 1)
+                else if (size is 0 or 1)
                     return string.Empty;
 
                 char[] buffer = ArrayPool<char>.Shared.Rent(size);
@@ -112,13 +115,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             }
 
             char[] buffer = ArrayPool<char>.Shared.Rent(size);
-            fixed(char* strPtr = buffer)
+            fixed (char* strPtr = buffer)
                 hr = vtable->GetModuleNameStringWide(self, which, DEBUG_ANY_ID, baseAddress, strPtr, size, out _);
 
             if (hr < 0)
                 name = string.Empty;
             else
-                name = new string(new Span<char>(buffer)[0..(size-1)]);
+                name = new string(new Span<char>(buffer)[0..(size - 1)]);
 
             ArrayPool<char>.Shared.Return(buffer);
 
@@ -172,7 +175,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                 return false;
             }
 
-            if (size == 0 || size == 1)
+            if (size is 0 or 1)
             {
                 name = string.Empty;
                 return true;

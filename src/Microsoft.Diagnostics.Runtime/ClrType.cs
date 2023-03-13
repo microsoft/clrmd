@@ -1,14 +1,13 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Implementation;
-using Microsoft.Diagnostics.Runtime.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
+using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -171,8 +170,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         private void CacheFields()
         {
-            var instanceFields = ImmutableArray.CreateBuilder<ClrInstanceField>();
-            var staticFields = ImmutableArray.CreateBuilder<ClrStaticField>();
+            ImmutableArray<ClrInstanceField>.Builder instanceFields = ImmutableArray.CreateBuilder<ClrInstanceField>();
+            ImmutableArray<ClrStaticField>.Builder staticFields = ImmutableArray.CreateBuilder<ClrStaticField>();
             foreach (ClrField field in Helpers.EnumerateFields(this))
             {
                 if (field is ClrInstanceField instanceField)

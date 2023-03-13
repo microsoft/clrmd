@@ -1,4 +1,7 @@
-﻿// Please go to the ClrMD project page on github for full source and to report issues:
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// Please go to the ClrMD project page on github for full source and to report issues:
 //    https://github.com/Microsoft/clrmd
 
 using System;

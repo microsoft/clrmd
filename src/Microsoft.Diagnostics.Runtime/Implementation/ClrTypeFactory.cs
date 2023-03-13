@@ -1,14 +1,17 @@
-﻿using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Utilities;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ClrTypeFactory : IClrTypeFactory
+    internal sealed class ClrTypeFactory : IClrTypeFactory
     {
         private const int mdtTypeDef = 0x02000000;
         private const int mdtTypeRef = 0x01000000;
@@ -167,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return result;
             }
 
-            if (etype == ClrElementType.Class || etype == ClrElementType.Struct)
+            if (etype is ClrElementType.Class or ClrElementType.Struct)
             {
                 if (!parser.GetToken(out int token))
                     return null;
@@ -207,7 +210,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return result;
             }
 
-            if (etype == ClrElementType.MVar || etype == ClrElementType.Var)
+            if (etype is ClrElementType.MVar or ClrElementType.Var)
             {
                 if (!parser.GetData(out int index))
                     return null;
@@ -349,11 +352,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             if (_modules is null)
             {
-                var modules = _heap.Runtime.EnumerateModules().ToDictionary(k => k.Address, v => v);
+                Dictionary<ulong, ClrModule> modules = _heap.Runtime.EnumerateModules().ToDictionary(k => k.Address, v => v);
                 Interlocked.CompareExchange(ref _modules, modules, null);
             }
 
-            _modules.TryGetValue(moduleAddress, out var module);
+            _modules.TryGetValue(moduleAddress, out ClrModule? module);
             return module;
         }
     }

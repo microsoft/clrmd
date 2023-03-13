@@ -1,10 +1,9 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -87,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 // skip bits like "-beta"
-                if ('0' <= span[i] && span[i] <= '9')
+                if (span[i] is >= (byte)'0' and <= (byte)'9')
                     curr = curr * 10 + (span[i] - '0');
 
                 // In this case I don't know what we are parsing but it's not a version

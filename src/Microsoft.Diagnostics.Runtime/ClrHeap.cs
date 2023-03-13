@@ -1,18 +1,15 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Implementation;
-using Microsoft.Diagnostics.Runtime.Interfaces;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
+using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -359,7 +356,7 @@ namespace Microsoft.Diagnostics.Runtime
                     ArrayPool<byte>.Shared.Return(_cache);
             }
 
-            
+
             public ulong Base { get; private set; }
             public int Length { get; private set; }
 
@@ -460,7 +457,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Finds the previous object on 
+        /// Finds the previous object on
         /// </summary>
         /// <param name="address">An address on any ClrSegment.</param>
         /// <param name="carefully">Whether to continue walking objects on a segment where we've encountered
@@ -490,10 +487,10 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ulong SkipAllocationContext(ClrSegment seg, ulong address)
         {
-            if (seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Frozen)
+            if (seg.Kind is GCSegmentKind.Large or GCSegmentKind.Frozen)
                 return address;
 
-            var allocationContexts = GetAllocationContexts();
+            Dictionary<ulong, ulong> allocationContexts = GetAllocationContexts();
 
             uint minObjSize = (uint)IntPtr.Size * 3;
             while (allocationContexts.TryGetValue(address, out ulong nextObj))
@@ -523,7 +520,7 @@ namespace Microsoft.Diagnostics.Runtime
             else
                 AlignConst = 7;
 
-            if (seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Pinned)
+            if (seg.Kind is GCSegmentKind.Large or GCSegmentKind.Pinned)
                 return (size + AlignLargeConst) & ~AlignLargeConst;
 
             return (size + AlignConst) & ~AlignConst;
@@ -646,9 +643,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public IEnumerable<MemoryRange> EnumerateAllocationContexts()
         {
-            var allocationContexts = GetAllocationContexts();
+            Dictionary<ulong, ulong>? allocationContexts = GetAllocationContexts();
             if (allocationContexts is not null)
-                foreach (var kv in allocationContexts)
+                foreach (KeyValuePair<ulong, ulong> kv in allocationContexts)
                     yield return new(kv.Key, kv.Value);
         }
 
@@ -756,7 +753,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (considerDependantHandles)
             {
-                var dependent = GetDependentHandles();
+                (ulong Source, ulong Target)[] dependent = GetDependentHandles();
 
                 if (dependent.Length > 0)
                 {
@@ -794,7 +791,7 @@ namespace Microsoft.Diagnostics.Runtime
                         if (seg is null)
                             yield break;
 
-                        bool large = seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Pinned;
+                        bool large = seg.Kind is GCSegmentKind.Large or GCSegmentKind.Pinned;
                         if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
                             yield break;
                     }
@@ -832,7 +829,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (considerDependantHandles)
             {
-                var dependent = GetDependentHandles();
+                (ulong Source, ulong Target)[] dependent = GetDependentHandles();
 
                 if (dependent.Length > 0)
                 {
@@ -864,7 +861,7 @@ namespace Microsoft.Diagnostics.Runtime
                         if (seg is null)
                             yield break;
 
-                        bool large = seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Pinned;
+                        bool large = seg.Kind is GCSegmentKind.Large or GCSegmentKind.Pinned;
                         if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
                             yield break;
                     }
@@ -906,7 +903,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (considerDependantHandles)
             {
-                var dependent = GetDependentHandles();
+                (ulong Source, ulong Target)[] dependent = GetDependentHandles();
 
                 if (dependent.Length > 0)
                 {
@@ -934,7 +931,7 @@ namespace Microsoft.Diagnostics.Runtime
                         if (seg is null)
                             yield break;
 
-                        bool large = seg.Kind == GCSegmentKind.Large || seg.Kind == GCSegmentKind.Pinned;
+                        bool large = seg.Kind is GCSegmentKind.Large or GCSegmentKind.Pinned;
                         if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
                             yield break;
                     }

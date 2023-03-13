@@ -1,4 +1,7 @@
-﻿using System;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -123,7 +126,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                             }
                         case ParsingState.ParsingNestedClass:
                             {
-                                // We are starting to parse a nested type name, just record the nested class depth (we have to handle multiple levels of nested classes), and 
+                                // We are starting to parse a nested type name, just record the nested class depth (we have to handle multiple levels of nested classes), and
                                 // transition back to the type name parsing state.
 
                                 parsingNestedClassDepth++;
@@ -355,7 +358,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 }
 
                 // Fill the nameSegment generics with args, in order, from the genericArgs list. This works correctly whether the nameSegments list is a single generic or a
-                // generic with a nested generic (so WeakKeyDictionary<T1,T2>+<WeakReference<T1>), unlike the special casing for such a situation we need to do while fixing up 
+                // generic with a nested generic (so WeakKeyDictionary<T1,T2>+<WeakReference<T1>), unlike the special casing for such a situation we need to do while fixing up
                 // the generic args list.
                 int targetSegmentIndex = -1;
                 for (int i = 0; i < nameSegments.Count; i++)
@@ -450,7 +453,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (targetTypeToPatch.IsNestedClass && targetTypeToPatch.IsGenericClass && (nextTargetFulfillmentIndex == -1))
                 {
                     // The target to use to patch will be at least the arg after the type we are patching (genericTargetIndex + 1), but need to see how many nested and generic
-                    // classes are above us at this same parse level so we can correctly pull arguments ala the rather large explanation above. 
+                    // classes are above us at this same parse level so we can correctly pull arguments ala the rather large explanation above.
                     nextTargetFulfillmentIndex = genericTargetIndex + 1;
                     for (int i = genericTargetIndex - 1; i >= 0; i--)
                     {
@@ -532,7 +535,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private static bool ShouldContinueParsing(ParsingState state)
         {
-            return ((state != ParsingState.Done) && (state != ParsingState.Error));
+            return (state is not ParsingState.Done and not ParsingState.Error);
         }
 
         // Special cases:
@@ -623,7 +626,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     {
                         if (curPos + 1 != name.Length)
                         {
-                            if (name[curPos + 1] == GenericArgListOrArrayEndSpecifier || name[curPos + 1] == ArgSeperator)
+                            if (name[curPos + 1] is GenericArgListOrArrayEndSpecifier or ArgSeperator)
                                 return (ParsingState.ParsingArraySpecifier, curPos);
                             else if (name[curPos + 1] == GenericArgListOrArrayStartSpecifier)
                                 return (ParsingState.ParsingGenericArgs, curPos + 2);

@@ -1,8 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Implementation;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -12,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -255,7 +254,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 if (!_pdbs.IsDefault)
                     return _pdbs;
 
-                var pdbs = ReadPdbs();
+                ImmutableArray<PdbInfo> pdbs = ReadPdbs();
                 _pdbs = pdbs;
                 return pdbs;
             }
@@ -313,7 +312,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (_relocations != null)
             {
                 //
-                // The _relocations array is an array of offsets that begin and end (both inclusively) 
+                // The _relocations array is an array of offsets that begin and end (both inclusively)
                 // relocations.
                 //
                 // For example:
@@ -321,12 +320,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 //
                 // It is assumed that these never overlaps, so the array contain no duplicates, and it
                 // is sorted, the array is prepared in the constructor by parsing the .reloc entries.
-                // 
+                //
                 // The even/odd index always correspond to an open/close of the relocation interval.
                 //
                 // There is a possibility that the requested range partially contains a relocation, so
                 // we need to make sure the reading range is extended in those cases. The code below
-                // uses binary search to find the containing relocation records and deciding on 
+                // uses binary search to find the containing relocation records and deciding on
                 // exactly how much we wanted to extend the read.
                 //
                 // The code also keeps track of which relocation to start and stop to apply so that
@@ -338,7 +337,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     int beginSearchComplement = ~beginSearch;
                     if (beginSearchComplement == _relocations.Length)
                     {
-                        // Case 1: ] 
+                        // Case 1: ]
                         //           ^
                         // The read range starts after all relocations finishes, no need to extend the read
                         beginRelocation = _relocations.Length;
@@ -354,7 +353,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     {
                         // Case 3: [   ]
                         //           ^
-                        // The read range starts within a relocation, extend the read 
+                        // The read range starts within a relocation, extend the read
                         Debug.Assert((beginSearchComplement & 1) == 1);
                         Debug.Assert(beginSearch > 0);
                         beginRelocation = beginSearch - 1;
@@ -387,7 +386,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     int endSearchComplement = ~endSearch;
                     if (endSearchComplement == _relocations.Length)
                     {
-                        // Case 1: ] 
+                        // Case 1: ]
                         //           ^
                         // The read range ends after all relocations finishes, no need to extend the read
                         endRelocation = _relocations.Length - 1;
@@ -403,7 +402,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     {
                         // Case 3: [   ]
                         //           ^
-                        // The read range ends within a relocation, extend the read 
+                        // The read range ends within a relocation, extend the read
                         Debug.Assert((endSearchComplement & 1) == 1);
                         Debug.Assert(endSearch > 0);
                         endRelocation = endSearch;
@@ -728,7 +727,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         return ImmutableArray<PdbInfo>.Empty;
 
                     SeekTo(offset);
-                    var result = ImmutableArray.CreateBuilder<PdbInfo>(count);
+                    ImmutableArray<PdbInfo>.Builder result = ImmutableArray.CreateBuilder<PdbInfo>(count);
                     for (int i = 0; i < count; i++)
                     {
                         if (!TryRead(ref offset, out ImageDebugDirectory directory))

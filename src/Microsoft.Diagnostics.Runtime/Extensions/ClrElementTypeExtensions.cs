@@ -1,6 +1,5 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -8,8 +7,8 @@ namespace Microsoft.Diagnostics.Runtime
     {
         public static bool IsPrimitive(this ClrElementType cet)
         {
-            return cet >= ClrElementType.Boolean && cet <= ClrElementType.Double
-                || cet == ClrElementType.NativeInt || cet == ClrElementType.NativeUInt;
+            return cet is >= ClrElementType.Boolean and <= ClrElementType.Double
+                or ClrElementType.NativeInt or ClrElementType.NativeUInt;
         }
 
         public static bool IsValueType(this ClrElementType cet)
@@ -19,9 +18,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         public static bool IsObjectReference(this ClrElementType cet)
         {
-            return cet == ClrElementType.String || cet == ClrElementType.Class
-                || cet == ClrElementType.Array || cet == ClrElementType.SZArray
-                || cet == ClrElementType.Object;
+            return cet is ClrElementType.String or ClrElementType.Class
+                or ClrElementType.Array or ClrElementType.SZArray
+                or ClrElementType.Object;
         }
     }
 }

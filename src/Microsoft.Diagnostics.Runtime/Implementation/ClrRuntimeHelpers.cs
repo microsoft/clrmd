@@ -1,14 +1,17 @@
-﻿using Microsoft.Diagnostics.Runtime.DacInterface;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal unsafe class ClrRuntimeHelpers : IClrRuntimeHelpers, IClrAppDomainHelpers
+    internal sealed unsafe class ClrRuntimeHelpers : IClrRuntimeHelpers, IClrAppDomainHelpers
     {
         private ClrRuntime? _runtime;
 
@@ -111,8 +114,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             if (_domainData is null)
             {
-
-                bool res = _sos.GetAppDomainStoreData(out AppDomainStoreData domainStore);
+                _ = _sos.GetAppDomainStoreData(out AppDomainStoreData domainStore);
 
                 ClrAppDomainData domainData = new();
                 domainData.SystemDomain = CreateAppDomain(domainStore.SystemDomain, "System Domain", domainData.Modules);
@@ -120,12 +122,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (domainStore.SharedDomain != 0)
                     domainData.SharedDomain = CreateAppDomain(domainStore.SharedDomain, "Shared Domain", domainData.Modules);
 
-                var builder = ImmutableArray.CreateBuilder<ClrAppDomain>(domainStore.AppDomainCount);
+                ImmutableArray<ClrAppDomain>.Builder builder = ImmutableArray.CreateBuilder<ClrAppDomain>(domainStore.AppDomainCount);
                 ClrDataAddress[] domainList = _sos.GetAppDomainList(domainStore.AppDomainCount);
 
                 for (int i = 0; i < domainList.Length; i++)
                 {
-                    var domain = CreateAppDomain(domainList[i], null, domainData.Modules);
+                    ClrAppDomain? domain = CreateAppDomain(domainList[i], null, domainData.Modules);
                     if (domain is not null)
                         builder.Add(domain);
                 }
@@ -173,7 +175,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             name ??= _sos.GetAppDomainName(domainAddress);
             ClrAppDomain result = new(Runtime, this, domainAddress, name, id);
 
-            var moduleBuilder = ImmutableArray.CreateBuilder<ClrModule>();
+            ImmutableArray<ClrModule>.Builder moduleBuilder = ImmutableArray.CreateBuilder<ClrModule>();
             foreach (ulong assembly in _sos.GetAssemblyList(domainAddress))
                 foreach (ulong moduleAddress in _sos.GetModuleList(assembly))
                 {

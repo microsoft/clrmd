@@ -1,7 +1,10 @@
-﻿using Microsoft.Diagnostics.Runtime.Utilities;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
@@ -74,7 +77,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     {
                         if (hr = VTable.GetLoaderAllocatorHeaps(Self, loaderAllocator, addresses.Length, ptrAddresses, ptrKinds, out _))
                         {
-                            var result = new (ClrDataAddress, LoaderHeapKind)[needed];
+                            (ClrDataAddress, LoaderHeapKind)[] result = new (ClrDataAddress, LoaderHeapKind)[needed];
                             for (int i = 0; i < needed; i++)
                                 result[i] = (addresses[i], kinds[i]);
 

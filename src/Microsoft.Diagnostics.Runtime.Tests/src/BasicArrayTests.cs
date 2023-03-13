@@ -1,6 +1,5 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using AutoFixture.Xunit2;
@@ -97,10 +96,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void GetArrayElementAddress_WhenGuidArray_Throws(int seed)
         {
             // Arrange
-            var originalArray = _prototype.GuidArray;
+            Guid[] originalArray = _prototype.GuidArray;
             ClrObject structArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.GuidArray));
 
-            var index = seed % originalArray.Length;
+            int index = seed % originalArray.Length;
 
             // Act
             ulong elementAddress = structArray.Type.GetArrayElementAddress(structArray, index);
@@ -113,15 +112,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void GetArrayElementAddress_WhenStringArray_ReturnsExpectedElement(int seed)
         {
             // Arrange
-            var originalArray = _prototype.StringArray;
+            string[] originalArray = _prototype.StringArray;
             ClrObject referenceArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.StringArray));
 
-            var index = seed % originalArray.Length;
+            int index = seed % originalArray.Length;
 
             // Act
             ulong elementAddress = referenceArray.Type.GetArrayElementAddress(referenceArray, index);
 
-            DataReader.ReadPointer(elementAddress, out var actualValue);
+            DataReader.ReadPointer(elementAddress, out ulong actualValue);
 
             string actual = (string)new ClrObject(actualValue, _heap.GetObjectType(actualValue));
 
@@ -165,10 +164,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void GetArrayElementAddress_WhenCustomStructArray_GetsStructStartPos(int seed)
         {
             // Arrange
-            var originalArray = _prototype.StructArray;
+            ArrayConnection.SampleStruct[] originalArray = _prototype.StructArray;
             ClrObject structArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.StructArray));
 
-            var index = seed % originalArray.Length;
+            int index = seed % originalArray.Length;
 
             // Act
             ulong structStart = structArray.Type.GetArrayElementAddress(structArray, index);
@@ -181,17 +180,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void GetArrayElementAddress_WhenCustomStructArray_ReturnsPointerToActualData(int seed)
         {
             // Arrange
-            var originalArray = _prototype.StructArray;
+            ArrayConnection.SampleStruct[] originalArray = _prototype.StructArray;
             ClrObject structArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.StructArray));
 
-            var index = seed % originalArray.Length;
-            var structType = structArray.Type.ComponentType;
-            var textField = structType.GetFieldByName(nameof(ArrayConnection.SampleStruct.ReferenceLoad));
+            int index = seed % originalArray.Length;
+            ClrType structType = structArray.Type.ComponentType;
+            ClrInstanceField textField = structType.GetFieldByName(nameof(ArrayConnection.SampleStruct.ReferenceLoad));
 
             // Act
             ulong structStart = structArray.Type.GetArrayElementAddress(structArray, index);
 
-            DataReader.ReadPointer(structStart + (ulong)textField.Offset, out var textAddress);
+            DataReader.ReadPointer(structStart + (ulong)textField.Offset, out ulong textAddress);
 
             ClrObject obj = _heap.GetObject(textAddress);
             string text = obj.AsString();
@@ -204,10 +203,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void GetArrayElementAddress_WhenDateTimeArray_GetsStructStartPos(int seed)
         {
             // Arrange
-            var originalArray = _prototype.DateTimeArray;
+            DateTime[] originalArray = _prototype.DateTimeArray;
             ClrObject structArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray));
 
-            var index = seed % originalArray.Length;
+            int index = seed % originalArray.Length;
 
             // Act
             ulong structStart = structArray.Type.GetArrayElementAddress(structArray, index);
@@ -220,7 +219,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void GetArrayElementsValues_WhenIntArray_ReadAllValues()
         {
             // Arrange
-            var originalArray = _prototype.IntArray;
+            int[] originalArray = _prototype.IntArray;
             ClrArray intArraySnapshot = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.IntArray)).AsArray();
 
             // Act
@@ -234,7 +233,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void GetArrayElementsValues_WhenDateTimeArray_ReadAllValues()
         {
             // Arrange
-            var originalArray = _prototype.DateTimeArray;
+            DateTime[] originalArray = _prototype.DateTimeArray;
             ClrArray datetimeArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray)).AsArray();
 
             // Act
@@ -250,7 +249,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             const int fromEnd = 2;
 
             // Arrange
-            var originalArray = _prototype.DateTimeArray;
+            DateTime[] originalArray = _prototype.DateTimeArray;
             ClrArray structArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray)).AsArray();
 
             // Act
@@ -266,7 +265,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             const int fromStart = 2;
 
             // Arrange
-            var originalArray = _prototype.DateTimeArray;
+            DateTime[] originalArray = _prototype.DateTimeArray;
             ClrArray structArray = _arrayHolder.ReadObjectField(nameof(ArrayConnection.ArraysHolder.DateTimeArray)).AsArray();
 
             // Act
@@ -284,7 +283,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 .ReadObjectField(nameof(ArrayConnection.ArraysHolder.IntArray)).AsArray();
 
             // Act
-            var value = intArraySnapshot.GetStructValue(0);
+            ClrValueType value = intArraySnapshot.GetStructValue(0);
 
             // Assert
             Assert.Equal("System.Int32", value.Type.Name);
@@ -298,10 +297,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 .ReadObjectField(nameof(ArrayConnection.ArraysHolder.StructArray)).AsArray();
 
             // Act
-            var item = structArraySnapshot.GetStructValue(0);
-            var intFieldValue = item.ReadField<int>("Number");
-            var stringFieldValue = item.ReadField<UIntPtr>("ReferenceLoad");
-            var fieldType = _heap.GetObjectType(stringFieldValue.ToUInt64());
+            ClrValueType item = structArraySnapshot.GetStructValue(0);
+            int intFieldValue = item.ReadField<int>("Number");
+            UIntPtr stringFieldValue = item.ReadField<UIntPtr>("ReferenceLoad");
+            ClrType fieldType = _heap.GetObjectType(stringFieldValue.ToUInt64());
 
             // Assert
             Assert.Equal(_prototype.StructArray[0].Number, intFieldValue);
@@ -318,7 +317,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 .ReadObjectField(nameof(ArrayConnection.ArraysHolder.StructArray)).AsArray();
 
             // Act
-            var value = customStructArray.GetStructValue(0);
+            ClrValueType value = customStructArray.GetStructValue(0);
 
             // Assert
             Assert.Equal("SampleStruct", value.Type.Name);
@@ -355,13 +354,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void GetObjectValue_WhenReferenceTypeArray_ReturnsExpectedValue(int offset)
         {
             // Arrange
-            var originalArray = _prototype.StringArray;
+            string[] originalArray = _prototype.StringArray;
             ClrArray referenceArraySnapshot = _arrayHolder
                 .ReadObjectField(nameof(ArrayConnection.ArraysHolder.StringArray)).AsArray();
-            var index = (offset < 0) ? originalArray.Length + offset : offset;
+            int index = (offset < 0) ? originalArray.Length + offset : offset;
 
             // Act
-            var value = referenceArraySnapshot.GetObjectValue(index);
+            ClrObject value = referenceArraySnapshot.GetObjectValue(index);
 
             // Assert
             Assert.Equal(_prototype.StringArray[index], value.AsString());

@@ -1,6 +1,5 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Buffers;
@@ -192,19 +191,19 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             // This will select ThreadListStread, ThreadExListStream, and ThreadInfoListStream in that order.
             // We prefer to pull contexts from the *ListStreams but if those don't exist or are missing threads
             // we still want threadIDs which don't have context records for IDataReader.EnumerateThreads.
-            var directories = from d in _directories
-                              where d.StreamType == MinidumpStreamType.ThreadListStream ||
-                                    d.StreamType == MinidumpStreamType.ThreadExListStream ||
-                                    d.StreamType == MinidumpStreamType.ThreadInfoListStream
-                              orderby d.StreamType ascending
-                              select d;
+            IOrderedEnumerable<MinidumpDirectory> directories = from d in _directories
+                                                                where d.StreamType is MinidumpStreamType.ThreadListStream or
+                                                                      MinidumpStreamType.ThreadExListStream or
+                                                                      MinidumpStreamType.ThreadInfoListStream
+                                                                orderby d.StreamType ascending
+                                                                select d;
 
-            var threadBuilder = ImmutableArray.CreateBuilder<uint>();
+            ImmutableArray<uint>.Builder threadBuilder = ImmutableArray.CreateBuilder<uint>();
 
             byte[] buffer = ArrayPool<byte>.Shared.Rent(1024);
             try
             {
-                foreach (MinidumpDirectory directory in _directories.Where(d => d.StreamType == MinidumpStreamType.ThreadListStream || d.StreamType == MinidumpStreamType.ThreadExListStream))
+                foreach (MinidumpDirectory directory in _directories.Where(d => d.StreamType is MinidumpStreamType.ThreadListStream or MinidumpStreamType.ThreadExListStream))
                 {
                     if (directory.StreamType == MinidumpStreamType.ThreadListStream)
                     {
@@ -274,8 +273,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 ArrayPool<byte>.Shared.Return(buffer);
             }
 
-            var contextBuilder = ImmutableArray.CreateBuilder<MinidumpContextData>(threadContextLocations.Count);
-            var tebBuilder = ImmutableDictionary.CreateBuilder<uint, ulong>();
+            ImmutableArray<MinidumpContextData>.Builder contextBuilder = ImmutableArray.CreateBuilder<MinidumpContextData>(threadContextLocations.Count);
+            ImmutableDictionary<uint, ulong>.Builder tebBuilder = ImmutableDictionary.CreateBuilder<uint, ulong>();
 
             foreach (KeyValuePair<uint, (uint Rva, uint Size, ulong Teb)> item in threadContextLocations.OrderBy(k => k.Key))
             {

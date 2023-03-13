@@ -1,15 +1,14 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.DataReaders.Windows;
-using Microsoft.Diagnostics.Runtime.Implementation;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Text;
+using Microsoft.Diagnostics.Runtime.DataReaders.Windows;
+using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -149,15 +148,28 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 IntPtr ptr = modules[i];
 
-                StringBuilder sb = new(1024);
-                uint res = GetModuleFileNameEx(_process, ptr, sb, sb.Capacity);
-                DebugOnly.Assert(res != 0);
+                const int BufferSize = 1024;
+                char[] buffer = ArrayPool<char>.Shared.Rent(BufferSize);
+                string fileName;
+                try
+                {
+                    uint res = GetModuleFileNameEx(_process, ptr, buffer, BufferSize);
+                    DebugOnly.Assert(res != 0);
+
+                    int len = Array.IndexOf(buffer, (char)0);
+                    if (len >= 0)
+                        fileName = new(buffer, 0, len);
+                    else
+                        fileName = new(buffer);
+                }
+                finally
+                {
+                    ArrayPool<char>.Shared.Return(buffer);
+                }
+
 
                 ulong baseAddr = (ulong)ptr.ToInt64();
                 GetFileProperties(baseAddr, out int filesize, out int timestamp);
-
-                string fileName = sb.ToString();
-
 
                 Version? version = null;
                 if (DataTarget.PlatformFunctions.GetFileVersion(fileName, out int major, out int minor, out int revision, out int patch))
@@ -261,7 +273,7 @@ namespace Microsoft.Diagnostics.Runtime
         public static extern bool EnumProcessModules(IntPtr hProcess, [Out] IntPtr[]? lphModule, uint cb, [MarshalAs(UnmanagedType.U4)] out uint lpcbNeeded);
 
         [DllImport(Kernel32LibraryName, CharSet = CharSet.Unicode, SetLastError = true, EntryPoint = "K32GetModuleFileNameExW")]
-        public static extern uint GetModuleFileNameEx(IntPtr hProcess, IntPtr hModule, [Out] StringBuilder lpFilename, [MarshalAs(UnmanagedType.U4)] int nSize);
+        public static extern uint GetModuleFileNameEx(IntPtr hProcess, IntPtr hModule, [Out] char[] lpFilename, [MarshalAs(UnmanagedType.U4)] int nSize);
 
         [DllImport(Kernel32LibraryName)]
         private static extern int ReadProcessMemory(

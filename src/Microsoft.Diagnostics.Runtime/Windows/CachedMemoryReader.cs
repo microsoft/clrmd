@@ -1,6 +1,5 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Immutable;
@@ -46,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             if (CacheTechnology == CacheTechnology.AWE)
             {
-                CacheNativeMethods.Util.SYSTEM_INFO sysInfo = new();
+                CacheNativeMethods.Util.SYSTEM_INFO sysInfo = default;
                 CacheNativeMethods.Util.GetSystemInfo(ref sysInfo);
 
                 // The AWE cache allocates on VirtualAlloc sized pages, which are 64k, if the majority of heap segments in the dump are < 64k this can be wasteful
@@ -81,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
             else
             {
-                // We can't add the lock memory privilege, so just fall back on our ArrayPool/MemoryMappedFile based cache 
+                // We can't add the lock memory privilege, so just fall back on our ArrayPool/MemoryMappedFile based cache
                 _cachedMemorySegments = new HeapSegmentDataCache(new ArrayPoolBasedCacheEntryFactory(stream, leaveOpen), entryCountWhenFull: (uint)_segments.Length, cacheIsFullyPopulatedBeforeUse: true, MaxCacheSize);
 
                 // Force creation of empty entries for each segment, this won't map the data in from disk but it WILL prevent us from needing to take any locks at the first level of the cache

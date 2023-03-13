@@ -1,6 +1,5 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections;
@@ -19,9 +18,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
         Break = 0x80000003
     }
 
-    internal class DebuggerStartInfo
+    internal sealed class DebuggerStartInfo
     {
-        private readonly Dictionary<string, string> _environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string> _environment = new(StringComparer.OrdinalIgnoreCase);
         public string DbgEngDirectory { get; set; }
 
         public DebuggerStartInfo()
@@ -49,10 +48,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
         }
     }
 
-    internal class Debugger : IDebugOutputCallbacks, IDebugEventCallbacks, IDisposable
+    internal sealed class Debugger : IDebugOutputCallbacks, IDebugEventCallbacks, IDisposable
     {
         #region Fields
-        private readonly StringBuilder _output = new StringBuilder();
+        private readonly StringBuilder _output = new();
         private bool _exited;
         private bool _processing;
 
@@ -77,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
             if (string.IsNullOrEmpty(workingDirectory))
                 workingDirectory = Environment.CurrentDirectory;
 
-            DEBUG_CREATE_PROCESS_OPTIONS options = new DEBUG_CREATE_PROCESS_OPTIONS();
+            DEBUG_CREATE_PROCESS_OPTIONS options = default;
             options.CreateFlags = DEBUG_CREATE_PROCESS.DEBUG_PROCESS;
             int hr = _client.CreateProcessAndAttach(commandLine, workingDirectory, env, DEBUG_ATTACH.DEFAULT, options);
 
@@ -179,7 +178,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Tasks
         #endregion
     }
 
-    internal class CreateProcessArgs
+    internal sealed class CreateProcessArgs
     {
         public ulong ImageFileHandle;
         public ulong Handle;

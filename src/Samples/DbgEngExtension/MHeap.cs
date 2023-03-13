@@ -1,10 +1,13 @@
-﻿using Microsoft.Diagnostics.Runtime;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Microsoft.Diagnostics.Runtime;
 
 namespace DbgEngExtension
 {
     /// <summary>
     /// A simple version of !dumpheap to demonstrate creating a plugin.
-    /// Note that 
+    /// Note that
     /// </summary>
     public class MHeap : DbgEngCommand
     {
@@ -52,7 +55,7 @@ namespace DbgEngExtension
                     string typeName = obj.Type?.Name ?? "<unknown type>";
 
                     if (!statOnly)
-                        Console.WriteLine($"{obj.Address,12:x} {obj.Type?.MethodTable??0,12:x} {typeName}");
+                        Console.WriteLine($"{obj.Address,12:x} {obj.Type?.MethodTable ?? 0,12:x} {typeName}");
 
                     sizes.TryGetValue(typeName, out (int Count, ulong TotalSize) item);
                     item.Count++;
@@ -71,7 +74,7 @@ namespace DbgEngExtension
 
                     long totalObjects = 0;
                     ulong totalBytes = 0;
-                    foreach (var item in sizes.OrderBy(r => r.Value.TotalSize))
+                    foreach (KeyValuePair<string, (int Count, ulong TotalSize)> item in sizes.OrderBy(r => r.Value.TotalSize))
                     {
                         Console.WriteLine($"{item.Value.Count,12:n0}\t{item.Value.TotalSize,12:n0}\t{item.Key}");
 

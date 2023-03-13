@@ -1,10 +1,8 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -81,7 +79,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.False(type.IsObjectReference);
             Assert.True(type.IsValueType);
 
-            var fds = obj.Type.Fields;
+            System.Collections.Immutable.ImmutableArray<ClrInstanceField> fds = obj.Type.Fields;
 
             Assert.True(obj.IsBoxedValue);
             int value = obj.ReadBoxedValue<int>();
@@ -103,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrType type = obj.Type;
                 Assert.True(!type.IsArray || type.ComponentType != null);
 
-                var generics = type.EnumerateGenericParameters().ToArray();
+                ClrGenericParameter[] generics = type.EnumerateGenericParameters().ToArray();
 
                 foreach (ClrInstanceField field in type.Fields)
                 {
@@ -244,8 +242,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrHeap heap = runtime.Heap;
 
             IEnumerable<ClrRoot> fooRoots = from root in heap.EnumerateRoots()
-                                             where root.Object.Type.Name == "Foo"
-                                             select root;
+                                            where root.Object.Type.Name == "Foo"
+                                            select root;
 
             ClrRoot[] localVarRoots = fooRoots.Where(r => r.RootKind == ClrRootKind.Stack).ToArray();
 
@@ -610,9 +608,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            var query = from obj in runtime.Heap.EnumerateObjects()
-                        where obj.Type?.Name?.StartsWith("Types+<Async>d__") == true
-                        select obj.Type;
+            IEnumerable<ClrType> query = from obj in runtime.Heap.EnumerateObjects()
+                                         where obj.Type?.Name?.StartsWith("Types+<Async>d__") == true
+                                         select obj.Type;
 
             ClrType clrType = query.Single();
             ClrInterface clrInterface = clrType.EnumerateInterfaces().Single();
@@ -626,9 +624,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            var query = from obj in runtime.Heap.EnumerateObjects()
-                        where obj.Type?.Name == "System.String"
-                        select obj.Type;
+            IEnumerable<ClrType> query = from obj in runtime.Heap.EnumerateObjects()
+                                         where obj.Type?.Name == "System.String"
+                                         select obj.Type;
 
             ClrType clrType = query.First();
             // EnumerateInterfaces should not throw an exception

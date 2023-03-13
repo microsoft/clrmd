@@ -1,8 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.DacInterface;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -10,12 +8,13 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ClrDacType : ClrType
+    internal sealed class ClrDacType : ClrType
     {
-        protected IDataReader DataReader => Helpers.DataReader;
+        private IDataReader DataReader => Helpers.DataReader;
 
         private string? _name;
         private TypeAttributes _attributes;
@@ -178,7 +177,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (name != null)
             {
                 ClrInterface? type = null;
-                if (extends != 0 && extends != 0x01000000)
+                if (extends is not 0 and not 0x01000000)
                     type = GetInterface(import, extends);
 
                 result = new ClrInterface(name, type);
@@ -372,7 +371,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (address == 0)
                 return null;
 
-            var values = new T[count];
+            T[] values = new T[count];
             Span<byte> buffer = MemoryMarshal.Cast<T, byte>(values);
 
             if (DataReader.Read(address, buffer) == buffer.Length)

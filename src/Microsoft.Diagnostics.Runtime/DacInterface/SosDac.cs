@@ -1,13 +1,12 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
@@ -35,11 +34,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public RejitData[] GetRejitData(ulong md, ulong ip = 0)
         {
-            HResult hr = VTable.GetMethodDescData(Self, md, ip, out MethodDescData data, 0, null, out int needed);
+            HResult hr = VTable.GetMethodDescData(Self, md, ip, out _, 0, null, out int needed);
             if (hr && needed >= 1)
             {
                 RejitData[] result = new RejitData[needed];
-                hr = VTable.GetMethodDescData(Self, md, ip, out data, result.Length, result, out needed);
+                hr = VTable.GetMethodDescData(Self, md, ip, out _, result.Length, result, out _);
                 if (hr)
                     return result;
             }
@@ -49,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult GetMethodDescData(ulong md, ulong ip, out MethodDescData data)
         {
-            return VTable.GetMethodDescData(Self, md, ip, out data, 0, null, out int needed);
+            return VTable.GetMethodDescData(Self, md, ip, out data, 0, null, out _);
         }
 
         public HResult GetThreadStoreData(out ThreadStoreData data)

@@ -1,6 +1,5 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -98,7 +97,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns true if the objects in this segment are pinned and cannot be relocated.
         /// </summary>
-        public bool IsPinned => Kind == GCSegmentKind.Pinned || Kind == GCSegmentKind.Large || Kind == GCSegmentKind.Frozen;
+        public bool IsPinned => Kind is GCSegmentKind.Pinned or GCSegmentKind.Large or GCSegmentKind.Frozen;
 
         /// <summary>
         /// The memory range for Generation 0 on this segment.  This will be empty if this is not an ephemeral segment.
@@ -178,7 +177,7 @@ namespace Microsoft.Diagnostics.Runtime
             return $"{Kind} [{Start:x12}, {End:x12}]";
         }
 
-        IEnumerable<IClrValue> IClrSegment.EnumerateObjects() =>EnumerateObjects().Cast<IClrValue>();
+        IEnumerable<IClrValue> IClrSegment.EnumerateObjects() => EnumerateObjects().Cast<IClrValue>();
 
         internal uint[] ObjectMarkers
         {
@@ -188,7 +187,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (markers is not null)
                     return markers;
 
-                var len = ObjectRange.Length switch
+                int len = ObjectRange.Length switch
                 {
                     < 8 * 1024 => 0,
                     < 64 * 1024 * 1024 => 64,

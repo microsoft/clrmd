@@ -1,6 +1,5 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Generic;
@@ -50,8 +49,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            HashSet<ulong> seen = new HashSet<ulong> { 0 };
-            HashSet<ClrModule> seenModules = new HashSet<ClrModule> { null };
+            HashSet<ulong> seen = new() { 0 };
+            HashSet<ClrModule> seenModules = new() { null };
             foreach (ClrModule module in runtime.EnumerateModules())
             {
                 Assert.True(seenModules.Add(module));

@@ -1,4 +1,7 @@
-﻿using System.Collections;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -24,9 +27,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         DEBUG_STATUS OnSymbolChangeState(DEBUG_CSS flags, ulong argument) => DEBUG_STATUS.NO_CHANGE;
     }
 
-    internal unsafe class DebugEventCallbacksCOM : ComWrappers
+    internal sealed unsafe class DebugEventCallbacksCOM : ComWrappers
     {
-        static internal Guid IID_IDebugEventCallbacksWide = new Guid("0690e046-9c23-45ac-a04f-987ac29ad0d3");
+        internal static Guid IID_IDebugEventCallbacksWide = new("0690e046-9c23-45ac-a04f-987ac29ad0d3");
         private static readonly ComInterfaceEntry* s_wrapperEntry = InitializeComInterfaceEntry();
         public static DebugEventCallbacksCOM Instance { get; } = new();
 
@@ -60,14 +63,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             throw new NotImplementedException();
         }
 
-        private unsafe static class IDebugEventCallbacksWideVtable
+        private static unsafe class IDebugEventCallbacksWideVtable
         {
             public static nint Create(nint qi, nint addref, nint release)
             {
                 const int total = 17;
                 int i = 0;
 
-                nint *vtable = (nint *)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(IDebugEventCallbacksWideVtable), sizeof(nint) * total);
+                nint* vtable = (nint*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(IDebugEventCallbacksWideVtable), sizeof(nint) * total);
 
                 vtable[i++] = qi;
                 vtable[i++] = addref;
@@ -93,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             }
 
             [UnmanagedCallersOnly]
-            private static int GetInterestMask(nint self, DEBUG_EVENT *pMask)
+            private static int GetInterestMask(nint self, DEBUG_EVENT* pMask)
             {
                 IDebugEventCallbacks callbacks = ComInterfaceDispatch.GetInstance<IDebugEventCallbacks>((ComInterfaceDispatch*)self);
                 *pMask = callbacks.EventInterestMask;
@@ -108,7 +111,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             }
 
             [UnmanagedCallersOnly]
-            private static DEBUG_STATUS Exception(nint self, EXCEPTION_RECORD64 *pException, uint firstChance)
+            private static DEBUG_STATUS Exception(nint self, EXCEPTION_RECORD64* pException, uint firstChance)
             {
                 IDebugEventCallbacks callbacks = ComInterfaceDispatch.GetInstance<IDebugEventCallbacks>((ComInterfaceDispatch*)self);
                 return callbacks.OnException(*pException, firstChance != 0);

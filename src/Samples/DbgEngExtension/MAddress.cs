@@ -1,10 +1,13 @@
-﻿using Microsoft.Diagnostics.Runtime;
-using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime;
+using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac;
 
 namespace DbgEngExtension
@@ -206,8 +209,7 @@ namespace DbgEngExtension
                                   group mem by mem.Image into g
                                   let Size = g.Sum(k => (long)(k.End - k.Start))
                                   orderby Size descending
-                                  select new
-                                  {
+                                  select new {
                                       Image = g.Key,
                                       Count = g.Count(),
                                       Size
@@ -245,8 +247,7 @@ namespace DbgEngExtension
                               let Count = g.Count()
                               let Size = g.Sum(f => (long)(f.End - f.Start))
                               orderby Size descending
-                              select new
-                              {
+                              select new {
                                   Name = g.Key,
                                   Count,
                                   Size
@@ -287,7 +288,7 @@ namespace DbgEngExtension
         /// large chunk of memory and commit the beginning of it as it allocates more and more memory...the RESERVE
         /// region was actually "caused" by the Heap space before it).  Sometimes this will simply be wrong when
         /// a MEM_COMMIT region is next to an unrelated MEM_RESERVE region.
-        /// 
+        ///
         /// This is a heuristic, so use it accordingly.</param>
         /// <exception cref="InvalidOperationException">If !address fails we will throw InvalidOperationException.  This is usually
         /// because symbols for ntdll couldn't be found.</exception>
@@ -307,14 +308,14 @@ namespace DbgEngExtension
             {
                 foreach (ClrMemoryPointer mem in EnumerateClrMemoryAddresses())
                 {
-                    var found = ranges.Where(m => m.Start <= mem.Address && mem.Address < m.End).ToArray();
+                    AddressMemoryRange[] found = ranges.Where(m => m.Start <= mem.Address && mem.Address < m.End).ToArray();
 
                     if (found.Length == 0)
                         Trace.WriteLine($"Warning:  Could not find a memory range for {mem.Address:x} - {mem.Kind}.");
                     else if (found.Length > 1)
                         Trace.WriteLine($"Warning:  Found multiple memory ranges for entry {mem.Address:x} - {mem.Kind}.");
 
-                    foreach (var entry in found)
+                    foreach (AddressMemoryRange? entry in found)
                     {
                         if (entry.ClrMemoryKind != ClrMemoryKind.None && entry.ClrMemoryKind != mem.Kind)
                             Trace.WriteLine($"Warning:  Overwriting range {entry.Start:x} {entry.ClrMemoryKind} -> {mem.Kind}.");
@@ -431,7 +432,7 @@ namespace DbgEngExtension
         /// memory and commit the beginning of it as it allocates more and more memory...the RESERVE region
         /// was actually "caused" by the Heap space before it).  Sometimes this will simply be wrong when
         /// a MEM_COMMIT region is next to an unrelated MEM_RESERVE region.
-        /// 
+        ///
         /// This is a heuristic, so use it accordingly.
         /// </summary>
         public static void CollapseReserveRegions(AddressMemoryRange[] ranges)
@@ -449,15 +450,15 @@ namespace DbgEngExtension
         /// </summary>
         public IEnumerable<ClrMemoryPointer> EnumerateClrMemoryAddresses()
         {
-            foreach (var runtime in Runtimes)
+            foreach (ClrRuntime runtime in Runtimes)
             {
                 SOSDac sos = runtime.DacLibrary.SOSDacInterface;
                 foreach (JitManagerInfo jitMgr in sos.GetJitManagers())
                 {
-                    foreach (var handle in runtime.EnumerateHandles())
+                    foreach (ClrHandle handle in runtime.EnumerateHandles())
                         yield return new ClrMemoryPointer() { Kind = ClrMemoryKind.HandleTable, Address = handle.Address };
 
-                    foreach (var mem in sos.GetCodeHeapList(jitMgr.Address))
+                    foreach (JitCodeHeapInfo mem in sos.GetCodeHeapList(jitMgr.Address))
                         yield return new ClrMemoryPointer()
                         {
                             Address = mem.Address,
@@ -466,10 +467,10 @@ namespace DbgEngExtension
                                 CodeHeapKind.Loader => ClrMemoryKind.LoaderHeap,
                                 CodeHeapKind.Host => ClrMemoryKind.Host,
                                 _ => ClrMemoryKind.UnknownCodeHeap
-                            } 
+                            }
                         };
 
-                    foreach (var seg in runtime.Heap.Segments)
+                    foreach (ClrSegment seg in runtime.Heap.Segments)
                     {
                         if (seg.CommittedMemory.Length > 0)
                             yield return new ClrMemoryPointer() { Address = seg.CommittedMemory.Start, Kind = ClrMemoryKind.GCHeapSegment };
@@ -487,7 +488,7 @@ namespace DbgEngExtension
                     if (runtime.SharedDomain is not null)
                         AddAppDomainHeaps(sos, runtime.SharedDomain.Address, heaps);
 
-                    foreach (var heap in heaps)
+                    foreach (ClrMemoryPointer heap in heaps)
                         if (seen.Add(heap.Address))
                             yield return heap;
 
@@ -496,7 +497,7 @@ namespace DbgEngExtension
                         heaps.Clear();
                         AddAppDomainHeaps(sos, address, heaps);
 
-                        foreach (var heap in heaps)
+                        foreach (ClrMemoryPointer heap in heaps)
                             if (seen.Add(heap.Address))
                                 yield return heap;
                     }

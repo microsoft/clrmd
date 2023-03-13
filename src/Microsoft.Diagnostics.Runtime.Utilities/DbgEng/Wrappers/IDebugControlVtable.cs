@@ -1,4 +1,7 @@
-﻿using System.Diagnostics.CodeAnalysis;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 #pragma warning disable CS0169 // field is never used
@@ -6,7 +9,8 @@ using System.Reflection;
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
     [SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "This is required for vtable layout")]
-    internal unsafe readonly struct IDebugControlVtable
+    [SuppressMessage("Performance", "CA1823:Avoid unused private fields", Justification = "VTable Layout")]
+    internal readonly unsafe struct IDebugControlVtable
     {
         private readonly nint QueryInterface;
         private readonly nint AddRef;

@@ -1,4 +1,7 @@
-﻿using System;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -45,11 +48,11 @@ public class Program
     {
     }
 
-    private class PrivateClass
+    private sealed class PrivateClass
     {
     }
 
-    internal class InternalClass
+    internal sealed class InternalClass
     {
     }
 
@@ -71,7 +74,7 @@ public class Program
 
     // TODO
     /*
-    protected internal class ProtectedInternalClass
+    protected internal sealed class ProtectedInternalClass
     {
     }
 

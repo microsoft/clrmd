@@ -1,16 +1,15 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DbgEng
 {
-    internal unsafe sealed class DebugSystemObjects : CallableCOMWrapper
+    internal sealed unsafe class DebugSystemObjects : CallableCOMWrapper
     {
         internal static readonly Guid IID_DebugSystemObjects3 = new("e9676e2f-e286-4ea3-b0f9-dfe5d9fc330e");
 
@@ -120,7 +119,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         private int _systemId = -1;
 
-        private class SystemHolder : IDisposable
+        private sealed class SystemHolder : IDisposable
         {
             private static readonly object _sync = new();
 

@@ -1,8 +1,11 @@
-﻿using System.Text;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
-    internal class DbgEngOutputStream : TextWriter
+    internal sealed class DbgEngOutputStream : TextWriter
     {
         private readonly IDebugClient _client;
         private readonly IDebugControl _control;
@@ -29,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
         protected override void Dispose(bool disposing)
         {
-            if(disposing)
+            if (disposing)
             {
                 Console.SetOut(_previousConsoleOut);
                 if (_previousCallbacks is nint prev)

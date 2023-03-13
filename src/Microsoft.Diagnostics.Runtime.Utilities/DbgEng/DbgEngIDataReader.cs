@@ -1,11 +1,12 @@
-﻿using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
-using System;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 using System.Buffers;
-using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
@@ -43,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         /// Creates an instance of DbgEngIDataReader from the given object.  This object
         /// must be castable to these interfaces: IDebugClient, IDebugControl, IDebugDataSpaces,
         /// IDebugAdvanced, IDebugSymbols, IDebugSystemObjects.
-        /// 
+        ///
         /// The most common way to obtain a working version of this object is via IDebugClient.Create.
         /// </summary>
         /// <param name="dbgeng">An implementation of DbgEng interfaces.</param>
@@ -246,7 +247,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
             DEBUG_MODULE_PARAMETERS[] moduleParams = new DEBUG_MODULE_PARAMETERS[bases.Length];
 
-            List<ModuleInfo> modules = new List<ModuleInfo>();
+            List<ModuleInfo> modules = new();
             HResult hr = DebugSymbols.GetModuleParameters(bases, moduleParams);
             if (hr)
             {
@@ -266,7 +267,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                         if (TargetPlatform == OSPlatform.Windows || moduleName.Contains("libcoreclr", StringComparison.OrdinalIgnoreCase))
                             GetVersionInfo(bases[i], moduleParams[i].Size);
 
-                        var module = ModuleInfo.TryCreate(this, bases[i], moduleName, (int)moduleParams[i].Size, (int)moduleParams[i].TimeDateStamp, version);
+                        ModuleInfo? module = ModuleInfo.TryCreate(this, bases[i], moduleName, (int)moduleParams[i].Size, (int)moduleParams[i].TimeDateStamp, version);
                         if (module is not null)
                             modules.Add(module);
                     }

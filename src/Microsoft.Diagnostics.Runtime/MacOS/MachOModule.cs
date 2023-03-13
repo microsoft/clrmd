@@ -1,9 +1,12 @@
-﻿using Microsoft.Diagnostics.Runtime.MacOS.Structs;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Text;
+using Microsoft.Diagnostics.Runtime.MacOS.Structs;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
@@ -78,7 +81,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                         break;
 
                     case LoadCommandType.Uuid:
-                        var uuid = DataReader.Read<UuidLoadCommand>(cmdAddress);
+                        UuidLoadCommand uuid = DataReader.Read<UuidLoadCommand>(cmdAddress);
                         if (uuid.Header.Kind == LoadCommandType.Uuid)
                         {
                             BuildId = uuid.BuildId.ToImmutableArray();
@@ -103,7 +106,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             if (_stringTableAddress != 0)
             {
-                // First, search just the "external" export symbols 
+                // First, search just the "external" export symbols
                 if (TryLookupSymbol(_dysymtab.iextdefsym, _dysymtab.nextdefsym, symbol, out address))
                 {
                     return true;
@@ -190,7 +193,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         private ulong GetAddressFromFileOffset(uint fileOffset)
         {
-            foreach (var seg in _segments)
+            foreach (MachOSegment seg in _segments)
                 if (seg.FileOffset <= fileOffset && fileOffset < seg.FileOffset + seg.FileSize)
                     return LoadBias + fileOffset + seg.Address - seg.FileOffset;
 

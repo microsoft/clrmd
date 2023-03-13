@@ -1,9 +1,12 @@
-﻿using System.Collections;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Collections;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 {
-    internal class DbgEngCom : ComWrappers
+    internal sealed class DbgEngCom : ComWrappers
     {
         public const string DbgEngDll = "dbgeng.dll";
 

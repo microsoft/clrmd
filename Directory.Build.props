@@ -8,6 +8,9 @@
     <DeterministicSourcePaths>false</DeterministicSourcePaths>
   </PropertyGroup>
 
+  <Import Condition="'$(DotNetBuildFromSource)' != 'true'"
+          Project="$(RepositoryEngineeringDir)Analyzers.props" />
+
   <PropertyGroup>
     <LangVersion>Latest</LangVersion>
     <Features>strict</Features>

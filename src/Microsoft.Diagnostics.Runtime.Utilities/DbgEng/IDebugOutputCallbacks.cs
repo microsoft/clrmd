@@ -1,4 +1,7 @@
-﻿using System.Collections;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -14,9 +17,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
     }
 
 
-    internal unsafe class DebugOutputCallbacksCOM : ComWrappers
+    internal sealed unsafe class DebugOutputCallbacksCOM : ComWrappers
     {
-        static internal Guid IID_IOutputCallbacks2 = new("67721fe9-56d2-4a44-a325-2b65513ce6eb");
+        internal static Guid IID_IOutputCallbacks2 = new("67721fe9-56d2-4a44-a325-2b65513ce6eb");
         private static readonly ComInterfaceEntry* s_wrapperEntry = InitializeComInterfaceEntry();
         public static DebugOutputCallbacksCOM Instance { get; } = new();
 
@@ -50,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             throw new NotImplementedException();
         }
 
-        private unsafe static class IDebugOutputCallbacksVtbl
+        private static unsafe class IDebugOutputCallbacksVtbl
         {
             public static nint Create(nint qi, nint addref, nint release)
             {
@@ -75,7 +78,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             private static int Ignore(nint self) => 0;
 
             [UnmanagedCallersOnly]
-            private static int GetInterestMask(nint self, DEBUG_OUTCBI *pInterest)
+            private static int GetInterestMask(nint self, DEBUG_OUTCBI* pInterest)
             {
                 IDebugOutputCallbacks callbacks = ComInterfaceDispatch.GetInstance<IDebugOutputCallbacks>((ComInterfaceDispatch*)self);
                 *pInterest = callbacks.OutputInterestFlags;

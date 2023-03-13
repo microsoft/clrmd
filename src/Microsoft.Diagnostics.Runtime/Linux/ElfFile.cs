@@ -1,6 +1,5 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Collections.Immutable;
@@ -79,7 +78,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     return true;
                 }
             }
-            catch (Exception ex) when (ex is IOException || ex is InvalidDataException)
+            catch (Exception ex) when (ex is IOException or InvalidDataException)
             {
             }
             offset = 0;
@@ -262,7 +261,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             {
                 for (uint i = 0; i < Header.ProgramHeaderCount; i++)
                 {
-                    var header = new ElfProgramHeader(Reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, 0, _virtual);
+                    ElfProgramHeader header = new(Reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, 0, _virtual);
                     if (header.Type == ElfProgramHeaderType.Load && header.FileOffset == 0)
                     {
                         loadBias -= (long)header.VirtualAddress;

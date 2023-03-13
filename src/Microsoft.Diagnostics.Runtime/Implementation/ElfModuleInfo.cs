@@ -1,10 +1,13 @@
-﻿using Microsoft.Diagnostics.Runtime.Utilities;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 using System;
 using System.Collections.Immutable;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal class ElfModuleInfo : ModuleInfo
+    internal sealed class ElfModuleInfo : ModuleInfo
     {
         private readonly IDataReader _reader;
         private readonly ElfFile? _elf;
@@ -34,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ulong GetExportSymbolAddress(string symbol)
         {
-            if (_elf is null || !_elf.TryGetExportSymbol(symbol, out var address))
+            if (_elf is null || !_elf.TryGetExportSymbol(symbol, out ulong address))
                 return 0;
 
             return ImageBase + address;

@@ -1,17 +1,16 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
-using Microsoft.Diagnostics.Runtime.DbgEng;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.DbgEng;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [RequiresDynamicCode("Requires dynamic code generation to build interfaces.")]
-    internal unsafe class LegacyDacDataTargetWrapper : COMCallableIUnknown
+    internal sealed unsafe class LegacyDacDataTargetWrapper : COMCallableIUnknown
     {
         private readonly DacDataTarget _dacDataTarget;
 
@@ -56,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private int GetPointerSize(IntPtr _, out int pointerSize)
         {
             pointerSize = _dacDataTarget.PointerSize;
-            return pointerSize == 4 || pointerSize == 8 ? HResult.S_OK : HResult.E_FAIL;
+            return pointerSize is 4 or 8 ? HResult.S_OK : HResult.E_FAIL;
         }
 
         private int GetImageBase(IntPtr _, string imagePath, out ulong baseAddress)

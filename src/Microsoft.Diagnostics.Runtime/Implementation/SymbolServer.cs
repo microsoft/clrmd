@@ -1,4 +1,6 @@
-﻿using Microsoft.Diagnostics.Runtime.Utilities;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -6,6 +8,7 @@ using System.IO;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -17,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly HttpClient _http = new();
 
         public bool SupportsCompression { get; private set; } = true;
-        public bool SupportsRedirection { get; private set; } = false;
+        public bool SupportsRedirection { get; private set; }
 
         public string Server { get; private set; }
 
@@ -129,7 +132,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 int last = fullPath.LastIndexOfAny(new char[] { '/', '\\' }) + 1;
 
+#pragma warning disable CA1845 // Use span-based 'string.Concat'. Not in NS2.0
                 string filePtrPath = fullPath.Substring(0, last) + "file.ptr";
+#pragma warning restore CA1845 // Use span-based 'string.Concat'
                 redirectedFile = GetStringOrNull(filePtrPath);
             }
 
@@ -138,7 +143,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 try
                 {
-                    if (path.StartsWith("PATH:"))
+                    if (path.StartsWith("PATH:", StringComparison.Ordinal))
                     {
                         path = path.Substring(5);
 
@@ -155,7 +160,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Task<HttpResponseMessage> file = _http.GetAsync(fullPath);
             Task<HttpResponseMessage?> compressed = Task.FromResult<HttpResponseMessage?>(null);
 
+#pragma warning disable CA1845 // Use span-based 'string.Concat'. Not in NS2.0.
             string compressedPath = fullPath.Substring(0, fullPath.Length - 1) + '_';
+#pragma warning restore CA1845 // Use span-based 'string.Concat'
             if (SupportsCompression)
                 compressed = _http.GetAsync(compressedPath)!;
 
@@ -173,7 +180,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 Command.Run("Expand " + Command.Quote(tmpPath) + " " + Command.Quote(output));
                 MemoryStream ms = new();
-                using (var fs = File.OpenRead(output))
+                using (FileStream fs = File.OpenRead(output))
                     await fs.CopyToAsync(ms).ConfigureAwait(false);
 
                 ms.Position = 0;
@@ -199,7 +206,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             try
             {
-                return await _http.GetStringAsync(filePtrPath);
+                return await _http.GetStringAsync(filePtrPath).ConfigureAwait(false);
             }
             catch
             {

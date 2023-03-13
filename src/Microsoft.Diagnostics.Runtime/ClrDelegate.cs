@@ -1,4 +1,7 @@
-﻿using System;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Diagnostics.Runtime.Interfaces;
@@ -48,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime
         IClrValue IClrDelegate.Object => this.Object;
 
         /// <summary>
-        /// Returns a the single delegate target of the 
+        /// Returns a the single delegate target of the
         /// </summary>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException">If this object is not a delegate we throw</exception>
@@ -63,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime
             bool seenOne = false;
             ClrRuntime runtime = Object.Type.Heap.Runtime;
 
-            var methodPointerFields = Object.Type.Fields.Where(f => f.Name != null).Where(f => f.Name!.Equals("_methodPtr") || f.Name.Equals("_methodPtrAux"));
+            IEnumerable<ClrInstanceField> methodPointerFields = Object.Type.Fields.Where(f => f.Name != null).Where(f => f.Name!.Equals("_methodPtr") || f.Name.Equals("_methodPtrAux"));
             foreach (ClrInstanceField field in methodPointerFields)
             {
                 if (field.ElementType == ClrElementType.NativeInt)
@@ -105,14 +108,14 @@ namespace Microsoft.Diagnostics.Runtime
             bool seenAny = false;
             bool allNull = true;
 
-            foreach (var field in Object.Type.Fields)
+            foreach (ClrInstanceField field in Object.Type.Fields)
             {
-                seenAny |= field.Name == "_methodPtr" || field.Name == "_methodPtrAux";
-                allNull &= field.Name == null;
+                seenAny |= field.Name is "_methodPtr" or "_methodPtrAux";
+                allNull &= field.Name is null;
             }
 
             // If all field names were null then we cannot validate whether this was a delegate or not.  The case we are worried
-            // about here is if we have no 
+            // about here is if we have no
             if (allNull)
                 return true;
 

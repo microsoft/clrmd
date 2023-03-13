@@ -1,4 +1,7 @@
-﻿// Attaching to your own live process to inspect it is not a supported operation in ClrMD.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+// Attaching to your own live process to inspect it is not a supported operation in ClrMD.
 // Instead we offer a way to create a snapshot of your current process and attach to that
 // snapshot.  On Windows we use PssCreateSnapshot which will create a snapshot to inspect
 // within a few hundred milliseconds.  On Linux we don't have this OS feature, so instead

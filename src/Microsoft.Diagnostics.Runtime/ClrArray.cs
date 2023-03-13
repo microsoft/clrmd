@@ -1,7 +1,5 @@
-﻿
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 
 using System;
@@ -93,6 +91,8 @@ namespace Microsoft.Diagnostics.Runtime
             ClrObject clrObject => Address == clrObject.Address,
             _ => false
         };
+
+        public bool Equals(ClrArray other) => Address == other.Address;
 
         /// <summary>
         /// Returns the hash code for this <see cref="ClrArray"/>.
