@@ -206,8 +206,10 @@ namespace DbgEngExtension
             int nameLen = Math.Min(80, maxNameLen);
             nameLen = Math.Max(nameLen, truncatedName.Length);
 
-            TableOutput table = new((nameLen, ""), (12, "n0"), (12, "n0"), (12, "x"));
-            table.Divider = "   ";
+            TableOutput table = new((nameLen, ""), (12, "n0"), (12, "n0"), (12, "x"))
+            {
+                Divider = "   "
+            };
             table.WriteRowWithSpacing('-', nameColumn, "Unique", "Count", "RndPtr");
 
             IEnumerable<(string Name, int Count, int Unique, IEnumerable<ulong> Pointers)> items = truncate ? resolved.Take(multi) : resolved;
