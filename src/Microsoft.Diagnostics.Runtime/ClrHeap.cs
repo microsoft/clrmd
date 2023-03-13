@@ -169,9 +169,12 @@ namespace Microsoft.Diagnostics.Runtime
 
                 foreach (ClrObject obj in EnumerateObjects(seg, start, carefully))
                 {
-                    if (range.Contains(obj.Address))
+                    if (obj < range.Start)
+                        continue;
+
+                    if (obj < range.End)
                         yield return obj;
-                    else if (range.End < obj)
+                    else
                         break;
                 }
             }

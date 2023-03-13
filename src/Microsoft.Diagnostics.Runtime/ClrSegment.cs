@@ -130,7 +130,10 @@ namespace Microsoft.Diagnostics.Runtime
 
                 foreach (ClrObject obj in SubHeap.Heap.EnumerateObjects(this, start, carefully))
                 {
-                    if (range.Contains(obj))
+                    if (obj < range.Start)
+                        continue;
+
+                    if (obj < range.End)
                         yield return obj;
                     else
                         break;
