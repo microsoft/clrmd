@@ -492,6 +492,9 @@ namespace Microsoft.Diagnostics.Runtime
                 last = obj;
             }
 
+            if (last < address)
+                return last;
+
             return default;
         }
 
