@@ -20,18 +20,18 @@ namespace Microsoft.Diagnostics.Runtime.Windows
     /// </summary>
     internal sealed class AWEBasedCacheEntry : CacheEntryBase<UIntPtr>
     {
-        private static readonly uint VirtualAllocPageSize; // set in static ctor
+        private static readonly uint VirtualAllocPageSize = InitVirtualAllocPageSize();
         private static readonly int SystemPageSize = Environment.SystemPageSize;
 
         private UIntPtr _pageFrameArray;
         private readonly int _pageFrameArrayItemCount;
 
-        static AWEBasedCacheEntry()
+        private static uint InitVirtualAllocPageSize()
         {
             CacheNativeMethods.Util.SYSTEM_INFO sysInfo = default(CacheNativeMethods.Util.SYSTEM_INFO);
             CacheNativeMethods.Util.GetSystemInfo(ref sysInfo);
 
-            AWEBasedCacheEntry.VirtualAllocPageSize = sysInfo.dwAllocationGranularity;
+            return sysInfo.dwAllocationGranularity;
         }
 
         internal AWEBasedCacheEntry(MinidumpSegment segmentData, Action<uint> updateOwningCacheForSizeChangeCallback, UIntPtr pageFrameArray, int pageFrameArrayItemCount) : base(segmentData, derivedMinSize: UIntPtr.Size + (pageFrameArrayItemCount * UIntPtr.Size) + sizeof(int), updateOwningCacheForSizeChangeCallback)
