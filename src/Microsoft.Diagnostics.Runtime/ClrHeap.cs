@@ -262,22 +262,12 @@ namespace Microsoft.Diagnostics.Runtime
             if (!segment.ObjectRange.Contains(startAddress))
                 yield break;
 
-            ulong markerStep = GetMarkerStep(segment);
-
-            uint currStep = (uint)((startAddress - segment.FirstObjectAddress) / markerStep);
-
             uint pointerSize = (uint)_memoryReader.PointerSize;
             uint minObjSize = pointerSize * 3;
             uint objSkip = segment.Kind != GCSegmentKind.Large ? minObjSize : 85000;
-
-            ulong obj;
-            if (startAddress == segment.FirstObjectAddress || segment.ObjectMarkers.Length == 0)
-                obj = segment.FirstObjectAddress;
-            else
-                obj = segment.ObjectMarkers.Select(m => segment.FirstObjectAddress + m).Where(m => m <= startAddress).Max();
-
             using MemoryCache cache = new(_memoryReader, segment);
 
+            ulong obj = GetValidObjectForAddress(segment, startAddress);
             while (segment.ObjectRange.Contains(obj))
             {
                 if (!cache.ReadPointer(obj, out ulong mt))
@@ -301,9 +291,7 @@ namespace Microsoft.Diagnostics.Runtime
                     continue;
                 }
 
-                ulong segmentOffset = obj - segment.ObjectRange.Start;
-                if (currStep < segment.ObjectMarkers.Length && segmentOffset >= (currStep + 1) * markerStep && segmentOffset <= uint.MaxValue)
-                    segment.ObjectMarkers[currStep++] = (uint)segmentOffset;
+                SetMarkerIndex(segment, obj);
 
                 ulong size;
                 if (type.ComponentSize == 0)
@@ -335,6 +323,58 @@ namespace Microsoft.Diagnostics.Runtime
                 obj += size;
                 obj = SkipAllocationContext(segment, obj);
             }
+        }
+
+        private static void SetMarkerIndex(ClrSegment segment, ulong obj)
+        {
+            ulong segmentOffset = obj - segment.ObjectRange.Start;
+            int index = GetMarkerIndex(segment, obj);
+            if (index != -1 && index < segment.ObjectMarkers.Length && segment.ObjectMarkers[index] == 0 && segmentOffset <= uint.MaxValue)
+                segment.ObjectMarkers[index] = (uint)segmentOffset;
+        }
+
+        private static int GetMarkerIndex(ClrSegment segment, ulong startAddress)
+        {
+            if (segment.ObjectMarkers.Length == 0)
+                return -1;
+
+            ulong markerStep = segment.ObjectRange.Length / ((uint)segment.ObjectMarkers.Length + 2);
+            int result = (int)((startAddress - segment.FirstObjectAddress) / markerStep);
+            if (result >= segment.ObjectMarkers.Length)
+                result = segment.ObjectMarkers.Length - 1;
+
+            return result;
+        }
+
+        private static ulong GetValidObjectForAddress(ClrSegment segment, ulong address, bool previous = false)
+        {
+            if (address == segment.FirstObjectAddress || segment.ObjectMarkers.Length == 0)
+                return segment.FirstObjectAddress;
+
+            int index = GetMarkerIndex(segment, address);
+            if (index >= segment.ObjectMarkers.Length)
+                index = segment.ObjectMarkers.Length - 1;
+
+            for (; index >= 0; index--)
+            {
+                uint marker = segment.ObjectMarkers[index];
+                if (marker == 0)
+                    continue;
+
+                ulong validObject = segment.FirstObjectAddress + marker;
+                if (previous)
+                {
+                    if (validObject < address)
+                        return validObject;
+                }
+                else
+                {
+                    if (validObject <= address)
+                        return validObject;
+                }
+            }
+
+            return segment.FirstObjectAddress;
         }
 
         private class MemoryCache : IDisposable
@@ -426,16 +466,6 @@ namespace Microsoft.Diagnostics.Runtime
             return obj;
         }
 
-        private static ulong GetMarkerStep(ClrSegment segment)
-        {
-            ulong markerStep;
-            if (segment.ObjectMarkers.Length == 0)
-                markerStep = segment.ObjectRange.Length + 1;
-            else
-                markerStep = segment.ObjectRange.Length / ((uint)segment.ObjectMarkers.Length + 2);
-
-            return markerStep;
-        }
 
         /// <summary>
         /// Finds the next ClrObject on the given segment.
@@ -451,12 +481,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (seg is null)
                 return default;
 
-            ulong start = seg.FirstObjectAddress;
-
-            if (seg.ObjectMarkers.Length > 0)
-                start = seg.ObjectMarkers.Select(m => seg.FirstObjectAddress + m).Where(m => m <= address).Max();
-
-            foreach (ClrObject obj in EnumerateObjects(seg, start, carefully))
+            foreach (ClrObject obj in EnumerateObjects(seg, address, carefully))
                 if (address < obj)
                     return obj;
 
@@ -478,10 +503,8 @@ namespace Microsoft.Diagnostics.Runtime
             if (seg is null || address <= seg.FirstObjectAddress)
                 return default;
 
-            ulong start = seg.FirstObjectAddress;
-
-            if (seg.ObjectMarkers.Length > 0)
-                start = seg.ObjectMarkers.Select(m => seg.FirstObjectAddress + m).Where(m => m < address).Max();
+            ulong start = GetValidObjectForAddress(seg, address, previous: true);
+            DebugOnly.Assert(start < address);
 
             ClrObject last = default;
             foreach (ClrObject obj in EnumerateObjects(seg, start, carefully))
