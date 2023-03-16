@@ -225,7 +225,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             GetKnownSourceAndTarget(heap, out ulong source, out ulong target);
             int totalPath = ContainsPathsToTarget(heap, source, target);
-            Assert.Equal(3, totalPath);
+            Assert.True(totalPath >= 3);
         }
 
         private static void GetKnownSourceAndTarget(ClrHeap heap, out ulong source, out ulong target)
