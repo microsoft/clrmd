@@ -1,6 +1,5 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
 
 using System;
 using System.Buffers;
@@ -204,9 +203,7 @@ namespace Microsoft.Diagnostics.Runtime
             return null;
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
+        // A way to track object references without generating too much garbage.
         private struct ReferenceList : IDisposable
         {
             // This was tested with 32, 64, and 128 bytes.  The overall perf was pretty similar
