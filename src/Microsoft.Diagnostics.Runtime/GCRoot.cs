@@ -34,10 +34,10 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IEnumerable<(ClrRoot Root, ChainLink Path)> EnumerateRootPaths()
         {
-            IEnumerable<ClrRoot> roots = _heap.Runtime.IsThreadSafe ? EnumerateRootsMultithreaded() : _heap.EnumerateRoots();
+            IEnumerable<ClrRoot> roots = _heap.EnumerateRoots();
             foreach (ClrRoot root in roots)
             {
-                ChainLink? path = FindPathTo(root.Object);
+                ChainLink? path = FindPathFrom(root.Object);
                 if (path is not null)
                     yield return (root, path);
             }
@@ -45,6 +45,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private IEnumerable<ClrRoot> EnumerateRootsMultithreaded()
         {
+            // TODO: Reenable when we track down the issue
             CancellationTokenSource source = new();
             try
             {
@@ -73,13 +74,16 @@ namespace Microsoft.Diagnostics.Runtime
                     queue.Add(root);
                 }
             }
+            catch
+            {
+            }
             finally
             {
                 queue.CompleteAdding();
             }
         }
 
-        public ChainLink? FindPathTo(ClrObject start)
+        public ChainLink? FindPathFrom(ClrObject start)
         {
             if (_found.TryGetValue(start, out ChainLink? link))
                 return link;
@@ -171,7 +175,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 foreach (ulong reference in obj.EnumerateReferenceAddresses())
                 {
-                    if (_found.TryGetValue(reference, out ChainLink? link) || (_targetPredicate is not null && _targetPredicate(reference)))
+                    if (_found.TryGetValue(reference, out ChainLink? link))
                     {
                         ChainLink result = new()
                         {
@@ -181,6 +185,24 @@ namespace Microsoft.Diagnostics.Runtime
 
                         _found[curr] = result;
                         return result;
+                    }
+                    else if (_targetPredicate is not null && _targetPredicate(reference))
+                    {
+                        link = new()
+                        {
+                            Object = reference
+                        };
+                        _found[reference] = link;
+
+                        ChainLink result = new()
+                        {
+                            Next = link,
+                            Object = curr,
+                        };
+
+                        _found[curr] = result;
+                        return result;
+
                     }
                     else if (!_seen.Add(curr))
                     {
