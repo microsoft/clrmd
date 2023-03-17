@@ -13,5 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         IClrValue Object { get; }
         ClrRootKind RootKind { get; }
         IClrStackFrame? StackFrame { get; }
+        string? RegisterName { get; }
+        int RegisterOffset { get; }
     }
 }

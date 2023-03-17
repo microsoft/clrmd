@@ -103,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates the GC references (objects) on the stack.
         /// </summary>
         /// <returns>An enumeration of GC references on the stack as the GC sees them.</returns>
-        public IEnumerable<ClrRoot> EnumerateStackRoots() => _helpers.EnumerateStackRoots(this);
+        public IEnumerable<ClrStackRoot> EnumerateStackRoots() => _helpers.EnumerateStackRoots(this);
 
         IEnumerable<IClrRoot> IClrThread.EnumerateStackRoots() => EnumerateStackRoots().Cast<IClrRoot>();
 

@@ -14,6 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         private readonly ClrDataProcess _dac;
         private readonly SOSDac _sos;
+        private readonly Dictionary<int, string> _regNames = new();
 
         public IDataReader DataReader { get; }
 
@@ -52,6 +53,23 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     ClrStackFrame? frame = stack.SingleOrDefault(f => f.StackPointer == refs[i].Source || f.StackPointer == refs[i].StackPointer && f.InstructionPointer == refs[i].Source);
                     frame ??= new ClrStackFrame(thread, null, refs[i].Source, refs[i].StackPointer, ClrStackFrameKind.Unknown, null, null);
 
+                    int regOffset = 0;
+                    string? regName = null;
+                    if (refs[i].HasRegisterInformation != 0)
+                    {
+                        regOffset = refs[i].Offset;
+
+                        int regIndex = refs[i].Register;
+                        if (!_regNames.TryGetValue(regIndex, out regName))
+                        {
+                            regName = _sos.GetRegisterName(regIndex);
+                            if (regName is not null)
+                            {
+                                _regNames[regIndex] = regName;
+                            }
+                        }
+                    }
+
                     if (interior)
                     {
                         // Check if the value lives on the heap.
@@ -64,14 +82,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                         // Only yield return if we find a valid object on the heap
                         if (segment is not null)
-                            yield return new ClrStackRoot(refs[i].Address, heap.GetObject(obj), isInterior: true, isPinned: isPinned, heap: heap, frame: frame);
+                            yield return new ClrStackRoot(refs[i].Address, heap.GetObject(obj), isInterior: true, isPinned: isPinned, heap: heap, frame: frame, regName: regName, regOffset: regOffset);
                     }
                     else
                     {
                         // It's possible that heap.GetObjectType could return null and we construct a bad ClrObject, but this should
                         // only happen in the case of heap corruption and obj.IsValidObject will return null, so this is fine.
                         ClrObject obj = heap.GetObject(refs[i].Object);
-                        yield return new ClrStackRoot(refs[i].Address, obj, isInterior: false, isPinned: isPinned, heap: heap, frame: frame);
+                        yield return new ClrStackRoot(refs[i].Address, obj, isInterior: false, isPinned: isPinned, heap: heap, frame: frame, regName: regName, regOffset: regOffset);
                     }
                 }
             }

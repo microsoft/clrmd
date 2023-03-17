@@ -56,6 +56,28 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return VTable.GetThreadStoreData(Self, out data);
         }
 
+        public string? GetRegisterName(int index)
+        {
+            // Register names shouldn't be big.
+            Span<char> buffer = stackalloc char[32];
+
+            fixed (char* ptr = buffer)
+            {
+                HResult hr = VTable.GetRegisterName(Self, index, buffer.Length, ptr, out int needed);
+                if (!hr)
+                    return null;
+
+                if (needed == 0)
+                    return string.Empty;
+
+                int len = buffer.IndexOf((char)0);
+                if (len >= 0)
+                    buffer = buffer.Slice(0, len);
+
+                return new string(ptr, 0, buffer.Length);
+            }
+        }
+
         public uint GetTlsIndex()
         {
             HResult hr = VTable.GetTLSIndex(Self, out uint index);
@@ -802,7 +824,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         // GC Reference Functions
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, out IntPtr, int> GetStackReferences;
-        public readonly IntPtr GetRegisterName;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, int, char*, out int, int> GetRegisterName;
         public readonly IntPtr GetThreadAllocData;
         public readonly IntPtr GetHeapAllocData;
 
