@@ -59,11 +59,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public bool IsPinned { get; }
 
-        /// <summary>
-        /// The stack frame holding this root.  Non-null if RootKind == Stack.
-        /// </summary>
-        public virtual ClrStackFrame? StackFrame => null;
-        IClrStackFrame? IClrRoot.StackFrame => StackFrame;
+        IClrStackFrame? IClrRoot.StackFrame => null;
+
+        string? IClrRoot.RegisterName => null;
+
+        int IClrRoot.RegisterOffset => 0;
 
         public ClrRoot(ulong address, ClrObject obj, ClrRootKind rootKind, bool isInterior, bool isPinned)
         {
@@ -72,50 +72,6 @@ namespace Microsoft.Diagnostics.Runtime
             RootKind = rootKind;
             IsInterior = isInterior;
             IsPinned = isPinned;
-        }
-    }
-
-    internal sealed class ClrStackRoot : ClrRoot
-    {
-        private readonly ClrHeap _heap;
-        private ClrObject _object;
-
-        public ClrStackRoot(ulong address, ClrObject obj, bool isInterior, bool isPinned, ClrHeap heap, ClrStackFrame? frame)
-            : base(address, obj, ClrRootKind.Stack, isInterior, isPinned)
-        {
-            _heap = heap;
-            StackFrame = frame;
-        }
-
-        public override ClrStackFrame? StackFrame { get; }
-
-        public override ClrObject Object
-        {
-            get
-            {
-                if (_object.Address != 0)
-                    return _object;
-
-                ClrObject obj = base.Object;
-                if (obj.Type is not null)
-                {
-                    _object = obj;
-                }
-                else
-                {
-                    ClrObject prev = _heap.FindPreviousObjectOnSegment(obj);
-                    if (prev.IsValid && prev <= obj && obj < prev + prev.Size)
-                    {
-                        _object = prev;
-                    }
-                    else
-                    {
-                        _object = obj;
-                    }
-                }
-
-                return _object;
-            }
         }
     }
 }
