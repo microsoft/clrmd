@@ -147,22 +147,25 @@ namespace Microsoft.Diagnostics.Runtime
             return link;
         }
 
-        private ChainLink AddLink(ChainLink link, ulong obj)
+        private ChainLink AddLink(ChainLink curr, ulong obj)
         {
-            link = new()
+            if (!_found.TryGetValue(obj, out ChainLink? next))
             {
-                Next = link,
-                Object = obj,
-            };
+                next = new()
+                {
+                    Next = curr,
+                    Object = obj,
+                };
 
-            // Add found to the list of objects that point to our targets.
-            _found[obj] = link;
+                // Add found to the list of objects that point to our targets.
+                _found[obj] = next;
+            }
 
             // Remove obj from the seen list.  While it's not wrong to leave it there,
             // we want to minimize memory usage.
             _seen.Remove(obj);
 
-            return link;
+            return next;
         }
 
         private ChainLink? WalkObject(List<byte[]> stack, ulong parent, ulong curr)
@@ -383,6 +386,14 @@ namespace Microsoft.Diagnostics.Runtime
             /// The next object in the sequence.
             /// </summary>
             public ChainLink? Next { get; set; }
+
+            public override string ToString()
+            {
+                if (Next is not null)
+                    return $"{Object:x} -> {Next.Object:x}";
+
+                return Object.ToString("x");
+            }
         }
     }
 }
