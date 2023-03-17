@@ -204,7 +204,7 @@ namespace Microsoft.Diagnostics.Runtime
                         return result;
 
                     }
-                    else if (!_seen.Add(curr))
+                    else if (!_seen.Add(reference))
                     {
                         continue;
                     }
