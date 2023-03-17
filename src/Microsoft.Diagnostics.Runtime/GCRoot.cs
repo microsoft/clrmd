@@ -156,7 +156,7 @@ namespace Microsoft.Diagnostics.Runtime
             };
 
             // Add found to the list of objects that point to our targets.
-            _found.Add(obj, link);
+            _found[obj] = link;
 
             // Remove obj from the seen list.  While it's not wrong to leave it there,
             // we want to minimize memory usage.
