@@ -20,5 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ClrThinLock? GetThinLock(ClrHeap clrHeap, uint header);
         ObjectCorruption? VerifyObject(SyncBlockContainer syncBlocks, ClrSegment seg, ClrObject obj);
         bool IsValidMethodTable(ulong mt);
+        MemoryRange GetInternalRootArray(ClrSubHeap subHeap);
+        ClrOutOfMemoryInfo? GetOOMInfo(ClrSubHeap subHeap);
     }
 }

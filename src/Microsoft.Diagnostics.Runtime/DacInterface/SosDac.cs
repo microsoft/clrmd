@@ -535,6 +535,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return VTable.GetGCHeapData(Self, out data);
         }
 
+        public HResult GetOOMData(out DacOOMData oomData) => VTable.GetOOMStaticData(Self, out oomData);
+
+        public HResult GetOOMData(ulong address, out DacOOMData oomData) => VTable.GetOOMData(Self, address, out oomData);
+
+        public HResult GetHeapAnalyzeData(out DacHeapAnalyzeData analyzeData) => VTable.GetHeapAnalyzeStaticData(Self, out analyzeData);
+
+        public HResult GetHeapAnalyzeData(ulong address, out DacHeapAnalyzeData analyzeData) => VTable.GetHeapAnalyzeData(Self, address, out analyzeData);
+
         public HResult GetSegmentData(ulong addr, out SegmentData data)
         {
             return VTable.GetHeapSegmentData(Self, addr, out data);
@@ -775,10 +783,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out HeapDetails, int> GetGCHeapDetails; // wks only
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out HeapDetails, int> GetGCHeapStaticData;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out SegmentData, int> GetHeapSegmentData;
-        private readonly IntPtr GetOOMData;
-        private readonly IntPtr GetOOMStaticData;
-        private readonly IntPtr GetHeapAnalyzeData;
-        private readonly IntPtr GetHeapAnalyzeStaticData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out DacOOMData, int> GetOOMData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out DacOOMData, int> GetOOMStaticData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out DacHeapAnalyzeData, int> GetHeapAnalyzeData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out DacHeapAnalyzeData, int> GetHeapAnalyzeStaticData;
 
         // DomainLocal
         private readonly IntPtr GetDomainLocalModuleData;

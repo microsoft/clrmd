@@ -23,7 +23,6 @@ namespace Microsoft.Diagnostics.Runtime
 
         private readonly IClrTypeFactory _typeFactory;
         private readonly IMemoryReader _memoryReader;
-        private readonly IClrHeapHelpers _helpers;
         private volatile Dictionary<ulong, ulong>? _allocationContexts;
         private volatile (ulong Source, ulong Target)[]? _dependentHandles;
         private volatile SyncBlockContainer? _syncBlocks;
@@ -35,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             Runtime = runtime;
             _memoryReader = memoryReader;
-            _helpers = helpers;
+            Helpers = helpers;
 
             _typeFactory = helpers.CreateTypeFactory(this);
             FreeType = _typeFactory.FreeType;
@@ -43,6 +42,8 @@ namespace Microsoft.Diagnostics.Runtime
             StringType = _typeFactory.StringType;
             ExceptionType = _typeFactory.ExceptionType;
         }
+
+        internal IClrHeapHelpers Helpers { get; }
 
         /// <summary>
         /// Gets the runtime associated with this heap.
@@ -55,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Note, you may still attempt to walk the heap if this function returns false, but you will likely
         /// only be able to partially walk each segment.
         /// </summary>
-        public bool CanWalkHeap => _helpers.AreGCStructuresValid;
+        public bool CanWalkHeap => Helpers.AreGCStructuresValid;
 
         /// <summary>
         /// Returns the number of logical heaps in the process.
@@ -91,7 +92,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets a value indicating whether the GC heap is in Server mode.
         /// </summary>
-        public bool IsServer => _helpers.IsServerMode;
+        public bool IsServer => Helpers.IsServerMode;
 
         IClrType IClrHeap.ExceptionType => ExceptionType;
 
@@ -197,7 +198,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return new(obj, 0, ObjectCorruptionKind.ObjectNotOnTheHeap);
             }
 
-            return _helpers.VerifyObject(GetSyncBlocks(), seg, obj);
+            return Helpers.VerifyObject(GetSyncBlocks(), seg, obj);
         }
 
         /// <summary>
@@ -458,7 +459,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (mt > 0x1000)
                 {
-                    if (_helpers.IsValidMethodTable(mt))
+                    if (Helpers.IsValidMethodTable(mt))
                         break;
                 }
             }
@@ -694,7 +695,7 @@ namespace Microsoft.Diagnostics.Runtime
             SyncBlockContainer? container = _syncBlocks;
             if (container is null)
             {
-                container = new SyncBlockContainer(_helpers.EnumerateSyncBlocks());
+                container = new SyncBlockContainer(Helpers.EnumerateSyncBlocks());
                 Interlocked.CompareExchange(ref _syncBlocks, container, null);
             }
 
@@ -707,7 +708,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (header == 0)
                 return null;
 
-            return _helpers.GetThinLock(this, header);
+            return Helpers.GetThinLock(this, header);
         }
 
         /// <summary>
@@ -995,7 +996,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return result;
 
             result = new();
-            foreach (MemoryRange allocContext in _helpers.EnumerateThreadAllocationContexts())
+            foreach (MemoryRange allocContext in Helpers.EnumerateThreadAllocationContexts())
                 result[allocContext.Start] = allocContext.End;
 
             foreach (ClrSubHeap subHeap in SubHeaps)
@@ -1012,7 +1013,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (handles is not null)
                 return handles;
 
-            handles = _helpers.EnumerateDependentHandles().OrderBy(r => r.Source).ToArray();
+            handles = Helpers.EnumerateDependentHandles().OrderBy(r => r.Source).ToArray();
 
             Interlocked.CompareExchange(ref _dependentHandles, handles, null);
             return handles;
@@ -1042,7 +1043,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (data is not null)
                 return data;
 
-            data = new(_helpers.GetSubHeaps(this));
+            data = new(Helpers.GetSubHeaps(this));
             Interlocked.CompareExchange(ref _subHeapData, data, null);
             return _subHeapData;
         }
