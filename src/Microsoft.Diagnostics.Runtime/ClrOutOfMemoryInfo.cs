@@ -18,8 +18,8 @@ namespace Microsoft.Diagnostics.Runtime
             Size = oomData.Size;
         }
 
-        public OOMReason Reason { get; }
-        public OOMGetMemoryFailure GetMemoryFailure { get; }
+        public OutOfMemoryReason Reason { get; }
+        public GetMemoryFailureReason GetMemoryFailure { get; }
         public bool IsLargeObjectHeap { get; }
         public ulong AllocSize { get; }
         public ulong AvailablePageFileMB { get; }
