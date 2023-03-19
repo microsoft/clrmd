@@ -85,6 +85,10 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong HighestAddress { get; }
         public ulong CardTable { get; }
 
+        public ClrOutOfMemoryInfo? OomInfo => Heap.Helpers.GetOOMInfo(this);
+
+        public MemoryRange InternalRootArray => Heap.Helpers.GetInternalRootArray(this);
+
         ImmutableArray<IClrSegment> IClrSubHeap.Segments => Segments.CastArray<IClrSegment>();
 
         internal enum GCState

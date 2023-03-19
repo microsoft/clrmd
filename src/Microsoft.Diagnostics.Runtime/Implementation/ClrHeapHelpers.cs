@@ -566,5 +566,37 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             return verified;
         }
+
+        public MemoryRange GetInternalRootArray(ClrSubHeap subHeap)
+        {
+            DacHeapAnalyzeData analyzeData;
+            if (subHeap.Heap.IsServer)
+                _sos.GetHeapAnalyzeData(subHeap.Address, out analyzeData);
+            else
+                _sos.GetHeapAnalyzeData(out analyzeData);
+
+            if (analyzeData.InternalRootArray == 0 || analyzeData.InternalRootArrayIndex == 0)
+                return default;
+
+            ulong end = analyzeData.InternalRootArray + (uint)_memoryReader.PointerSize * analyzeData.InternalRootArrayIndex;
+            return new(analyzeData.InternalRootArray, end);
+        }
+
+        public ClrOutOfMemoryInfo? GetOOMInfo(ClrSubHeap subHeap)
+        {
+            DacOOMData oomData;
+            if (subHeap.Heap.IsServer)
+            {
+                if (!_sos.GetOOMData(out oomData) || (oomData.Reason == OOMReason.None && oomData.GetMemoryFailure == OOMGetMemoryFailure.None))
+                    return null;
+            }
+            else
+            {
+                if (!_sos.GetOOMData(subHeap.Address, out oomData) || (oomData.Reason == OOMReason.None && oomData.GetMemoryFailure == OOMGetMemoryFailure.None))
+                    return null;
+            }
+
+            return new ClrOutOfMemoryInfo(oomData);
+        }
     }
 }
