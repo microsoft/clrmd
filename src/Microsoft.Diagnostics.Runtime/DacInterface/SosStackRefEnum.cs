@@ -19,16 +19,37 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private ref readonly ISOSStackRefEnumVTable VTable => ref Unsafe.AsRef<ISOSStackRefEnumVTable>(_vtable);
 
-        public int ReadStackReferences(Span<StackRefData> stackRefs)
+        public StackRefData[] GetStackRefs()
         {
-            if (stackRefs.IsEmpty)
-                throw new ArgumentException(null, nameof(stackRefs));
+            HResult hr = VTable.GetCount(Self, out int count);
+            if (!hr)
+                return Array.Empty<StackRefData>();
 
-            fixed (StackRefData* ptr = stackRefs)
+            StackRefData[] refs;
+            try
             {
-                HResult hr = VTable.Next(Self, stackRefs.Length, ptr, out int read);
-                return hr ? read : 0;
+                // We seem to be getting some weird results from StackRefEnum, ensure we have more than
+                // needed.
+                refs = new StackRefData[(int)(count * 1.5)];
             }
+            catch (OutOfMemoryException)
+            {
+                return Array.Empty<StackRefData>();
+            }
+
+            int read = 0;
+            fixed (StackRefData *ptr = refs)
+                hr = VTable.Next(Self, refs.Length, ptr, out read);
+
+            if (!hr)
+            {
+                return Array.Empty<StackRefData>();
+            }
+
+            if (read != refs.Length)
+                Array.Resize(ref refs, read);
+
+            return refs;
         }
     }
 
@@ -37,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         private readonly IntPtr Skip;
         private readonly IntPtr Reset;
-        private readonly IntPtr GetCount;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out int, int> GetCount;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, int, StackRefData*, out int, int> Next;
     }
 }
