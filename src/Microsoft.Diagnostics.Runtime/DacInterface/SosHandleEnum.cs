@@ -19,6 +19,36 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private ref readonly ISOSHandleEnumVTable VTable => ref Unsafe.AsRef<ISOSHandleEnumVTable>(_vtable);
 
+        public Span<HandleData> GetHandles()
+        {
+            HResult hr = VTable.GetCount(Self, out int count);
+            if (!hr)
+                return Array.Empty<HandleData>();
+
+            HandleData[] refs;
+            try
+            {
+                // We seem to be getting some weird results from StackRefEnum, ensure we have more than
+                // needed.
+                refs = new HandleData[(int)(count * 1.5)];
+            }
+            catch (OutOfMemoryException)
+            {
+                return Array.Empty<HandleData>();
+            }
+
+            int read = 0;
+            fixed (HandleData* ptr = refs)
+                hr = VTable.Next(Self, refs.Length, ptr, out read);
+
+            if (!hr)
+            {
+                return Array.Empty<HandleData>();
+            }
+
+            return refs.AsSpan(0, read);
+        }
+
         public int ReadHandles(Span<HandleData> handles)
         {
             if (handles.IsEmpty)
@@ -37,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         private readonly IntPtr Skip;
         private readonly IntPtr Reset;
-        private readonly IntPtr GetCount;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out int, int> GetCount;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, int, HandleData*, out int, int> Next;
     }
 }
