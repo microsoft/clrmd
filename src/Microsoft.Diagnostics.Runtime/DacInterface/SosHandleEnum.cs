@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private ref readonly ISOSHandleEnumVTable VTable => ref Unsafe.AsRef<ISOSHandleEnumVTable>(_vtable);
 
-        public Span<HandleData> GetHandles()
+        public HandleData[] GetHandles()
         {
             HResult hr = VTable.GetCount(Self, out int count);
             if (!hr)
@@ -46,7 +46,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return Array.Empty<HandleData>();
             }
 
-            return refs.AsSpan(0, read);
+            if (refs.Length != read)
+                Array.Resize(ref refs, read);
+
+            return refs;
         }
 
         public int ReadHandles(Span<HandleData> handles)

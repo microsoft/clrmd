@@ -274,7 +274,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             ClrHeap heap = Runtime.Heap;
 
-            Span<HandleData> handles = handleEnum.GetHandles();
+            HandleData[] handles = handleEnum.GetHandles();
             for (int i = 0; i < handles.Length; i++)
             {
                 ulong objAddress = _dataReader.ReadPointer(handles[i].Handle);

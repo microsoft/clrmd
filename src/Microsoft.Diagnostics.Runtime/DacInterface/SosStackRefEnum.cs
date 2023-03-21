@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private ref readonly ISOSStackRefEnumVTable VTable => ref Unsafe.AsRef<ISOSStackRefEnumVTable>(_vtable);
 
-        public Span<StackRefData> GetStackRefs()
+        public StackRefData[] GetStackRefs()
         {
             HResult hr = VTable.GetCount(Self, out int count);
             if (!hr)
@@ -46,7 +46,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return Array.Empty<StackRefData>();
             }
 
-            return refs.AsSpan(0, read);
+            if (read != refs.Length)
+                Array.Resize(ref refs, read);
+
+            return refs;
         }
     }
 

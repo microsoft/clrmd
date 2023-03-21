@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             ClrAppDomain? domain = thread.CurrentAppDomain;
             ClrHeap heap = thread.Runtime.Heap;
-            Span<StackRefData> refs = stackRefEnum.GetStackRefs();
+            StackRefData[] refs = stackRefEnum.GetStackRefs();
 
             const int GCInteriorFlag = 1;
             const int GCPinnedFlag = 2;

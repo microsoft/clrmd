@@ -86,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (handleEnum is null)
                 yield break;
 
-            Span<HandleData> handles = handleEnum.GetHandles();
+            HandleData[] handles = handleEnum.GetHandles();
             for (int i = 0; i < handles.Length; i++)
             {
                 if (handles[i].Type == (int)ClrHandleKind.Dependent)
