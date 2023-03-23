@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -12,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     public sealed unsafe class SOSStackRefEnum : CallableCOMWrapper
     {
-        private readonly List<GCHandle> _handles = new();
+        private readonly List<nint> _data = new();
         private static readonly Guid IID_ISOSStackRefEnum = new("8FA642BD-9F10-4799-9AA3-512AE78C77EE");
 
         public SOSStackRefEnum(DacLibrary library, IntPtr pUnk)
@@ -23,33 +22,46 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
-            foreach (GCHandle handle in _handles)
+            foreach (nint data in _data)
             {
-                handle.Free();
+                Marshal.FreeHGlobal(data);
             }
 
-            _handles.Clear();
+            _data.Clear();
         }
 
         private ref readonly ISOSStackRefEnumVTable VTable => ref Unsafe.AsRef<ISOSStackRefEnumVTable>(_vtable);
 
-        public IEnumerable<StackRefData> GetStackRefs()
+        public IEnumerable<StackRefData> ReadStackRefs()
         {
-            StackRefData[] data = new StackRefData[0x1000];
-            _handles.Add(GCHandle.Alloc(data, GCHandleType.Pinned));
-
             List<StackRefData> result = new();
-            fixed (StackRefData* ptr = data)
+            Span<StackRefData> span = Read();
+            while (span.Length > 0)
             {
-                HResult hr = VTable.Next(Self, data.Length, ptr, out int read);
-                while (hr && read > 0)
-                {
-                    result.AddRange(data.Take(read));
-                    hr = VTable.Next(Self, data.Length, ptr, out read);
-                }
+                for (int i = 0; i < span.Length; i++)
+                    result.Add(span[i]);
+                span = Read();
             }
 
             return result;
+        }
+
+        private Span<StackRefData> Read()
+        {
+            Span<StackRefData> span = CreateStorage();
+            fixed (StackRefData* ptr = span)
+            {
+                HResult hr = VTable.Next(Self, span.Length, ptr, out int read);
+                span = span.Slice(0, hr ? read : 0);
+                return span;
+            }
+        }
+
+        private Span<StackRefData> CreateStorage()
+        {
+            nint storage = Marshal.AllocHGlobal(0x1000 * sizeof(StackRefData));
+            _data.Add(storage);
+            return new((void*)storage, 0x1000);
         }
     }
 
