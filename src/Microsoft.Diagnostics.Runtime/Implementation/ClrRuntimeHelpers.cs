@@ -266,74 +266,61 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public IEnumerable<ClrHandle> EnumerateHandles()
         {
-            // Yes this is a huge array.  Older versions of ISOSHandleEnum have a memory leak when
-            // we loop below.  If we can fill the array without having to call back into
-            // SOSHandleEnum.ReadHandles then we avoid that leak entirely.
-            HandleData[] handles = new HandleData[0xc0000];
-            return EnumerateHandleTable(Runtime, handles);
-        }
-
-        private IEnumerable<ClrHandle> EnumerateHandleTable(ClrRuntime runtime, HandleData[] handles)
-        {
             ClrAppDomainData appDomainData = GetAppDomainData();
 
             using SOSHandleEnum? handleEnum = _sos.EnumerateHandles();
             if (handleEnum is null)
                 yield break;
 
-            ClrHeap heap = runtime.Heap;
-            int fetched;
-            while ((fetched = handleEnum.ReadHandles(handles)) != 0)
+            ClrHeap heap = Runtime.Heap;
+            foreach (HandleData handle in handleEnum.ReadHandles())
             {
-                for (int i = 0; i < fetched; i++)
+                ulong objAddress = _dataReader.ReadPointer(handle.Handle);
+                ClrObject clrObj = heap.GetObject(objAddress);
+
+                if (!clrObj.IsNull)
                 {
-                    ulong objAddress = _dataReader.ReadPointer(handles[i].Handle);
-                    ClrObject clrObj = heap.GetObject(objAddress);
+                    ClrAppDomain? domain = appDomainData.GetDomainByAddress(handle.AppDomain);
+                    domain ??= appDomainData.SystemDomain ?? appDomainData.SharedDomain ?? appDomainData.AppDomains.First();
 
-                    if (!clrObj.IsNull)
+                    ClrHandleKind handleKind = (ClrHandleKind)handle.Type;
+                    switch (handleKind)
                     {
-                        ClrAppDomain? domain = appDomainData.GetDomainByAddress(handles[i].AppDomain);
-                        domain ??= appDomainData.SystemDomain ?? appDomainData.SharedDomain ?? appDomainData.AppDomains.First();
+                        default:
+                            yield return new ClrHandle(domain, handle.Handle, clrObj, handleKind);
+                            break;
 
-                        ClrHandleKind handleKind = (ClrHandleKind)handles[i].Type;
-                        switch (handleKind)
-                        {
-                            default:
-                                yield return new ClrHandle(domain, handles[i].Handle, clrObj, handleKind);
-                                break;
+                        case ClrHandleKind.Dependent:
+                            ClrObject dependent = heap.GetObject(handle.Secondary);
+                            yield return new ClrHandle(domain, handle.Handle, clrObj, handleKind, dependent);
+                            break;
 
-                            case ClrHandleKind.Dependent:
-                                ClrObject dependent = heap.GetObject(handles[i].Secondary);
-                                yield return new ClrHandle(domain, handles[i].Handle, clrObj, handleKind, dependent);
-                                break;
+                        case ClrHandleKind.RefCounted:
+                            uint refCount = 0;
 
-                            case ClrHandleKind.RefCounted:
-                                uint refCount = 0;
+                            if (handle.IsPegged != 0)
+                                refCount = handle.JupiterRefCount;
 
-                                if (handles[i].IsPegged != 0)
-                                    refCount = handles[i].JupiterRefCount;
+                            if (refCount < handle.RefCount)
+                                refCount = handle.RefCount;
 
-                                if (refCount < handles[i].RefCount)
-                                    refCount = handles[i].RefCount;
-
-                                if (!clrObj.IsNull)
+                            if (!clrObj.IsNull)
+                            {
+                                ComCallableWrapper? ccw = clrObj.GetComCallableWrapper();
+                                if (ccw != null && refCount < ccw.RefCount)
                                 {
-                                    ComCallableWrapper? ccw = clrObj.GetComCallableWrapper();
-                                    if (ccw != null && refCount < ccw.RefCount)
-                                    {
-                                        refCount = (uint)ccw.RefCount;
-                                    }
-                                    else
-                                    {
-                                        RuntimeCallableWrapper? rcw = clrObj.GetRuntimeCallableWrapper();
-                                        if (rcw != null && refCount < rcw.RefCount)
-                                            refCount = (uint)rcw.RefCount;
-                                    }
+                                    refCount = (uint)ccw.RefCount;
                                 }
+                                else
+                                {
+                                    RuntimeCallableWrapper? rcw = clrObj.GetRuntimeCallableWrapper();
+                                    if (rcw != null && refCount < rcw.RefCount)
+                                        refCount = (uint)rcw.RefCount;
+                                }
+                            }
 
-                                yield return new ClrHandle(domain, handles[i].Handle, clrObj, handleKind, refCount);
-                                break;
-                        }
+                            yield return new ClrHandle(domain, handle.Handle, clrObj, handleKind, refCount);
+                            break;
                     }
                 }
             }

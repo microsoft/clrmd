@@ -35,28 +35,26 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             ClrAppDomain? domain = thread.CurrentAppDomain;
             ClrHeap heap = thread.Runtime.Heap;
-            StackRefData[] refs = stackRefEnum.GetStackRefs();
-
             const int GCInteriorFlag = 1;
             const int GCPinnedFlag = 2;
-            for (int i = 0; i < refs.Length; i++)
+            foreach (StackRefData stackRef in stackRefEnum.GetStackRefs())
             {
-                if (refs[i].Object == 0)
+                if (stackRef.Object == 0)
                     continue;
 
-                bool interior = (refs[i].Flags & GCInteriorFlag) == GCInteriorFlag;
-                bool isPinned = (refs[i].Flags & GCPinnedFlag) == GCPinnedFlag;
+                bool interior = (stackRef.Flags & GCInteriorFlag) == GCInteriorFlag;
+                bool isPinned = (stackRef.Flags & GCPinnedFlag) == GCPinnedFlag;
 
-                ClrStackFrame? frame = stack.SingleOrDefault(f => f.StackPointer == refs[i].Source || f.StackPointer == refs[i].StackPointer && f.InstructionPointer == refs[i].Source);
-                frame ??= new ClrStackFrame(thread, null, refs[i].Source, refs[i].StackPointer, ClrStackFrameKind.Unknown, null, null);
+                ClrStackFrame? frame = stack.SingleOrDefault(f => f.StackPointer == stackRef.Source || f.StackPointer == stackRef.StackPointer && f.InstructionPointer == stackRef.Source);
+                frame ??= new ClrStackFrame(thread, null, stackRef.Source, stackRef.StackPointer, ClrStackFrameKind.Unknown, null, null);
 
                 int regOffset = 0;
                 string? regName = null;
-                if (refs[i].HasRegisterInformation != 0)
+                if (stackRef.HasRegisterInformation != 0)
                 {
-                    regOffset = refs[i].Offset;
+                    regOffset = stackRef.Offset;
 
-                    int regIndex = refs[i].Register;
+                    int regIndex = stackRef.Register;
                     if (!_regNames.TryGetValue(regIndex, out regName))
                     {
                         regName = _sos.GetRegisterName(regIndex);
@@ -70,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (interior)
                 {
                     // Check if the value lives on the heap.
-                    ulong obj = refs[i].Object;
+                    ulong obj = stackRef.Object;
                     ClrSegment? segment = heap.GetSegmentByAddress(obj);
 
                     // If not, this may be a pointer to an object.
@@ -79,14 +77,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                     // Only yield return if we find a valid object on the heap
                     if (segment is not null)
-                        yield return new ClrStackRoot(refs[i].Address, heap.GetObject(obj), isInterior: true, isPinned: isPinned, heap: heap, frame: frame, regName: regName, regOffset: regOffset);
+                        yield return new ClrStackRoot(stackRef.Address, heap.GetObject(obj), isInterior: true, isPinned: isPinned, heap: heap, frame: frame, regName: regName, regOffset: regOffset);
                 }
                 else
                 {
                     // It's possible that heap.GetObjectType could return null and we construct a bad ClrObject, but this should
                     // only happen in the case of heap corruption and obj.IsValidObject will return null, so this is fine.
-                    ClrObject obj = heap.GetObject(refs[i].Object);
-                    yield return new ClrStackRoot(refs[i].Address, obj, isInterior: false, isPinned: isPinned, heap: heap, frame: frame, regName: regName, regOffset: regOffset);
+                    ClrObject obj = heap.GetObject(stackRef.Object);
+                    yield return new ClrStackRoot(stackRef.Address, obj, isInterior: false, isPinned: isPinned, heap: heap, frame: frame, regName: regName, regOffset: regOffset);
                 }
             }
         }
