@@ -86,30 +86,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (handleEnum is null)
                 yield break;
 
-            HandleData[] handles;
-            try
+            foreach (HandleData handle in handleEnum.ReadHandles())
             {
-                // Yes this is a huge array.  Older versions of ISOSHandleEnum have a memory leak when
-                // we loop below.  If we can fill the array without having to call back into
-                // SOSHandleEnum.ReadHandles then we avoid that leak entirely.
-                handles = new HandleData[0x18000];
-            }
-            catch (OutOfMemoryException)
-            {
-                handles = new HandleData[256];
-            }
-
-            int fetched;
-            while ((fetched = handleEnum.ReadHandles(handles)) != 0)
-            {
-                for (int i = 0; i < fetched; i++)
+                if (handle.Type == (int)ClrHandleKind.Dependent)
                 {
-                    if (handles[i].Type == (int)ClrHandleKind.Dependent)
-                    {
-                        ulong obj = _memoryReader.ReadPointer(handles[i].Handle);
-                        if (obj != 0)
-                            yield return (obj, handles[i].Secondary);
-                    }
+                    ulong obj = _memoryReader.ReadPointer(handle.Handle);
+                    if (obj != 0)
+                        yield return (obj, handle.Secondary);
                 }
             }
         }
