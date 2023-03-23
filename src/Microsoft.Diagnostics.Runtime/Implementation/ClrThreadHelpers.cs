@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ClrHeap heap = thread.Runtime.Heap;
             const int GCInteriorFlag = 1;
             const int GCPinnedFlag = 2;
-            foreach (StackRefData stackRef in stackRefEnum.GetStackRefs())
+            foreach (StackRefData stackRef in stackRefEnum.ReadStackRefs())
             {
                 if (stackRef.Object == 0)
                     continue;

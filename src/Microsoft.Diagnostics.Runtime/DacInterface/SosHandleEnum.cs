@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -12,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     public sealed unsafe class SOSHandleEnum : CallableCOMWrapper
     {
-        private readonly List<GCHandle> _handles = new();
+        private readonly List<nint> _data = new();
 
         private static readonly Guid IID_ISOSHandleEnum = new("3E269830-4A2B-4301-8EE2-D6805B29B2FA");
 
@@ -24,37 +23,47 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
-
-            foreach (GCHandle handle in _handles)
+            foreach (nint data in _data)
             {
-                handle.Free();
+                Marshal.FreeHGlobal(data);
             }
 
-            _handles.Clear();
+            _data.Clear();
+        }
+
+        private Span<HandleData> Read()
+        {
+            Span<HandleData> span = CreateStorage();
+            fixed (HandleData* ptr = span)
+            {
+                HResult hr = VTable.Next(Self, span.Length, ptr, out int read);
+                span = span.Slice(0, hr ? read : 0);
+                return span;
+            }
+        }
+
+        private Span<HandleData> CreateStorage()
+        {
+            nint storage = Marshal.AllocHGlobal(0x1000 * sizeof(StackRefData));
+            _data.Add(storage);
+            return new((void*)storage, 0x1000);
         }
 
         private ref readonly ISOSHandleEnumVTable VTable => ref Unsafe.AsRef<ISOSHandleEnumVTable>(_vtable);
 
+
         public IEnumerable<HandleData> ReadHandles()
         {
-            HandleData[] handles = new HandleData[0x18000];
-            _handles.Add(GCHandle.Alloc(handles, GCHandleType.Pinned));
-
             List<HandleData> result = new();
-            fixed (HandleData* ptr = handles)
+            Span<HandleData> span = Read();
+            while (span.Length > 0)
             {
-                HResult hr = VTable.Next(Self, handles.Length, ptr, out int read);
-                if (!hr)
-                    return Enumerable.Empty<HandleData>();
-
-                while (hr && read > 0)
-                {
-                    result.AddRange(handles.Take(read));
-                    hr = VTable.Next(Self, handles.Length, ptr, out read);
-                }
-
-                return result;
+                for (int i = 0; i < span.Length; i++)
+                    result.Add(span[i]);
+                span = Read();
             }
+
+            return result;
         }
     }
 
