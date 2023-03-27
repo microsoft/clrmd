@@ -2,10 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public sealed class ClrGenerationData
+    public sealed class ClrGenerationData : IClrGenerationData
     {
         public ulong StartSegment { get; }
         public ulong AllocationStart { get; }

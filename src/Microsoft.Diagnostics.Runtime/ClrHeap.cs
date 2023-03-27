@@ -153,7 +153,6 @@ namespace Microsoft.Diagnostics.Runtime
                     yield return obj;
         }
 
-
         /// <summary>
         /// Enumerates objects within the given memory range.
         /// </summary>
@@ -243,10 +242,28 @@ namespace Microsoft.Diagnostics.Runtime
             return result != null;
         }
 
+        bool IClrHeap.IsObjectCorrupted(ulong obj, [NotNullWhen(true)] out IObjectCorruption? result)
+        {
+            ObjectCorruption? corruption;
+            bool r = IsObjectCorrupted(obj, out corruption);
+            result = corruption;
+            return r;
+        }
+
+        bool IClrHeap.IsObjectCorrupted(IClrValue obj, [NotNullWhen(true)] out IObjectCorruption? result)
+        {
+            ObjectCorruption? corruption;
+            bool r = IsObjectCorrupted(obj.Address, out corruption);
+            result = corruption;
+            return r;
+        }
+
         /// <summary>
         /// Verifies the GC Heap and returns an enumerator for any corrupted objects it finds.
         /// </summary>
         public IEnumerable<ObjectCorruption> VerifyHeap() => VerifyHeap(EnumerateObjects(carefully: true));
+
+        IEnumerable<IObjectCorruption> IClrHeap.VerifyHeap() => VerifyHeap().Cast<IObjectCorruption>();
 
         /// <summary>
         /// Verifies the given objects and returns an enumerator for any corrupted objects it finds.
@@ -255,6 +272,13 @@ namespace Microsoft.Diagnostics.Runtime
         {
             foreach (ClrObject obj in objects)
                 if (IsObjectCorrupted(obj, out ObjectCorruption? result))
+                    yield return result;
+        }
+
+        IEnumerable<IObjectCorruption> IClrHeap.VerifyHeap(IEnumerable<IClrValue> objects)
+        {
+            foreach (IClrValue obj in objects)
+                if (IsObjectCorrupted(obj.Address, out ObjectCorruption? result))
                     yield return result;
         }
 
@@ -1101,13 +1125,15 @@ namespace Microsoft.Diagnostics.Runtime
 
         IEnumerable<IClrValue> IClrHeap.EnumerateFinalizableObjects() => EnumerateFinalizableObjects().Cast<IClrValue>();
 
+        IEnumerable<IClrValue> IClrHeap.EnumerateObjects(bool carefully) => EnumerateObjects(carefully).Cast<IClrValue>();
+
         IEnumerable<IClrValue> IClrHeap.EnumerateObjects() => EnumerateObjects().Cast<IClrValue>();
 
-        IEnumerable<IClrValue> IClrHeap.EnumerateObjects(MemoryRange range) => EnumerateObjects(range).Cast<IClrValue>();
+        IEnumerable<IClrValue> IClrHeap.EnumerateObjects(MemoryRange range, bool carefully) => EnumerateObjects(range, carefully).Cast<IClrValue>();
 
-        IClrValue IClrHeap.FindNextObjectOnSegment(ulong address) => FindNextObjectOnSegment(address);
+        IClrValue IClrHeap.FindNextObjectOnSegment(ulong address, bool carefully) => FindNextObjectOnSegment(address, carefully);
 
-        IClrValue IClrHeap.FindPreviousObjectOnSegment(ulong address) => FindPreviousObjectOnSegment(address);
+        IClrValue IClrHeap.FindPreviousObjectOnSegment(ulong address, bool carefully) => FindPreviousObjectOnSegment(address, carefully);
 
         IClrValue IClrHeap.GetObject(ulong objRef) => GetObject(objRef);
 
