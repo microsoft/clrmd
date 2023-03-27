@@ -8,6 +8,8 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
     public interface IClrSubHeap
     {
         ulong Address { get; }
+        ulong Allocated { get; }
+        ulong MarkArray { get; }
         MemoryRange AllocationContext { get; }
         bool HasBackgroundGC { get; }
         bool HasPinnedObjectHeap { get; }
@@ -15,5 +17,16 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         IClrHeap Heap { get; }
         int Index { get; }
         ImmutableArray<IClrSegment> Segments { get; }
+        MemoryRange FinalizerQueueRoots { get; }
+        MemoryRange FinalizerQueueObjects { get; }
+        ulong SavedSweepEphemeralSegment { get; }
+        ulong SavedSweepEphemeralStart { get; }
+        ImmutableArray<IClrGenerationData> GenerationTable { get; }
+        ulong EphemeralHeapSegment { get; }
+        ulong LowestAddress { get; }
+        ulong HighestAddress { get; }
+        ulong CardTable { get; }
+        IClrOutOfMemoryInfo? OomInfo { get; }
+        MemoryRange InternalRootArray { get; }
     }
 }

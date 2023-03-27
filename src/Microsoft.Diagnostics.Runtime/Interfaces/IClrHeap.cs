@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Diagnostics.Runtime.Interfaces
 {
@@ -22,15 +23,21 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         IEnumerable<IClrValue> EnumerateFinalizableObjects();
         IEnumerable<IClrRoot> EnumerateFinalizerRoots();
         IEnumerable<IClrValue> EnumerateObjects();
-        IEnumerable<IClrValue> EnumerateObjects(MemoryRange range);
+        IEnumerable<IClrValue> EnumerateObjects(bool carefully);
+        IEnumerable<IClrValue> EnumerateObjects(MemoryRange range, bool carefully = false);
         IEnumerable<IClrRoot> EnumerateRoots();
-        IClrValue FindNextObjectOnSegment(ulong address);
-        IClrValue FindPreviousObjectOnSegment(ulong address);
+        IEnumerable<SyncBlock> EnumerateSyncBlocks();
+        IClrValue FindNextObjectOnSegment(ulong address, bool carefully = false);
+        IClrValue FindPreviousObjectOnSegment(ulong address, bool carefully = false);
         IClrValue GetObject(ulong objRef);
         IClrType? GetObjectType(ulong objRef);
         IClrSegment? GetSegmentByAddress(ulong address);
         IClrType? GetTypeByMethodTable(ulong methodTable);
         IClrType? GetTypeByName(IClrModule module, string name);
         IClrType? GetTypeByName(string name);
+        bool IsObjectCorrupted(ulong obj, [NotNullWhen(true)] out IObjectCorruption? result);
+        bool IsObjectCorrupted(IClrValue obj, [NotNullWhen(true)] out IObjectCorruption? result);
+        IEnumerable<IObjectCorruption> VerifyHeap();
+        IEnumerable<IObjectCorruption> VerifyHeap(IEnumerable<IClrValue> objects);
     }
 }

@@ -2,10 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public class ClrOutOfMemoryInfo
+    public class ClrOutOfMemoryInfo : IClrOutOfMemoryInfo
     {
         internal ClrOutOfMemoryInfo(in DacOOMData oomData)
         {
