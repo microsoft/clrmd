@@ -154,21 +154,26 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="obj">An object in this segment.</param>
         /// <returns>
-        /// The generation of the given object if that object lies in this segment.  The return
-        /// value is undefined if the object does not lie in this segment.
+        /// The generation of the given object if that object lies in this segment.
         /// </returns>
-        public int GetGeneration(ulong obj)
+        public Generation GetGeneration(ulong obj)
         {
-            if (Generation2.Contains(obj))
-                return 2;
+            if (Kind <= GCSegmentKind.Frozen)
+                return (Generation)Kind;
 
-            if (Generation1.Contains(obj))
-                return 1;
+            if (Kind == GCSegmentKind.Ephemeral)
+            {
+                if (Generation0.Contains(obj))
+                    return Generation.Generation0;
 
-            if (Generation0.Contains(obj))
-                return 0;
+                if (Generation1.Contains(obj))
+                    return Generation.Generation1;
 
-            return -1;
+                if (Generation2.Contains(obj))
+                    return Generation.Generation2;
+            }
+
+            return Generation.Unknown;
         }
 
         /// <summary>

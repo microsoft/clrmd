@@ -22,8 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         MemoryRange ReservedMemory { get; }
         ulong Start { get; }
         IClrSubHeap SubHeap { get; }
-
         IEnumerable<IClrValue> EnumerateObjects();
-        int GetGeneration(ulong obj);
+        Generation GetGeneration(ulong obj);
     }
 }
