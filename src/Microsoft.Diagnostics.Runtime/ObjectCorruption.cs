@@ -2,10 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public class ObjectCorruption
+    public class ObjectCorruption : IObjectCorruption
     {
         public ClrObject Object { get; }
         public int Offset { get; }
@@ -21,6 +22,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// SyncBlock related failures.
         /// </summary>
         public int ClrSyncBlockIndex { get; } = -1;
+
+        IClrValue IObjectCorruption.Object => this.Object;
 
         public ObjectCorruption(ClrObject obj, int offset, ObjectCorruptionKind kind)
         {

@@ -17,12 +17,14 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         MemoryRange Generation2 { get; }
         bool IsPinned { get; }
         GCSegmentKind Kind { get; }
+        ClrSegmentFlags Flags { get; }
         ulong Length { get; }
         MemoryRange ObjectRange { get; }
         MemoryRange ReservedMemory { get; }
         ulong Start { get; }
         IClrSubHeap SubHeap { get; }
-        IEnumerable<IClrValue> EnumerateObjects();
+        IEnumerable<IClrValue> EnumerateObjects(bool carefully = false);
+        IEnumerable<IClrValue> EnumerateObjects(MemoryRange range, bool carefully = false);
         Generation GetGeneration(ulong obj);
     }
 }

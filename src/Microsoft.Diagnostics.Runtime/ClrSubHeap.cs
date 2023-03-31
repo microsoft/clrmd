@@ -102,6 +102,10 @@ namespace Microsoft.Diagnostics.Runtime
 
         ImmutableArray<IClrSegment> IClrSubHeap.Segments => Segments.CastArray<IClrSegment>();
 
+        IClrOutOfMemoryInfo? IClrSubHeap.OomInfo => this.OomInfo;
+
+        ImmutableArray<IClrGenerationData> IClrSubHeap.GenerationTable => this.GenerationTable.CastArray<IClrGenerationData>();
+
         internal enum GCState
         {
             Marking,
