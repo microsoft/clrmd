@@ -137,7 +137,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     if (_sos.GetServerHeapDetails(heapAddresses[i], out HeapDetails heapData))
                     {
                         GenerationData[] genData = heapData.GenerationTable;
-                        ClrDataAddress[] finalization = heapData.FinalizationFillPointers;
+                        IEnumerable<ClrDataAddress> finalization = heapData.FinalizationFillPointers.Take(6);
 
                         if (_sos8 is not null)
                         {
@@ -156,7 +156,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (_sos.GetWksHeapDetails(out HeapDetails heapData))
                 {
                     GenerationData[] genData = heapData.GenerationTable;
-                    ClrDataAddress[] finalization = heapData.FinalizationFillPointers;
+                    IEnumerable<ClrDataAddress> finalization = heapData.FinalizationFillPointers.Take(6);
 
                     if (_sos8 is not null)
                     {
