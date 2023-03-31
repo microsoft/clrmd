@@ -38,11 +38,22 @@ namespace Microsoft.Diagnostics.Runtime
             GenerationTable = genData.Select(data => new ClrGenerationData(data)).ToImmutableArray();
             FinalizationPointers = finalizationPointers.ToImmutableArray();
 
+            if (FinalizationPointers.Length == 6)
+            {
+                // Pre-Regions
+                FinalizerQueueObjects = new(FinalizationPointers[0], FinalizationPointers[3]);
+                FinalizerQueueRoots = new(FinalizationPointers[3], FinalizationPointers[5]);
+            }
+            else
+            {
+                // GC-Regions
+                FinalizerQueueObjects = new(FinalizationPointers[0], FinalizationPointers[3]);
+                FinalizerQueueRoots = new(FinalizationPointers[4], FinalizationPointers[6]);
+            }
+
             HasRegions = GenerationTable.Length >= 2 && GenerationTable[0].StartSegment != GenerationTable[1].StartSegment;
             HasPinnedObjectHeap = GenerationTable.Length > 4;
 
-            FinalizerQueueRoots = new MemoryRange(heap.FQRootsStart, heap.FQRootsStop);
-            FinalizerQueueObjects = new MemoryRange(heap.FQAllObjectsStart, heap.FQAllObjectsStop);
             AllocationContext = new MemoryRange(heap.EphemeralAllocContextPtr, heap.EphemeralAllocContextLimit);
 
             Segments = helpers.EnumerateSegments(this).ToImmutableArray();
