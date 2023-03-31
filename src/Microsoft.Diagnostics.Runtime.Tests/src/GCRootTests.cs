@@ -190,7 +190,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
-            ContainsPathsToTarget(heap, 0, (address) => heap.GetObject(address).Type?.Name == "TargetType");
+            ContainsPathsToTarget(heap, 0, (obj) => obj.Type?.Name == "TargetType");
         }
 
         [Fact]
@@ -237,7 +237,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             target = heap.GetObjectsOfType("TargetType").Single();
         }
 
-        private int ContainsPathsToTarget(ClrHeap heap, ulong source, Predicate<ulong> matches)
+        private int ContainsPathsToTarget(ClrHeap heap, ulong source, Predicate<ClrObject> matches)
         {
             GCRoot gcroot = new(heap, matches);
             return ContainsPathsToTarget(heap, source, gcroot, matches);
@@ -249,7 +249,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return ContainsPathsToTarget(heap, source, gcroot, (obj) => target == obj);
         }
 
-        private static int ContainsPathsToTarget(ClrHeap heap, ulong source, GCRoot gcroot, Predicate<ulong> matches)
+        private static int ContainsPathsToTarget(ClrHeap heap, ulong source, GCRoot gcroot, Predicate<ClrObject> matches)
         {
             int count = 0;
 
@@ -270,7 +270,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return count;
         }
 
-        private static void VerifyPath(ClrHeap heap, Predicate<ulong> matches, GCRoot.ChainLink curr)
+        private static void VerifyPath(ClrHeap heap, Predicate<ClrObject> matches, GCRoot.ChainLink curr)
         {
             while (curr.Next is not null)
             {
@@ -282,7 +282,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 curr = curr.Next;
             }
 
-            Assert.True(matches(curr.Object));
+            ClrObject currObject = heap.GetObject(curr.Object);
+            Assert.True(matches(currObject));
         }
     }
 }

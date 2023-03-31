@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 
@@ -15,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly ClrHeap _heap;
         private readonly HashSet<ulong> _seen = new();
         private readonly Dictionary<ulong, ChainLink> _found = new();
-        private readonly Predicate<ulong>? _targetPredicate;
+        private readonly Predicate<ClrObject>? _targetPredicate;
 
         public GCRoot(ClrHeap heap, IEnumerable<ulong> targets)
         {
@@ -26,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public GCRoot(ClrHeap heap, Predicate<ulong> isTarget)
+        public GCRoot(ClrHeap heap, Predicate<ClrObject> isTarget)
         {
             _heap = heap;
             _targetPredicate = isTarget;
@@ -34,10 +35,16 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IEnumerable<(ClrRoot Root, ChainLink Path)> EnumerateRootPaths()
         {
+            return EnumerateRootPaths(CancellationToken.None);
+        }
+
+        public IEnumerable<(ClrRoot Root, ChainLink Path)> EnumerateRootPaths(CancellationToken cancellation)
+        {
             IEnumerable<ClrRoot> roots = _heap.EnumerateRoots();
             foreach (ClrRoot root in roots)
             {
-                ChainLink? path = FindPathFrom(root.Object);
+                cancellation.ThrowIfCancellationRequested();
+                ChainLink? path = FindPathFrom(root.Object, cancellation);
                 if (path is not null)
                     yield return (root, path);
             }
@@ -85,6 +92,11 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ChainLink? FindPathFrom(ClrObject start)
         {
+            return FindPathFrom(start, CancellationToken.None);
+        }
+
+        public ChainLink? FindPathFrom(ClrObject start, CancellationToken cancellation)
+        {
             if (_found.TryGetValue(start, out ChainLink? link))
                 return link;
 
@@ -103,12 +115,14 @@ namespace Microsoft.Diagnostics.Runtime
                 return null;
 
             List<byte[]> stack = new();
-            link = WalkObject(stack, 0, start);
+            link = WalkObject(stack, 0, start, cancellation);
             if (link is not null)
                 return link;
 
             while (stack.Count > 0)
             {
+                cancellation.ThrowIfCancellationRequested();
+
                 ReferenceList curr = stack[stack.Count - 1];
                 ulong currChild = curr.Next();
                 if (currChild == 0)
@@ -118,7 +132,9 @@ namespace Microsoft.Diagnostics.Runtime
                     continue;
                 }
 
-                link = WalkObject(stack, curr.Object, currChild);
+                TraceConsidering(curr.Object, currChild);
+
+                link = WalkObject(stack, curr.Object, currChild, cancellation);
                 if (link is not null)
                     return CleanupAndGetResult(stack, link, curr);
             }
@@ -179,9 +195,24 @@ namespace Microsoft.Diagnostics.Runtime
             return next;
         }
 
-        private ChainLink? WalkObject(List<byte[]> stack, ulong parent, ulong curr)
+        private ChainLink? WalkObject(List<byte[]> stack, ulong parent, ulong curr, CancellationToken cancellation)
         {
             ClrObject obj = _heap.GetObject(curr);
+            TraceWalkObject(obj);
+
+            if (_targetPredicate is not null && _targetPredicate(obj))
+            {
+                TraceFound(obj);
+
+                ChainLink result = new()
+                {
+                    Object = curr,
+                };
+
+                _found[curr] = result;
+                return result;
+            }
+
             if (obj.Type is not null && obj.Type.ContainsPointers)
             {
                 ReferenceList refList = default;
@@ -189,6 +220,8 @@ namespace Microsoft.Diagnostics.Runtime
 
                 foreach (ulong reference in obj.EnumerateReferenceAddresses())
                 {
+                    cancellation.ThrowIfCancellationRequested();
+
                     if (_found.TryGetValue(reference, out ChainLink? link))
                     {
                         ChainLink result = new()
@@ -197,31 +230,19 @@ namespace Microsoft.Diagnostics.Runtime
                             Object = curr,
                         };
 
-                        _found[curr] = result;
-                        return result;
-                    }
-                    else if (_targetPredicate is not null && _targetPredicate(reference))
-                    {
-                        link = new()
-                        {
-                            Object = reference
-                        };
-                        _found[reference] = link;
-
-                        ChainLink result = new()
-                        {
-                            Next = link,
-                            Object = curr,
-                        };
+                        TraceFound(reference, link);
 
                         _found[curr] = result;
                         return result;
-
                     }
                     else if (!_seen.Add(reference))
                     {
+                        TraceSeen(reference);
+
                         continue;
                     }
+
+                    TraceReference(obj, reference);
 
                     if (refList.IsDefault)
                         refList = new ReferenceList(curr, parent, out offset);
@@ -237,6 +258,45 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             return null;
+        }
+
+        [Conditional("GCROOT_TRACE")]
+        private static void TraceReference(ClrObject obj, ulong reference)
+        {
+            Trace.WriteLine($"Reference: {obj.Address:x} {obj.Type?.Name} -> {reference:x}");
+        }
+
+        [Conditional("GCROOT_TRACE")]
+        private static void TraceSeen(ulong reference)
+        {
+            Trace.WriteLine($"Seen: {reference:x} (ignoring)");
+        }
+
+        [Conditional("GCROOT_TRACE")]
+        private static void TraceFound(ulong reference, ChainLink link)
+        {
+            Trace.WriteLine($"FOUND: {reference:x} -> {link.Object:x}");
+        }
+
+        [Conditional("GCROOT_TRACE")]
+        private static void TraceFound(ClrObject obj)
+        {
+            Trace.WriteLine($"FOUND: {obj.Address:x} {obj.Type?.Name}");
+        }
+
+        [Conditional("GCROOT_TRACE")]
+        public static void TraceConsidering(ulong curr, ulong child)
+        {
+            Trace.WriteLine($"Considering: {curr} -> {child}.");
+        }
+
+        [Conditional("GCROOT_TRACE")]
+        public static void TraceWalkObject(ClrObject obj)
+        {
+            if (obj.Type is null || !obj.IsValid)
+                Trace.WriteLine($"WalkObject {obj.Address:x} (invalid object)");
+            else
+                Trace.WriteLine($"WalkObject {obj.Address:x} {obj.Type.Name}{(obj.Type.ContainsPointers ? "" : " (no gc pointers)")}:");
         }
 
         // A way to track object references without generating too much garbage.
