@@ -9,11 +9,6 @@ namespace Microsoft.Diagnostics.Runtime
     public enum GCSegmentKind
     {
         /// <summary>
-        /// An Ephemeral segment is one which has Gen0, Gen1, and Gen2 sections.
-        /// </summary>
-        Ephemeral,
-
-        /// <summary>
         /// This "segment" is actually a GC Gen0 region.  This is only enumerated
         /// when the GC regions feature is present in the target CLR.
         /// </summary>
@@ -32,12 +27,6 @@ namespace Microsoft.Diagnostics.Runtime
         Generation2,
 
         /// <summary>
-        /// This segment is frozen, meaning it is both pinned and no objects will
-        /// ever be collected.
-        /// </summary>
-        Frozen,
-
-        /// <summary>
         /// A large object segment.  Objects here are above a certain size (usually
         /// 85,000 bytes) and all objects here are pinned.
         /// </summary>
@@ -47,5 +36,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// Pinned object segment.  All objects here are pinned.
         /// </summary>
         Pinned,
+
+        /// <summary>
+        /// This segment is frozen, meaning it is both pinned and no objects will
+        /// ever be collected.
+        /// </summary>
+        Frozen,
+
+        /// <summary>
+        /// An Ephemeral segment is one which has Gen0, Gen1, and Gen2 sections.
+        /// </summary>
+        Ephemeral,
     }
 }

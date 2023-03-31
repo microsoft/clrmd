@@ -25,6 +25,6 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         IClrSubHeap SubHeap { get; }
         IEnumerable<IClrValue> EnumerateObjects(bool carefully = false);
         IEnumerable<IClrValue> EnumerateObjects(MemoryRange range, bool carefully = false);
-        int GetGeneration(ulong obj);
+        Generation GetGeneration(ulong obj);
     }
 }

@@ -30,10 +30,5 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ulong EphemeralAllocContextPtr => GenerationTable[0].AllocationContextPointer;
         public ulong EphemeralAllocContextLimit => GenerationTable[0].AllocationContextLimit;
-
-        public ulong FQAllObjectsStart => FinalizationFillPointers[0];
-        public ulong FQAllObjectsStop => FinalizationFillPointers[3];
-        public ulong FQRootsStart => FinalizationFillPointers[3];
-        public ulong FQRootsStop => FinalizationFillPointers[5];
     }
 }
