@@ -286,7 +286,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             return new ThreadReadResult()
             {
-                ContextData = contextBuilder.MoveToImmutable(),
+                ContextData = contextBuilder.MoveOrCopyToImmutable(),
                 Tebs = tebBuilder.ToImmutable(),
                 Threads = threadBuilder.ToImmutable()
             };

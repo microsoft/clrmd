@@ -117,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime
             for (int i = 0; i < ifs.Length; i++)
                 result[i] = new ComInterfaceData(_typeFactory.GetOrCreateType(ifs[i].MethodTable, 0), ifs[i].InterfacePointer);
 
-            return result.MoveToImmutable();
+            return result.MoveOrCopyToImmutable();
         }
 
         public ClrType? CreateRuntimeType(ClrObject obj)

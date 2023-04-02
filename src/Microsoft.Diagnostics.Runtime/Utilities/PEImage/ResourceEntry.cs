@@ -163,7 +163,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         result.Add(new ResourceEntry(Image, this, name, entry.IsLeaf, resourceStartFileOffset + entry.DataOffset));
                     }
 
-                    return _children = result.MoveToImmutable();
+                    return _children = result.MoveOrCopyToImmutable();
                 }
                 catch
                 {

@@ -276,7 +276,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             for (uint i = 0; i < programHeaders.Count; i++)
                 programHeaders[(int)i] = new ElfProgramHeader(Reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, loadBias, _virtual);
 
-            _programHeaders = programHeaders.MoveToImmutable();
+            _programHeaders = programHeaders.MoveOrCopyToImmutable();
         }
 
         public void Dispose()

@@ -149,7 +149,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     }
                 }
 
-                return heapsBuilder.MoveToImmutable();
+                return heapsBuilder.MoveOrCopyToImmutable();
             }
             else
             {
