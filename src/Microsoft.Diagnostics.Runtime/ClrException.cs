@@ -293,7 +293,7 @@ namespace Microsoft.Diagnostics.Runtime
                 dataPtr += (ulong)elementSize;
             }
 
-            return result.MoveToImmutable();
+            return result.MoveOrCopyToImmutable();
         }
     }
 }

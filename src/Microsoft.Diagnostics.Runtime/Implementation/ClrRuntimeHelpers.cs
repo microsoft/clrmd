@@ -132,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         builder.Add(domain);
                 }
 
-                domainData.AppDomains = builder.MoveToImmutable();
+                domainData.AppDomains = builder.MoveOrCopyToImmutable();
 
                 ClrModule? bcl = null;
                 if (_sos.GetCommonMethodTables(out CommonMethodTables mts))
