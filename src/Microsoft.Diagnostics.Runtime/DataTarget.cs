@@ -225,7 +225,7 @@ namespace Microsoft.Diagnostics.Runtime
             new WindowsFunctions();
 
         /// <summary>
-        /// Loads a dump stream. Currently supported formats are ELF coredump and Windows Minidump formats.
+        /// Loads a dump stream. Currently supported formats are Mach-O coredump, ELF coredump, and Windows Minidump formats.
         /// </summary>
         /// <param name="displayName">The name of this DataTarget, might be used in exceptions.</param>
         /// <param name="stream">The stream that should be used.</param>
@@ -277,12 +277,19 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Loads a dump file. Currently supported formats are ELF coredump and Windows Minidump formats.
+        /// Loads a dump file. Currently supported formats are Mach-O coredump, ELF coredump, and Windows Minidump formats.
+        /// </summary>
+        /// <param name="filePath">The path to the dump file.</param>
+        /// <returns>A <see cref="DataTarget"/> for the given dump file.</returns>
+        public static DataTarget LoadDump(string filePath) => LoadDump(filePath, null);
+
+        /// <summary>
+        /// Loads a dump file. Currently supported formats are Mach-O coredump, ELF coredump, and Windows Minidump formats.
         /// </summary>
         /// <param name="filePath">The path to the dump file.</param>
         /// <param name="cacheOptions">The caching options to use.</param>
         /// <returns>A <see cref="DataTarget"/> for the given dump file.</returns>
-        public static DataTarget LoadDump(string filePath, CacheOptions? cacheOptions = null)
+        public static DataTarget LoadDump(string filePath, CacheOptions? cacheOptions)
         {
             if (filePath is null)
                 throw new ArgumentNullException(nameof(filePath));
@@ -399,7 +406,7 @@ namespace Microsoft.Diagnostics.Runtime
             return new DataTarget(customTarget);
         }
 
-        private static Exception GetPlatformException([CallerMemberName] string? method = null) =>
-            new PlatformNotSupportedException($"{method} is not supported on {RuntimeInformation.OSDescription}.");
+        private static PlatformNotSupportedException GetPlatformException([CallerMemberName] string? method = null) =>
+            new($"{method} is not supported on {RuntimeInformation.OSDescription}.");
     }
 }
