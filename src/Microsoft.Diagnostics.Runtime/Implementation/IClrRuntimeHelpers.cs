@@ -18,5 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         IEnumerable<ClrJitManager> EnumerateClrJitManagers();
         string? GetJitHelperFunctionName(ulong address);
         ClrThreadPool? GetThreadPool();
+        IEnumerable<ClrNativeHeapInfo> EnumerateGCFreeRegions();
+        IEnumerable<ClrNativeHeapInfo> EnumerateHandleTableRegions();
     }
 }

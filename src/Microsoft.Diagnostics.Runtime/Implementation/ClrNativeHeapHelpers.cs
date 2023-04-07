@@ -15,10 +15,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private NativeHeapKind[]? _heapNativeTypes;
         private readonly ClrInfo _clrInfo;
         private readonly SOSDac _sos;
-        private readonly SOSDac13? _sos13;
+        private readonly ISOSDac13? _sos13;
         private readonly IDataReader _dataReader;
 
-        public ClrNativeHeapHelpers(ClrInfo clrInfo, SOSDac sos, SOSDac13? sos13, IDataReader dataReader)
+        public ClrNativeHeapHelpers(ClrInfo clrInfo, SOSDac sos, ISOSDac13? sos13, IDataReader dataReader)
         {
             _clrInfo = clrInfo;
             _sos = sos;
@@ -275,7 +275,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private HResult TraverseLoaderHeap(ulong address, LoaderHeapKind kind, SOSDac.LoaderHeapTraverse callback)
             => TraverseLoaderHeap(_clrInfo, _sos, _sos13, address, kind, (uint)_dataReader.PointerSize, callback);
 
-        private static HResult TraverseLoaderHeap(ClrInfo clrInfo, SOSDac sos, SOSDac13? sos13, ulong address, LoaderHeapKind kind, uint pointerSize, SOSDac.LoaderHeapTraverse callback)
+        private static HResult TraverseLoaderHeap(ClrInfo clrInfo, SOSDac sos, ISOSDac13? sos13, ulong address, LoaderHeapKind kind, uint pointerSize, SOSDac.LoaderHeapTraverse callback)
         {
             if (address == 0)
                 return HResult.E_INVALIDARG;

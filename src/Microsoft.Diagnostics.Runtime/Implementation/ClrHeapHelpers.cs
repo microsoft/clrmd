@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly SOSDac _sos;
         private readonly SOSDac8? _sos8;
         private readonly SOSDac6? _sos6;
-        private readonly SOSDac12? _sos12;
+        private readonly SosDac12? _sos12;
         private readonly IMemoryReader _memoryReader;
         private readonly CacheOptions _cacheOptions;
         private readonly GCInfo _gcInfo;
@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public ulong SizeOfPlugAndGap { get; }
 
-        public ClrHeapHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, SOSDac12? sos12, IMemoryReader reader, CacheOptions cacheOptions)
+        public ClrHeapHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, SosDac12? sos12, IMemoryReader reader, CacheOptions cacheOptions)
         {
             _clrDataProcess = clrDataProcess;
             _sos = sos;

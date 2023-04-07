@@ -43,8 +43,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         public SOSDac6? SOSDacInterface6 => InternalDacPrivateInterface.GetSOSDacInterface6();
         public SOSDac8? SOSDacInterface8 => InternalDacPrivateInterface.GetSOSDacInterface8();
-        public SOSDac12? SOSDacInterface12 => InternalDacPrivateInterface.GetSOSDacInterface12();
-        public SOSDac13? SOSDacInterface13 => InternalDacPrivateInterface.GetSOSDacInterface13();
+        public SosDac12? SOSDacInterface12 => InternalDacPrivateInterface.GetSOSDacInterface12();
+        public ISOSDac13? SOSDacInterface13 => InternalDacPrivateInterface.GetSOSDacInterface13();
 
         public DacLibrary(DataTarget dataTarget, IntPtr pClrDataProcess)
         {
