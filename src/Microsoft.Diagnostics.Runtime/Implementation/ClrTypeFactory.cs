@@ -222,7 +222,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return new ClrGenericType(_objectHelpers, _heap, module, param[index]);
             }
 
-            if (etype == ClrElementType.Pointer)
+            if (etype == ClrElementType.Pointer || etype == ClrElementType.ByRef)
             {
                 if (!parser.SkipCustomModifiers())
                     return null;
