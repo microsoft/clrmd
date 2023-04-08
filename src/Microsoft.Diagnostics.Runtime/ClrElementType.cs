@@ -90,6 +90,11 @@ namespace Microsoft.Diagnostics.Runtime
         Pointer = 0xf,
 
         /// <summary>
+        /// ELEMENT_TYPE_BYREF
+        /// </summary>
+        ByRef = 0x10,
+
+        /// <summary>
         /// ELEMENT_TYPE_VALUETYPE
         /// </summary>
         Struct = 0x11,
