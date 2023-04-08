@@ -368,7 +368,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     if (_sos.GetSegmentData(address, out SegmentData segData))
                     {
                         if (segData.Start < segData.Committed)
-                            yield return new ClrNativeHeapInfo(segData.Start, segData.Committed - segData.Start, NativeHeapKind.GCFreeSegment, true);
+                            yield return new ClrNativeHeapInfo(segData.Start, segData.Committed - segData.Start, NativeHeapKind.GCFreeSegment, ClrNativeHeapState.Inactive);
                     }
                 }
             }
@@ -380,7 +380,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 if (memoryEnum is not null)
                     foreach (SosMemoryRegion mem in memoryEnum)
-                        yield return new ClrNativeHeapInfo(mem.Start, mem.Length, NativeHeapKind.HandleTable, true);
+                        yield return new ClrNativeHeapInfo(mem.Start, mem.Length, NativeHeapKind.HandleTable, ClrNativeHeapState.None);
+            }
+        }
+
+        public IEnumerable<ClrNativeHeapInfo> EnumerateGCBookkeepingRegions()
+        {
+            using (SosMemoryEnum? memoryEnum = _sos13?.GetGCBookkeepingMemoryRegions())
+            {
+                if (memoryEnum is not null)
+                    foreach (SosMemoryRegion mem in memoryEnum)
+                        yield return new ClrNativeHeapInfo(mem.Start, mem.Length, NativeHeapKind.GCBookkeeping, ClrNativeHeapState.RegionOfRegions);
             }
         }
 

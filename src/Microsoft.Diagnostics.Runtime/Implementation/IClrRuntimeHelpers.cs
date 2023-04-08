@@ -20,5 +20,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ClrThreadPool? GetThreadPool();
         IEnumerable<ClrNativeHeapInfo> EnumerateGCFreeRegions();
         IEnumerable<ClrNativeHeapInfo> EnumerateHandleTableRegions();
+        IEnumerable<ClrNativeHeapInfo> EnumerateGCBookkeepingRegions();
     }
 }

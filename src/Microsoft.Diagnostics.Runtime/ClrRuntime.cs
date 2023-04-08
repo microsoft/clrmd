@@ -252,6 +252,11 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 yield return handleHeap;
             }
+
+            foreach (ClrNativeHeapInfo bkRegions in _helpers.EnumerateGCBookkeepingRegions())
+            {
+                yield return bkRegions;
+            }
         }
 
         /// <summary>
