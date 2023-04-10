@@ -28,6 +28,7 @@ namespace Microsoft.Diagnostics.Runtime
         private volatile SyncBlockContainer? _syncBlocks;
         private volatile ClrSegment? _currSegment;
         private volatile SubHeapData? _subHeapData;
+        private volatile ArrayPool<ObjectCorruption>? _objectCorruptionPool;
         private ulong _lastComFlags;
 
         internal ClrHeap(ClrRuntime runtime, IMemoryReader memoryReader, IClrHeapHelpers helpers)
@@ -185,19 +186,37 @@ namespace Microsoft.Diagnostics.Runtime
             return EnumerateObjects(segment, segment.FirstObjectAddress, carefully);
         }
 
-        internal ObjectCorruption? VerifyObject(ClrObject obj, ClrSegment? seg)
+        /// <summary>
+        /// Deeply verifies an object on the heap.  This goes beyond just ClrObject.IsValid and will
+        /// check the object's references as well as certain internal CLR data structures.  Please note,
+        /// however, that it is possible to pause a process in a debugger at a point where the heap is
+        /// NOT corrupted, but does look inconsistent to ClrMD.  For example, the GC might allocate
+        /// an array by writing a method table but the process might be paused before it had the chance
+        /// to write the array length onto the heap.  In this case, IsObjectCorrupted may return true
+        /// even if the process would have continued on fine.  As a result, this function acts more
+        /// like a warning signal that more investigation is needed, and not proof-positive that there
+        /// is heap corruption.
+        /// </summary>
+        /// <param name="objAddr">The address of the object to deeply verify.</param>
+        /// <param name="result">Only non-null if this function returns true.  An object which describes the
+        /// kind of corruption found.</param>
+        /// <returns>True if the object is corrupted in some way, false otherwise.</returns>
+        public bool IsObjectCorrupted(ulong objAddr, [NotNullWhen(true)] out ObjectCorruption? result)
         {
-            if (obj.IsNull)
-                return null;
-
-            if (seg is null || !seg.ObjectRange.Contains(obj))
+            ClrObject obj = GetObject(objAddr);
+            ClrSegment? seg = GetSegmentByAddress(objAddr);
+            if (seg is null || !seg.ObjectRange.Contains(objAddr))
             {
-                seg = GetSegmentByAddress(obj);
-                if (seg is null)
-                    return new(obj, 0, ObjectCorruptionKind.ObjectNotOnTheHeap);
+                result = new(obj, 0, ObjectCorruptionKind.ObjectNotOnTheHeap);
+                return true;
             }
 
-            return Helpers.VerifyObject(GetSyncBlocks(), seg, obj);
+            ObjectCorruption[] array = RentObjectCorruptionArray();
+            int count = Helpers.VerifyObject(GetSyncBlocks(), seg, obj, array.AsSpan(0, 1));
+            result = count > 0 ? array[0] : null;
+
+            ReturnObjectCorruptionArray(array);
+            return count > 0;
         }
 
         /// <summary>
@@ -211,35 +230,44 @@ namespace Microsoft.Diagnostics.Runtime
         /// like a warning signal that more investigation is needed, and not proof-positive that there
         /// is heap corruption.
         /// </summary>
-        /// <param name="obj">The address of the object to deeply verify.</param>
-        /// <param name="result">Only non-null if this function returns true.  An object which describes the
-        /// kind of corruption found.</param>
-        /// <returns>True if the object is corrupted in some way, false otherwise.</returns>
-        public bool IsObjectCorrupted(ulong obj, [NotNullWhen(true)] out ObjectCorruption? result)
+        /// <param name="objAddr">The address of the object to deeply verify.</param>
+        /// <param name="detectedCorruption">An enumeration of all issues detected with this object.</param>
+        /// <returns>True if the object is valid and fully verified, returns false if object corruption
+        /// was detected.</returns>
+        public bool FullyVerifyObject(ulong objAddr, out IEnumerable<ObjectCorruption> detectedCorruption)
         {
-            return IsObjectCorrupted(GetObject(obj), out result);
+            ClrSegment? seg = GetSegmentByAddress(objAddr);
+            ClrObject obj = GetObject(objAddr);
+            if (seg is null || !seg.ObjectRange.Contains(objAddr))
+            {
+                detectedCorruption = new ObjectCorruption[] { new(obj, 0, ObjectCorruptionKind.ObjectNotOnTheHeap) };
+                return false;
+            }
+
+            ObjectCorruption[] result = RentObjectCorruptionArray();
+            int count = Helpers.VerifyObject(GetSyncBlocks(), seg, obj, result);
+            if (count == 0)
+            {
+                ReturnObjectCorruptionArray(result);
+                detectedCorruption = Enumerable.Empty<ObjectCorruption>();
+                return true;
+            }
+
+            detectedCorruption = result.Take(count);
+            return false;
         }
 
-        /// <summary>
-        /// Deeply verifies an object on the heap.  This goes beyond just ClrObject.IsValid and will
-        /// check the object's references as well as certain internal CLR data structures.  Please note,
-        /// however, that it is possible to pause a process in a debugger at a point where the heap is
-        /// NOT corrupted, but does look inconsistent to ClrMD.  For example, the GC might allocate
-        /// an array by writing a method table but the process might be paused before it had the chance
-        /// to write the array length onto the heap.  In this case, IsObjectCorrupted may return true
-        /// even if the process would have continued on fine.  As a result, this function acts more
-        /// like a warning signal that more investigation is needed, and not proof-positive that there
-        /// is heap corruption.
-        /// </summary>
-        /// <param name="obj">The address of the object to deeply verify.</param>
-        /// <param name="result">Only non-null if this function returns true.  An object which describes the
-        /// kind of corruption found.</param>
-        /// <returns>True if the object is corrupted in some way, false otherwise.</returns>
-        public bool IsObjectCorrupted(ClrObject obj, [NotNullWhen(true)] out ObjectCorruption? result)
+        private void ReturnObjectCorruptionArray(ObjectCorruption[] result)
         {
-            ClrSegment? seg = GetSegmentByAddress(obj);
-            result = VerifyObject(obj, seg);
-            return result != null;
+            _objectCorruptionPool ??= ArrayPool<ObjectCorruption>.Create(64, 4);
+            _objectCorruptionPool.Return(result);
+        }
+
+        private ObjectCorruption[] RentObjectCorruptionArray()
+        {
+            _objectCorruptionPool ??= ArrayPool<ObjectCorruption>.Create(64, 4);
+            ObjectCorruption[] result = _objectCorruptionPool.Rent(64);
+            return result;
         }
 
         bool IClrHeap.IsObjectCorrupted(ulong obj, [NotNullWhen(true)] out IObjectCorruption? result)

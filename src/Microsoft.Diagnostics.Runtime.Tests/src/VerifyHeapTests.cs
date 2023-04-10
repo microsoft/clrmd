@@ -3,6 +3,8 @@
 
 using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -130,10 +132,18 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.True(heap.IsObjectCorrupted(obj, out ObjectCorruption result));
             Assert.NotNull(result);
+            Verify(obj, result);
 
-            Assert.Equal(ObjectCorruptionKind.ObjectNotOnTheHeap, result.Kind);
-            Assert.Equal(obj, result.Object);
-            Assert.Equal(0, result.Offset);
+            Assert.False(heap.FullyVerifyObject(obj, out IEnumerable<ObjectCorruption> enumResult));
+            result = Assert.Single(enumResult);
+            Verify(obj, result);
+
+            static void Verify(ClrObject obj, ObjectCorruption result)
+            {
+                Assert.Equal(ObjectCorruptionKind.ObjectNotOnTheHeap, result.Kind);
+                Assert.Equal(obj, result.Object);
+                Assert.Equal(0, result.Offset);
+            }
         }
 
         [WindowsFact]
@@ -197,11 +207,21 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             WriteAndRun(spaces, obj, 0xcccccc, () => {
                 Assert.True(heap.IsObjectCorrupted(obj, out ObjectCorruption result));
-                Assert.NotNull(result);
+                Verify(obj, result);
 
-                Assert.Equal(ObjectCorruptionKind.InvalidMethodTable, result.Kind);
-                Assert.Equal(obj, result.Object);
-                Assert.Equal(0, result.Offset); // MT offset is at 0
+                Assert.False(heap.FullyVerifyObject(obj, out IEnumerable<ObjectCorruption> detectedCorruption));
+                var item = detectedCorruption.ToArray();
+                result = Assert.Single(detectedCorruption);
+                Verify(obj, result);
+
+                static void Verify(ClrObject obj, ObjectCorruption result)
+                {
+                    Assert.NotNull(result);
+
+                    Assert.Equal(ObjectCorruptionKind.InvalidMethodTable, result.Kind);
+                    Assert.Equal(obj, result.Object);
+                    Assert.Equal(0, result.Offset); // MT offset is at 0
+                }
             });
 
 
