@@ -334,34 +334,55 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return (threadId, recursion);
         }
 
-        public ObjectCorruption? VerifyObject(SyncBlockContainer syncBlocks, ClrSegment seg, ClrObject obj)
+        public int VerifyObject(SyncBlockContainer syncBlocks, ClrSegment seg, ClrObject obj, Span<ObjectCorruption> result)
         {
+            if (result.Length == 0)
+                throw new ArgumentException($"{nameof(result)} must have at least one element.");
+
+
             // Is the object address pointer aligned?
             if ((obj.Address & ((uint)_memoryReader.PointerSize - 1)) != 0)
-                return new ObjectCorruption(obj, 0, ObjectCorruptionKind.ObjectNotPointerAligned);
+            {
+                result[0] = new(obj, 0, ObjectCorruptionKind.ObjectNotPointerAligned);
+                return 1;
+            }
 
             if (!obj.IsFree)
             {
                 // Can we read the method table?
                 if (!_memoryReader.Read(obj.Address, out ulong mt))
-                    return new ObjectCorruption(obj, 0, ObjectCorruptionKind.CouldNotReadMethodTable);
+                {
+                    result[0] = new(obj, 0, ObjectCorruptionKind.CouldNotReadMethodTable);
+                    return 1;
+                }
 
                 // Is the method table we read valid?
                 if (!IsValidMethodTable(mt))
-                    return new ObjectCorruption(obj, 0, ObjectCorruptionKind.InvalidMethodTable);
-
-                // This shouldn't happen if VerifyMethodTable above returns success, but we'll make sure.
-                if (obj.Type is null)
-                    return new ObjectCorruption(obj, 0, ObjectCorruptionKind.InvalidMethodTable);
+                {
+                    result[0] = new(obj, 0, ObjectCorruptionKind.InvalidMethodTable);
+                    return 1;
+                }
+                else if (obj.Type is null)
+                {
+                    // This shouldn't happen if VerifyMethodTable above returns success, but we'll make sure.
+                    result[0] = new(obj, 0, ObjectCorruptionKind.InvalidMethodTable);
+                    return 1;
+                }
             }
+
+            // Any previous failures are fatal, we can't keep verifying the object.  From here, though, we'll
+            // attempt to report any and all failures we encounter.
+            int index = 0;
 
             // Check object size
             int intSize = obj.Size > int.MaxValue ? int.MaxValue : (int)obj.Size;
             if (obj + obj.Size > seg.ObjectRange.End || (!obj.IsFree && obj.Size > seg.MaxObjectSize))
-                return new ObjectCorruption(obj, _memoryReader.PointerSize, ObjectCorruptionKind.ObjectTooLarge);
+                if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, _memoryReader.PointerSize, ObjectCorruptionKind.ObjectTooLarge)))
+                    return index;
 
+            // If we are inspecting a free object, the rest of this method is not needed.
             if (obj.IsFree)
-                return null;
+                return index;
 
             // Validate members
             bool verifyMembers;
@@ -369,35 +390,67 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 // Type can't be null, we checked above.  The compiler just get lost in the IsFree checks.
                 verifyMembers = obj.Type!.ContainsPointers && ShouldVerifyMembers(seg, obj);
+
+                // If the object is an array and too large, it likely means someone wrote over the size
+                // field of our array.  Trying to verify the members of the array will generate a ton
+                // of noisy failures, so we'll avoid doing that.
+                if (verifyMembers && obj.Type.IsArray)
+                {
+                    for (int i = 0; i < index; i++)
+                    {
+                        if (result[i].Kind == ObjectCorruptionKind.ObjectTooLarge)
+                        {
+                            verifyMembers = false;
+                            break;
+                        }
+                    }
+                }
             }
             catch (IOException)
             {
-                return new ObjectCorruption(obj, 0, ObjectCorruptionKind.CouldNotReadCardTable);
+                if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, 0, ObjectCorruptionKind.CouldNotReadCardTable)))
+                    return index;
+
+                verifyMembers = false;
             }
 
             if (verifyMembers)
             {
                 GCDesc gcdesc = obj.Type!.GCDesc;
                 if (gcdesc.IsEmpty)
-                    return new ObjectCorruption(obj, 0, ObjectCorruptionKind.CouldNotReadGCDesc);
+                    if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, 0, ObjectCorruptionKind.CouldNotReadGCDesc)))
+                        return index;
 
                 ulong freeMt = seg.SubHeap.Heap.FreeType.MethodTable;
                 byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
                 int read = _memoryReader.Read(obj, new Span<byte>(buffer, 0, intSize));
                 if (read != intSize)
-                    return new ObjectCorruption(obj, read >= 0 ? read : 0, ObjectCorruptionKind.CouldNotReadObject);
+                    if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, read >= 0 ? read : 0, ObjectCorruptionKind.CouldNotReadObject)))
+                        return index;
 
                 foreach ((ulong objRef, int offset) in gcdesc.WalkObject(buffer, intSize))
                 {
                     if ((objRef & ((uint)_memoryReader.PointerSize - 1)) != 0)
-                        return new ObjectCorruption(obj, offset, ObjectCorruptionKind.ObjectReferenceNotPointerAligned);
+                    {
+                        if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, offset, ObjectCorruptionKind.ObjectReferenceNotPointerAligned)))
+                            break;
+                    }
+
                     if (!_memoryReader.Read(objRef, out ulong mt) || !IsValidMethodTable(mt))
-                        return new ObjectCorruption(obj, offset, ObjectCorruptionKind.InvalidObjectReference);
+                    {
+                        if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, offset, ObjectCorruptionKind.InvalidObjectReference)))
+                            break;
+                    }
                     else if ((mt & ~1ul) == freeMt)
-                        return new ObjectCorruption(obj, offset, ObjectCorruptionKind.FreeObjectReference);
+                    {
+                        if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, offset, ObjectCorruptionKind.FreeObjectReference)))
+                            break;
+                    }
                 }
 
                 ArrayPool<byte>.Shared.Return(buffer);
+                if (index >= result.Length)
+                    return index;
             }
 
             // Object header validation tests:
@@ -407,30 +460,46 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             SyncBlock? blk = syncBlocks.TryGetSyncBlock(obj);
             if ((objHeader & SyncBlockHashOrSyncBlockIndex) != 0 && (objHeader & SyncBlockHashCodeIndex) == 0)
             {
-                uint index = (objHeader & SyncBlockIndexMask);
+                uint sblkIndex = objHeader & SyncBlockIndexMask;
                 int clrIndex = blk?.Index ?? -1;
 
-                if (index == 0)
-                    return new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockZero, -1, clrIndex);
-                else if (index != clrIndex)
-                    return new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockMismatch, (int)index, clrIndex);
+                if (sblkIndex == 0)
+                {
+                    if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockZero, -1, clrIndex)))
+                        return index;
+                }
+                else if (sblkIndex != clrIndex)
+                {
+                    if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockMismatch, (int)sblkIndex, clrIndex)))
+                        return index;
+                }
             }
             else if (blk is not null)
             {
-                return new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockMismatch, -1, blk.Index);
+                if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockMismatch, -1, blk.Index)))
+                    return index;
             }
 
             // Validate Thinlock
             if (HasThinlock(objHeader))
             {
                 ClrRuntime runtime = seg.SubHeap.Heap.Runtime;
-                (uint threadId, _) = ClrHeapHelpers.GetThinlockData(objHeader);
+                (uint threadId, _) = GetThinlockData(objHeader);
                 ulong address = _sos.GetThreadFromThinlockId(threadId);
                 if (address == 0 || !runtime.Threads.Any(th => th.Address == address))
-                    return new ObjectCorruption(obj, -4, ObjectCorruptionKind.InvalidThinlock);
+                {
+                    if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, -4, ObjectCorruptionKind.InvalidThinlock)))
+                        return index;
+                }
             }
 
-            return null;
+            return index;
+        }
+
+        private static bool AddCorruptionAndContinue(Span<ObjectCorruption> result, ref int curr, ObjectCorruption objectCorruption)
+        {
+            result[curr++] = objectCorruption;
+            return curr < result.Length;
         }
 
         private bool ShouldVerifyMembers(ClrSegment seg, ClrObject obj)
