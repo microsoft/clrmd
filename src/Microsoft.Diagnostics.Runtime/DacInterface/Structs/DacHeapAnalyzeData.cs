@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct DacHeapAnalyzeData
+    internal readonly struct DacHeapAnalyzeData
     {
         public readonly ClrDataAddress HeapAddress;
         public readonly ClrDataAddress InternalRootArray;

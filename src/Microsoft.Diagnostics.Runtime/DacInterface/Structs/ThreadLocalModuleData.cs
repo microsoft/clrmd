@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct ThreadLocalModuleData
+    internal readonly struct ThreadLocalModuleData
     {
         public readonly ClrDataAddress ThreadAddress;
         public readonly ClrDataAddress ModuleIndex;

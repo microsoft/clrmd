@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct SegmentData
+    internal readonly struct SegmentData
     {
         public readonly ClrDataAddress Address;
         public readonly ClrDataAddress Allocated;

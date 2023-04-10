@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public struct ThreadData
+    internal struct ThreadData
     {
         public readonly uint ManagedThreadId;
         public readonly uint OSThreadId;

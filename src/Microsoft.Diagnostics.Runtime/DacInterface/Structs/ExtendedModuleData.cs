@@ -3,7 +3,7 @@
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public struct ExtendedModuleData
+    internal struct ExtendedModuleData
     {
         public int IsDynamic;
         public int IsInMemory;

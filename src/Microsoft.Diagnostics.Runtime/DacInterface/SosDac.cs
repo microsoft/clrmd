@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     /// <summary>
     /// This is an undocumented, untested, and unsupported interface.  Do not use.
     /// </summary>
-    public sealed unsafe class SOSDac : CallableCOMWrapper
+    internal sealed unsafe class SOSDac : CallableCOMWrapper
     {
         internal static readonly Guid IID_ISOSDac = new("436f00f2-b42a-4b9f-870c-e73db66ae930");
 

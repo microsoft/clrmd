@@ -9,7 +9,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public sealed unsafe class SOSHandleEnum : CallableCOMWrapper
+    internal sealed unsafe class SOSHandleEnum : CallableCOMWrapper
     {
         private readonly List<nint> _data = new();
 

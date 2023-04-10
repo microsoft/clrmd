@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct AppDomainStoreData
+    internal readonly struct AppDomainStoreData
     {
         public readonly ClrDataAddress SharedDomain;
         public readonly ClrDataAddress SystemDomain;
