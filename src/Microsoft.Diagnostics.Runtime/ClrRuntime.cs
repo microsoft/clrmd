@@ -90,6 +90,12 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrModule BaseClassLibrary => GetAppDomainData().BaseClassLibrary!;
 
         /// <summary>
+        /// Gets information about CLR's ThreadPool.  May return null if we could not obtain
+        /// ThreadPool data from the target process or dump.
+        /// </summary>
+        public ClrThreadPool? ThreadPool => _helpers.GetThreadPool();
+
+        /// <summary>
         /// Gets all managed threads in the process.  Only threads which have previously run managed
         /// code will be enumerated.
         /// </summary>
