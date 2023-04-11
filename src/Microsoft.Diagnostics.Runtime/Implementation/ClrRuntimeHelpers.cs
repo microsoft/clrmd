@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -327,5 +328,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         }
 
         public string? GetJitHelperFunctionName(ulong address) => _sos.GetJitHelperFunctionName(address);
+
+        public ClrThreadPool? GetThreadPool()
+        {
+            ClrThreadPoolHelper helper = new(_sos);
+            ClrThreadPool result = new(Runtime, helper);
+            return result.Initialized ? result : null;
+        }
     }
 }
