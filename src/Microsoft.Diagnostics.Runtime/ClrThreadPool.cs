@@ -53,6 +53,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public int TotalCompletionPorts { get; }
         public int FreeCompletionPorts { get; }
+        public int MaxFreeCompletionPorts { get; }
         public int CompletionPortCurrentLimit { get; }
         public int MinCompletionPorts { get; }
         public int MaxCompletionPorts { get; }
@@ -99,6 +100,14 @@ namespace Microsoft.Diagnostics.Runtime
                 IdleWorkerThreads = tpData.NumIdleWorkerThreads;
                 ActiveWorkerThreads = tpData.NumWorkingWorkerThreads;
                 RetiredWorkerThreads = tpData.NumRetiredWorkerThreads;
+
+                TotalCompletionPorts = tpData.NumCPThreads;
+                FreeCompletionPorts = tpData.NumFreeCPThreads;
+                MaxFreeCompletionPorts = tpData.MaxFreeCPThreads;
+                CompletionPortCurrentLimit = tpData.CurrentLimitTotalCPThreads;
+                MaxCompletionPorts = tpData.MaxLimitTotalCPThreads;
+                MinCompletionPorts = tpData.MinLimitTotalCPThreads;
+
                 _firstLegacyWorkRequest = tpData.FirstUnmanagedWorkRequest;
                 _asyncTimerFunction = tpData.AsyncTimerCallbackCompletionFPtr;
             }
