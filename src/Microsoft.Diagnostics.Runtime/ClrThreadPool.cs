@@ -3,15 +3,17 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// Information about the CLR Runtime's ThreadPool.
     /// </summary>
-    public sealed class ClrThreadPool
+    public sealed class ClrThreadPool : IClrThreadPool
     {
         private readonly ClrRuntime _runtime;
         private readonly IClrThreadPoolHelper _helpers;
@@ -170,6 +172,8 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
+        IEnumerable<IHillClimbingLogEntry> IClrThreadPool.EnumerateHillClimbingLog() => this.EnumerateHillClimbingLog().Cast<IHillClimbingLogEntry>();
+
         private ClrObject GetPortableThreadPool(bool mustBePortable)
         {
             ClrModule bcl = _runtime.BaseClassLibrary;
@@ -203,7 +207,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// An entry in the HillClimbing log.
     /// </summary>
-    public class HillClimbingLogEntry
+    public class HillClimbingLogEntry : IHillClimbingLogEntry
     {
         /// <summary>
         /// The tick count of this entry.
