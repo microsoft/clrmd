@@ -168,11 +168,15 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 int index = (i + start) % size;
                 ClrValueType logEntry = logArray.GetStructValue(index);
-                yield return new HillClimbingLogEntry(logEntry);
+
+                int tickCount = logEntry.ReadField<int>("tickCount");
+                HillClimbingTransition stateOrTransition = logEntry.ReadField<HillClimbingTransition>("stateOrTransition");
+                int newControlSetting = logEntry.ReadField<int>("newControlSetting");
+                int lastHistoryCount = logEntry.ReadField<int>("lastHistoryCount");
+                float lastHistoryMean = logEntry.ReadField<float>("lastHistoryMean");
+                yield return new HillClimbingLogEntry(tickCount, stateOrTransition, newControlSetting, lastHistoryCount, lastHistoryMean);
             }
         }
-
-        IEnumerable<IHillClimbingLogEntry> IClrThreadPool.EnumerateHillClimbingLog() => this.EnumerateHillClimbingLog().Cast<IHillClimbingLogEntry>();
 
         private ClrObject GetPortableThreadPool(bool mustBePortable)
         {
@@ -207,7 +211,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// <summary>
     /// An entry in the HillClimbing log.
     /// </summary>
-    public class HillClimbingLogEntry : IHillClimbingLogEntry
+    public class HillClimbingLogEntry
     {
         /// <summary>
         /// The tick count of this entry.
@@ -222,25 +226,28 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The new control setting.
         /// </summary>
-        public int NewControlSetting { get; }
+        public int NewThreadCount { get; }
 
         /// <summary>
         /// The last history count.
         /// </summary>
-        public int LastHistoryCount { get; }
+        public int SampleCount { get; }
 
         /// <summary>
         /// The last history mean.
         /// </summary>
-        public float LastHistoryMean { get; }
+        public float Throughput { get; }
 
-        internal HillClimbingLogEntry(ClrValueType logEntry)
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public HillClimbingLogEntry(int tickCount, HillClimbingTransition stateOrTransition, int newThreadCount, int sampleCount, float throughput)
         {
-            TickCount = logEntry.ReadField<int>("tickCount");
-            StateOrTransition = logEntry.ReadField<HillClimbingTransition>("stateOrTransition");
-            NewControlSetting = logEntry.ReadField<int>("newControlSetting");
-            LastHistoryCount = logEntry.ReadField<int>("lastHistoryCount");
-            LastHistoryMean = logEntry.ReadField<float>("lastHistoryMean");
+            TickCount = tickCount;
+            StateOrTransition = stateOrTransition;
+            NewThreadCount = newThreadCount;
+            SampleCount = sampleCount;
+            Throughput = throughput;
         }
     }
 }

@@ -63,6 +63,6 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         /// Note this is currently only supported on .Net Core and not Desktop CLR.
         /// </summary>
         /// <returns>An enumeration of the HillClimbing log, or an empty enumeration for Desktop CLR.</returns>
-        IEnumerable<IHillClimbingLogEntry> EnumerateHillClimbingLog();
+        IEnumerable<HillClimbingLogEntry> EnumerateHillClimbingLog();
     }
 }
