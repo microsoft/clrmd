@@ -271,7 +271,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private void ThrowIfDisposed()
         {
             if (_cache == null)
-                throw new ObjectDisposedException(this.GetType().Name);
+                throw new ObjectDisposedException(GetType().Name);
         }
     }
 }

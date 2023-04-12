@@ -30,8 +30,8 @@ namespace Microsoft.Diagnostics.Runtime
             LockCount = data.LockCount;
             State = (ClrThreadState)data.State;
             _exceptionHandle = data.LastThrownObjectHandle;
-            this.IsFinalizer = isFinalizer;
-            this.IsGc = isGc;
+            IsFinalizer = isFinalizer;
+            IsGc = isGc;
 
             if (data.Teb != 0)
             {

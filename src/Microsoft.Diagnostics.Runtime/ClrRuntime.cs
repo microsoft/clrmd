@@ -153,7 +153,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        IClrThreadPool? IClrRuntime.ThreadPool => this.ThreadPool;
+        IClrThreadPool? IClrRuntime.ThreadPool => ThreadPool;
 
         IClrHeap IClrRuntime.Heap => Heap;
 
