@@ -78,8 +78,8 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 Portable = true;
                 CpuUtilization = threadPool.ReadField<int>("_cpuUtilization");
-                MinThreads = threadPool.ReadField<int>("_minThreads");
-                MaxThreads = threadPool.ReadField<int>("_maxThreads");
+                MinThreads = threadPool.ReadField<ushort>("_minThreads");
+                MaxThreads = threadPool.ReadField<ushort>("_maxThreads");
 
                 ClrValueType counts = threadPool.ReadValueTypeField("_separated").ReadValueTypeField("counts").ReadValueTypeField("_data");
                 ulong dataValue = counts.ReadField<ulong>("m_value");
