@@ -92,7 +92,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         }
 
         SosMemoryEnum? ISOSDac13.GetGCBookkeepingMemoryRegions() => null;
-        ulong[] ISOSDac13.GetGCFreeRegions() => Array.Empty<ulong>();
+        SosMemoryEnum? ISOSDac13.GetGCFreeRegions() => null;
         SosMemoryEnum? ISOSDac13.GetHandleTableRegions() => null;
         bool ISOSDac13.LockedFlush() => false;
 

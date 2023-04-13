@@ -361,16 +361,28 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public IEnumerable<ClrNativeHeapInfo> EnumerateGCFreeRegions()
         {
-            if (_sos13 is not null)
+            using (SosMemoryEnum? memoryEnum = _sos13?.GetGCFreeRegions())
             {
-                foreach (ulong address in _sos13.GetGCFreeRegions())
-                {
-                    if (_sos.GetSegmentData(address, out SegmentData segData))
+                if (memoryEnum is not null)
+                    foreach (SosMemoryRegion mem in memoryEnum)
                     {
-                        if (segData.Start < segData.Committed)
-                            yield return new ClrNativeHeapInfo(segData.Start, segData.Committed - segData.Start, NativeHeapKind.GCFreeSegment, ClrNativeHeapState.Inactive);
+                        NativeHeapKind kind = (ulong)mem.ExtraData switch
+                        {
+                            1 => NativeHeapKind.GCFreeGlobalHugeRegion,
+                            2 => NativeHeapKind.GCFreeGlobalRegion,
+                            3 => NativeHeapKind.GCFreeRegion,
+                            4 => NativeHeapKind.GCFreeSohSegment,
+                            5 => NativeHeapKind.GCFreeUohSegment,
+                            _ => NativeHeapKind.GCFreeRegion
+                        };
+
+                        ulong raw = (ulong)mem.Start;
+                        ulong start = raw & ~0xfful;
+                        ulong diff = raw - start;
+                        ulong len = mem.Length + diff;
+
+                        yield return new ClrNativeHeapInfo(start, len, kind, ClrNativeHeapState.Inactive);
                     }
-                }
             }
         }
 
@@ -380,7 +392,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 if (memoryEnum is not null)
                     foreach (SosMemoryRegion mem in memoryEnum)
-                        yield return new ClrNativeHeapInfo(mem.Start, mem.Length, NativeHeapKind.HandleTable, ClrNativeHeapState.None);
+                        yield return new ClrNativeHeapInfo(mem.Start, mem.Length, NativeHeapKind.HandleTable, ClrNativeHeapState.Active);
             }
         }
 

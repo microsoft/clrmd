@@ -100,8 +100,13 @@ namespace Microsoft.Diagnostics.Runtime
         GCBookkeeping,
 
         /// <summary>
-        /// GC segments/regions which are currently unused (but still allocated).
+        /// GC segments which is currently unused (but still allocated).
         /// </summary>
-        GCFreeSegment,
+        GCFreeRegion,
+
+        GCFreeGlobalHugeRegion,
+        GCFreeGlobalRegion,
+        GCFreeSohSegment,
+        GCFreeUohSegment,
     }
 }

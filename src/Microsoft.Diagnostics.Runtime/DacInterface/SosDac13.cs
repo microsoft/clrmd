@@ -106,21 +106,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr ? new SosMemoryEnum(_library, pUnk) : null;
         }
 
-        public ulong[] GetGCFreeRegions()
+        public SosMemoryEnum? GetGCFreeRegions()
         {
-            HResult hr = VTable.GetGCFreeRegions(Self, 0, null, out int needed);
-            if (!hr || needed == 0)
-                return Array.Empty<ulong>();
-
-            ClrDataAddress[] result = new ClrDataAddress[needed];
-            fixed (ClrDataAddress* ptr = result)
-            {
-                hr = VTable.GetGCFreeRegions(Self, 0, null, out int count);
-                if (hr && count > 0)
-                    return result.Take(count).Select(addr => (ulong)addr).ToArray();
-            }
-
-            return Array.Empty<ulong>();
+            HResult hr = VTable.GetGCFreeRegions(Self, out nint pUnk);
+            return hr ? new SosMemoryEnum(_library, pUnk) : null;
         }
 
         public void LockedFlush()
@@ -160,7 +149,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             public readonly delegate* unmanaged[Stdcall]<nint, out nint, int> GetHandleTableMemoryRegions;
             public readonly delegate* unmanaged[Stdcall]<nint, out nint, int> GetGCBookkeepingMemoryRegions;
-            public readonly delegate* unmanaged[Stdcall]<nint, int, ClrDataAddress*, out int, int> GetGCFreeRegions;
+            public readonly delegate* unmanaged[Stdcall]<nint, out nint, int> GetGCFreeRegions;
             public readonly delegate* unmanaged[Stdcall]<nint, int> LockedFlush;
         }
     }

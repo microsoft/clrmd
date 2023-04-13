@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         ClrDataAddress GetDomainLoaderAllocator(ClrDataAddress domainAddress);
         SosMemoryEnum? GetGCBookkeepingMemoryRegions();
-        ulong[] GetGCFreeRegions();
+        SosMemoryEnum? GetGCFreeRegions();
         SosMemoryEnum? GetHandleTableRegions();
         string[] GetLoaderAllocatorHeapNames();
         (ClrDataAddress Address, SOSDac13.LoaderHeapKind Kind)[] GetLoaderAllocatorHeaps(ClrDataAddress loaderAllocator);
