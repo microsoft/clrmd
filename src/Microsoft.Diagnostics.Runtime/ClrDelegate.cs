@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ClrObject Object { get; }
 
-        IClrValue IClrDelegate.Object => this.Object;
+        IClrValue IClrDelegate.Object => Object;
 
         /// <summary>
         /// Returns a the single delegate target of the

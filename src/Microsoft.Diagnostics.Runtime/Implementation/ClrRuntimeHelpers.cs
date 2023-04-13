@@ -235,13 +235,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             HashSet<ulong> seen = new() { 0 };
             ulong addr = _threadStore.FirstThread;
+
             int i;
             for (i = 0; i < _threadStore.ThreadCount && seen.Add(addr); i++)
             {
                 if (!_sos.GetThreadData(addr, out ThreadData threadData))
                     break;
 
-                yield return new(helpers, Runtime, domainData.GetDomainByAddress(threadData.Domain), addr, threadData);
+                yield return new(helpers, Runtime, domainData.GetDomainByAddress(threadData.Domain), addr, threadData, addr == _threadStore.FinalizerThread, addr == _threadStore.GCThread);
 
                 addr = threadData.NextThread;
             }

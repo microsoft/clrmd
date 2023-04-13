@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public int ClrSyncBlockIndex { get; } = -1;
 
-        IClrValue IObjectCorruption.Object => this.Object;
+        IClrValue IObjectCorruption.Object => Object;
 
         public ObjectCorruption(ClrObject obj, int offset, ObjectCorruptionKind kind)
         {

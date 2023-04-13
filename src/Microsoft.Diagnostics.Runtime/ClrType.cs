@@ -301,19 +301,19 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         internal IClrTypeHelpers Helpers { get; }
 
-        IClrType? IClrType.BaseType => this.BaseType;
+        IClrType? IClrType.BaseType => BaseType;
 
-        IClrType? IClrType.ComponentType => this.ComponentType;
+        IClrType? IClrType.ComponentType => ComponentType;
 
-        ImmutableArray<IClrInstanceField> IClrType.Fields => this.Fields.Cast<IClrInstanceField>().ToImmutableArray();
+        ImmutableArray<IClrInstanceField> IClrType.Fields => Fields.Cast<IClrInstanceField>().ToImmutableArray();
 
-        IClrHeap IClrType.Heap => this.Heap;
+        IClrHeap IClrType.Heap => Heap;
 
-        ImmutableArray<IClrMethod> IClrType.Methods => this.Methods.Cast<IClrMethod>().ToImmutableArray();
+        ImmutableArray<IClrMethod> IClrType.Methods => Methods.Cast<IClrMethod>().ToImmutableArray();
 
-        IClrModule? IClrType.Module => this.Module;
+        IClrModule? IClrType.Module => Module;
 
-        ImmutableArray<IClrStaticField> IClrType.StaticFields => this.StaticFields.Cast<IClrStaticField>().ToImmutableArray();
+        ImmutableArray<IClrStaticField> IClrType.StaticFields => StaticFields.Cast<IClrStaticField>().ToImmutableArray();
 
         public override bool Equals(object? obj) => Equals(obj as ClrType);
 

@@ -153,6 +153,8 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
+        IClrThreadPool? IClrRuntime.ThreadPool => ThreadPool;
+
         IClrHeap IClrRuntime.Heap => Heap;
 
         ImmutableArray<IClrAppDomain> IClrRuntime.AppDomains => AppDomains.CastArray<IClrAppDomain>();

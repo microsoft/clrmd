@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly IClrThreadHelpers _helpers;
         private readonly ulong _exceptionHandle;
 
-        internal ClrThread(IClrThreadHelpers helpers, ClrRuntime runtime, ClrAppDomain? currentDomain, ulong address, in ThreadData data)
+        internal ClrThread(IClrThreadHelpers helpers, ClrRuntime runtime, ClrAppDomain? currentDomain, ulong address, in ThreadData data, bool isFinalizer, bool isGc)
         {
             _helpers = helpers;
             Runtime = runtime;
@@ -30,6 +30,8 @@ namespace Microsoft.Diagnostics.Runtime
             LockCount = data.LockCount;
             State = (ClrThreadState)data.State;
             _exceptionHandle = data.LastThrownObjectHandle;
+            IsFinalizer = isFinalizer;
+            IsGc = isGc;
 
             if (data.Teb != 0)
             {
@@ -40,6 +42,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
             GCMode = data.PreemptiveGCDisabled == 0 ? GCMode.Preemptive : GCMode.Cooperative;
         }
+
         /// <summary>
         /// Gets the runtime associated with this thread.
         /// </summary>
@@ -64,6 +67,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// Returns true if the thread is alive in the process, false if this thread was recently terminated.
         /// </summary>
         public bool IsAlive => OSThreadId != 0 && (State & (ClrThreadState.TS_Unstarted | ClrThreadState.TS_Dead)) == 0;
+
+        /// <summary>
+        /// Returns true if a finalizer thread otherwise false.
+        /// </summary>
+        public bool IsFinalizer { get; }
+
+        /// <summary>
+        /// Returns true if a GC thread otherwise false.
+        /// </summary>
+        public bool IsGc { get; }
 
         /// <summary>
         /// Gets the OS thread id for the thread.
