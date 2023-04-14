@@ -25,20 +25,19 @@ namespace Microsoft.Diagnostics.Runtime
         public NativeHeapKind Kind { get; }
 
         /// <summary>
-        /// Whether this particular region of the heap is the current block or if it's been already
-        /// filled.
+        /// The additional state info of this memory, if applicable.
         /// </summary>
-        public bool IsCurrentBlock { get; }
+        public ClrNativeHeapState State { get; }
 
         /// <summary>
         /// Constructor.
         /// </summary>
-        public ClrNativeHeapInfo(ulong address, ulong? size, NativeHeapKind kind, bool current)
+        public ClrNativeHeapInfo(ulong address, ulong? size, NativeHeapKind kind, ClrNativeHeapState state)
         {
             Address = address;
             Size = size;
             Kind = kind;
-            IsCurrentBlock = current;
+            State = state;
         }
 
         /// <inheritdoc/>

@@ -24,8 +24,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly SOSDac _sos;
         private readonly SOSDac6? _sos6;
         private readonly SOSDac8? _sos8;
-        private readonly SOSDac12? _sos12;
-        private readonly SOSDac13? _sos13;
+        private readonly SosDac12? _sos12;
+        private readonly ISOSDac13? _sos13;
         private readonly CacheOptions _cacheOptions;
         private readonly IClrModuleHelpers _moduleHelpers;
         private ClrAppDomainData? _domainData;
@@ -54,6 +54,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             if (!_sos.GetThreadStoreData(out _threadStore))
                 throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data.    Failed to request ThreadStoreData.");
+
+            library.DacDataTarget.SetMagicCallback(_dac.Flush);
         }
 
         public void Dispose()
@@ -96,6 +98,35 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             _domainData = null;
             _nativeHeapHelpers = null;
+            FlushDac();
+        }
+
+        private void FlushDac()
+        {
+            if (_sos13 is not null && _sos13.LockedFlush())
+                return;
+
+            // IXClrDataProcess::Flush is unfortunately not wrapped with DAC_ENTER.  This means that
+            // when it starts deleting memory, it's completely unsynchronized with parallel reads
+            // and writes, leading to heap corruption and other issues.  This means that in order to
+            // properly clear dac data structures, we need to trick the dac into entering the critical
+            // section for us so we can call Flush safely then.
+
+            // To accomplish this, we set a hook in our implementation of IDacDataTarget::ReadVirtual
+            // which will call IXClrDataProcess::Flush if the dac tries to read the address set by
+            // MagicCallbackConstant.  Additionally we make sure this doesn't interfere with other
+            // reads by 1) Ensuring that the address is in kernel space, 2) only calling when we've
+            // entered a special context.
+
+            _library.DacDataTarget.EnterMagicCallbackContext();
+            try
+            {
+                _sos.GetWorkRequestData(DacDataTarget.MagicCallbackConstant, out _);
+            }
+            finally
+            {
+                _library.DacDataTarget.ExitMagicCallbackContext();
+            }
         }
 
         public IClrNativeHeapHelpers GetNativeHeapHelpers()
@@ -325,6 +356,53 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                             break;
                     }
                 }
+            }
+        }
+
+        public IEnumerable<ClrNativeHeapInfo> EnumerateGCFreeRegions()
+        {
+            using (SosMemoryEnum? memoryEnum = _sos13?.GetGCFreeRegions())
+            {
+                if (memoryEnum is not null)
+                    foreach (SosMemoryRegion mem in memoryEnum)
+                    {
+                        NativeHeapKind kind = (ulong)mem.ExtraData switch
+                        {
+                            1 => NativeHeapKind.GCFreeGlobalHugeRegion,
+                            2 => NativeHeapKind.GCFreeGlobalRegion,
+                            3 => NativeHeapKind.GCFreeRegion,
+                            4 => NativeHeapKind.GCFreeSohSegment,
+                            5 => NativeHeapKind.GCFreeUohSegment,
+                            _ => NativeHeapKind.GCFreeRegion
+                        };
+
+                        ulong raw = (ulong)mem.Start;
+                        ulong start = raw & ~0xfful;
+                        ulong diff = raw - start;
+                        ulong len = mem.Length + diff;
+
+                        yield return new ClrNativeHeapInfo(start, len, kind, ClrNativeHeapState.Inactive);
+                    }
+            }
+        }
+
+        public IEnumerable<ClrNativeHeapInfo> EnumerateHandleTableRegions()
+        {
+            using (SosMemoryEnum? memoryEnum = _sos13?.GetHandleTableRegions())
+            {
+                if (memoryEnum is not null)
+                    foreach (SosMemoryRegion mem in memoryEnum)
+                        yield return new ClrNativeHeapInfo(mem.Start, mem.Length, NativeHeapKind.HandleTable, ClrNativeHeapState.Active);
+            }
+        }
+
+        public IEnumerable<ClrNativeHeapInfo> EnumerateGCBookkeepingRegions()
+        {
+            using (SosMemoryEnum? memoryEnum = _sos13?.GetGCBookkeepingMemoryRegions())
+            {
+                if (memoryEnum is not null)
+                    foreach (SosMemoryRegion mem in memoryEnum)
+                        yield return new ClrNativeHeapInfo(mem.Start, mem.Length, NativeHeapKind.GCBookkeeping, ClrNativeHeapState.RegionOfRegions);
             }
         }
 

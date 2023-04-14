@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 
@@ -240,6 +241,21 @@ namespace Microsoft.Diagnostics.Runtime
                         foreach (ClrNativeHeapInfo heap in module.EnumerateLoaderAllocatorHeaps())
                             yield return heap;
                 }
+            }
+
+            foreach (ClrNativeHeapInfo gcFreeRegion in _helpers.EnumerateGCFreeRegions())
+            {
+                yield return gcFreeRegion;
+            }
+
+            foreach (ClrNativeHeapInfo handleHeap in _helpers.EnumerateHandleTableRegions())
+            {
+                yield return handleHeap;
+            }
+
+            foreach (ClrNativeHeapInfo bkRegions in _helpers.EnumerateGCBookkeepingRegions())
+            {
+                yield return bkRegions;
             }
         }
 

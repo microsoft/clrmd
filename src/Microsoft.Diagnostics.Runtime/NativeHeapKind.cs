@@ -88,5 +88,25 @@ namespace Microsoft.Diagnostics.Runtime
         /// ThunkHeap
         /// </summary>
         ThunkHeap,
+
+        /// <summary>
+        /// GC Handle table.
+        /// </summary>
+        HandleTable,
+
+        /// <summary>
+        /// GC Bookkeeping regions
+        /// </summary>
+        GCBookkeeping,
+
+        /// <summary>
+        /// GC segments which is currently unused (but still allocated).
+        /// </summary>
+        GCFreeRegion,
+
+        GCFreeGlobalHugeRegion,
+        GCFreeGlobalRegion,
+        GCFreeSohSegment,
+        GCFreeUohSegment,
     }
 }

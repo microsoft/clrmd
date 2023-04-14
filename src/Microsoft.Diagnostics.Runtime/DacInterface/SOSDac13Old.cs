@@ -1,28 +1,25 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac;
+using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     /// <summary>
     /// This is an undocumented, untested, and unsupported interface.  Do not use directly.
     /// </summary>
-    public sealed unsafe class SOSDac13 : CallableCOMWrapper, ISOSDac13
+    public sealed unsafe class SOSDac13Old : CallableCOMWrapper, ISOSDac13
     {
-        private readonly DacLibrary _library;
+        internal static readonly Guid IID_ISOSDac13 = new("3176a8ed-597b-4f54-a71f-83695c6a8c5d");
 
-        internal static readonly Guid IID_ISOSDac13 = new("3176a8ed-597b-4f54-a71f-83695c6a8c5e");
-
-        public SOSDac13(DacLibrary library, IntPtr ptr)
+        public SOSDac13Old(DacLibrary library, IntPtr ptr)
             : base(library?.OwningLibrary, IID_ISOSDac13, ptr)
         {
-            _library = library ?? throw new ArgumentNullException(nameof(library));
         }
 
         private ref readonly ISOSDac13VTable VTable => ref Unsafe.AsRef<ISOSDac13VTable>(_vtable);
@@ -94,50 +91,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return Array.Empty<(ClrDataAddress, LoaderHeapKind)>();
         }
 
-        public SosMemoryEnum? GetHandleTableRegions()
-        {
-            HResult hr = VTable.GetHandleTableMemoryRegions(Self, out nint pUnk);
-            return hr ? new SosMemoryEnum(_library, pUnk) : null;
-        }
-
-        public SosMemoryEnum? GetGCBookkeepingMemoryRegions()
-        {
-            HResult hr = VTable.GetGCBookkeepingMemoryRegions(Self, out nint pUnk);
-            return hr ? new SosMemoryEnum(_library, pUnk) : null;
-        }
-
-        public SosMemoryEnum? GetGCFreeRegions()
-        {
-            HResult hr = VTable.GetGCFreeRegions(Self, out nint pUnk);
-            return hr ? new SosMemoryEnum(_library, pUnk) : null;
-        }
-
-        public void LockedFlush()
-        {
-            VTable.LockedFlush(Self);
-        }
-
-        bool ISOSDac13.LockedFlush()
-        {
-            LockedFlush();
-            return true;
-        }
-
-        /// <summary>
-        /// The type of the underlying loader heap.
-        /// </summary>
-        public enum LoaderHeapKind
-        {
-            /// <summary>
-            /// A LoaderHeap in the CLR codebase.
-            /// </summary>
-            LoaderHeapKindNormal = 0,
-
-            /// <summary>
-            /// An ExplicitControlLoaderHeap in the CLR codebase.
-            /// </summary>
-            LoaderHeapKindExplicitControl = 1
-        }
+        SosMemoryEnum? ISOSDac13.GetGCBookkeepingMemoryRegions() => null;
+        SosMemoryEnum? ISOSDac13.GetGCFreeRegions() => null;
+        SosMemoryEnum? ISOSDac13.GetHandleTableRegions() => null;
+        bool ISOSDac13.LockedFlush() => false;
 
         [StructLayout(LayoutKind.Sequential)]
         private readonly unsafe struct ISOSDac13VTable
@@ -146,11 +103,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             public readonly delegate* unmanaged[Stdcall]<nint, ClrDataAddress, out ClrDataAddress, int> GetDomainLoaderAllocator;
             public readonly delegate* unmanaged[Stdcall]<nint, int, nint*, out int, int> GetLoaderAllocatorHeapNames;
             public readonly delegate* unmanaged[Stdcall]<nint, ClrDataAddress, int, ClrDataAddress*, LoaderHeapKind*, out int, int> GetLoaderAllocatorHeaps;
-
-            public readonly delegate* unmanaged[Stdcall]<nint, out nint, int> GetHandleTableMemoryRegions;
-            public readonly delegate* unmanaged[Stdcall]<nint, out nint, int> GetGCBookkeepingMemoryRegions;
-            public readonly delegate* unmanaged[Stdcall]<nint, out nint, int> GetGCFreeRegions;
-            public readonly delegate* unmanaged[Stdcall]<nint, int> LockedFlush;
         }
     }
 }

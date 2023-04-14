@@ -81,15 +81,15 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        public SOSDac12? GetSOSDacInterface12()
+        public SosDac12? GetSOSDacInterface12()
         {
-            IntPtr result = QueryInterface(SOSDac12.IID_ISOSDac12);
+            IntPtr result = QueryInterface(SosDac12.IID_ISOSDac12);
             if (result == IntPtr.Zero)
                 return null;
 
             try
             {
-                return new SOSDac12(_library, result);
+                return new SosDac12(_library, result);
             }
             catch (InvalidOperationException)
             {
@@ -97,20 +97,33 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        public SOSDac13? GetSOSDacInterface13()
+        public ISOSDac13? GetSOSDacInterface13()
         {
             IntPtr result = QueryInterface(SOSDac13.IID_ISOSDac13);
-            if (result == IntPtr.Zero)
-                return null;
+            if (result != IntPtr.Zero)
+            {
+                try
+                {
+                    return new SOSDac13(_library, result);
+                }
+                catch (InvalidOperationException)
+                {
+                }
+            }
 
-            try
+            result = QueryInterface(SOSDac13Old.IID_ISOSDac13);
+            if (result != IntPtr.Zero)
             {
-                return new SOSDac13(_library, result);
+                try
+                {
+                    return new SOSDac13Old(_library, result);
+                }
+                catch (InvalidOperationException)
+                {
+                }
             }
-            catch (InvalidOperationException)
-            {
-                return null;
-            }
+
+            return null;
         }
 
         public void Flush()
