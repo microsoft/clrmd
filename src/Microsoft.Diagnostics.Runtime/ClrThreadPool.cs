@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
@@ -17,6 +19,9 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private readonly ClrRuntime _runtime;
         private readonly IClrThreadPoolHelper _helpers;
+        private readonly ulong _nativeLogAddress;
+        private readonly uint _nativeLogStart;
+        private readonly uint _nativeLogSize;
 
         /// <summary>
         /// Used to track whether we successfully initialized this object to prevent throw/catch.
@@ -110,6 +115,10 @@ namespace Microsoft.Diagnostics.Runtime
                 MaxCompletionPorts = tpData.MaxLimitTotalCPThreads;
                 MinCompletionPorts = tpData.MinLimitTotalCPThreads;
 
+                _nativeLogAddress = tpData.HillClimbingLog;
+                _nativeLogStart = tpData.HillClimbingLogFirstIndex;
+                _nativeLogSize = tpData.HillClimbingLogSize;
+
                 _firstLegacyWorkRequest = tpData.FirstUnmanagedWorkRequest;
                 _asyncTimerFunction = tpData.AsyncTimerCallbackCompletionFPtr;
             }
@@ -150,31 +159,48 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumeration of the HillClimbing log, or an empty enumeration for Desktop CLR.</returns>
         public IEnumerable<HillClimbingLogEntry> EnumerateHillClimbingLog()
         {
-            ClrType? hillClimbingType = _runtime.BaseClassLibrary.GetTypeByName("System.Threading.PortableThreadPool+HillClimbing");
-            ClrStaticField? hillClimberField = hillClimbingType?.GetStaticFieldByName("ThreadPoolHillClimber");
-            if (hillClimberField is null)
-                yield break;
-
-            ClrObject hillClimber = hillClimberField.ReadObject(GetDomain());
-
-            int start = hillClimber.ReadField<int>("_logStart");
-            int size = hillClimber.ReadField<int>("_logSize");
-            ClrObject log = hillClimber.ReadObjectField("_log");
-
-            ClrArray logArray = log.AsArray();
-            size = Math.Min(size, logArray.Length);
-
-            for (int i = 0; i < size; i++)
+            if (Portable)
             {
-                int index = (i + start) % size;
-                ClrValueType logEntry = logArray.GetStructValue(index);
+                ClrType? hillClimbingType = _runtime.BaseClassLibrary.GetTypeByName("System.Threading.PortableThreadPool+HillClimbing");
+                ClrStaticField? hillClimberField = hillClimbingType?.GetStaticFieldByName("ThreadPoolHillClimber");
+                if (hillClimberField is null)
+                    yield break;
 
-                int tickCount = logEntry.ReadField<int>("tickCount");
-                HillClimbingTransition stateOrTransition = logEntry.ReadField<HillClimbingTransition>("stateOrTransition");
-                int newControlSetting = logEntry.ReadField<int>("newControlSetting");
-                int lastHistoryCount = logEntry.ReadField<int>("lastHistoryCount");
-                float lastHistoryMean = logEntry.ReadField<float>("lastHistoryMean");
-                yield return new HillClimbingLogEntry(tickCount, stateOrTransition, newControlSetting, lastHistoryCount, lastHistoryMean);
+                ClrObject hillClimber = hillClimberField.ReadObject(GetDomain());
+
+                int start = hillClimber.ReadField<int>("_logStart");
+                int size = hillClimber.ReadField<int>("_logSize");
+                ClrObject log = hillClimber.ReadObjectField("_log");
+
+                ClrArray logArray = log.AsArray();
+                size = Math.Min(size, logArray.Length);
+
+                for (int i = 0; i < size; i++)
+                {
+                    int index = (i + start) % size;
+                    ClrValueType logEntry = logArray.GetStructValue(index);
+
+                    int tickCount = logEntry.ReadField<int>("tickCount");
+                    HillClimbingTransition stateOrTransition = logEntry.ReadField<HillClimbingTransition>("stateOrTransition");
+                    int newControlSetting = logEntry.ReadField<int>("newControlSetting");
+                    int lastHistoryCount = logEntry.ReadField<int>("lastHistoryCount");
+                    float lastHistoryMean = logEntry.ReadField<float>("lastHistoryMean");
+                    yield return new HillClimbingLogEntry(tickCount, stateOrTransition, newControlSetting, lastHistoryCount, lastHistoryMean);
+                }
+            }
+            else if (_nativeLogAddress != 0)
+            {
+                IDataReader reader = _runtime.DataTarget.DataReader;
+
+                uint sizeOfLogEntry = (uint)Unsafe.SizeOf<NativeHillClimbingLogEntry>();
+                for (uint i = 0; i < _nativeLogSize; i++)
+                {
+                    uint index = (i + _nativeLogStart) % _nativeLogSize;
+                    ulong address = _nativeLogAddress + index * sizeOfLogEntry;
+
+                    if (reader.Read(address, out NativeHillClimbingLogEntry entry))
+                        yield return new HillClimbingLogEntry(entry);
+                }
             }
         }
 
@@ -206,6 +232,17 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         private ClrAppDomain GetDomain() => _runtime.SharedDomain ?? _runtime.SystemDomain ?? _runtime.AppDomains[0];
+
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal readonly struct NativeHillClimbingLogEntry
+    {
+        public readonly int TickCount;
+        public readonly HillClimbingTransition Transition;
+        public readonly int NewControlSetting;
+        public readonly int LastHistoryCount;
+        public readonly float LastHistoryMean;
     }
 
     /// <summary>
@@ -248,6 +285,15 @@ namespace Microsoft.Diagnostics.Runtime
             NewThreadCount = newThreadCount;
             SampleCount = sampleCount;
             Throughput = throughput;
+        }
+
+        internal HillClimbingLogEntry(NativeHillClimbingLogEntry entry)
+        {
+            TickCount = entry.TickCount;
+            StateOrTransition = entry.Transition;
+            NewThreadCount = entry.NewControlSetting;
+            SampleCount = entry.LastHistoryCount;
+            Throughput = entry.LastHistoryMean;
         }
     }
 }

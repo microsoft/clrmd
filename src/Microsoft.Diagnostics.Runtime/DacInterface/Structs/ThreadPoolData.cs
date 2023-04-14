@@ -18,8 +18,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly ClrDataAddress FirstUnmanagedWorkRequest;
 
         public readonly ClrDataAddress HillClimbingLog;
-        public readonly int HillClimbingLogFirstIndex;
-        public readonly int HillClimbingLogSize;
+        public readonly uint HillClimbingLogFirstIndex;
+        public readonly uint HillClimbingLogSize;
 
         public readonly int NumTimers;
 
