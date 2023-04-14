@@ -37,8 +37,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public bool AreGCStructuresValid => _gcInfo.GCStructuresValid != 0;
 
-        public ulong SizeOfPlugAndGap { get; }
-
         public ClrHeapHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, SosDac12? sos12, IMemoryReader reader, CacheOptions cacheOptions)
         {
             _clrDataProcess = clrDataProcess;
@@ -48,7 +46,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _sos12 = sos12;
             _memoryReader = reader;
             _cacheOptions = cacheOptions;
-            SizeOfPlugAndGap = (ulong)_memoryReader.PointerSize * 4;
 
             if (!_sos.GetGCHeapData(out _gcInfo))
                 _gcInfo = default; // Ensure _gcInfo.GCStructuresValid == false.
@@ -247,10 +244,22 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // The range of memory occupied by allocated objects
             MemoryRange allocated = new(data.Start, subHeap.EphemeralHeapSegment == address ? subHeap.Allocated : (ulong)data.Allocated);
 
+            // There's a bit of calculation involved with finding the committed start.
+            // For regions, it's "allocated.Start - sizeof(aligned_plug_and_gap)".
+            // For segments, it's adjusted by segment_info_size which can be different based
+            // on whether background GC is enabled.  Since we don't have that information, we'll
+            // use a heuristic here and hope for the best.
+
+            ulong committedStart;
+            if ((allocated.Start & 0x1ffful) == 0x1000)
+                committedStart = allocated.Start - 0x1000;
+            else
+                committedStart = allocated.Start & ~0xffful;
+
             MemoryRange committed, gen0, gen1, gen2;
             if (subHeap.HasRegions)
             {
-                committed = new(allocated.Start - SizeOfPlugAndGap, data.Committed);
+                committed = new(committedStart, data.Committed);
                 gen0 = default;
                 gen1 = default;
                 gen2 = default;
@@ -272,7 +281,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
             else
             {
-                committed = new(allocated.Start, data.Committed);
+                committed = new(committedStart, data.Committed);
                 if (kind == GCSegmentKind.Ephemeral)
                 {
                     gen0 = new(subHeap.GenerationTable[0].AllocationStart, allocated.End);
