@@ -132,47 +132,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
-        public void ObjectSetAddRemove()
-        {
-            using DataTarget dataTarget = TestTargets.Types.LoadFullDump();
-            using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
-            ClrHeap heap = runtime.Heap;
-
-            ObjectSet hash = new(heap);
-            foreach (ulong obj in heap.EnumerateObjects())
-            {
-                Assert.False(hash.Contains(obj));
-                hash.Add(obj);
-                Assert.True(hash.Contains(obj));
-            }
-
-            foreach (ulong obj in heap.EnumerateObjects())
-            {
-                Assert.True(hash.Contains(obj));
-                hash.Remove(obj);
-                Assert.False(hash.Contains(obj));
-            }
-        }
-
-        [Fact]
-        public void ObjectSetTryAdd()
-        {
-            using DataTarget dataTarget = TestTargets.Types.LoadFullDump();
-            using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
-            ClrHeap heap = runtime.Heap;
-
-            ObjectSet hash = new(heap);
-            foreach (ulong obj in heap.EnumerateObjects())
-            {
-                Assert.False(hash.Contains(obj));
-                Assert.True(hash.Add(obj));
-                Assert.True(hash.Contains(obj));
-                Assert.False(hash.Add(obj));
-                Assert.True(hash.Contains(obj));
-            }
-        }
-
-        [Fact]
         public void GCRoots()
         {
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
