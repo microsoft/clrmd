@@ -251,7 +251,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // use a heuristic here and hope for the best.
 
             ulong committedStart;
-            if ((allocated.Start & 0x1ffful) == 0x1000)
+
+            if (kind == GCSegmentKind.Frozen)
+                committedStart = allocated.Start - (uint)IntPtr.Size;
+            else if ((allocated.Start & 0x1ffful) == 0x1000)
                 committedStart = allocated.Start - 0x1000;
             else
                 committedStart = allocated.Start & ~0xffful;
