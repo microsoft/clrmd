@@ -380,7 +380,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         ulong diff = raw - start;
                         ulong len = mem.Length + diff;
 
-                        yield return new ClrNativeHeapInfo(start, len, kind, ClrNativeHeapState.Inactive);
+                        yield return new ClrNativeHeapInfo(MemoryRange.CreateFromLength(start, len), kind, ClrNativeHeapState.Inactive, mem.Heap);
                     }
             }
         }
@@ -391,7 +391,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 if (memoryEnum is not null)
                     foreach (SosMemoryRegion mem in memoryEnum)
-                        yield return new ClrNativeHeapInfo(mem.Start, mem.Length, NativeHeapKind.HandleTable, ClrNativeHeapState.Active);
+                        yield return new ClrNativeHeapInfo(MemoryRange.CreateFromLength(mem.Start, mem.Length), NativeHeapKind.HandleTable, ClrNativeHeapState.Active, mem.Heap);
             }
         }
 
@@ -401,7 +401,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 if (memoryEnum is not null)
                     foreach (SosMemoryRegion mem in memoryEnum)
-                        yield return new ClrNativeHeapInfo(mem.Start, mem.Length, NativeHeapKind.GCBookkeeping, ClrNativeHeapState.RegionOfRegions);
+                        yield return new ClrNativeHeapInfo(MemoryRange.CreateFromLength(mem.Start, mem.Length), NativeHeapKind.GCBookkeeping, ClrNativeHeapState.RegionOfRegions);
             }
         }
 
