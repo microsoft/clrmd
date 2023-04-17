@@ -259,6 +259,9 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
+        public IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData() => _helpers.EnumerateSyncBlockCleanupData();
+        public IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData() => _helpers.EnumerateRcwCleanupData();
+
         /// <summary>
         /// Enumerates native heaps that the JIT has allocated.
         /// </summary>

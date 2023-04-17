@@ -3,9 +3,12 @@
 
 using System;
 using System.Buffers;
+using System.Collections;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
@@ -284,6 +287,29 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             return VTable.GetRCWData(Self, rcw, out data);
         }
+
+        public IEnumerable<(ulong Rcw, ulong Context, ulong Thread, bool IsFreeThreaded)> EnumerateRCWCleanup(ulong cleanupList)
+        {
+            List<(ulong, ulong, ulong, bool)> result = new();
+            RcwCleanupTraverse traverse = (rcw, context, thread, freeThreaded, token) =>
+            {
+                result.Add((rcw, context, thread, freeThreaded != 0));
+
+                return result.Count > 16384 ? 0 : 1u;
+            };
+
+            VTable.TraverseRCWCleanupList(Self, 0, Marshal.GetFunctionPointerForDelegate(traverse), 0);
+
+            GC.KeepAlive(traverse);
+            return result;
+        }
+
+        public HResult GetSyncBlockCleanupData(ulong syncBlockCleanupPointer, out SyncBlockCleanupData data)
+        {
+            return VTable.GetSyncBlockCleanupData(Self, syncBlockCleanupPointer, out data);
+        }
+
+        public delegate uint RcwCleanupTraverse(ClrDataAddress rcw, ClrDataAddress context, ClrDataAddress thread, uint isFreeThreaded, IntPtr token);
 
         public ClrDataModule? GetClrDataModule(ulong module)
         {
@@ -798,7 +824,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         // SyncBlock
         public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out SyncBlockData, int> GetSyncBlockData;
-        private readonly IntPtr GetSyncBlockCleanupData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, out SyncBlockCleanupData, int> GetSyncBlockCleanupData;
 
         // Handles
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, int> GetHandleEnum;
@@ -828,7 +854,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, COMInterfacePointerData*, out int, int> GetRCWInterfaces;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out CcwData, int> GetCCWData;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, COMInterfacePointerData*, out int, int> GetCCWInterfaces;
-        private readonly IntPtr TraverseRCWCleanupList;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, nint, nint, int> TraverseRCWCleanupList;
 
         // GC Reference Functions
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, out IntPtr, int> GetStackReferences;

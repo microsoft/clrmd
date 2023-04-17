@@ -21,5 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         IEnumerable<ClrNativeHeapInfo> EnumerateGCFreeRegions();
         IEnumerable<ClrNativeHeapInfo> EnumerateHandleTableRegions();
         IEnumerable<ClrNativeHeapInfo> EnumerateGCBookkeepingRegions();
+        IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData();
+        IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData();
     }
 }
