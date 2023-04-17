@@ -28,5 +28,6 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         ulong CardTable { get; }
         IClrOutOfMemoryInfo? OomInfo { get; }
         MemoryRange InternalRootArray { get; }
+        ImmutableArray<MemoryRange> GenerationalFinalizableObjects { get; }
     }
 }
