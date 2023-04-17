@@ -8,7 +8,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -413,6 +412,25 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ClrThreadPoolHelper helper = new(_sos);
             ClrThreadPool result = new(Runtime, helper);
             return result.Initialized ? result : null;
+        }
+
+        public IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData()
+        {
+            ulong loopCheck = 0;
+            while (_sos.GetSyncBlockCleanupData(0, out SyncBlockCleanupData data))
+            {
+                if (loopCheck == 0)
+                    loopCheck = data.NextSyncBlock;
+                else if (loopCheck == data.NextSyncBlock)
+                    break;
+
+                yield return new(data.SyncBlockPointer, data.BlockRCW, data.BlockCCW, data.BlockClassFactory);
+            }
+        }
+
+        public IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData()
+        {
+            return _sos.EnumerateRCWCleanup(0).Select(r => new ClrRcwCleanupData(r.Rcw, r.Context, r.Thread, r.IsFreeThreaded));
         }
     }
 }

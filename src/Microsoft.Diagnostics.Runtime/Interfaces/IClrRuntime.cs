@@ -28,6 +28,8 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         IClrMethod? GetMethodByHandle(ulong methodHandle);
         IClrMethod? GetMethodByInstructionPointer(ulong ip);
         IClrType? GetTypeByMethodTable(ulong methodTable);
+        IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData();
+        IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData();
 
         /// <summary>
         /// Gets information about CLR's ThreadPool.  May return null if we could not obtain
