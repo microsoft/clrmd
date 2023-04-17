@@ -1,23 +1,19 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
+
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
     /// A region of native memory allocated by CLR.
     /// </summary>
-    public readonly struct ClrNativeHeapInfo
+    public class ClrNativeHeapInfo
     {
         /// <summary>
-        /// The base address of this heap.
+        /// The range of memory of this heap.
         /// </summary>
-        public ulong Address { get; }
-
-        /// <summary>
-        /// The size of this heap.  Note that Size may be null when we do not know the size of
-        /// the heap.
-        /// </summary>
-        public ulong? Size { get; }
+        public MemoryRange MemoryRange { get; }
 
         /// <summary>
         /// The kind of heap this is.
@@ -30,23 +26,36 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrNativeHeapState State { get; }
 
         /// <summary>
+        /// The ClrSubHeap index associated with this native heap or -1 if none.
+        /// </summary>
+        public int GCHeap { get; } = -1;
+
+        /// <summary>
         /// Constructor.
         /// </summary>
-        public ClrNativeHeapInfo(ulong address, ulong? size, NativeHeapKind kind, ClrNativeHeapState state)
+        public ClrNativeHeapInfo(MemoryRange memory, NativeHeapKind kind, ClrNativeHeapState state)
         {
-            Address = address;
-            Size = size;
+            MemoryRange = memory;
             Kind = kind;
             State = state;
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public ClrNativeHeapInfo(MemoryRange memory, NativeHeapKind kind, ClrNativeHeapState state, int heap)
+            :this(memory, kind, state)
+        {
+            GCHeap = heap;
         }
 
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (Size is ulong size)
-                return $"[{Address:x},{Address + size:x}] - {Kind}";
+            if (MemoryRange.Length > 0)
+                return $"[{MemoryRange.Start:x},{MemoryRange.End:x}] - {Kind}";
 
-            return $"{Address:x} - {Kind}";
+            return $"{MemoryRange.Start:x} - {Kind}";
         }
     }
 }

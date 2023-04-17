@@ -11,5 +11,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly ClrDataAddress Start;
         public readonly ClrDataAddress Length;
         public readonly ClrDataAddress ExtraData;
+        public readonly int Heap;
     }
 }

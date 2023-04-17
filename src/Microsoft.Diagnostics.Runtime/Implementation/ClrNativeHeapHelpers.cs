@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -66,12 +67,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 }
                 else if (mem.Kind == CodeHeapKind.Host)
                 {
-                    ulong? size = mem.CurrentAddress >= mem.Address ? mem.CurrentAddress - mem.Address : null;
-                    yield return new ClrNativeHeapInfo(mem.Address, size, NativeHeapKind.HostCodeHeap, ClrNativeHeapState.Active);
+                    yield return new ClrNativeHeapInfo(new(mem.Address, mem.CurrentAddress), NativeHeapKind.HostCodeHeap, ClrNativeHeapState.Active);
                 }
                 else
                 {
-                    yield return new ClrNativeHeapInfo(mem.Address, null, NativeHeapKind.Unknown, ClrNativeHeapState.None);
+                    yield return new ClrNativeHeapInfo(new(mem.Address, mem.Address), NativeHeapKind.Unknown, ClrNativeHeapState.None);
                 }
             }
         }
@@ -122,7 +122,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 HResult hr = _sos13.TraverseLoaderHeap(heaps[i].Address, heaps[i].Kind, (address, size, current) => {
                     result ??= new(16);
-                    result.Add(new(address, SanitizeSize(size), heapNativeTypes[i], current != 0 ? ClrNativeHeapState.Active : ClrNativeHeapState.Inactive));
+                    result.Add(new(MemoryRange.CreateFromLength(address, SanitizeSize(size)), heapNativeTypes[i], current != 0 ? ClrNativeHeapState.Active : ClrNativeHeapState.Inactive));
                 });
 
                 if (hr && result is not null)
@@ -168,7 +168,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             result.Clear();
             HResult hr = _sos.TraverseStubHeap(domain.Address, vcsType, (address, size, current) => {
-                result.Add(new(address, SanitizeSize(size), heapKind, current != 0 ? ClrNativeHeapState.Active : ClrNativeHeapState.Inactive));
+                result.Add(new(MemoryRange.CreateFromLength(address, SanitizeSize(size)), heapKind, current != 0 ? ClrNativeHeapState.Active : ClrNativeHeapState.Inactive));
             });
 
             if (!hr)
@@ -198,7 +198,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 HResult hr = _sos.TraverseLoaderHeap(fixedHeapAddress, (address, size, current) => {
                     result ??= new(8);
-                    result.Add(new(address, SanitizeSize(size), nativeHeapKind, current != 0 ? ClrNativeHeapState.Active : ClrNativeHeapState.Inactive));
+                    result.Add(new(MemoryRange.CreateFromLength(address, SanitizeSize(size)), nativeHeapKind, current != 0 ? ClrNativeHeapState.Active : ClrNativeHeapState.Inactive));
                 });
 
                 if (result is not null && result.Count > 0 && normalNeedsAdjustment)
@@ -207,14 +207,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     // opposite setting.
                     byte[] buffer = new byte[1];
 
-                    if (result.Any(entry => _dataReader.Read(entry.Address, buffer) == 0))
+                    if (result.Any(entry => _dataReader.Read(entry.MemoryRange.Start, buffer) == 0))
                     {
                         result.Clear();
                         fixedHeapAddress = FixupHeapAddress(loaderHeap, loaderHeapKind, !normalNeedsAdjustment);
 
                         hr = _sos.TraverseLoaderHeap(fixedHeapAddress, (address, size, current) => {
                             result ??= new(8);
-                            result.Add(new(address, SanitizeSize(size), nativeHeapKind, current != 0 ? ClrNativeHeapState.Active : ClrNativeHeapState.Inactive));
+                            result.Add(new(MemoryRange.CreateFromLength(address, SanitizeSize(size)), nativeHeapKind, current != 0 ? ClrNativeHeapState.Active : ClrNativeHeapState.Inactive));
                         });
                     }
                 }
@@ -252,7 +252,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 List<ClrNativeHeapInfo>? heaps = null;
                 HResult hr = TraverseLoaderHeap(thunkHeapAddress, LoaderHeapKind.LoaderHeapKindNormal, (address, size, current) => {
                     heaps ??= new(16);
-                    heaps.Add(new(address, SanitizeSize(size), NativeHeapKind.ThunkHeap, current != 0 ? ClrNativeHeapState.Active : ClrNativeHeapState.Inactive));
+                    heaps.Add(new(MemoryRange.CreateFromLength(address, SanitizeSize(size)), NativeHeapKind.ThunkHeap, current != 0 ? ClrNativeHeapState.Active : ClrNativeHeapState.Inactive));
                 });
 
                 if (hr && heaps is not null && heaps.Count > 0)
@@ -262,12 +262,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return Enumerable.Empty<ClrNativeHeapInfo>();
         }
 
-        internal static ulong? SanitizeSize(nint size)
+        internal static ulong SanitizeSize(nint size)
         {
             // If TraverseHeap returns a negative size or a size that's too large, we'll treat
             // this as not having size info.  This shouldn't happen in practice.
             if (size is < 0 or > int.MaxValue)
-                return null;
+                return 0;
 
             return (ulong)size;
         }
