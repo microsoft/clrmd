@@ -51,6 +51,13 @@ namespace Microsoft.Diagnostics.Runtime
                 FinalizerQueueRoots = new(FinalizationPointers[4], FinalizationPointers[6]);
             }
 
+            // These are stored in reverse order
+            ImmutableArray<MemoryRange>.Builder builder = ImmutableArray.CreateBuilder<MemoryRange>(3);
+            builder.Add(CreateMemoryRangeCarefully(FinalizationPointers[2], FinalizationPointers[3]));
+            builder.Add(CreateMemoryRangeCarefully(FinalizationPointers[1], FinalizationPointers[2]));
+            builder.Add(CreateMemoryRangeCarefully(FinalizationPointers[0], FinalizationPointers[1]));
+            GenerationalFinalizableObjects = builder.MoveToImmutable();
+
             HasRegions = GenerationTable.Length >= 2 && GenerationTable[0].StartSegment != GenerationTable[1].StartSegment;
             HasPinnedObjectHeap = GenerationTable.Length > 4;
 
@@ -59,6 +66,8 @@ namespace Microsoft.Diagnostics.Runtime
             Segments = helpers.EnumerateSegments(this).ToImmutableArray();
         }
 
+        private static MemoryRange CreateMemoryRangeCarefully(ulong start, ulong stop) => start <= stop ? new(start, stop) : default;
+
         public ClrHeap Heap { get; }
         IClrHeap IClrSubHeap.Heap => Heap;
 
@@ -66,6 +75,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public MemoryRange FinalizerQueueRoots { get; }
         public MemoryRange FinalizerQueueObjects { get; }
+        public ImmutableArray<MemoryRange> GenerationalFinalizableObjects { get; }
         public MemoryRange AllocationContext { get; }
 
         public int Index { get; }
@@ -102,9 +112,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         ImmutableArray<IClrSegment> IClrSubHeap.Segments => Segments.CastArray<IClrSegment>();
 
-        IClrOutOfMemoryInfo? IClrSubHeap.OomInfo => this.OomInfo;
+        IClrOutOfMemoryInfo? IClrSubHeap.OomInfo => OomInfo;
 
-        ImmutableArray<IClrGenerationData> IClrSubHeap.GenerationTable => this.GenerationTable.CastArray<IClrGenerationData>();
+        ImmutableArray<IClrGenerationData> IClrSubHeap.GenerationTable => GenerationTable.CastArray<IClrGenerationData>();
 
         internal enum GCState
         {
