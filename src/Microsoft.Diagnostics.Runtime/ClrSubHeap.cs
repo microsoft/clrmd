@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime
             Allocated = heap.Allocated;
             MarkArray = heap.MarkArray;
             State = (GCState)(ulong)heap.CurrentGCState;
-            NextSweepObject = heap.NextSweepObj;
+            CurrentSweepPosition = heap.NextSweepObj;
             SavedSweepEphemeralSegment = heap.SavedSweepEphemeralSeg;
             SavedSweepEphemeralStart = heap.SavedSweepEphemeralStart;
             BackgroundSavedLowestAddress = heap.BackgroundSavedLowestAddress;
@@ -91,7 +91,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal GCState State { get; }
 
-        internal ulong NextSweepObject { get; }
+        internal ulong CurrentSweepPosition { get; }
         public ulong SavedSweepEphemeralSegment { get; }
         public ulong SavedSweepEphemeralStart { get; }
         internal ulong BackgroundSavedLowestAddress { get; }
