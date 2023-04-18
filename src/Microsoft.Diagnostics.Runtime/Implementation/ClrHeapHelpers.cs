@@ -516,32 +516,34 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private bool ShouldVerifyMembers(ClrSegment seg, ClrObject obj)
         {
-            ClrHeapHelpers.ShouldCheckBgcMark(seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep);
+            ShouldCheckBgcMark(seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep);
             return FgcShouldConsiderObject(seg, obj, considerBgcMark, checkCurrentSweep, checkSavedSweep);
         }
 
         private bool FgcShouldConsiderObject(ClrSegment seg, ClrObject obj, bool considerBgcMark, bool checkCurrentSweep, bool checkSavedSweep)
         {
+            // fgc_should_consider_object in gc.cpp
             ClrSubHeap heap = seg.SubHeap;
             bool noBgcMark = false;
             if (considerBgcMark)
             {
-                if (checkCurrentSweep && obj < heap.NextSweepObject)
+                // gc.cpp:  if (check_current_sweep_p && (o < current_sweep_pos))
+                if (checkCurrentSweep && obj < heap.CurrentSweepPosition)
                 {
                     noBgcMark = true;
                 }
-                else
+
+                if (!noBgcMark)
                 {
-                    if (checkSavedSweep)
+                    // gc.cpp:  if(check_saved_sweep_p && (o >= saved_sweep_ephemeral_start))
+                    if (checkSavedSweep && obj >= heap.SavedSweepEphemeralStart)
                     {
-                        if (obj >= heap.SavedSweepEphemeralStart)
-                            noBgcMark = true;
+                        noBgcMark = true;
                     }
-                    else
-                    {
-                        if (obj >= seg.BackgroundAllocated)
-                            noBgcMark = true;
-                    }
+
+                    // gc.cpp:  if (o >= background_allocated)
+                    if (obj >= seg.BackgroundAllocated)
+                        noBgcMark = true;
                 }
             }
             else
@@ -549,6 +551,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 noBgcMark = true;
             }
 
+            // gc.cpp: return (no_bgc_mark_p ? TRUE : background_object_marked (o, FALSE))
             return noBgcMark || BackgroundObjectMarked(heap, obj);
         }
 
@@ -564,27 +567,37 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private static void ShouldCheckBgcMark(ClrSegment seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep)
         {
+            // Keep in sync with should_check_bgc_mark in gc.cpp
             considerBgcMark = false;
             checkCurrentSweep = false;
             checkSavedSweep = false;
 
+            // if (current_c_gc_state == c_gc_state_planning)
             ClrSubHeap heap = seg.SubHeap;
             if (heap.State == ClrSubHeap.GCState.Planning)
             {
-                // We are doing the next_sweep_obj comparison here because we have yet to
-                // turn on the swept flag for the segment but in_range_for_segment will return
-                // FALSE if the address is the same as reserved.
-                if ((seg.Flags & ClrSegmentFlags.Swept) == ClrSegmentFlags.Swept || !seg.ObjectRange.Contains(heap.NextSweepObject))
+                if ((seg.Flags & ClrSegmentFlags.Swept) == ClrSegmentFlags.Swept || !seg.ObjectRange.Contains(heap.CurrentSweepPosition))
                 {
-                    // this seg was already swept.
+                    // gc.cpp: if ((seg->flags & heap_segment_flags_swept) || (current_sweep_pos == heap_segment_reserved (seg)))
+
+                    // this seg was already swept
+                }
+                else if (seg.BackgroundAllocated == 0)
+                {
+                    // gc.cpp:  else if (heap_segment_background_allocated (seg) == 0)
+
+                    // newly alloc during bgc
                 }
                 else
                 {
                     considerBgcMark = true;
+
+                    // gc.cpp:  if (seg == saved_sweep_ephemeral_seg)
                     if (seg.Address == heap.SavedSweepEphemeralSegment)
                         checkSavedSweep = true;
 
-                    if (seg.ObjectRange.Contains(heap.NextSweepObject))
+                    // gc.cpp:  if (in_range_for_segment (current_sweep_pos, seg))
+                    if (seg.ObjectRange.Contains(heap.CurrentSweepPosition))
                         checkCurrentSweep = true;
                 }
             }
@@ -592,6 +605,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private bool BackgroundObjectMarked(ClrSubHeap heap, ClrObject obj)
         {
+            // gc.cpp: if ((o >= background_saved_lowest_address) && (o < background_saved_highest_address))
             if (obj >= heap.BackgroundSavedLowestAddress && obj < heap.BackgroundSavedHighestAddress)
                 return MarkArrayMarked(heap, obj);
 
