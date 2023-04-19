@@ -41,13 +41,13 @@ namespace Microsoft.Diagnostics.Runtime
             if (FinalizationPointers.Length == 6)
             {
                 // Pre-Regions
-                FinalizerQueueObjects = new(FinalizationPointers[0], FinalizationPointers[3]);
+                FinalizerQueueObjects = new(FinalizationPointers[0], FinalizationPointers[5]);
                 FinalizerQueueRoots = new(FinalizationPointers[3], FinalizationPointers[5]);
             }
             else
             {
                 // GC-Regions
-                FinalizerQueueObjects = new(FinalizationPointers[0], FinalizationPointers[3]);
+                FinalizerQueueObjects = new(FinalizationPointers[0], FinalizationPointers[6]);
                 FinalizerQueueRoots = new(FinalizationPointers[4], FinalizationPointers[6]);
             }
 
