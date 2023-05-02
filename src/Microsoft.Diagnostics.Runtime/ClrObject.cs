@@ -236,7 +236,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="clrObject">An object to get address of.</param>
         public static implicit operator ulong(ClrObject clrObject) => clrObject.Address;
 
-
         /// <summary>
         /// Tries to obtain the given object field from this ClrObject.  Returns false if the field wasn't found or if
         /// the underlying type was not an object.
@@ -271,6 +270,42 @@ namespace Microsoft.Diagnostics.Runtime
             return true;
         }
 
+        /// <summary>
+        /// Tries to obtain the given string field from this ClrObject.  Returns false if the field wasn't found or if
+        /// the underlying type was not a string..
+        /// </summary>
+        /// <param name="fieldName">The name of the field to retrieve.</param>
+        /// <param name="maxLength">The string max length or the default.</param>
+        /// <param name="result">True if the field was found and the field's type is a string.  Returns false otherwise.</param>
+        /// <returns>A string of the given field.</returns>
+        public bool TryReadStringField(string fieldName, int? maxLength, out string? result)
+        {
+            result = default;
+            if (fieldName is null)
+                return false;
+
+            ClrType? type = Type;
+            if (type is null)
+                return false;
+
+            ClrInstanceField? field = type.GetFieldByName(fieldName);
+            if (field is null)
+                return false;
+
+            if (field.ElementType != ClrElementType.String)
+                return false;
+
+            ulong addr = field.GetAddress(Address);
+            IDataReader dataReader = type.Helpers.DataReader;
+            if (!dataReader.ReadPointer(addr, out ulong strPtr))
+                return false;
+
+            if (strPtr == 0)
+                return false;
+
+            result = Helpers.ReadString(strPtr, maxLength ?? 1024);
+            return true;
+        }
 
         /// <summary>
         /// Gets the given object reference field from this ClrObject.

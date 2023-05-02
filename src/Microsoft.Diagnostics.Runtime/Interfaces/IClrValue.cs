@@ -42,6 +42,9 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         IClrValue ReadObjectField(string fieldName);
         string? ReadStringField(string fieldName, int maxLength = 4096);
         IClrValue ReadValueTypeField(string fieldName);
+
+        bool TryReadStringField(string fieldName, int? maxLength, out string? result);
+
         bool TryReadField<T>(string fieldName, out T result) where T : unmanaged;
 
         bool TryReadObjectField(string fieldName, [NotNullWhen(true)] out IClrValue? result);
