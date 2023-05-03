@@ -51,10 +51,10 @@ stages:
           pool:
             ${{ if or(eq(variables['System.TeamProject'], 'public'), in(variables['Build.Reason'], 'PullRequest')) }}:
               name: NetCore-Public
-              demands: ImageOverride -equals windows.vs2017.amd64.open
+              demands: ImageOverride -equals windows.vs2019.amd64.open
             ${{ if and(ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest')) }}:
               name: NetCore1ESPool-Internal
-              demands: ImageOverride -equals windows.vs2017.amd64
+              demands: ImageOverride -equals windows.vs2019.amd64
 
           variables:
           - DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX: 2
@@ -130,7 +130,7 @@ stages:
           publishUsingPipelines: true
           pool:
             name: NetCore1ESPool-Internal
-            demands: ImageOverride -equals windows.vs2017.amd64
+            demands: ImageOverride -equals windows.vs2019.amd64
 
   - ${{ if and(ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest')) }}:
     - template: /eng/common/templates/post-build/post-build.yml
