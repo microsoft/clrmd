@@ -98,7 +98,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             string key = $"{fileName}/{timeStamp:x}{fileSize:x}";
 
-            PEImage? result;
+            PEImage? result = null;
 
             lock (_pefileCache)
             {
@@ -106,17 +106,47 @@ namespace Microsoft.Diagnostics.Runtime
                     return result;
             }
 
-            string? path = FileLocator?.FindPEImage(fileName, timeStamp, fileSize, checkProperties);
-
-            if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
+            if (FileLocator is not null)
             {
-                result = new PEImage(File.OpenRead(path), false, imageBase);
-                if (!result.IsValid)
-                    result = null;
+                string? foundFile = FileLocator.FindPEImage(fileName, timeStamp, fileSize, checkProperties);
+                if (!string.IsNullOrWhiteSpace(foundFile) && File.Exists(foundFile))
+                {
+                    try
+                    {
+                        result = new PEImage(File.OpenRead(foundFile), false, imageBase);
+                        if (!result.IsValid)
+                            result = null;
+                    }
+                    catch (IOException)
+                    {
+                        result = null;
+                    }
+                }
             }
-            else
+
+            if (result is null)
             {
-                result = null;
+                // If we have a custom file locator (or null), we might not have checked the file on disk
+                if (Path.GetFileName(fileName) != fileName && File.Exists(fileName))
+                {
+                    try
+                    {
+                        result = new(File.OpenRead(fileName), leaveOpen: false);
+                        if (!result.IsValid)
+                        {
+                            result = null;
+                        }
+                        else if (checkProperties)
+                        {
+                            if (result.IndexFileSize != fileSize || result.IndexTimeStamp != timeStamp)
+                                result = null;
+                        }
+                    }
+                    catch (IOException)
+                    {
+                        result = null;
+                    }
+                }
             }
 
             lock (_pefileCache)
