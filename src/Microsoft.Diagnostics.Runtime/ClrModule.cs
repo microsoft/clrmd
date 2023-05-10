@@ -26,6 +26,7 @@ namespace Microsoft.Diagnostics.Runtime
         private (ulong MethodTable, int Token)[]? _typeDefMap;
         private (ulong MethodTable, int Token)[]? _typeRefMap;
         private ClrExtendedModuleData? _extendedData;
+        private ulong? _size;
 
         private ClrExtendedModuleData ExtendedData => _extendedData ??= _helpers.GetExtendedData(this);
 
@@ -106,7 +107,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the size of the image in memory.
         /// </summary>
-        public ulong Size => ExtendedData.Size;
+        public ulong Size => _size ??= GetSize();
 
         /// <summary>
         /// Gets the location of metadata for this module in the process's memory.  This is useful if you
@@ -238,18 +239,50 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 if (_pdb is null)
                 {
-                    // Not correct, but as close as we can get until we add more information to the dac.
-                    bool virt = Layout != ModuleLayout.Flat;
-
-                    using ReadVirtualStream stream = new(_helpers.DataReader, (long)ImageBase, (long)(Size > 0 ? Size : int.MaxValue));
-                    using PEImage pefile = new(stream, leaveOpen: true, isVirtual: virt);
+                    using PEImage pefile = GetPEImage();
                     if (pefile.IsValid)
                         _pdb = pefile.DefaultPdb;
                 }
 
                 return _pdb;
             }
+
         }
+
+        private ulong GetSize()
+        {
+            ulong size = ExtendedData.Size;
+            if (size != 0)
+                return 0;
+
+            try
+            {
+                using PEImage peimage = GetPEImage();
+                if (peimage.IsValid)
+                {
+                    unchecked
+                    {
+                        size = (ulong)peimage.IndexFileSize;
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            return 0;
+        }
+
+        private PEImage GetPEImage()
+        {
+            // Not correct, but as close as we can get until we add more information to the dac.
+            bool virt = Layout != ModuleLayout.Flat;
+
+            ReadVirtualStream stream = new(_helpers.DataReader, (long)ImageBase, (long)(Size > 0 ? Size : int.MaxValue));
+            return new(stream, leaveOpen: false, isVirtual: virt);
+        }
+
+
 
         public override bool Equals(object? obj) => Equals(obj as ClrModule);
 
