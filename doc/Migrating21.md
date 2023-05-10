@@ -59,7 +59,7 @@ Instead of providing a single "DacLibrary", we now enumerate all debugging libra
 You will still find the original file `DacLibrary` pointed to in this list of dacs.
 
 
-### ClrRuntimeInfo has is no longer marked public
+### ClrRuntimeInfo is no longer marked public
 
 This is an odd struct that probably will change over the lifetime of .Net Core.  It should not have been exposed as public to begin with.  Instead all of this information is provided by `ClrInfo.DebuggingLibraries`.
 
