@@ -253,7 +253,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ulong size = ExtendedData.Size;
             if (size != 0)
-                return 0;
+                return size;
 
             try
             {
@@ -270,7 +270,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
             }
 
-            return 0;
+            return size;
         }
 
         private PEImage GetPEImage()
