@@ -277,12 +277,11 @@ namespace Microsoft.Diagnostics.Runtime
         {
             // Not correct, but as close as we can get until we add more information to the dac.
             bool virt = Layout != ModuleLayout.Flat;
+            long size = (long)ExtendedData.Size;
 
-            ReadVirtualStream stream = new(_helpers.DataReader, (long)ImageBase, (long)(Size > 0 ? Size : int.MaxValue));
+            ReadVirtualStream stream = new(_helpers.DataReader, (long)ImageBase, size > 0 ? size : int.MaxValue);
             return new(stream, leaveOpen: false, isVirtual: virt);
         }
-
-
 
         public override bool Equals(object? obj) => Equals(obj as ClrModule);
 
