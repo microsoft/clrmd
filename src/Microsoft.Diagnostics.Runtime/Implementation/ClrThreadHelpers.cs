@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
@@ -40,7 +41,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             foreach (StackRefData stackRef in stackRefEnum.ReadStackRefs())
             {
                 if (stackRef.Object == 0)
+                {
+                    Trace.TraceInformation($"EnumerateStackRoots found an entry with Object == 0, addr:{stackRef.Address:x} srcType:{stackRef.SourceType:x}");
                     continue;
+                }
 
                 bool interior = (stackRef.Flags & GCInteriorFlag) == GCInteriorFlag;
                 bool isPinned = (stackRef.Flags & GCPinnedFlag) == GCPinnedFlag;
