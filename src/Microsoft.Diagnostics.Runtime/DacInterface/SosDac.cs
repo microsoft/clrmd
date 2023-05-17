@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -710,6 +711,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     throw new InvalidOperationException($"We expected to borrow a reference from GetStackReferences, but instead fully released the object!");
 
                 return result;
+            }
+            else
+            {
+                Trace.TraceInformation($"EnumerateStackRefs for OSThreadId:{osThreadId:x} failed with hr={hr}");
             }
 
             return null;

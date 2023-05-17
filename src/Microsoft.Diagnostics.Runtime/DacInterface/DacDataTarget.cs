@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -160,6 +161,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (_dataReader.GetThreadContext(threadID, contextFlags, span))
                 return true;
 
+            Trace.TraceInformation($"Failed to read thread context: tid:{threadID:x} flags:{contextFlags:x} size:{contextSize:x}{(context == IntPtr.Zero ? " null context!" : "")}");
             return false;
         }
 
