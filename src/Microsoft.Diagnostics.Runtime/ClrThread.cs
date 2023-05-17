@@ -18,6 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private readonly IClrThreadHelpers _helpers;
         private readonly ulong _exceptionHandle;
+        private ClrStackFrame[]? _frames;
 
         internal ClrThread(IClrThreadHelpers helpers, ClrRuntime runtime, ClrAppDomain? currentDomain, ulong address, in ThreadData data, bool isFinalizer, bool isGc)
         {
@@ -128,7 +129,32 @@ namespace Microsoft.Diagnostics.Runtime
         /// is expected that sometimes two frames may return the same StackPointer in some corner cases).
         /// </summary>
         /// <returns>An enumeration of stack frames.</returns>
-        public IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext = false) => _helpers.EnumerateStackTrace(this, includeContext);
+        public IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext = false)
+        {
+            if (_frames is not null)
+            {
+                if (!includeContext)
+                {
+                    return Array.AsReadOnly(_frames);
+                }
+                else
+                {
+                    // If context was requested, only enumerate the cached frames if they were created with a
+                    // Context.  Since we don't store that as a variable, only return if any frame has a context
+                    // set.
+                    foreach (ClrStackFrame frame in _frames)
+                    {
+                        if (frame.Context.Length > 0)
+                        {
+                            return Array.AsReadOnly(_frames);
+                        }
+                    }
+                }
+            }
+
+            _frames = _helpers.EnumerateStackTrace(this, includeContext).ToArray();
+            return Array.AsReadOnly(_frames);
+        }
 
         IEnumerable<IClrStackFrame> IClrThread.EnumerateStackTrace(bool includeContext) => EnumerateStackTrace(includeContext).Cast<IClrStackFrame>();
 
