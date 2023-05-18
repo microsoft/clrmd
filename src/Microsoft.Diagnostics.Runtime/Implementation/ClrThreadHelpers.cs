@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -42,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 if (stackRef.Object == 0)
                 {
-                    Trace.TraceInformation($"EnumerateStackRoots found an entry with Object == 0, addr:{stackRef.Address:x} srcType:{stackRef.SourceType:x}");
+                    Trace.TraceInformation($"EnumerateStackRoots found an entry with Object == 0, addr:{(ulong)stackRef.Address:x} srcType:{stackRef.SourceType:x}");
                     continue;
                 }
 
@@ -130,38 +131,44 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 contextFlags = 0x10003f;
             }
 
+            Trace.TraceInformation($"BEGIN STACKWALK - {DataReader.Architecture}");
+
+            HResult hr;
             byte[] context = ArrayPool<byte>.Shared.Rent(contextSize);
-            try
+            do
             {
-                do
+                hr = stackwalk.GetContext(contextFlags, contextSize, out _, context);
+                if (!hr)
                 {
-                    if (!stackwalk.GetContext(contextFlags, contextSize, out _, context))
-                        break;
+                    Trace.TraceInformation($"GetContext failed, flags:{contextFlags:x} size: {contextSize:x} hr={hr}");
+                    break;
+                }
 
-                    ulong ip = context.AsSpan().AsPointer(ipOffset);
-                    ulong sp = context.AsSpan().AsPointer(spOffset);
+                ulong ip = context.AsSpan().AsPointer(ipOffset);
+                ulong sp = context.AsSpan().AsPointer(spOffset);
 
-                    ulong frameVtbl = stackwalk.GetFrameVtable();
-                    if (frameVtbl != 0)
-                    {
-                        sp = frameVtbl;
-                        frameVtbl = DataReader.ReadPointer(sp);
-                    }
+                ulong frameVtbl = stackwalk.GetFrameVtable();
+                if (frameVtbl != 0)
+                {
+                    sp = frameVtbl;
+                    frameVtbl = DataReader.ReadPointer(sp);
+                }
 
-                    byte[]? contextCopy = null;
-                    if (includeContext)
-                    {
-                        contextCopy = context.AsSpan(0, contextSize).ToArray();
-                    }
+                Trace.TraceInformation($"STACKWALK - hr:{hr}");
 
-                    ClrStackFrame frame = GetStackFrame(thread, contextCopy, ip, sp, frameVtbl);
-                    yield return frame;
-                } while (stackwalk.Next().IsOK);
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(context);
-            }
+                byte[]? contextCopy = null;
+                if (includeContext)
+                {
+                    contextCopy = context.AsSpan(0, contextSize).ToArray();
+                }
+
+                ClrStackFrame frame = GetStackFrame(thread, contextCopy, ip, sp, frameVtbl);
+                yield return frame;
+
+                hr = stackwalk.Next();
+            } while (hr.IsOK);
+
+            Trace.TraceInformation($"END STACKWALK - hr:{hr}");
         }
 
         private ClrStackFrame GetStackFrame(ClrThread thread, byte[]? context, ulong ip, ulong sp, ulong frameVtbl)
