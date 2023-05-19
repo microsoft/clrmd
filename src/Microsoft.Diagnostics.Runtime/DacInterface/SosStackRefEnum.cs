@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -52,6 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             fixed (StackRefData* ptr = span)
             {
                 HResult hr = VTable.Next(Self, span.Length, ptr, out int read);
+                Trace.TraceInformation($"ISOSStackRefEnum::Next({span.Length:n0}, read:{read:n0} hr={hr}");
                 span = span.Slice(0, hr ? read : 0);
                 return span;
             }

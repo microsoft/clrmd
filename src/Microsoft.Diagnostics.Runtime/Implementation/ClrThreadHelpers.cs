@@ -39,8 +39,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ClrHeap heap = thread.Runtime.Heap;
             const int GCInteriorFlag = 1;
             const int GCPinnedFlag = 2;
+            Trace.TraceInformation($"EnumerateStackRoots - BEGIN");
             foreach (StackRefData stackRef in stackRefEnum.ReadStackRefs())
             {
+                Trace.TraceInformation($"EnumerateStackRoots - ref:{stackRef.Address:x}");
                 if (stackRef.Object == 0)
                 {
                     Trace.TraceInformation($"EnumerateStackRoots found an entry with Object == 0, addr:{(ulong)stackRef.Address:x} srcType:{stackRef.SourceType:x}");
@@ -92,6 +94,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     yield return new ClrStackRoot(stackRef.Address, obj, isInterior: false, isPinned: isPinned, heap: heap, frame: frame, regName: regName, regOffset: regOffset);
                 }
             }
+            Trace.TraceInformation($"EnumerateStackRoots - END");
         }
 
         public IEnumerable<ClrStackFrame> EnumerateStackTrace(ClrThread thread, bool includeContext)
@@ -154,7 +157,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     frameVtbl = DataReader.ReadPointer(sp);
                 }
 
-                Trace.TraceInformation($"STACKWALK - hr:{hr}");
+                Trace.TraceInformation($"STACKWALK - ip:{ip:x}, sp:{sp:x} vtable:{frameVtbl:x}");
 
                 byte[]? contextCopy = null;
                 if (includeContext)
