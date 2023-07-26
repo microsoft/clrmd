@@ -188,5 +188,75 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.Equal(expectedResult, DACNameParser.Parse(input));
         }
+
+        // Parse a generic arg list with some assembly-qualified names, and some non-qualified names, moving the location of the assembly-qualified arg throughout the list
+        // in the various tests (i.e. ParseValueTupleWithoutAllFullyQualifiedNames1, ParseValueTupleWithoutAllFullyQualifiedNames2, ...)
+        [Fact]
+        public void ParseValueTupleWithoutAllFullyQualifiedNames1()
+        {
+            string input = "System.ValueTuple`3[[System.String, mscorlib],TCheapVersion,TExpensiveVersion]";
+            string expectedResult = "System.ValueTuple<System.String, TCheapVersion, TExpensiveVersion>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void ParseValueTupleWithoutAllFullyQualifiedNames2()
+        {
+            string input = "System.ValueTuple`3[TCheapVersion,[System.String, mscorlib],TExpensiveVersion]";
+            string expectedResult = "System.ValueTuple<TCheapVersion, System.String, TExpensiveVersion>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void ParseValueTupleWithoutAllFullyQualifiedNames3()
+        {
+            string input = "System.ValueTuple`3[TCheapVersion,TExpensiveVersion,[System.String, mscorlib]]";
+            string expectedResult = "System.ValueTuple<TCheapVersion, TExpensiveVersion, System.String>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        // Test with NO qualified names
+        [Fact]
+        public void ParseValueTupleWithNoFullyQualifiedNames()
+        {
+            string input = "System.ValueTuple`3[TType1,TType2,TType3]";
+            string expectedResult = "System.ValueTuple<TType1, TType2, TType3>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void Bug897()
+        {
+            // https://github.com/microsoft/clrmd/issues/897
+
+            // This input is unusual both in that T and TPluginType are not assembly qualified, but also LambdaInstance is a non-closed generic type.
+            string input = "StructureMap.Pipeline.ExpressedInstance`3[[StructureMap.Pipeline.LambdaInstance`2, EnforceHttpsModule],T,TPluginType]";
+            string expectedResult = "StructureMap.Pipeline.ExpressedInstance<StructureMap.Pipeline.LambdaInstance<T1, T2>, T, TPluginType>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        // Some simple variants on Bug897
+        [Fact]
+        public void Bug897_Variant1()
+        {
+            string input = "StructureMap.Pipeline.ExpressedInstance`3[[StructureMap.Pipeline.LambdaInstance`2[[System.String, mscorlib],SomeFakeType], SomeFakeAssembly],T,TPluginType]";
+            string expectedResult = "StructureMap.Pipeline.ExpressedInstance<StructureMap.Pipeline.LambdaInstance<System.String, SomeFakeType>, T, TPluginType>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void Bug897_Variant2()
+        {
+            string input = "StructureMap.Pipeline.ExpressedInstance`3[[StructureMap.Pipeline.LambdaInstance`2[[List`1[[System.ValueType`2[[System.Boolean, mscorlib],SomeOtherFakeType], mscorlib]], mscorlib],SomeFakeType], SomeFakeAssembly],T,TPluginType]";
+            string expectedResult = "StructureMap.Pipeline.ExpressedInstance<StructureMap.Pipeline.LambdaInstance<List<System.ValueType<System.Boolean, SomeOtherFakeType>>, SomeFakeType>, T, TPluginType>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
     }
 }
