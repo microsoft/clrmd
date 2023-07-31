@@ -134,6 +134,51 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                 if (!string.IsNullOrEmpty(parsedResult))
                                     return parsedResult;
 
+                                // Two cases we need to look for, we just finished parsing the type name of an assembly qualified generic arg, in which case we need to transition into the ParsingGenericArgAssemblySpecifier state.
+                                // The other is the case of non-traditional/obfuscated generic names. FSharp (and seemingly some obfuscators) will name generic types in ways that do not have arity specifiers. This can easily lead
+                                // us to believe, when we encounter a '[' that we must be dealing with an array decl because we haven't yet seen an arity specifier. So we try to detect this below. First, if ANY args/typenames above
+                                // us have unfulfilled generics it means we HAVE seen an arity specifier, so we aren't in this case special case, so don't look further. If they pass that test then we need to make sure the next
+                                // symbol after the [ isn't an ] or an , (as both of those represent sequences in array specifiers). If all those checks pass assume this is a non-traditional generic type and calculate the arity
+                                // manually and parse the args.
+                                if (name[curPos] == ArgSeparator)
+                                {
+                                    if (isCurrentArgAssemblyQualified.Count != 0 && isCurrentArgAssemblyQualified.Peek())
+                                    {
+                                        currentState = ParsingState.ParsingGenericArgAssemblySpecifier;
+                                        break;
+                                    }
+                                }
+                                else if (name[curPos] == GenericArgListAssemblyQualifiedTypeNameOrArrayStartSpecifier)
+                                {
+                                    if(!DoAnyArgsOrTypeNamesHaveUnfulfilledGenericArguments(nameSegments, genericArgs))
+                                    {
+                                        // It's possible this is an FSharp or obfuscated generic name, lacking an arity specifier (e.g. something like Microsoft.FSharp.Collections.ArrayModule+Parallel+sortingFunc@2439-1[TKey,TValue]).
+                                        // Or it could be an array decl, we will want to manually check for the former here (the latter will be correctly detected inside DetermineNextStateAndPos).
+                                        if ((curPos != name.Length - 1) && (name[curPos + 1] != GenericArgListAssemblyQualifiedTypeNameOrArrayEndSpecifier && name[curPos + 1] != ArgSeparator))
+                                        {
+                                            // This looks like a generic specified without an arity specifier. So let's manually calculate the arity ourselves. It is a little tricky in that the argument list can itself have generics
+                                            // in it, but essentially we just need to count the outermost commas, ignoring any commas in nested generic type decls, and apply that to the most recent argument/type name as its expected
+                                            // generic param count then force ourselves into the ParsingGenericArgs state to parse the arg list.
+                                            int genericArity = ManuallyCalculateArity(name, curPos + 1);
+
+                                            List<TypeNameSegment>? targetList = ((genericArgs != null) && (genericArgs.Count != 0)) ? genericArgs : nameSegments;
+
+                                            if (targetList != null)
+                                            {
+                                                // NOTE: TypeNameSegment is a struct to avoid heap allocations, that means we have to extract / modify / re-store to ensure the updated state gets back into whatever
+                                                // list this came from.
+                                                int targetIndex = targetList.Count - 1;
+                                                TypeNameSegment seg = targetList[targetIndex];
+                                                seg.SetExpectedGenericArgCount(genericArity);
+                                                targetList[targetIndex] = seg;
+                                            }
+
+                                            currentState = ParsingState.ParsingGenericArgs;
+                                            break;
+                                        }
+                                    }
+                                }
+
                                 (currentState, curPos) = DetermineNextStateAndPos(name, curPos);
                                 break;
                             }
@@ -158,10 +203,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                 // 2) The next token is an argument separator (,)
                                 // 3) The next token is the end of the argument list (])
                                 // 4) The next token is a generic arity specifier for this arg (`<some number>)
+                                // 5) The next token is an array specifier ([)
                                 //
                                 // Anything else is an error
                                 if (curPos == name.Length ||
                                     (name[curPos] != ArgSeparator &&
+                                     name[curPos] != GenericArgListAssemblyQualifiedTypeNameOrArrayStartSpecifier &&
                                      name[curPos] != GenericArgListAssemblyQualifiedTypeNameOrArrayEndSpecifier &&
                                      name[curPos] != GenericAritySpecifier))
                                 {
@@ -175,6 +222,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                     // NOTE: NOT done with this arg so leave our entry on the isCurrentArgAssemblyQualified in place
                                     currentState = ParsingState.ParsingGenericArgCount;
                                     curPos += 1;
+                                    break;
+                                }
+
+                                if (name[curPos] == GenericArgListAssemblyQualifiedTypeNameOrArrayStartSpecifier)
+                                {
+                                    // This has to be an array, if it were an assembly qualified name we would have first seen an ArgSeperator, if it were a generic arg list we would have first seen a GenericAritySpecifier
+                                    currentState = ParsingState.ParsingArraySpecifier;
                                     break;
                                 }
 
@@ -363,7 +417,45 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                         break;
                                     }
 
-                                    (currentState, curPos) = DetermineNextStateAndPos(name, curPos);
+                                    // NOTE: We have to speculatively determine our next state. This is because in the case that we have an array of array situation
+                                    // we need to leave our isCurrentArgAssemblyQualified entry on the stack, however if we do NOT have that situation then
+                                    // we may need to rerun DetermineNextStateAndPos after cleaning up a trailing assembly name if the current isCurrentArgAssemblyQualified
+                                    // is true.
+                                    ParsingState potentialNewState;
+                                    int potentialNewPos;
+                                    (potentialNewState, potentialNewPos) = DetermineNextStateAndPos(name, curPos);
+
+                                    if(potentialNewState != ParsingState.ParsingArraySpecifier && potentialNewState != ParsingState.Done)
+                                    {
+                                        if (isCurrentArgAssemblyQualified.Count != 0 && isCurrentArgAssemblyQualified.Peek())
+                                        {
+                                            // If we aren't still parsing an array specifier then we will need to clean up a trailing assembly name (if there is one), and redo
+                                            // DetermineNextStateAndPos, since the presence of ', <some assembly name>]' will fool it into thinking we should be in a
+                                            // ParsingNonAssemblyQualifiedGenericArgName state.
+                                            while (curPos < name.Length && name[curPos] != GenericArgListAssemblyQualifiedTypeNameOrArrayEndSpecifier)
+                                                curPos++;
+
+                                            if (curPos != name.Length)
+                                                curPos++; // we hit the ] which closes the fully qualified name, so advance to the next char
+
+                                            (currentState, curPos) = DetermineNextStateAndPos(name, curPos);
+                                        }
+                                        else
+                                        {
+                                            currentState = potentialNewState;
+                                            curPos = potentialNewPos;
+                                        }
+
+                                        // Done with this arg
+                                        if (isCurrentArgAssemblyQualified.Count != 0)
+                                            isCurrentArgAssemblyQualified.Pop();
+                                    }
+                                    else
+                                    {
+                                        currentState = potentialNewState;
+                                        curPos = potentialNewPos;
+                                    }
+
                                     if (genericArgs == null || genericArgs.Count == 0 && currentState == ParsingState.Done)
                                     {
                                         // Special case: Return original string in cases like this:
@@ -412,8 +504,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                                 if (curPos == name.Length)
                                 {
-                                    // Done with this arg so clean up its entry
-                                    isCurrentArgAssemblyQualified.Pop();
+                                    // Its possible we are resolving the outermost generic, in which case the isCurrentArgAssemblyQualified stack will be empty, so guard against that
+                                    if (isCurrentArgAssemblyQualified.Count != 0)
+                                        isCurrentArgAssemblyQualified.Pop();
 
                                     currentState = ParsingState.Done;
                                     break;
@@ -439,6 +532,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                     curPos++;
 
                                     // Advance past any whitespace in the param list
+
                                     int potentiallyNewPos = MoveCurPosPastWhitespaceOrFail(name, curPos);
                                     if (potentiallyNewPos < 0)
                                     {
@@ -475,7 +569,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                 }
 
                                 // Done with this arg so clean up its entry
-                                isCurrentArgAssemblyQualified.Pop();
+                                if(isCurrentArgAssemblyQualified.Count != 0)
+                                    isCurrentArgAssemblyQualified.Pop();
 
                                 (currentState, curPos) = DetermineNextStateAndPos(name, curPos);
                                 break;
@@ -502,6 +597,33 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 Debug.WriteLine($"Encountered an exception while parsing name {name}: {e}");
                 return name;
             }
+        }
+
+        private static int ManuallyCalculateArity(string name, int startPos)
+        {
+            int genericArity = 1;
+            int commaIgnoreLevel = 0;
+            for (int i = startPos; i < name.Length; i++)
+            {
+                if (name[i] == ArgSeparator)
+                {
+                    if (commaIgnoreLevel == 0)
+                        genericArity++;
+                }
+                else if (name[i] == GenericArgListAssemblyQualifiedTypeNameOrArrayEndSpecifier)
+                {
+                    if (commaIgnoreLevel != 0)
+                        commaIgnoreLevel--;
+                    else
+                        break;
+                }
+                else if (name[i] == GenericArgListAssemblyQualifiedTypeNameOrArrayStartSpecifier)
+                {
+                    commaIgnoreLevel++;
+                }
+            }
+
+            return genericArity;
         }
 
         private static int MoveCurPosPastWhitespaceOrFail(string name, int curPos)
@@ -895,6 +1017,25 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 default:
                     return (ParsingState.Error, curPos);
             }
+        }
+
+        private static bool DoAnyArgsOrTypeNamesHaveUnfulfilledGenericArguments(List<TypeNameSegment>? nameSegments, List<TypeNameSegment>? genericArgs)
+        {
+            foreach (List<TypeNameSegment> current in new[] { genericArgs, nameSegments })
+            {
+                if (current != null)
+                {
+                    for (int i = current.Count - 1; i >= 0; i--)
+                    {
+                        if (current[i].IsGenericClass && current[i].HasUnfulfilledGenericArgs)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
         }
 
         private enum ParsingState
