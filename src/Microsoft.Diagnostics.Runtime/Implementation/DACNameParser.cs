@@ -1021,7 +1021,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private static bool DoAnyArgsOrTypeNamesHaveUnfulfilledGenericArguments(List<TypeNameSegment>? nameSegments, List<TypeNameSegment>? genericArgs)
         {
-            foreach (List<TypeNameSegment> current in new[] { genericArgs, nameSegments })
+            foreach (List<TypeNameSegment>? current in new[] { genericArgs, nameSegments })
             {
                 if (current != null)
                 {
