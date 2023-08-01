@@ -354,9 +354,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // NOTE: jaredpar in the Roslyn compiler team verified this is in fact a generic type in F#, but it has no arity specifier. We should be able to handle
             // these by recognizing when we encounter the [ and decide we are parsing an array specifier (which we should since we never saw a generic arity specifier)
-            // if we anything other than a ] or a , after it (i.e. say a letter), then we can assume this is one of these non-traditional generic cases and manually force
+            // if we see anything other than a ] or a , after it (i.e. say a letter), then we can assume this is one of these non-traditional generic cases and manually force
             // ourself down that path. It means we will need to figure out the arity ourselves, but that shouldn't be terribly hard, we just start at 1 and count any commas
-            // we encounter before the closing , (taking care for nested generics inside the outer generic in our counting).
+            // we encounter before the closing ] (taking care for nested generics inside the outer generic in our counting).
             string input = "FSharp.Compiler.TypedTreeBasics+loop@444-39T[a]";
             string expectedResult = "FSharp.Compiler.TypedTreeBasics+loop@444-39T<a>";
 
