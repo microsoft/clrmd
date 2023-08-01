@@ -150,7 +150,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                 }
                                 else if (name[curPos] == GenericArgListAssemblyQualifiedTypeNameOrArrayStartSpecifier)
                                 {
-                                    if(!DoAnyArgsOrTypeNamesHaveUnfulfilledGenericArguments(nameSegments, genericArgs))
+                                    if (!DoAnyArgsOrTypeNamesHaveUnfulfilledGenericArguments(nameSegments, genericArgs))
                                     {
                                         // It's possible this is an FSharp or obfuscated generic name, lacking an arity specifier (e.g. something like Microsoft.FSharp.Collections.ArrayModule+Parallel+sortingFunc@2439-1[TKey,TValue]).
                                         // Or it could be an array decl, we will want to manually check for the former here (the latter will be correctly detected inside DetermineNextStateAndPos).
@@ -425,7 +425,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                     int potentialNewPos;
                                     (potentialNewState, potentialNewPos) = DetermineNextStateAndPos(name, curPos);
 
-                                    if(potentialNewState != ParsingState.ParsingArraySpecifier && potentialNewState != ParsingState.Done)
+                                    if (potentialNewState != ParsingState.ParsingArraySpecifier && potentialNewState != ParsingState.Done)
                                     {
                                         if (isCurrentArgAssemblyQualified.Count != 0 && isCurrentArgAssemblyQualified.Peek())
                                         {
@@ -569,7 +569,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                 }
 
                                 // Done with this arg so clean up its entry
-                                if(isCurrentArgAssemblyQualified.Count != 0)
+                                if (isCurrentArgAssemblyQualified.Count != 0)
                                     isCurrentArgAssemblyQualified.Pop();
 
                                 (currentState, curPos) = DetermineNextStateAndPos(name, curPos);
