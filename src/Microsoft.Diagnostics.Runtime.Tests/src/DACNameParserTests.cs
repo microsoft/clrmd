@@ -391,6 +391,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(expectedResult, DACNameParser.Parse(input));
         }
 
+        [Fact]
         public void HandleNonTraditionObfuscatedGenericWithAssemblyQualifiedArg()
         {
             string input = "a37[[akx, yWorks.yFilesWPF.Viewer]]";
@@ -399,6 +400,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(expectedResult, DACNameParser.Parse(input));
         }
 
+        [Fact]
         public void HandleNonTraditionObfuscatedGenericWithNonAssemblyQualifiedArg()
         {
             string input = "a37[akx]";
