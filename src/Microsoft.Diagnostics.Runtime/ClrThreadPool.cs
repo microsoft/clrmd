@@ -31,7 +31,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Whether this runtime is using the Portable threadpool or not.
         /// </summary>
-        public bool Portable { get; }
+        public bool PortableThreadPool { get; }
+
+        /// <summary>
+        /// Whether this runtime is using the Windows threadpool or not.
+        /// </summary>
+        public bool WindowsThreadPool { get; }
 
         /// <summary>
         /// The current CPU utilization of the ThreadPool (a number between 0 and 100).
@@ -80,10 +85,9 @@ namespace Microsoft.Diagnostics.Runtime
 
             bool hasLegacyData = _helpers.GetLegacyThreadPoolData(out ThreadPoolData tpData, out bool mustBePortable);
 
-            ClrObject threadPool = GetPortableThreadPool(mustBePortable);
+            ClrObject threadPool = GetThreadPool(mustBePortable);
             if (!threadPool.IsNull && threadPool.IsValid)
             {
-                Portable = true;
                 CpuUtilization = threadPool.ReadField<int>("_cpuUtilization");
                 MinThreads = threadPool.ReadField<ushort>("_minThreads");
                 MaxThreads = threadPool.ReadField<ushort>("_maxThreads");
@@ -204,7 +208,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        private ClrObject GetPortableThreadPool(bool mustBePortable)
+        private ClrObject GetThreadPool(bool mustBePortable)
         {
             ClrModule bcl = _runtime.BaseClassLibrary;
             ClrType? threadPoolType = bcl.GetTypeByName("System.Threading.ThreadPool");
@@ -212,23 +216,33 @@ namespace Microsoft.Diagnostics.Runtime
                 return default;
 
             ClrAppDomain domain = GetDomain();
+            ClrType? windowsThreadPoolType = bcl.GetTypeByName("System.Threading.WindowsThreadPool");
+            ClrType? portableThreadPoolType = bcl.GetTypeByName("System.Threading.PortableThreadPool");
 
-            if (!mustBePortable)
+            // Check if the Windows thread pool is being used
+            ClrStaticField? useWindowsThreadPool = threadPoolType.GetStaticFieldByName("s_useWindowsThreadPool");
+            bool useWindowsThreadPoolOnSwitch = useWindowsThreadPool != null && useWindowsThreadPool.Read<bool>(domain);
+            bool onlyWindowsThreadPool = windowsThreadPoolType != null && portableThreadPoolType is null;
+            // If both exist, check the switch is on
+            // Otherwise check if it's the only thread pool present
+            if (useWindowsThreadPoolOnSwitch || onlyWindowsThreadPool)
             {
-                ClrStaticField? usePortableThreadPoolField = threadPoolType.GetStaticFieldByName("UsePortableThreadPool");
-                if (usePortableThreadPoolField is null)
-                    return default;
-
-                if (!usePortableThreadPoolField.Read<bool>(domain))
-                    return default;
+                WindowsThreadPool = true;
+                // read 
             }
 
-            ClrType? portableThreadPoolType = bcl.GetTypeByName("System.Threading.PortableThreadPool");
-            ClrStaticField? instanceField = portableThreadPoolType?.GetStaticFieldByName("ThreadPoolInstance");
-            if (instanceField is null)
-                return default;
+            // Check if the Portable thread pool is being used
+            if (portableThreadPoolType != null)
+            {
+                ClrStaticField? instanceField = portableThreadPoolType?.GetStaticFieldByName("ThreadPoolInstance");
+                if (instanceField is null)
+                    return default;
 
-            return instanceField.ReadObject(domain);
+                PortableThreadPool = true;
+                return instanceField.ReadObject(domain);
+            }
+
+            return default;
         }
 
         private ClrAppDomain GetDomain() => _runtime.SharedDomain ?? _runtime.SystemDomain ?? _runtime.AppDomains[0];
