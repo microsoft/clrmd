@@ -15,11 +15,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _sos = sos;
         }
 
-        public bool GetLegacyThreadPoolData(out ThreadPoolData data, out bool usePortableThreadPool)
+        public bool GetLegacyThreadPoolData(out ThreadPoolData data)
         {
-            HResult hr = _sos.GetThreadPoolData(out data);
-            usePortableThreadPool = hr == HResult.E_NOTIMPL;
-            return hr;
+            return _sos.GetThreadPoolData(out data);
         }
 
         public bool GetLegacyWorkRequestData(ulong workRequest, out WorkRequestData workRequestData)

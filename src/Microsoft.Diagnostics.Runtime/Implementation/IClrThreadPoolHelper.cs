@@ -7,7 +7,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal interface IClrThreadPoolHelper
     {
-        bool GetLegacyThreadPoolData(out ThreadPoolData data, out bool usePortableThreadPool);
+        bool GetLegacyThreadPoolData(out ThreadPoolData data);
         bool GetLegacyWorkRequestData(ulong workRequest, out WorkRequestData workRequestData);
     }
 }

@@ -26,17 +26,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Used to track whether we successfully initialized this object to prevent throw/catch.
         /// </summary>
-        internal bool Initialized { get; } = true;
+        internal bool Initialized { get; }
 
         /// <summary>
         /// Whether this runtime is using the Portable threadpool or not.
         /// </summary>
-        public bool PortableThreadPool { get; }
+        public bool UsingPortableThreadPool { get; }
 
         /// <summary>
         /// Whether this runtime is using the Windows threadpool or not.
         /// </summary>
-        public bool WindowsThreadPool { get; }
+        public bool UsingWindowsThreadPool { get; }
 
         /// <summary>
         /// The current CPU utilization of the ThreadPool (a number between 0 and 100).
@@ -63,6 +63,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public int ActiveWorkerThreads { get; }
 
+        public int ThreadCount { get; }
         public int TotalCompletionPorts { get; }
         public int FreeCompletionPorts { get; }
         public int MaxFreeCompletionPorts { get; }
@@ -83,28 +84,16 @@ namespace Microsoft.Diagnostics.Runtime
             _runtime = runtime;
             _helpers = helpers;
 
-            bool hasLegacyData = _helpers.GetLegacyThreadPoolData(out ThreadPoolData tpData, out bool mustBePortable);
+            bool hasLegacyData = _helpers.GetLegacyThreadPoolData(out ThreadPoolData tpData);
 
-            ClrObject threadPool = GetThreadPool(mustBePortable);
-            if (!threadPool.IsNull && threadPool.IsValid)
+            GetPortableOrWindowsThreadPoolInfo();
+            if (UsingPortableThreadPool || UsingWindowsThreadPool)
             {
-                CpuUtilization = threadPool.ReadField<int>("_cpuUtilization");
-                MinThreads = threadPool.ReadField<ushort>("_minThreads");
-                MaxThreads = threadPool.ReadField<ushort>("_maxThreads");
-
-                ClrValueType counts = threadPool.ReadValueTypeField("_separated").ReadValueTypeField("counts").ReadValueTypeField("_data");
-                ulong dataValue = counts.ReadField<ulong>("m_value");
-
-                int processingWorkCount = (ushort)(dataValue & 0xffff);
-                int existingThreadCount = (ushort)((dataValue >> 16) & 0xffff);
-
-                IdleWorkerThreads = existingThreadCount - processingWorkCount;
-                ActiveWorkerThreads = processingWorkCount;
-
-                RetiredWorkerThreads = 0;
+                Initialized = true;
             }
             else if (hasLegacyData)
             {
+                Initialized = true;
                 CpuUtilization = tpData.CpuUtilization;
                 MinThreads = tpData.MinLimitTotalWorkerThreads;
                 MaxThreads = tpData.MaxLimitTotalWorkerThreads;
@@ -208,14 +197,11 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        private ClrObject GetThreadPool(bool mustBePortable)
+        private void GetPortableOrWindowsThreadPoolInfo()
         {
             ClrModule bcl = _runtime.BaseClassLibrary;
-            ClrType? threadPoolType = bcl.GetTypeByName("System.Threading.ThreadPool");
-            if (threadPoolType is null)
-                return default;
-
             ClrAppDomain domain = GetDomain();
+
             ClrType? windowsThreadPoolType = bcl.GetTypeByName("System.Threading.WindowsThreadPool");
             ClrType? portableThreadPoolType = bcl.GetTypeByName("System.Threading.PortableThreadPool");
 
@@ -223,12 +209,17 @@ namespace Microsoft.Diagnostics.Runtime
             ClrStaticField? useWindowsThreadPool = threadPoolType.GetStaticFieldByName("s_useWindowsThreadPool");
             bool useWindowsThreadPoolOnSwitch = useWindowsThreadPool != null && useWindowsThreadPool.Read<bool>(domain);
             bool onlyWindowsThreadPool = windowsThreadPoolType != null && portableThreadPoolType is null;
-            // If both exist, check the switch is on
+            // Check if the switch is on (.NET8)
             // Otherwise check if it's the only thread pool present
             if (useWindowsThreadPoolOnSwitch || onlyWindowsThreadPool)
             {
-                WindowsThreadPool = true;
-                // read 
+                UsingWindowsThreadPool = (windowsThreadPoolType != null);
+                if (UsingWindowsThreadPool)
+                {
+                    ClrStaticField? threadCountField = windowsThreadPoolType.GetStaticFieldByName("s_threadCount");
+                    ThreadCount = threadCountField.Read<int>(domain);
+                    return;
+                }
             }
 
             // Check if the Portable thread pool is being used
@@ -236,13 +227,28 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 ClrStaticField? instanceField = portableThreadPoolType?.GetStaticFieldByName("ThreadPoolInstance");
                 if (instanceField is null)
-                    return default;
+                    return;
 
-                PortableThreadPool = true;
-                return instanceField.ReadObject(domain);
+                ClrObject portableThreadPool = instanceField.ReadObject(domain);
+                UsingPortableThreadPool = !portableThreadPool.IsNull && portableThreadPool.IsValid;
+                if (UsingPortableThreadPool)
+                {
+                    CpuUtilization = threadPool.ReadField<int>("_cpuUtilization");
+                    MinThreads = threadPool.ReadField<ushort>("_minThreads");
+                    MaxThreads = threadPool.ReadField<ushort>("_maxThreads");
+
+                    ClrValueType counts = threadPool.ReadValueTypeField("_separated").ReadValueTypeField("counts").ReadValueTypeField("_data");
+                    ulong dataValue = counts.ReadField<ulong>("m_value");
+
+                    int processingWorkCount = (ushort)(dataValue & 0xffff);
+                    int existingThreadCount = (ushort)((dataValue >> 16) & 0xffff);
+
+                    IdleWorkerThreads = existingThreadCount - processingWorkCount;
+                    ActiveWorkerThreads = processingWorkCount;
+
+                    RetiredWorkerThreads = 0;
+                }
             }
-
-            return default;
         }
 
         private ClrAppDomain GetDomain() => _runtime.SharedDomain ?? _runtime.SystemDomain ?? _runtime.AppDomains[0];
