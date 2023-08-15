@@ -233,11 +233,11 @@ namespace Microsoft.Diagnostics.Runtime
                 UsingPortableThreadPool = !portableThreadPool.IsNull && portableThreadPool.IsValid;
                 if (UsingPortableThreadPool)
                 {
-                    CpuUtilization = threadPool.ReadField<int>("_cpuUtilization");
-                    MinThreads = threadPool.ReadField<ushort>("_minThreads");
-                    MaxThreads = threadPool.ReadField<ushort>("_maxThreads");
+                    CpuUtilization = portableThreadPool.ReadField<int>("_cpuUtilization");
+                    MinThreads = portableThreadPool.ReadField<ushort>("_minThreads");
+                    MaxThreads = portableThreadPool.ReadField<ushort>("_maxThreads");
 
-                    ClrValueType counts = threadPool.ReadValueTypeField("_separated").ReadValueTypeField("counts").ReadValueTypeField("_data");
+                    ClrValueType counts = portableThreadPool.ReadValueTypeField("_separated").ReadValueTypeField("counts").ReadValueTypeField("_data");
                     ulong dataValue = counts.ReadField<ulong>("m_value");
 
                     int processingWorkCount = (ushort)(dataValue & 0xffff);
