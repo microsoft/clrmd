@@ -213,13 +213,10 @@ namespace Microsoft.Diagnostics.Runtime
             // Otherwise check if it's the only thread pool present
             if (useWindowsThreadPoolOnSwitch || onlyWindowsThreadPool)
             {
-                UsingWindowsThreadPool = (windowsThreadPoolType != null);
-                if (UsingWindowsThreadPool)
-                {
-                    ClrStaticField? threadCountField = windowsThreadPoolType.GetStaticFieldByName("s_threadCount");
-                    ThreadCount = threadCountField.Read<int>(domain);
-                    return;
-                }
+                UsingWindowsThreadPool = true;
+                ClrStaticField? threadCountField = windowsThreadPoolType.GetStaticFieldByName("s_threadCount");
+                ThreadCount = threadCountField.Read<int>(domain);
+                return;
             }
 
             // Check if the Portable thread pool is being used
