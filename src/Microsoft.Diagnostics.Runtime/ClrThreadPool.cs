@@ -86,7 +86,10 @@ namespace Microsoft.Diagnostics.Runtime
 
             bool hasLegacyData = _helpers.GetLegacyThreadPoolData(out ThreadPoolData tpData);
 
-            GetPortableOrWindowsThreadPoolInfo();
+            GetPortableOrWindowsThreadPoolInfo(out bool usingPortableThreadPool, out bool usingWindowsThreadPool);
+            UsingPortableThreadPool = usingPortableThreadPool;
+            UsingWindowsThreadPool = usingWindowsThreadPool;
+
             if (UsingPortableThreadPool || UsingWindowsThreadPool)
             {
                 Initialized = true;
@@ -152,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumeration of the HillClimbing log, or an empty enumeration for Desktop CLR.</returns>
         public IEnumerable<HillClimbingLogEntry> EnumerateHillClimbingLog()
         {
-            if (Portable)
+            if (UsingPortableThreadPool)
             {
                 ClrType? hillClimbingType = _runtime.BaseClassLibrary.GetTypeByName("System.Threading.PortableThreadPool+HillClimbing");
                 ClrStaticField? hillClimberField = hillClimbingType?.GetStaticFieldByName("ThreadPoolHillClimber");
@@ -197,9 +200,15 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        private void GetPortableOrWindowsThreadPoolInfo()
+        private void GetPortableOrWindowsThreadPoolInfo(out bool usingPortableThreadPool, out bool usingWindowsThreadPool)
         {
+            usingPortableThreadPool = usingWindowsThreadPool = false;
+
             ClrModule bcl = _runtime.BaseClassLibrary;
+            ClrType? threadPoolType = bcl.GetTypeByName("System.Threading.ThreadPool");
+            if (threadPoolType is null)
+                return default;
+
             ClrAppDomain domain = GetDomain();
 
             ClrType? windowsThreadPoolType = bcl.GetTypeByName("System.Threading.WindowsThreadPool");
@@ -213,7 +222,7 @@ namespace Microsoft.Diagnostics.Runtime
             // Otherwise check if it's the only thread pool present
             if (useWindowsThreadPoolOnSwitch || onlyWindowsThreadPool)
             {
-                UsingWindowsThreadPool = true;
+                usingWindowsThreadPool = true;
                 ClrStaticField? threadCountField = windowsThreadPoolType.GetStaticFieldByName("s_threadCount");
                 ThreadCount = threadCountField.Read<int>(domain);
                 return;
@@ -227,8 +236,8 @@ namespace Microsoft.Diagnostics.Runtime
                     return;
 
                 ClrObject portableThreadPool = instanceField.ReadObject(domain);
-                UsingPortableThreadPool = !portableThreadPool.IsNull && portableThreadPool.IsValid;
-                if (UsingPortableThreadPool)
+                usingPortableThreadPool = !portableThreadPool.IsNull && portableThreadPool.IsValid;
+                if (usingPortableThreadPool)
                 {
                     CpuUtilization = portableThreadPool.ReadField<int>("_cpuUtilization");
                     MinThreads = portableThreadPool.ReadField<ushort>("_minThreads");
