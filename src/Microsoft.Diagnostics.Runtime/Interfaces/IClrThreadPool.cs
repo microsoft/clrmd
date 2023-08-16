@@ -11,7 +11,12 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         /// <summary>
         /// Whether this runtime is using the Portable threadpool or not.
         /// </summary>
-        bool Portable { get; }
+        public bool UsingPortableThreadPool { get; }
+
+        /// <summary>
+        /// Whether this runtime is using the Windows threadpool or not.
+        /// </summary>
+        public bool UsingWindowsThreadPool { get; }
 
         /// <summary>
         /// The current CPU utilization of the ThreadPool (a number between 0 and 100).
@@ -38,6 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         /// </summary>
         int ActiveWorkerThreads { get; }
 
+        int ThreadCount { get; }
         int TotalCompletionPorts { get; }
         int FreeCompletionPorts { get; }
         int MaxFreeCompletionPorts { get; }
