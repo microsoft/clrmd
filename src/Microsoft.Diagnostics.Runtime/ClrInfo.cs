@@ -268,7 +268,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsSupportedRuntime(module, out ClrFlavor flavor))
                 return new ClrInfo(dataTarget, flavor, module, 0);
 
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || Path.GetExtension(module.FileName).Equals(".exe", StringComparison.OrdinalIgnoreCase))
+            if ((dataTarget.DataReader.TargetPlatform != OSPlatform.Windows) || Path.GetExtension(module.FileName).Equals(".exe", StringComparison.OrdinalIgnoreCase))
             {
                 ulong singleFileRuntimeInfo = module.GetExportSymbolAddress(ClrRuntimeInfo.SymbolValue);
                 if (singleFileRuntimeInfo != 0)
