@@ -89,10 +89,10 @@ namespace Microsoft.Diagnostics.Runtime
             ClrAppDomain domain = GetDomain();
 
             GetPortableOrWindowsThreadPoolInfo(domain,
-                                            out bool usingPortableThreadPool, 
-                                            out ClrObject portableThreadPool, 
-                                            out bool usingWindowsThreadPool, 
-                                            out ClrType windowsThreadPoolType);
+                                            out bool usingPortableThreadPool,
+                                            out ClrObject portableThreadPool,
+                                            out bool usingWindowsThreadPool,
+                                            out ClrType? windowsThreadPoolType);
 
             UsingPortableThreadPool = usingPortableThreadPool;
             UsingWindowsThreadPool = usingWindowsThreadPool;
@@ -101,16 +101,16 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (UsingWindowsThreadPool)
             {
-                ClrStaticField? threadCountField = windowsThreadPoolType.GetStaticFieldByName("s_threadCount");
+                ClrStaticField threadCountField = windowsThreadPoolType!.GetStaticFieldByName("s_threadCount")!;
                 ThreadCount = threadCountField.Read<int>(domain);
             }
             else if (UsingPortableThreadPool)
             {
-                CpuUtilization = portableThreadPool.ReadField<int>("_cpuUtilization");
-                MinThreads = portableThreadPool.ReadField<ushort>("_minThreads");
-                MaxThreads = portableThreadPool.ReadField<ushort>("_maxThreads");
+                CpuUtilization = portableThreadPool!.ReadField<int>("_cpuUtilization");
+                MinThreads = portableThreadPool!.ReadField<ushort>("_minThreads");
+                MaxThreads = portableThreadPool!.ReadField<ushort>("_maxThreads");
 
-                ClrValueType counts = portableThreadPool.ReadValueTypeField("_separated").ReadValueTypeField("counts").ReadValueTypeField("_data");
+                ClrValueType counts = portableThreadPool!.ReadValueTypeField("_separated").ReadValueTypeField("counts").ReadValueTypeField("_data");
                 ulong dataValue = counts.ReadField<ulong>("m_value");
 
                 int processingWorkCount = (ushort)(dataValue & 0xffff);
@@ -227,10 +227,10 @@ namespace Microsoft.Diagnostics.Runtime
             out bool usingPortableThreadPool,
             out ClrObject portableThreadPool,
             out bool usingWindowsThreadPool,
-            out ClrType windowsThreadPoolType)
+            out ClrType? windowsThreadPoolType)
         {
-            usingPortableThreadPool = windowsThreadPoolType = false;
-            usingPortableThreadPool = default;
+            usingPortableThreadPool = usingWindowsThreadPool = false;
+            portableThreadPool = default;
             windowsThreadPoolType = default;
 
             ClrModule bcl = _runtime.BaseClassLibrary;
