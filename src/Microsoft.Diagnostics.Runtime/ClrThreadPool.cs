@@ -229,6 +229,10 @@ namespace Microsoft.Diagnostics.Runtime
             out bool usingWindowsThreadPool,
             out ClrType windowsThreadPoolType)
         {
+            usingPortableThreadPool = windowsThreadPoolType = false;
+            usingPortableThreadPool = default;
+            windowsThreadPoolType = default;
+
             ClrModule bcl = _runtime.BaseClassLibrary;
             ClrType? threadPoolType = bcl.GetTypeByName("System.Threading.ThreadPool");
             if (threadPoolType is null)
