@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (_name == null)
                 {
                     // GetTypeName returns whether the value should be cached or not.
-                    if (!Helpers.TryGetTypeName(MethodTable, out string? name))
+                    if (!Helpers.TryGetTypeName(this, out string? name))
                         return name;
 
                     // Cache the result or "string.Empty" for null.

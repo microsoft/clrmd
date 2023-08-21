@@ -10,11 +10,14 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     internal sealed class ClrTypeHelpers : IClrTypeHelpers, IClrFieldHelpers
     {
+        private readonly string UnloadedTypeName = "<Unloaded Type>";
+
         private readonly uint _firstChar = (uint)IntPtr.Size + 4;
         private readonly uint _stringLength = (uint)IntPtr.Size;
         private readonly SOSDac _sos;
@@ -138,17 +141,48 @@ namespace Microsoft.Diagnostics.Runtime
             return _typeFactory.GetOrCreateType(mt, 0);
         }
 
-        public bool TryGetTypeName(ulong mt, out string? name)
+        public bool TryGetTypeName(ClrType type, out string? name)
         {
-            name = _sos.GetMethodTableName(mt);
+            name = _sos.GetMethodTableName(type.MethodTable);
             if (string.IsNullOrWhiteSpace(name))
                 return true;
+
+            if (name == UnloadedTypeName)
+            {
+                string? nameFromToken = GetNameFromToken(type.Module?.MetadataImport, type.MetadataToken);
+                if (nameFromToken is not null)
+                {
+                    name = nameFromToken;
+                    return true;
+                }
+            }
 
             name = DACNameParser.Parse(name);
             if (CacheOptions.CacheTypeNames == StringCaching.Intern)
                 name = string.Intern(name);
 
             return CacheOptions.CacheTypeNames != StringCaching.None;
+        }
+
+        private static string? GetNameFromToken(MetadataImport? import, int token)
+        {
+            if (import is not null)
+            {
+                HResult hr = import.GetTypeDefProperties(token, out string? name, out _, out _);
+                if (hr && name is not null)
+                {
+                    hr = import.GetNestedClassProperties(token, out int enclosingToken);
+                    if (hr && enclosingToken != 0 && enclosingToken != token)
+                    {
+                        string? inner = GetNameFromToken(import, enclosingToken) ?? "<UNKNOWN>";
+                        name += $"+{inner}";
+                    }
+
+                    return name;
+                }
+            }
+
+            return null;
         }
 
         public ulong GetLoaderAllocatorHandle(ulong mt)
