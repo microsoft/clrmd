@@ -249,7 +249,12 @@ namespace Microsoft.Diagnostics.Runtime
 
                     offset = refList.Store(reference, offset);
                     if (offset == 0)
+                    {
                         stack.Add(refList.Complete());
+                        refList = new ReferenceList(curr, parent, out offset);
+                        offset = refList.Store(reference, offset);
+                        DebugOnly.Assert(offset != 0);
+                    }
                 }
 
                 byte[]? item = refList.Complete();
@@ -287,7 +292,7 @@ namespace Microsoft.Diagnostics.Runtime
         [Conditional("GCROOT_TRACE")]
         public static void TraceConsidering(ulong curr, ulong child)
         {
-            Trace.WriteLine($"Considering: {curr} -> {child}.");
+            Trace.WriteLine($"Considering: {curr:x} -> {child:x}.");
         }
 
         [Conditional("GCROOT_TRACE")]
