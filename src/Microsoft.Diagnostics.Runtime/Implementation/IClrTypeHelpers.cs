@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ClrHeap Heap { get; }
         IDataReader DataReader { get; }
 
-        bool TryGetTypeName(ulong mt, out string? name);
+        bool TryGetTypeName(ClrType type, out string? name);
         ulong GetLoaderAllocatorHandle(ulong mt);
         ulong GetAssemblyLoadContextAddress(ulong mt);
 
