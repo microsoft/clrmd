@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 bool interior = (stackRef.Flags & GCInteriorFlag) == GCInteriorFlag;
                 bool isPinned = (stackRef.Flags & GCPinnedFlag) == GCPinnedFlag;
 
-                ClrStackFrame? frame = stack.SingleOrDefault(f => f.StackPointer == stackRef.Source || f.StackPointer == stackRef.StackPointer && f.InstructionPointer == stackRef.Source);
+                ClrStackFrame? frame = stack.FirstOrDefault(f => f.StackPointer == stackRef.Source || f.StackPointer == stackRef.StackPointer && f.InstructionPointer == stackRef.Source);
                 frame ??= new ClrStackFrame(thread, null, stackRef.Source, stackRef.StackPointer, ClrStackFrameKind.Unknown, null, null);
 
                 int regOffset = 0;
