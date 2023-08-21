@@ -151,13 +151,13 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 string? nameFromToken = GetNameFromToken(type.Module?.MetadataImport, type.MetadataToken);
                 if (nameFromToken is not null)
-                {
                     name = nameFromToken;
-                    return true;
-                }
+            }
+            else
+            {
+                name = DACNameParser.Parse(name);
             }
 
-            name = DACNameParser.Parse(name);
             if (CacheOptions.CacheTypeNames == StringCaching.Intern)
                 name = string.Intern(name);
 
