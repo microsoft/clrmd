@@ -163,6 +163,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
+        public void ParseNestedGenericWithNestedGenericArg()
+        {
+            string input = "Microsoft.SqlServer.Management.SqlParser.Binder.ExecutionSimulator`1+NodeBase`1[T,[Microsoft.SqlServer.Management.SqlParser.Binder.ExecutionSimulator`1+ExecutionNode, Microsoft.SqlServer.Management.SqlParser]]";
+            string expectedResult = "Microsoft.SqlServer.Management.SqlParser.Binder.ExecutionSimulator<T>+NodeBase<Microsoft.SqlServer.Management.SqlParser.Binder.ExecutionSimulator<T1>+ExecutionNode>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
         public void ParseGenericWithComplexGenericArgs()
         {
             string input = "System.Func`2[[Microsoft.CodeAnalysis.UseAutoProperty.AbstractUseAutoPropertyAnalyzer`4+AnalysisResult[[Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax, Microsoft.CodeAnalysis.CSharp],[Microsoft.CodeAnalysis.CSharp.Syntax.FieldDeclarationSyntax, Microsoft.CodeAnalysis.CSharp],[Microsoft.CodeAnalysis.CSharp.Syntax.VariableDeclaratorSyntax, Microsoft.CodeAnalysis.CSharp],[Microsoft.CodeAnalysis.CSharp.Syntax.ExpressionSyntax, Microsoft.CodeAnalysis.CSharp]], Microsoft.CodeAnalysis.Features],[System.ValueTuple`2[[Microsoft.CodeAnalysis.CSharp.Syntax.TypeDeclarationSyntax, Microsoft.CodeAnalysis.CSharp],[Microsoft.CodeAnalysis.SemanticModel, Microsoft.CodeAnalysis]], mscorlib]]";
@@ -185,6 +194,217 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             string input = "Microsoft.TeamFoundation.Git.Contracts.PathTable`1+PathTableRow`1[[System.String, mscorlib],[System.String, mscorlib]][]";
             string expectedResult = "Microsoft.TeamFoundation.Git.Contracts.PathTable<System.String>+PathTableRow<System.String>[]";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        // Parse a generic arg list with some assembly-qualified names, and some non-qualified names, moving the location of the assembly-qualified arg throughout the list
+        // in the various tests (i.e. ParseValueTupleWithoutAllFullyQualifiedNames1, ParseValueTupleWithoutAllFullyQualifiedNames2, ...)
+        [Fact]
+        public void ParseValueTupleWithoutAllFullyQualifiedNames1()
+        {
+            string input = "System.ValueTuple`3[[System.String, mscorlib],TCheapVersion,TExpensiveVersion]";
+            string expectedResult = "System.ValueTuple<System.String, TCheapVersion, TExpensiveVersion>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void ParseValueTupleWithoutAllFullyQualifiedNames2()
+        {
+            string input = "System.ValueTuple`3[TCheapVersion,[System.String, mscorlib],TExpensiveVersion]";
+            string expectedResult = "System.ValueTuple<TCheapVersion, System.String, TExpensiveVersion>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void ParseValueTupleWithoutAllFullyQualifiedNames3()
+        {
+            string input = "System.ValueTuple`3[TCheapVersion,TExpensiveVersion,[System.String, mscorlib]]";
+            string expectedResult = "System.ValueTuple<TCheapVersion, TExpensiveVersion, System.String>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        // Test with NO qualified names
+        [Fact]
+        public void ParseValueTupleWithNoFullyQualifiedNames()
+        {
+            string input = "System.ValueTuple`3[TType1,TType2,TType3]";
+            string expectedResult = "System.ValueTuple<TType1, TType2, TType3>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void Bug897()
+        {
+            // https://github.com/microsoft/clrmd/issues/897
+
+            // This input is unusual both in that T and TPluginType are not assembly qualified, but also LambdaInstance is a non-closed generic type.
+            string input = "StructureMap.Pipeline.ExpressedInstance`3[[StructureMap.Pipeline.LambdaInstance`2, EnforceHttpsModule],T,TPluginType]";
+            string expectedResult = "StructureMap.Pipeline.ExpressedInstance<StructureMap.Pipeline.LambdaInstance<T1, T2>, T, TPluginType>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        // Some simple variants on Bug897
+        [Fact]
+        public void Bug897_Variant1()
+        {
+            string input = "StructureMap.Pipeline.ExpressedInstance`3[[StructureMap.Pipeline.LambdaInstance`2[[System.String, mscorlib],SomeFakeType], SomeFakeAssembly],T,TPluginType]";
+            string expectedResult = "StructureMap.Pipeline.ExpressedInstance<StructureMap.Pipeline.LambdaInstance<System.String, SomeFakeType>, T, TPluginType>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void Bug897_Variant2()
+        {
+            string input = "StructureMap.Pipeline.ExpressedInstance`3[[StructureMap.Pipeline.LambdaInstance`2[[List`1[[System.ValueType`2[[System.Boolean, mscorlib],SomeOtherFakeType], mscorlib]], mscorlib],SomeFakeType], SomeFakeAssembly],T,TPluginType]";
+            string expectedResult = "StructureMap.Pipeline.ExpressedInstance<StructureMap.Pipeline.LambdaInstance<List<System.ValueType<System.Boolean, SomeOtherFakeType>>, SomeFakeType>, T, TPluginType>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void ParseOuterMostGenericWithFinalArgumentBeingAssemblyQualifiedNestedGeneric()
+        {
+            string input = "System.Linq.Parallel.QueryOperatorEnumerator`2[TSource,[System.Linq.Parallel.ConcatKey`2[TLeftKey,TRightKey], System.Core]]";
+            string expectedResult = "System.Linq.Parallel.QueryOperatorEnumerator<TSource, System.Linq.Parallel.ConcatKey<TLeftKey, TRightKey>>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void ParseGenericWithAssemblyQualifiedArrayTypeParam()
+        {
+            string input = "System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[System.Object[], mscorlib]]";
+            string expectedResult = "System.Collections.Generic.Dictionary<System.String, System.Object[]>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void ParseGenericWithNonAssemblyQualifiedArrayTypeParam()
+        {
+            string input = "System.Collections.Generic.Dictionary`2[[System.String, mscorlib],TFoo[]]";
+            string expectedResult = "System.Collections.Generic.Dictionary<System.String, TFoo[]>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void ParseGenericWithAssemblyQualifiedArrayOfArrayTypeParam()
+        {
+            string input = "System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[System.Object[][], mscorlib]]";
+            string expectedResult = "System.Collections.Generic.Dictionary<System.String, System.Object[][]>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void ParseGenericWithNonAssemblyQualifiedArrayOfArrayTypeParam()
+        {
+            string input = "System.Collections.Generic.Dictionary`2[[System.String, mscorlib],TFoo[][]]";
+            string expectedResult = "System.Collections.Generic.Dictionary<System.String, TFoo[][]>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void ParseGenericWithAssemblyQualifiedMultiDimensionalArrayTypeParam()
+        {
+            string input = "System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[System.Object[,,], mscorlib]]";
+            string expectedResult = "System.Collections.Generic.Dictionary<System.String, System.Object[,,]>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void ParseGenericWithNonAssemblyQualifiedMultiDimensionalArrayTypeParam()
+        {
+            string input = "System.Collections.Generic.Dictionary`2[[System.String, mscorlib],TFoo[,,]]";
+            string expectedResult = "System.Collections.Generic.Dictionary<System.String, TFoo[,,]>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void ParseArrayOfNestedGenericTypeWithNonAssemblyQualifiedArrayTypeParam()
+        {
+            string input = "System.Collections.Generic.Dictionary`2+Entry[[System.Int32, mscorlib],[System.Collections.Generic.Stack`1[[System.Type[], mscorlib]], System]][]";
+            string expectedResult = "System.Collections.Generic.Dictionary<System.Int32, System.Collections.Generic.Stack<System.Type[]>>+Entry[]";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void ParseNestedGenericAnonymousTypes()
+        {
+            string input = "System.Func`2[[<>f__AnonymousType12`2[[<>f__AnonymousType10`2[[System.Reflection.ConstructorInfo, mscorlib],[System.Reflection.ParameterInfo[], mscorlib]], Microsoft.VisualStudio.Composition],[System.Reflection.TypeInfo, mscorlib]], Microsoft.VisualStudio.Composition],[System.Reflection.ConstructorInfo, mscorlib]]";
+            string expectedResult = "System.Func<<>f__AnonymousType12<<>f__AnonymousType10<System.Reflection.ConstructorInfo, System.Reflection.ParameterInfo[]>, System.Reflection.TypeInfo>, System.Reflection.ConstructorInfo>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void HandlesNonTraditionalGenericTypeMissingAritySpecifier()
+        {
+            // NOTE: jaredpar in the Roslyn compiler team verified this is in fact a generic type in F#, but it has no arity specifier. We should be able to handle
+            // these by recognizing when we encounter the [ and decide we are parsing an array specifier (which we should since we never saw a generic arity specifier)
+            // if we see anything other than a ] or a , after it (i.e. say a letter), then we can assume this is one of these non-traditional generic cases and manually force
+            // ourself down that path. It means we will need to figure out the arity ourselves, but that shouldn't be terribly hard, we just start at 1 and count any commas
+            // we encounter before the closing ] (taking care for nested generics inside the outer generic in our counting).
+            string input = "FSharp.Compiler.TypedTreeBasics+loop@444-39T[a]";
+            string expectedResult = "FSharp.Compiler.TypedTreeBasics+loop@444-39T<a>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void HandlesNonTraditionalGenericTypeWithMultipleParamsMissingAritySpecifier()
+        {
+            string input = "Microsoft.FSharp.Collections.ArrayModule+Parallel+sortingFunc@2439-1[TKey,TValue]";
+            string expectedResult = "Microsoft.FSharp.Collections.ArrayModule+Parallel+sortingFunc@2439-1<TKey, TValue>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+
+        [Fact]
+        public void HandlesNonTraditionalGenericTypeWithNestedGenericTypeMissingAritySpecifier()
+        {
+            string input = "Microsoft.FSharp.Collections.ArrayModule+Parallel+sortingFunc@2439-1[TKey,[TSomeFoo, TFakeAssembly]]";
+            string expectedResult = "Microsoft.FSharp.Collections.ArrayModule+Parallel+sortingFunc@2439-1<TKey, TSomeFoo>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void HandlesNonTraditionalGenericTypeWithArrayParamMissingAritySpecifier()
+        {
+            string input = "Microsoft.FSharp.Collections.ArrayModule+Parallel+sortingFunc@2439-1[TKey[]]";
+            string expectedResult = "Microsoft.FSharp.Collections.ArrayModule+Parallel+sortingFunc@2439-1<TKey[]>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void HandleNonTraditionObfuscatedGenericWithAssemblyQualifiedArg()
+        {
+            string input = "a37[[akx, yWorks.yFilesWPF.Viewer]]";
+            string expectedResult = "a37<akx>";
+
+            Assert.Equal(expectedResult, DACNameParser.Parse(input));
+        }
+
+        [Fact]
+        public void HandleNonTraditionObfuscatedGenericWithNonAssemblyQualifiedArg()
+        {
+            string input = "a37[akx]";
+            string expectedResult = "a37<akx>";
 
             Assert.Equal(expectedResult, DACNameParser.Parse(input));
         }
