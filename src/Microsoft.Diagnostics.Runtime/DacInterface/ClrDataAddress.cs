@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     /// meant to
     /// </summary>
     [DebuggerDisplay("{AsUInt64()}")]
-    public readonly struct ClrDataAddress
+    internal readonly struct ClrDataAddress
     {
         /// <summary>
         /// Gets raw value of this address.  May be sign-extended if inspecting a 32bit process.

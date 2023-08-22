@@ -8,7 +8,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public sealed unsafe class ClrDataMethod : CallableCOMWrapper
+    internal sealed unsafe class ClrDataMethod : CallableCOMWrapper
     {
         private static readonly Guid IID_IXCLRDataMethodInstance = new("ECD73800-22CA-4b0d-AB55-E9BA7E6318A5");
 

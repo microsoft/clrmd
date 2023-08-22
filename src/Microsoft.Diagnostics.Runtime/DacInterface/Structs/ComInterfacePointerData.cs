@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct COMInterfacePointerData
+    internal readonly struct COMInterfacePointerData
     {
         public readonly ClrDataAddress MethodTable;
         public readonly ClrDataAddress InterfacePointer;

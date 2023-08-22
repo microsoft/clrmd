@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     /// <summary>
     /// This is an undocumented, untested, and unsupported interface.  Do not use.
     /// </summary>
-    public sealed unsafe class SOSDac : CallableCOMWrapper
+    internal sealed unsafe class SOSDac : CallableCOMWrapper
     {
         internal static readonly Guid IID_ISOSDac = new("436f00f2-b42a-4b9f-870c-e73db66ae930");
 
@@ -299,7 +299,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return result.Count > 16384 ? 0 : 1u;
             };
 
-            VTable.TraverseRCWCleanupList(Self, 0, Marshal.GetFunctionPointerForDelegate(traverse), 0);
+            VTable.TraverseRCWCleanupList(Self, cleanupList, Marshal.GetFunctionPointerForDelegate(traverse), 0);
 
             GC.KeepAlive(traverse);
             return result;

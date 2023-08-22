@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct DacOOMData
+    internal readonly struct DacOOMData
     {
         public readonly OutOfMemoryReason Reason;
         public readonly ulong AllocSize;

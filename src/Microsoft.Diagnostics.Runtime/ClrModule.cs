@@ -124,7 +124,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the <c>IMetaDataImport</c> interface for this module.  Note that this API does not provide a
         /// wrapper for <c>IMetaDataImport</c>.  You will need to wrap the API yourself if you need to use this.
         /// </summary>
-        public MetadataImport? MetadataImport => _metadata ??= _helpers.GetMetadataImport(this);
+        internal MetadataImport? MetadataImport => _metadata ??= _helpers.GetMetadataImport(this);
 
         /// <summary>
         /// The ThunkHeap associated with this Module.  This is only available when debugging a .Net 8 or

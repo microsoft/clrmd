@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal ClrDataProcess InternalDacPrivateInterface { get; }
 
-        public ClrDataProcess DacPrivateInterface => new(this, InternalDacPrivateInterface);
+        internal ClrDataProcess DacPrivateInterface => new(this, InternalDacPrivateInterface);
 
         private SOSDac GetSOSInterfaceNoAddRef()
         {
@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime
             return _sos;
         }
 
-        public SOSDac SOSDacInterface
+        internal SOSDac SOSDacInterface
         {
             get
             {
@@ -41,10 +41,10 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public SOSDac6? SOSDacInterface6 => InternalDacPrivateInterface.GetSOSDacInterface6();
-        public SOSDac8? SOSDacInterface8 => InternalDacPrivateInterface.GetSOSDacInterface8();
-        public SosDac12? SOSDacInterface12 => InternalDacPrivateInterface.GetSOSDacInterface12();
-        public ISOSDac13? SOSDacInterface13 => InternalDacPrivateInterface.GetSOSDacInterface13();
+        internal SOSDac6? SOSDacInterface6 => InternalDacPrivateInterface.GetSOSDacInterface6();
+        internal SOSDac8? SOSDacInterface8 => InternalDacPrivateInterface.GetSOSDacInterface8();
+        internal SosDac12? SOSDacInterface12 => InternalDacPrivateInterface.GetSOSDacInterface12();
+        internal ISOSDac13? SOSDacInterface13 => InternalDacPrivateInterface.GetSOSDacInterface13();
 
         public DacLibrary(DataTarget dataTarget, IntPtr pClrDataProcess)
         {

@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct DomainLocalModuleData
+    internal readonly struct DomainLocalModuleData
     {
         public readonly ClrDataAddress AppDomainAddress;
         public readonly ulong ModuleID;

@@ -9,7 +9,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public sealed unsafe class ClrDataModule : CallableCOMWrapper
+    internal sealed unsafe class ClrDataModule : CallableCOMWrapper
     {
         private const uint DACDATAMODULEPRIV_REQUEST_GET_MODULEDATA = 0xf0000001;
 

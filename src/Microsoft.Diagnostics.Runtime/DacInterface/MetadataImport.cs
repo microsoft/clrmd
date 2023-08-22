@@ -13,7 +13,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public sealed unsafe class MetadataImport : CallableCOMWrapper
+    internal sealed unsafe class MetadataImport : CallableCOMWrapper
     {
         public static readonly Guid IID_IMetaDataImport = new("7DAC8207-D3AE-4c75-9B67-92801A497D44");
 
