@@ -1021,7 +1021,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private static bool DoAnyArgsOrTypeNamesHaveUnfulfilledGenericArguments(List<TypeNameSegment>? nameSegments, List<TypeNameSegment>? genericArgs)
         {
-            foreach (List<TypeNameSegment>? current in new[] { genericArgs, nameSegments })
+            return DoAnyArgsOrTypeNamesHaveUnfulfilledGenericArgumentsWorker(nameSegments) || DoAnyArgsOrTypeNamesHaveUnfulfilledGenericArgumentsWorker(genericArgs);
+
+            static bool DoAnyArgsOrTypeNamesHaveUnfulfilledGenericArgumentsWorker(List<TypeNameSegment>? current)
             {
                 if (current != null)
                 {
@@ -1033,9 +1035,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         }
                     }
                 }
-            }
 
-            return false;
+                return false;
+            }
         }
 
         private enum ParsingState
