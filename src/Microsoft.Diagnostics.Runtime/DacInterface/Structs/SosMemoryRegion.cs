@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct SosMemoryRegion
+    internal readonly struct SosMemoryRegion
     {
         public readonly ClrDataAddress Start;
         public readonly ClrDataAddress Length;

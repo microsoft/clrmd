@@ -299,7 +299,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return result.Count > 16384 ? 0 : 1u;
             };
 
-            VTable.TraverseRCWCleanupList(Self, 0, Marshal.GetFunctionPointerForDelegate(traverse), 0);
+            VTable.TraverseRCWCleanupList(Self, cleanupList, Marshal.GetFunctionPointerForDelegate(traverse), 0);
 
             GC.KeepAlive(traverse);
             return result;
