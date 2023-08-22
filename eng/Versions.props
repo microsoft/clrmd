@@ -6,7 +6,6 @@
     <DotNetUseShippingVersions>true</DotNetUseShippingVersions>
     <AutoGenerateAssemblyVersion>true</AutoGenerateAssemblyVersion>
     <UsingToolNetFrameworkReferenceAssemblies>true</UsingToolNetFrameworkReferenceAssemblies>
-    <PreReleaseVersionLabel>beta</PreReleaseVersionLabel>
   </PropertyGroup>
   <PropertyGroup>
     <StyleCopAnalyzersVersion>1.2.0-beta.406</StyleCopAnalyzersVersion>
