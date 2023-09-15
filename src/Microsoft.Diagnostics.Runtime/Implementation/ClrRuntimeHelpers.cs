@@ -70,11 +70,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _library.Dispose();
         }
 
-        public ClrHeap CreateHeap()
-        {
-            ClrHeapHelpers helpers = new(_dac, _sos, _sos6, _sos8, _sos12, _dataReader, _cacheOptions);
-            return new ClrHeap(Runtime, _dataReader, helpers);
-        }
+        public IClrHeapHelpers GetHeapHelpers() => new ClrHeapHelpers(_dac, _sos, _sos6, _sos8, _sos12, _dataReader, _cacheOptions);
 
         public ClrRuntime Runtime
         {

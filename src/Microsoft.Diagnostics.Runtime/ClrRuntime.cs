@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -145,7 +146,8 @@ namespace Microsoft.Diagnostics.Runtime
                 ClrHeap? heap = _heap;
                 if (heap is null)
                 {
-                    heap = _helpers.CreateHeap();
+                    IClrHeapHelpers heapHelpers = _helpers.GetHeapHelpers() ?? throw new NotSupportedException("Unable to create a ClrHeap for this runtime.");
+                    heap = new ClrHeap(this, DataTarget.DataReader, heapHelpers);
                     Interlocked.CompareExchange(ref _heap, heap, null);
                     heap = _heap;
                 }

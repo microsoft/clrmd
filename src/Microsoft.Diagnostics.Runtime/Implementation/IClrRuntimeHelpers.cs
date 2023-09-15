@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         void Flush();
         IEnumerable<ClrThread> EnumerateThreads();
-        ClrHeap CreateHeap();
+        IClrHeapHelpers GetHeapHelpers();
         ClrAppDomainData GetAppDomainData();
         ClrMethod? GetMethodByMethodDesc(ulong methodDesc);
         ClrMethod? GetMethodByInstructionPointer(ulong ip);
