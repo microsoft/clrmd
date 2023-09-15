@@ -22,6 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         internal static readonly Guid IID_ISOSDac = new("436f00f2-b42a-4b9f-870c-e73db66ae930");
 
         private readonly DacLibrary _library;
+        private volatile Dictionary<int, string>? _regNames;
 
         public SOSDac(DacLibrary? library, IntPtr ptr)
             : base(library?.OwningLibrary, IID_ISOSDac, ptr)
@@ -62,6 +63,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public string? GetRegisterName(int index)
         {
+            Dictionary<int, string> regNames = _regNames ??= new();
+            lock (regNames)
+                if (regNames.TryGetValue(index, out string? cached))
+                    return cached;
+
             // Register names shouldn't be big.
             Span<char> buffer = stackalloc char[32];
 
@@ -78,7 +84,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 if (len >= 0)
                     buffer = buffer.Slice(0, len);
 
-                return new string(ptr, 0, buffer.Length);
+                string result = new(ptr, 0, buffer.Length);
+                lock (regNames)
+                    regNames[index] = result;
+
+                return result;
             }
         }
 

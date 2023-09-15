@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     internal interface IClrRuntimeHelpers : IDisposable
     {
         void Flush();
-        IEnumerable<ClrThread> EnumerateThreads();
+        IEnumerable<IClrThreadData> EnumerateThreads(int max = int.MaxValue);
         IClrHeapHelpers GetHeapHelpers();
         ClrAppDomainData GetAppDomainData();
         ClrMethod? GetMethodByMethodDesc(ulong methodDesc);

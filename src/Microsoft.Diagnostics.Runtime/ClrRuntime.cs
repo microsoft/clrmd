@@ -6,12 +6,10 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
-using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
-
 {
     /// <summary>
     /// Represents a single runtime in a target process or crash dump.  This serves as the primary
@@ -108,11 +106,39 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!_threads.IsDefault)
                     return _threads;
 
-                ImmutableArray<ClrThread> threads = _helpers.EnumerateThreads().ToImmutableArray();
+                ImmutableArray<ClrThread>.Builder builder = ImmutableArray.CreateBuilder<ClrThread>();
+
+                int maxErrors = 1024;
+                foreach (IClrThreadData data in _helpers.EnumerateThreads())
+                {
+                    if (data.HasData)
+                        builder.Add(new ClrThread(DataTarget.DataReader, this, data));
+                    else if (maxErrors-- == 0)
+                        break;
+                }
+
+                ImmutableArray<ClrThread> threads = builder.MoveOrCopyToImmutable();
                 ImmutableInterlocked.InterlockedCompareExchange(ref _threads, threads, _threads);
 
                 return _threads;
             }
+        }
+
+        /// <summary>
+        /// Returns a ClrAppDomain by its address.
+        /// </summary>
+        /// <param name="appDomain">The address of an AppDomain.  This is the pointer to CLR's internal runtime
+        /// structure.</param>
+        /// <returns>The ClrAppDomain corresponding to this address, or null if none were found.</returns>
+        public ClrAppDomain? GetAppDomainByAddress(ulong appDomain)
+        {
+            if (SystemDomain is not null && SystemDomain.Address == appDomain)
+                return SystemDomain;
+
+            if (SharedDomain is not null && SharedDomain.Address == appDomain)
+                return SharedDomain;
+
+            return AppDomains.FirstOrDefault(d => d.Address == appDomain);
         }
 
         /// <summary>

@@ -12,19 +12,93 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal sealed class ClrThreadHelpers : IClrThreadHelpers
+    internal sealed class DacThreadData : IClrThreadData
     {
+        private readonly IDataReader _reader;
         private readonly ClrDataProcess _dac;
         private readonly SOSDac _sos;
-        private readonly Dictionary<int, string> _regNames = new();
+        private readonly ThreadData _data;
+        private ulong? _stackBase;
+        private ulong? _stackLimit;
 
-        public IDataReader DataReader { get; }
+        public ulong Address { get; }
 
-        public ClrThreadHelpers(ClrDataProcess dac, SOSDac sos, IDataReader dataReader)
+        public bool HasData { get; }
+
+        public ulong AppDomain => _data.Domain;
+
+        public uint OSThreadId => _data.OSThreadId;
+
+        public int ManagedThreadId => _data.ManagedThreadId < int.MaxValue ? (int)_data.ManagedThreadId : int.MaxValue;
+
+        public uint LockCount => _data.LockCount;
+
+        public ulong Teb => _data.Teb;
+
+        public ulong ExceptionInFlight => _data.LastThrownObjectHandle != 0 ? _reader.ReadPointer(_data.LastThrownObjectHandle) : 0;
+
+        public bool IsFinalizer { get; }
+
+        public bool IsGC { get; }
+
+        public GCMode GCMode => _data.PreemptiveGCDisabled == 0 ? GCMode.Preemptive : GCMode.Cooperative;
+
+        public ClrThreadState ThreadState => (ClrThreadState)_data.State;
+
+        public ulong NextThread => _data.NextThread;
+
+
+        public ulong StackBase
         {
+            get
+            {
+                if (_stackBase is ulong stackBase)
+                    return stackBase;
+
+                ulong teb = _data.Teb;
+                if (teb == 0)
+                {
+                    _stackBase = 0;
+                    return 0;
+                }
+
+                uint pointerSize = (uint)_reader.PointerSize;
+                stackBase = _reader.ReadPointer(teb + pointerSize);
+                _stackBase = stackBase;
+                return stackBase;
+            }
+        }
+
+        public ulong StackLimit
+        {
+            get
+            {
+                if (_stackLimit is ulong stackLimit)
+                    return stackLimit;
+
+                ulong teb = _data.Teb;
+                if (teb == 0)
+                {
+                    _stackLimit = 0;
+                    return 0;
+                }
+
+                uint pointerSize = (uint)_reader.PointerSize;
+                stackLimit = _reader.ReadPointer(teb + pointerSize * 2);
+                _stackLimit = stackLimit;
+                return stackLimit;
+            }
+        }
+
+        public DacThreadData(ClrDataProcess dac, SOSDac sos, IDataReader reader, ulong address, in ThreadStoreData threadStore)
+        {
+            _reader = reader;
             _dac = dac;
             _sos = sos;
-            DataReader = dataReader;
+            Address = address;
+            HasData = sos.GetThreadData(address, out _data);
+            IsGC = address == threadStore.GCThread;
+            IsFinalizer = address == threadStore.FinalizerThread;
         }
 
         public IEnumerable<ClrStackRoot> EnumerateStackRoots(ClrThread thread)
@@ -58,16 +132,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (stackRef.HasRegisterInformation != 0)
                 {
                     regOffset = stackRef.Offset;
-
-                    int regIndex = stackRef.Register;
-                    if (!_regNames.TryGetValue(regIndex, out regName))
-                    {
-                        regName = _sos.GetRegisterName(regIndex);
-                        if (regName is not null)
-                        {
-                            _regNames[regIndex] = regName;
-                        }
-                    }
+                    regName = _sos.GetRegisterName(stackRef.Register);
                 }
 
                 if (interior)
@@ -77,7 +142,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     ClrSegment? segment = heap.GetSegmentByAddress(obj);
 
                     // If not, this may be a pointer to an object.
-                    if (segment is null && DataReader.ReadPointer(obj, out obj))
+                    if (segment is null && _reader.ReadPointer(obj, out obj))
                         segment = heap.GetSegmentByAddress(obj);
 
                     // Only yield return if we find a valid object on the heap
@@ -94,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public IEnumerable<ClrStackFrame> EnumerateStackTrace(ClrThread thread, bool includeContext)
+        public IEnumerable<ClrStackFrame> EnumerateStackTrace(ClrThread thread, bool includeContext, int maxFrames)
         {
             using ClrStackWalk? stackwalk = _dac.CreateStackWalk(thread.OSThreadId, 0xf);
             if (stackwalk is null)
@@ -104,19 +169,19 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             int spOffset;
             int contextSize;
             uint contextFlags = 0;
-            if (DataReader.Architecture == Architecture.Arm)
+            if (_reader.Architecture == Architecture.Arm)
             {
                 ipOffset = 64;
                 spOffset = 56;
                 contextSize = 416;
             }
-            else if (DataReader.Architecture == Architecture.Arm64)
+            else if (_reader.Architecture == Architecture.Arm64)
             {
                 ipOffset = 264;
                 spOffset = 256;
                 contextSize = 912;
             }
-            else if (DataReader.Architecture == Architecture.X86)
+            else if (_reader.Architecture == Architecture.X86)
             {
                 ipOffset = 184;
                 spOffset = 196;
@@ -131,11 +196,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 contextFlags = 0x10003f;
             }
 
-            Trace.TraceInformation($"BEGIN STACKWALK - {DataReader.Architecture}");
-
-            HResult hr;
+            HResult hr = HResult.S_OK;
             byte[] context = ArrayPool<byte>.Shared.Rent(contextSize);
-            do
+            while (hr.IsOK && maxFrames-- > 0)
             {
                 hr = stackwalk.GetContext(contextFlags, contextSize, out _, context);
                 if (!hr)
@@ -151,10 +214,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (frameVtbl != 0)
                 {
                     sp = frameVtbl;
-                    frameVtbl = DataReader.ReadPointer(sp);
+                    frameVtbl = _reader.ReadPointer(sp);
                 }
-
-                Trace.TraceInformation($"STACKWALK - hr:{hr}");
 
                 byte[]? contextCopy = null;
                 if (includeContext)
@@ -166,9 +227,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 yield return frame;
 
                 hr = stackwalk.Next();
-            } while (hr.IsOK);
-
-            Trace.TraceInformation($"END STACKWALK - hr:{hr}");
+                if (!hr)
+                    Trace.TraceInformation($"STACKWALK FAILED - hr:{hr}");
+            }
         }
 
         private ClrStackFrame GetStackFrame(ClrThread thread, byte[]? context, ulong ip, ulong sp, ulong frameVtbl)

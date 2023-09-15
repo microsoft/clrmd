@@ -1,0 +1,38 @@
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Collections.Generic;
+
+namespace Microsoft.Diagnostics.Runtime.Implementation
+{
+    internal interface IClrThreadData
+    {
+        /// <summary>
+        /// The address of the underlying coreclr!Thread.  This is never 0.
+        /// </summary>
+        ulong Address { get; }
+
+        /// <summary>
+        /// Returns whether we successfully requested this thread's data or not.
+        /// If HasData == false, it means all members of this interface (other than Address)
+        /// are invalid.
+        /// </summary>
+        bool HasData { get; }
+
+        ulong AppDomain { get; }
+        uint OSThreadId { get; }
+        int ManagedThreadId { get; }
+        uint LockCount { get; }
+        ulong Teb { get; }
+        ulong ExceptionInFlight { get; }
+        bool IsFinalizer { get; }
+        bool IsGC { get; }
+        GCMode GCMode { get; }
+        ClrThreadState ThreadState { get; }
+        ulong StackBase { get; }
+        ulong StackLimit { get; }
+
+        IEnumerable<ClrStackRoot> EnumerateStackRoots(ClrThread thread);
+        IEnumerable<ClrStackFrame> EnumerateStackTrace(ClrThread thread, bool includeContext, int maxFrames = 8096);
+    }
+}

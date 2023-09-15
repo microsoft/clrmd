@@ -16,32 +16,17 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrThread : IClrThread, IEquatable<ClrThread>
     {
-        private readonly IClrThreadHelpers _helpers;
-        private readonly ulong _exceptionHandle;
+        private readonly IDataReader _dataReader;
+        private readonly IClrThreadData _threadData;
+        private ClrAppDomain? _currentDomain;
+        private ClrException? _lastThrownException;
         private ClrStackFrame[]? _frames;
 
-        internal ClrThread(IClrThreadHelpers helpers, ClrRuntime runtime, ClrAppDomain? currentDomain, ulong address, in ThreadData data, bool isFinalizer, bool isGc)
+        internal ClrThread(IDataReader dataReader, ClrRuntime runtime, IClrThreadData data)
         {
-            _helpers = helpers;
+            _dataReader = dataReader;
+            _threadData = data;
             Runtime = runtime;
-            Address = address;
-            OSThreadId = data.OSThreadId;
-            ManagedThreadId = (int)data.ManagedThreadId;
-            CurrentAppDomain = currentDomain;
-            LockCount = data.LockCount;
-            State = (ClrThreadState)data.State;
-            _exceptionHandle = data.LastThrownObjectHandle;
-            IsFinalizer = isFinalizer;
-            IsGc = isGc;
-
-            if (data.Teb != 0)
-            {
-                IMemoryReader reader = _helpers.DataReader;
-                uint pointerSize = (uint)reader.PointerSize;
-                StackBase = reader.ReadPointer(data.Teb + pointerSize);
-                StackLimit = reader.ReadPointer(data.Teb + pointerSize * 2);
-            }
-            GCMode = data.PreemptiveGCDisabled == 0 ? GCMode.Preemptive : GCMode.Cooperative;
         }
 
         /// <summary>
@@ -54,15 +39,15 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the suspension state of the thread according to the runtime.
         /// </summary>
-        public GCMode GCMode { get; }
+        public GCMode GCMode => _threadData.GCMode;
 
         /// <summary>
-        /// Gets the address of the underlying datastructure which makes up the Thread object.  This
+        /// Gets the address of the underlying data structure which makes up the Thread object.  This
         /// serves as a unique identifier.
         /// </summary>
-        public ulong Address { get; }
+        public ulong Address => _threadData.Address;
 
-        public ClrThreadState State { get; }
+        public ClrThreadState State => _threadData.ThreadState;
 
         /// <summary>
         /// Returns true if the thread is alive in the process, false if this thread was recently terminated.
@@ -72,28 +57,37 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns true if a finalizer thread otherwise false.
         /// </summary>
-        public bool IsFinalizer { get; }
+        public bool IsFinalizer => _threadData.IsFinalizer;
 
         /// <summary>
         /// Returns true if a GC thread otherwise false.
         /// </summary>
-        public bool IsGc { get; }
+        public bool IsGc => _threadData.IsGC;
 
         /// <summary>
         /// Gets the OS thread id for the thread.
         /// </summary>
-        public uint OSThreadId { get; }
+        public uint OSThreadId => _threadData.OSThreadId;
 
         /// <summary>
         /// Gets the managed thread ID (this is equivalent to <see cref="System.Threading.Thread.ManagedThreadId"/>
         /// in the target process).
         /// </summary>
-        public int ManagedThreadId { get; }
+        public int ManagedThreadId => _threadData.ManagedThreadId;
 
         /// <summary>
         /// Gets the AppDomain the thread is running in.
         /// </summary>
-        public ClrAppDomain? CurrentAppDomain { get; }
+        public ClrAppDomain? CurrentAppDomain
+        {
+            get
+            {
+                if (_currentDomain is not null || _threadData.AppDomain == 0)
+                    return _currentDomain;
+
+                return _currentDomain = Runtime.GetAppDomainByAddress(_threadData.AppDomain);
+            }
+        }
 
         IClrAppDomain? IClrThread.CurrentAppDomain => CurrentAppDomain;
 
@@ -101,23 +95,23 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the number of managed locks (Monitors) the thread has currently entered but not left.
         /// This will be highly inconsistent unless the process is stopped.
         /// </summary>
-        public uint LockCount { get; }
+        public uint LockCount => _threadData.LockCount;
 
         /// <summary>
         /// Gets the base of the stack for this thread, or 0 if the value could not be obtained.
         /// </summary>
-        public ulong StackBase { get; }
+        public ulong StackBase => _threadData.StackBase;
 
         /// <summary>
         /// Gets the limit of the stack for this thread, or 0 if the value could not be obtained.
         /// </summary>
-        public ulong StackLimit { get; }
+        public ulong StackLimit => _threadData.StackLimit;
 
         /// <summary>
         /// Enumerates the GC references (objects) on the stack.
         /// </summary>
         /// <returns>An enumeration of GC references on the stack as the GC sees them.</returns>
-        public IEnumerable<ClrStackRoot> EnumerateStackRoots() => _helpers.EnumerateStackRoots(this);
+        public IEnumerable<ClrStackRoot> EnumerateStackRoots() => _threadData.EnumerateStackRoots(this);
 
         IEnumerable<IClrRoot> IClrThread.EnumerateStackRoots() => EnumerateStackRoots().Cast<IClrRoot>();
 
@@ -152,7 +146,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
             }
 
-            _frames = _helpers.EnumerateStackTrace(this, includeContext).ToArray();
+            _frames = _threadData.EnumerateStackTrace(this, includeContext).ToArray();
             return Array.AsReadOnly(_frames);
         }
 
@@ -184,19 +178,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// be done processing the exception but a crash dump was taken before the current exception was
         /// cleared off the field.
         /// </summary>
-        public ClrException? CurrentException
-        {
-            get
-            {
-                ulong ptr = _exceptionHandle;
-                if (ptr == 0)
-                    return null;
-
-                ulong obj = _helpers.DataReader.ReadPointer(ptr);
-                ClrException? ex = Runtime.Heap.GetExceptionObject(obj, this);
-                return ex;
-            }
-        }
+        public ClrException? CurrentException => _lastThrownException ??= _threadData.ExceptionInFlight != 0 ? Runtime.Heap.GetExceptionObject(_threadData.ExceptionInFlight, this) : null;
 
         IClrException? IClrThread.CurrentException => CurrentException;
     }
