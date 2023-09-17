@@ -17,6 +17,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// walk stacks multiple times.
         /// </summary>
         public bool CacheStackTraces { get; set; } = true;
+        public bool CacheStackRoots { get; set; } = true;
 
         public StringCaching CacheTypeNames { get; set; } = StringCaching.Cache;
         public StringCaching CacheFieldNames { get; set; } = StringCaching.Cache;

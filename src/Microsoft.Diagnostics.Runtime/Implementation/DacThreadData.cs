@@ -101,13 +101,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             IsFinalizer = address == threadStore.FinalizerThread;
         }
 
-        public IEnumerable<ClrStackRoot> EnumerateStackRoots(ClrThread thread)
+        public IEnumerable<StackRootInfo> EnumerateStackRoots(ClrThread thread)
         {
             using SOSStackRefEnum? stackRefEnum = _sos.EnumerateStackRefs(thread.OSThreadId);
             if (stackRefEnum is null)
                 yield break;
-
-            ClrStackFrame[] stack = thread.EnumerateStackTrace().Take(2048).ToArray();
 
             ClrAppDomain? domain = thread.CurrentAppDomain;
             ClrHeap heap = thread.Runtime.Heap;
@@ -123,10 +121,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 bool interior = (stackRef.Flags & GCInteriorFlag) == GCInteriorFlag;
                 bool isPinned = (stackRef.Flags & GCPinnedFlag) == GCPinnedFlag;
-
-                ClrStackFrame? frame = stack.FirstOrDefault(f => f.StackPointer == stackRef.Source || f.StackPointer == stackRef.StackPointer && f.InstructionPointer == stackRef.Source);
-                frame ??= new ClrStackFrame(thread, null, stackRef.Source, stackRef.StackPointer, ClrStackFrameKind.Unknown, null, null);
-
                 int regOffset = 0;
                 string? regName = null;
                 if (stackRef.HasRegisterInformation != 0)
@@ -135,27 +129,21 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     regName = _sos.GetRegisterName(stackRef.Register);
                 }
 
-                if (interior)
+                yield return new StackRootInfo()
                 {
-                    // Check if the value lives on the heap.
-                    ulong obj = stackRef.Object;
-                    ClrSegment? segment = heap.GetSegmentByAddress(obj);
+                    Source = stackRef.Source,
+                    StackPointer = stackRef.StackPointer,
 
-                    // If not, this may be a pointer to an object.
-                    if (segment is null && _reader.ReadPointer(obj, out obj))
-                        segment = heap.GetSegmentByAddress(obj);
+                    IsInterior = interior,
+                    IsPinned = isPinned,
 
-                    // Only yield return if we find a valid object on the heap
-                    if (segment is not null)
-                        yield return new ClrStackRoot(stackRef.Address, heap.GetObject(obj), isInterior: true, isPinned: isPinned, heap: heap, frame: frame, regName: regName, regOffset: regOffset);
-                }
-                else
-                {
-                    // It's possible that heap.GetObjectType could return null and we construct a bad ClrObject, but this should
-                    // only happen in the case of heap corruption and obj.IsValidObject will return null, so this is fine.
-                    ClrObject obj = heap.GetObject(stackRef.Object);
-                    yield return new ClrStackRoot(stackRef.Address, obj, isInterior: false, isPinned: isPinned, heap: heap, frame: frame, regName: regName, regOffset: regOffset);
-                }
+                    Address = stackRef.Address,
+                    Object = stackRef.Object,
+
+                    IsEnregistered = stackRef.HasRegisterInformation != 0,
+                    RegisterName = regName,
+                    RegisterOffset = regOffset,
+                };
             }
         }
 

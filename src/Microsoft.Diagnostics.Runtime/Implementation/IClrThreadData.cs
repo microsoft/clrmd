@@ -32,8 +32,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ulong StackBase { get; }
         ulong StackLimit { get; }
 
-        IEnumerable<ClrStackRoot> EnumerateStackRoots(ClrThread thread);
-        IEnumerable<StackFrameInfo> EnumerateStackTrace(ClrThread thread, bool includeContext, int maxFrames = 8096);
+        IEnumerable<StackRootInfo> EnumerateStackRoots(ClrThread thread);
+        IEnumerable<StackFrameInfo> EnumerateStackTrace(ClrThread thread, bool includeContext, int maxFrames);
     }
 
     internal struct StackFrameInfo
@@ -47,5 +47,21 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public ulong InnerMethodMethodHandle { get; set; }
 
         public byte[]? Context { get; set; }
+    }
+
+    internal struct StackRootInfo
+    {
+        public ulong Source { get; set; }
+        public ulong StackPointer { get; set; }
+
+        public bool IsInterior { get; set; }
+        public bool IsPinned { get; set; }
+
+        public ulong Address { get; set; }
+        public ulong Object { get; set; }
+
+        public bool IsEnregistered { get; set; }
+        public string? RegisterName { get; set; }
+        public int RegisterOffset { get; set; }
     }
 }

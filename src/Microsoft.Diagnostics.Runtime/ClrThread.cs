@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 
@@ -16,11 +15,13 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrThread : IClrThread, IEquatable<ClrThread>
     {
+        private const int MaxFrameDefault = 8096;
         private readonly IDataReader _dataReader;
         private readonly IClrThreadData _threadData;
         private ClrAppDomain? _currentDomain;
         private ClrException? _lastThrownException;
-        private volatile FrameCache? _frameCache;
+        private volatile Cache<ClrStackFrame>? _frameCache;
+        private volatile Cache<ClrStackRoot>? _rootCache;
 
         internal ClrThread(IDataReader dataReader, ClrRuntime runtime, IClrThreadData data)
         {
@@ -111,7 +112,59 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates the GC references (objects) on the stack.
         /// </summary>
         /// <returns>An enumeration of GC references on the stack as the GC sees them.</returns>
-        public IEnumerable<ClrStackRoot> EnumerateStackRoots() => _threadData.EnumerateStackRoots(this);
+        public IEnumerable<ClrStackRoot> EnumerateStackRoots()
+        {
+            Cache<ClrStackRoot>? cache = _rootCache;
+            if (cache is not null)
+                return Array.AsReadOnly(cache.Elements);
+
+            ClrHeap heap = Runtime.Heap;
+            ClrStackFrame[] frames = GetFramesForRoots();
+            IEnumerable<ClrStackRoot> roots = _threadData.EnumerateStackRoots(this).Select(r => CreateClrStackRoot(heap, frames, r));
+            if (!Runtime.DataTarget.CacheOptions.CacheStackRoots)
+                return roots;
+
+            // it's ok if we race and replace another cache as this will stabilize eventually
+            ClrStackRoot[] rootArray = roots.ToArray();
+            _rootCache = new(rootArray, false, 0);
+            return Array.AsReadOnly(rootArray);
+        }
+
+        private ClrStackFrame[] GetFramesForRoots()
+        {
+            Cache<ClrStackFrame>? cache = _frameCache;
+            if (cache is not null)
+                return cache.Elements;
+
+            ClrStackFrame[] stack = _threadData.EnumerateStackTrace(this, includeContext: false, maxFrames: MaxFrameDefault).Select(r => CreateClrStackFrame(r)).ToArray();
+
+            if (Runtime.DataTarget.CacheOptions.CacheStackTraces)
+                _frameCache = new(stack, includedContext: false, maxFrames: MaxFrameDefault);
+
+            return stack;
+        }
+
+        private ClrStackRoot CreateClrStackRoot(ClrHeap heap, ClrStackFrame[] stack, StackRootInfo stackRef)
+        {
+            ClrStackFrame? frame = stack.FirstOrDefault(f => f.StackPointer == stackRef.Source || f.StackPointer == stackRef.StackPointer && f.InstructionPointer == stackRef.Source);
+            frame ??= new ClrStackFrame(this, null, stackRef.Source, stackRef.StackPointer, ClrStackFrameKind.Unknown, null, null);
+
+            ulong obj = stackRef.Object;
+            if (stackRef.IsInterior)
+            {
+                ClrSegment? segment = heap.GetSegmentByAddress(obj);
+
+                // If not, this may be a pointer to an object.
+                if (segment is null && _dataReader.ReadPointer(obj, out ulong interiorObj))
+                {
+                    segment = heap.GetSegmentByAddress(interiorObj);
+                    if (segment is not null)
+                        obj = interiorObj;
+                }
+            }
+
+            return new ClrStackRoot(stackRef.Address, heap.GetObject(obj), stackRef.IsInterior, stackRef.IsPinned, heap, frame, stackRef.RegisterName, stackRef.RegisterOffset);
+        }
 
         IEnumerable<IClrRoot> IClrThread.EnumerateStackRoots() => EnumerateStackRoots().Cast<IClrRoot>();
 
@@ -128,7 +181,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumeration of stack frames.</returns>
         public IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext = false)
         {
-            return EnumerateStackTrace(includeContext, maxFrames: 8096);
+            return EnumerateStackTrace(includeContext, maxFrames: MaxFrameDefault);
         }
 
         /// <summary>
@@ -147,32 +200,18 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumeration of stack frames.</returns>
         public IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext, int maxFrames)
         {
-            FrameCache? cache = _frameCache;
+            Cache<ClrStackFrame>? cache = _frameCache;
             if (cache is not null && (!includeContext || cache.IncludedContext) && maxFrames <= cache.MaxFrames)
-                return Array.AsReadOnly(cache.Frames);
+                return Array.AsReadOnly(cache.Elements);
 
             IEnumerable<ClrStackFrame> frames = _threadData.EnumerateStackTrace(this, includeContext, maxFrames).Select(r => CreateClrStackFrame(r));
             if (!Runtime.DataTarget.CacheOptions.CacheStackTraces)
                 return frames;
 
-            // it's ok if we race and replace another FrameCache as this will stabilize eventually
+            // it's ok if we race and replace another cache as this will stabilize eventually
             ClrStackFrame[] frameArray = frames.ToArray();
             _frameCache = new(frameArray, includeContext, maxFrames);
             return Array.AsReadOnly(frameArray);
-        }
-
-        private sealed class FrameCache
-        {
-            public ClrStackFrame[] Frames { get; }
-            public bool IncludedContext { get; }
-            public int MaxFrames { get; }
-
-            public FrameCache(ClrStackFrame[] frames, bool includedContext, int maxFrames)
-            {
-                Frames = frames;
-                IncludedContext = includedContext;
-                MaxFrames = maxFrames;
-            }
         }
 
         private ClrStackFrame CreateClrStackFrame(in StackFrameInfo frame)
@@ -224,5 +263,20 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrException? CurrentException => _lastThrownException ??= _threadData.ExceptionInFlight != 0 ? Runtime.Heap.GetExceptionObject(_threadData.ExceptionInFlight, this) : null;
 
         IClrException? IClrThread.CurrentException => CurrentException;
+
+        private sealed class Cache<T>
+            where T : class
+        {
+            public T[] Elements { get; }
+            public bool IncludedContext { get; }
+            public int MaxFrames { get; }
+
+            public Cache(T[] elements, bool includedContext, int maxFrames)
+            {
+                Elements = elements;
+                IncludedContext = includedContext;
+                MaxFrames = maxFrames;
+            }
+        }
     }
 }
