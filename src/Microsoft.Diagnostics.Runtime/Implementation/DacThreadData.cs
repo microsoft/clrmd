@@ -222,6 +222,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     Context = contextCopy,
                     InternalFrameVTable = frameVtbl,
                     InternalFrameName = frameName,
+                    InnerMethodMethodHandle = frameMethod,
                 };
 
                 hr = stackwalk.Next();

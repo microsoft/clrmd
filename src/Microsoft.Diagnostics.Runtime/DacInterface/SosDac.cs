@@ -284,6 +284,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             {
                 lock (frameNames)
                     _frameNames[vtable] = result;
+
+                return result;
             }
 
             // Don't cache failed lookups.  We might have a bad stackwalk where we get 1000s of bad
