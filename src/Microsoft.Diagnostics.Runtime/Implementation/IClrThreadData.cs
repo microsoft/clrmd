@@ -33,6 +33,19 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ulong StackLimit { get; }
 
         IEnumerable<ClrStackRoot> EnumerateStackRoots(ClrThread thread);
-        IEnumerable<ClrStackFrame> EnumerateStackTrace(ClrThread thread, bool includeContext, int maxFrames = 8096);
+        IEnumerable<StackFrameInfo> EnumerateStackTrace(ClrThread thread, bool includeContext, int maxFrames = 8096);
+    }
+
+    internal struct StackFrameInfo
+    {
+        public ulong InstructionPointer { get; set; }
+        public ulong StackPointer { get; set; }
+
+        public readonly bool IsInternalFrame => InternalFrameVTable != 0;
+        public ulong InternalFrameVTable { get; set; }
+        public string? InternalFrameName { get; set; }
+        public ulong InnerMethodMethodHandle { get; set; }
+
+        public byte[]? Context { get; set; }
     }
 }

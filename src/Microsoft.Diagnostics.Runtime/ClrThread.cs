@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly IClrThreadData _threadData;
         private ClrAppDomain? _currentDomain;
         private ClrException? _lastThrownException;
-        private ClrStackFrame[]? _frames;
+        private volatile FrameCache? _frameCache;
 
         internal ClrThread(IDataReader dataReader, ClrRuntime runtime, IClrThreadData data)
         {
@@ -122,32 +122,75 @@ namespace Microsoft.Diagnostics.Runtime
         /// unwind is making progress by ensuring that ClrStackFrame.StackPointer is making progress (though it
         /// is expected that sometimes two frames may return the same StackPointer in some corner cases).
         /// </summary>
+        /// <param name="includeContext">Whether to include a CONTEXT record for the frame.  This is always in
+        /// the format of the Windows CONTEXT record (as that's what CLR uses internally, even on non-Windows
+        /// platforms.</param>
         /// <returns>An enumeration of stack frames.</returns>
         public IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext = false)
         {
-            if (_frames is not null)
+            return EnumerateStackTrace(includeContext, maxFrames: 8096);
+        }
+
+        /// <summary>
+        /// Enumerates a stack trace for a given thread.  Note this method may loop infinitely in the case of
+        /// stack corruption or other stack unwind issues which can happen in practice.  When enumerating frames
+        /// out of this method you should be careful to either set a maximum loop count, or to ensure the stack
+        /// unwind is making progress by ensuring that ClrStackFrame.StackPointer is making progress (though it
+        /// is expected that sometimes two frames may return the same StackPointer in some corner cases).
+        /// </summary>
+        /// <param name="includeContext">Whether to include a CONTEXT record for the frame.  This is always in
+        /// the format of the Windows CONTEXT record (as that's what CLR uses internally, even on non-Windows
+        /// platforms.</param>
+        /// <param name="maxFrames">The maximum number of stack frames to return.  It's important to cap the
+        /// stack trace because sometimes bugs in the debugging layer or corruption in the target process
+        /// can cause us to produce an infinite amount of stack frames.</param>
+        /// <returns>An enumeration of stack frames.</returns>
+        public IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext, int maxFrames)
+        {
+            FrameCache? cache = _frameCache;
+            if (cache is not null && (!includeContext || cache.IncludedContext) && maxFrames <= cache.MaxFrames)
+                return Array.AsReadOnly(cache.Frames);
+
+            IEnumerable<ClrStackFrame> frames = _threadData.EnumerateStackTrace(this, includeContext, maxFrames).Select(r => CreateClrStackFrame(r));
+            if (!Runtime.DataTarget.CacheOptions.CacheStackTraces)
+                return frames;
+
+            // it's ok if we race and replace another FrameCache as this will stabilize eventually
+            ClrStackFrame[] frameArray = frames.ToArray();
+            _frameCache = new(frameArray, includeContext, maxFrames);
+            return Array.AsReadOnly(frameArray);
+        }
+
+        private sealed class FrameCache
+        {
+            public ClrStackFrame[] Frames { get; }
+            public bool IncludedContext { get; }
+            public int MaxFrames { get; }
+
+            public FrameCache(ClrStackFrame[] frames, bool includedContext, int maxFrames)
             {
-                if (!includeContext)
-                {
-                    return Array.AsReadOnly(_frames);
-                }
-                else
-                {
-                    // If context was requested, only enumerate the cached frames if they were created with a
-                    // Context.  Since we don't store that as a variable, only return if any frame has a context
-                    // set.
-                    foreach (ClrStackFrame frame in _frames)
-                    {
-                        if (frame.Context.Length > 0)
-                        {
-                            return Array.AsReadOnly(_frames);
-                        }
-                    }
-                }
+                Frames = frames;
+                IncludedContext = includedContext;
+                MaxFrames = maxFrames;
+            }
+        }
+
+        private ClrStackFrame CreateClrStackFrame(in StackFrameInfo frame)
+        {
+            ClrStackFrameKind kind;
+            ClrMethod? method;
+            if (frame.IsInternalFrame)
+            {
+                kind = ClrStackFrameKind.Runtime;
+                method = frame.InnerMethodMethodHandle != 0 ? Runtime.GetMethodByHandle(frame.InnerMethodMethodHandle) : null;
+            }
+            else
+            {
+                kind = ClrStackFrameKind.ManagedMethod;
+                method = Runtime.GetMethodByInstructionPointer(frame.InstructionPointer);
             }
 
-            _frames = _threadData.EnumerateStackTrace(this, includeContext).ToArray();
-            return Array.AsReadOnly(_frames);
+            return new ClrStackFrame(this, frame.Context, frame.InstructionPointer, frame.StackPointer, kind, method, frame.InternalFrameName);
         }
 
         IEnumerable<IClrStackFrame> IClrThread.EnumerateStackTrace(bool includeContext) => EnumerateStackTrace(includeContext).Cast<IClrStackFrame>();

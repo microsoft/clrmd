@@ -159,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public IEnumerable<ClrStackFrame> EnumerateStackTrace(ClrThread thread, bool includeContext, int maxFrames)
+        public IEnumerable<StackFrameInfo> EnumerateStackTrace(ClrThread thread, bool includeContext, int maxFrames)
         {
             using ClrStackWalk? stackwalk = _dac.CreateStackWalk(thread.OSThreadId, 0xf);
             if (stackwalk is null)
@@ -211,10 +211,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 ulong sp = context.AsSpan().AsPointer(spOffset);
 
                 ulong frameVtbl = stackwalk.GetFrameVtable();
+                string? frameName = null;
+                ulong frameMethod = 0;
                 if (frameVtbl != 0)
                 {
                     sp = frameVtbl;
                     frameVtbl = _reader.ReadPointer(sp);
+                    frameName = _sos.GetFrameName(frameVtbl);
+                    frameMethod = _sos.GetMethodDescPtrFromFrame(sp);
                 }
 
                 byte[]? contextCopy = null;
@@ -223,36 +227,18 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     contextCopy = context.AsSpan(0, contextSize).ToArray();
                 }
 
-                ClrStackFrame frame = GetStackFrame(thread, contextCopy, ip, sp, frameVtbl);
-                yield return frame;
+                yield return new StackFrameInfo()
+                {
+                    InstructionPointer = ip,
+                    StackPointer = sp,
+                    Context = contextCopy,
+                    InternalFrameVTable = frameVtbl,
+                    InternalFrameName = frameName,
+                };
 
                 hr = stackwalk.Next();
                 if (!hr)
                     Trace.TraceInformation($"STACKWALK FAILED - hr:{hr}");
-            }
-        }
-
-        private ClrStackFrame GetStackFrame(ClrThread thread, byte[]? context, ulong ip, ulong sp, ulong frameVtbl)
-        {
-            ClrRuntime runtime = thread.Runtime;
-
-            // todo: pull Method from enclosing type, don't generate methods without a parent
-            if (frameVtbl != 0)
-            {
-
-                ClrMethod? innerMethod = null;
-                string frameName = _sos.GetFrameName(frameVtbl);
-
-                ulong md = _sos.GetMethodDescPtrFromFrame(sp);
-                if (md != 0)
-                    innerMethod = runtime.GetMethodByHandle(md);
-
-                return new ClrStackFrame(thread, context, ip, sp, ClrStackFrameKind.Runtime, innerMethod, frameName);
-            }
-            else
-            {
-                ClrMethod? method = runtime.GetMethodByInstructionPointer(ip);
-                return new ClrStackFrame(thread, context, ip, sp, ClrStackFrameKind.ManagedMethod, method, null);
             }
         }
     }
