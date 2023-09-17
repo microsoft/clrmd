@@ -101,14 +101,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             IsFinalizer = address == threadStore.FinalizerThread;
         }
 
-        public IEnumerable<StackRootInfo> EnumerateStackRoots(ClrThread thread)
+        public IEnumerable<StackRootInfo> EnumerateStackRoots(uint osThreadId)
         {
-            using SOSStackRefEnum? stackRefEnum = _sos.EnumerateStackRefs(thread.OSThreadId);
+            using SOSStackRefEnum? stackRefEnum = _sos.EnumerateStackRefs(osThreadId);
             if (stackRefEnum is null)
                 yield break;
 
-            ClrAppDomain? domain = thread.CurrentAppDomain;
-            ClrHeap heap = thread.Runtime.Heap;
             const int GCInteriorFlag = 1;
             const int GCPinnedFlag = 2;
             foreach (StackRefData stackRef in stackRefEnum.ReadStackRefs())
@@ -147,9 +145,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public IEnumerable<StackFrameInfo> EnumerateStackTrace(ClrThread thread, bool includeContext, int maxFrames)
+        public IEnumerable<StackFrameInfo> EnumerateStackTrace(uint osThreadId, bool includeContext, int maxFrames)
         {
-            using ClrStackWalk? stackwalk = _dac.CreateStackWalk(thread.OSThreadId, 0xf);
+            using ClrStackWalk? stackwalk = _dac.CreateStackWalk(osThreadId, 0xf);
             if (stackwalk is null)
                 yield break;
 

@@ -120,7 +120,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             ClrHeap heap = Runtime.Heap;
             ClrStackFrame[] frames = GetFramesForRoots();
-            IEnumerable<ClrStackRoot> roots = _threadData.EnumerateStackRoots(this).Select(r => CreateClrStackRoot(heap, frames, r)).Where(r => r is not null)!;
+            IEnumerable<ClrStackRoot> roots = _threadData.EnumerateStackRoots(OSThreadId).Select(r => CreateClrStackRoot(heap, frames, r)).Where(r => r is not null)!;
             if (!Runtime.DataTarget.CacheOptions.CacheStackRoots)
                 return roots;
 
@@ -136,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (cache is not null)
                 return cache.Elements;
 
-            ClrStackFrame[] stack = _threadData.EnumerateStackTrace(this, includeContext: false, maxFrames: MaxFrameDefault).Select(r => CreateClrStackFrame(r)).ToArray();
+            ClrStackFrame[] stack = _threadData.EnumerateStackTrace(OSThreadId, includeContext: false, maxFrames: MaxFrameDefault).Select(r => CreateClrStackFrame(r)).ToArray();
 
             if (Runtime.DataTarget.CacheOptions.CacheStackTraces)
                 _frameCache = new(stack, includedContext: false, maxFrames: MaxFrameDefault);

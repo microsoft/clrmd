@@ -32,8 +32,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ulong StackBase { get; }
         ulong StackLimit { get; }
 
-        IEnumerable<StackRootInfo> EnumerateStackRoots(ClrThread thread);
-        IEnumerable<StackFrameInfo> EnumerateStackTrace(ClrThread thread, bool includeContext, int maxFrames);
+        IEnumerable<StackRootInfo> EnumerateStackRoots(uint osThreadId);
+        IEnumerable<StackFrameInfo> EnumerateStackTrace(uint osThreadId, bool includeContext, int maxFrames);
     }
 
     internal struct StackFrameInfo
