@@ -214,7 +214,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (cache is not null && (!includeContext || cache.IncludedContext) && maxFrames <= cache.MaxFrames)
                 return Array.AsReadOnly(cache.Elements);
 
-            IEnumerable<ClrStackFrame> frames = _threadData.EnumerateStackTrace(this, includeContext, maxFrames).Select(r => CreateClrStackFrame(r));
+            IEnumerable<ClrStackFrame> frames = _threadData.EnumerateStackTrace(OSThreadId, includeContext, maxFrames).Select(r => CreateClrStackFrame(r));
             if (!Runtime.DataTarget.CacheOptions.CacheStackTraces)
                 return frames;
 
