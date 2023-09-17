@@ -120,7 +120,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             ClrHeap heap = Runtime.Heap;
             ClrStackFrame[] frames = GetFramesForRoots();
-            IEnumerable<ClrStackRoot> roots = _threadData.EnumerateStackRoots(this).Select(r => CreateClrStackRoot(heap, frames, r));
+            IEnumerable<ClrStackRoot> roots = _threadData.EnumerateStackRoots(this).Select(r => CreateClrStackRoot(heap, frames, r)).Where(r => r is not null)!;
             if (!Runtime.DataTarget.CacheOptions.CacheStackRoots)
                 return roots;
 
@@ -144,14 +144,15 @@ namespace Microsoft.Diagnostics.Runtime
             return stack;
         }
 
-        private ClrStackRoot CreateClrStackRoot(ClrHeap heap, ClrStackFrame[] stack, StackRootInfo stackRef)
+        private ClrStackRoot? CreateClrStackRoot(ClrHeap heap, ClrStackFrame[] stack, StackRootInfo stackRef)
         {
             ClrStackFrame? frame = stack.FirstOrDefault(f => f.StackPointer == stackRef.Source || f.StackPointer == stackRef.StackPointer && f.InstructionPointer == stackRef.Source);
             frame ??= new ClrStackFrame(this, null, stackRef.Source, stackRef.StackPointer, ClrStackFrameKind.Unknown, null, null);
 
-            ulong obj = stackRef.Object;
+            ClrObject clrObject;
             if (stackRef.IsInterior)
             {
+                ulong obj = stackRef.Object;
                 ClrSegment? segment = heap.GetSegmentByAddress(obj);
 
                 // If not, this may be a pointer to an object.
@@ -161,9 +162,18 @@ namespace Microsoft.Diagnostics.Runtime
                     if (segment is not null)
                         obj = interiorObj;
                 }
+
+                if (segment is null)
+                    return null;
+
+                clrObject = heap.FindPreviousObjectOnSegment(obj + 1);
+            }
+            else
+            {
+                clrObject = heap.GetObject(stackRef.Object);
             }
 
-            return new ClrStackRoot(stackRef.Address, heap.GetObject(obj), stackRef.IsInterior, stackRef.IsPinned, heap, frame, stackRef.RegisterName, stackRef.RegisterOffset);
+            return new ClrStackRoot(stackRef.Address, clrObject, stackRef.IsInterior, stackRef.IsPinned, heap, frame, stackRef.RegisterName, stackRef.RegisterOffset);
         }
 
         IEnumerable<IClrRoot> IClrThread.EnumerateStackRoots() => EnumerateStackRoots().Cast<IClrRoot>();
