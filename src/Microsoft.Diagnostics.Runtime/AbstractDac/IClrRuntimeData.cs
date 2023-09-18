@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
@@ -13,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         DomainAndModules GetAppDomainData();
         ClrMethod? GetMethodByMethodDesc(ulong methodDesc);
         ClrMethod? GetMethodByInstructionPointer(ulong ip);
-        IEnumerable<ClrHandle> EnumerateHandles();
+        IEnumerable<HandleInfo> EnumerateHandles();
         IEnumerable<ClrJitManager> EnumerateClrJitManagers();
         string? GetJitHelperFunctionName(ulong address);
         ClrThreadPool? GetThreadPool();
@@ -24,5 +25,41 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData();
 
         void Flush();
+    }
+
+    /// <summary>
+    /// Information about a ClrHandle
+    /// </summary>
+    internal struct HandleInfo
+    {
+        /// <summary>
+        /// The address of the handle.  AKA the handle itself.
+        /// </summary>
+        public ulong Address { get; set; }
+
+        /// <summary>
+        /// The object this handle points to.
+        /// </summary>
+        public ulong Object { get; set; }
+
+        /// <summary>
+        /// The kind of handle.
+        /// </summary>
+        public ClrHandleKind Kind { get; set; }
+
+        /// <summary>
+        /// The AppDomain this handle lives in.
+        /// </summary>
+        public ulong AppDomain { get; set; }
+
+        /// <summary>
+        /// The dependent handle target, only valid for Kind == Dependent.
+        /// </summary>
+        public ulong DependentTarget { get; set; }
+
+        /// <summary>
+        /// The RefCount of a reference count handle.  Only valid for Kind == Dependent.
+        /// </summary>
+        public uint RefCount { get; set; }
     }
 }

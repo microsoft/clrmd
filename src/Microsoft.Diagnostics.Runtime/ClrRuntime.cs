@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 
@@ -163,8 +164,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates a list of GC handles currently in the process.  Note that this list may be incomplete
         /// depending on the state of the process when we attempt to walk the handle table.
         /// </summary>
-        /// <returns>The list of GC handles in the process, NULL on catastrophic error.</returns>
-        public IEnumerable<ClrHandle> EnumerateHandles() => _helpers.EnumerateHandles();
+        /// <returns>An enumeration of GC handles in the process.</returns>
+        public IEnumerable<ClrHandle> EnumerateHandles() => _helpers.EnumerateHandles().Select(r => new ClrHandle(this, r));
 
         /// <summary>
         /// Gets the GC heap of the process.

@@ -297,10 +297,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 yield return new ClrJitManager(Runtime, jitMgr, GetNativeHeapHelpers());
         }
 
-        public IEnumerable<ClrHandle> EnumerateHandles()
+        public IEnumerable<HandleInfo> EnumerateHandles()
         {
-            AbstractDac.DomainAndModules appDomainData = GetAppDomainData();
-
             using SOSHandleEnum? handleEnum = _sos.EnumerateHandles();
             if (handleEnum is null)
                 yield break;
@@ -308,54 +306,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ClrHeap heap = Runtime.Heap;
             foreach (HandleData handle in handleEnum.ReadHandles())
             {
-                ulong objAddress = _dataReader.ReadPointer(handle.Handle);
-                ClrObject clrObj = heap.GetObject(objAddress);
-
-                if (!clrObj.IsNull)
+                yield return new HandleInfo()
                 {
-                    ClrAppDomain? domain = appDomainData.GetDomainByAddress(handle.AppDomain);
-                    domain ??= appDomainData.SystemDomain ?? appDomainData.SharedDomain ?? appDomainData.AppDomains.First();
-
-                    ClrHandleKind handleKind = (ClrHandleKind)handle.Type;
-                    switch (handleKind)
-                    {
-                        default:
-                            yield return new ClrHandle(domain, handle.Handle, clrObj, handleKind);
-                            break;
-
-                        case ClrHandleKind.Dependent:
-                            ClrObject dependent = heap.GetObject(handle.Secondary);
-                            yield return new ClrHandle(domain, handle.Handle, clrObj, handleKind, dependent);
-                            break;
-
-                        case ClrHandleKind.RefCounted:
-                            uint refCount = 0;
-
-                            if (handle.IsPegged != 0)
-                                refCount = handle.JupiterRefCount;
-
-                            if (refCount < handle.RefCount)
-                                refCount = handle.RefCount;
-
-                            if (!clrObj.IsNull)
-                            {
-                                ComCallableWrapper? ccw = clrObj.GetComCallableWrapper();
-                                if (ccw != null && refCount < ccw.RefCount)
-                                {
-                                    refCount = (uint)ccw.RefCount;
-                                }
-                                else
-                                {
-                                    RuntimeCallableWrapper? rcw = clrObj.GetRuntimeCallableWrapper();
-                                    if (rcw != null && refCount < rcw.RefCount)
-                                        refCount = (uint)rcw.RefCount;
-                                }
-                            }
-
-                            yield return new ClrHandle(domain, handle.Handle, clrObj, handleKind, refCount);
-                            break;
-                    }
-                }
+                    Address = handle.Handle,
+                    Object = _dataReader.ReadPointer(handle.Handle),
+                    Kind = (ClrHandleKind)handle.Type,
+                    AppDomain = handle.AppDomain,
+                    DependentTarget = handle.Secondary,
+                    RefCount = handle.IsPegged != 0 ? handle.JupiterRefCount : handle.RefCount,
+                };
             }
         }
 
