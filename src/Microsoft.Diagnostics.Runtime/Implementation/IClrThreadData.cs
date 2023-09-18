@@ -91,12 +91,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         /// <summary>
         /// Enumerates the stack trace of this method.  Note that in the event of bugs or corrupted
-        /// state, this can occasionally produce bad data and run "forever".  Setting <paramref name="maxFrames"/>
-        /// to a reasonable number will prevent infinite loops.
+        /// state, this can occasionally produce bad data and run "forever", so be sure to break out of
+        /// the loop when a threshold is reached when calling it.
         /// </summary>
         /// <param name="includeContext">Whether to calculate and include the thread's CONTEXT record or not.
         /// Registers are always in the Windows CONTEXT format, as that's what the OS uses.</param>
-        /// 
         /// <returns>An enumeration of stack frames.</returns>
         IEnumerable<StackFrameInfo> EnumerateStackTrace(bool includeContext);
     }
