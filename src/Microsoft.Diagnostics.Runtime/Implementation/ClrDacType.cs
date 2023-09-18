@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -381,7 +382,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         }
 
         // convenience function for testing
-        public static string? FixGenerics(string? name) => DACNameParser.Parse(name);
+        public static string? FixGenerics(string? name) => DacNameParser.Parse(name);
 
         private void InitFlags()
         {

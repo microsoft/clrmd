@@ -5,9 +5,9 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 
-namespace Microsoft.Diagnostics.Runtime.Implementation
+namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
-    internal sealed class ClrAppDomainData
+    internal sealed class DomainAndModules
     {
         public ClrAppDomain? SystemDomain { get; set; }
         public ClrAppDomain? SharedDomain { get; set; }

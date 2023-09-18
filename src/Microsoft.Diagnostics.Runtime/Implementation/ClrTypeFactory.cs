@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
@@ -59,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public string? GetTypeName(ulong mt) => DACNameParser.Parse(_sos.GetMethodTableName(mt));
+        public string? GetTypeName(ulong mt) => DacNameParser.Parse(_sos.GetMethodTableName(mt));
 
         public ClrType ObjectType => _objectType;
 

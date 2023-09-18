@@ -3,7 +3,7 @@
 
 using System.Reflection;
 
-namespace Microsoft.Diagnostics.Runtime.Implementation
+namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IClrFieldHelpers
     {

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Generic;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -24,10 +25,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public IClrNativeHeapHelpers GetNativeHeapHelpers() => _appDomainHelpers.GetNativeHeapHelpers();
 
-        public ClrExtendedModuleData GetExtendedData(ClrModule module)
+        public AbstractDac.ExtendedModuleData GetExtendedData(ClrModule module)
         {
             using ClrDataModule? dataModule = _sos.GetClrDataModule(module.Address);
-            if (dataModule is null || !dataModule.GetModuleData(out ExtendedModuleData data))
+            if (dataModule is null || !dataModule.GetModuleData(out DacInterface.ExtendedModuleData data))
                 return new();
 
             return new()

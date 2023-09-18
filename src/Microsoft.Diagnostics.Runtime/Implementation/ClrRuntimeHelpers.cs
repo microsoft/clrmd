@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -28,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly ISOSDac13? _sos13;
         private readonly CacheOptions _cacheOptions;
         private readonly IClrModuleHelpers _moduleHelpers;
-        private ClrAppDomainData? _domainData;
+        private AbstractDac.DomainAndModules? _domainData;
         private IClrNativeHeapHelpers? _nativeHeapHelpers;
 
         public ClrRuntimeHelpers(ClrInfo clrInfo, DacLibrary library, CacheOptions cacheOptions)
@@ -150,13 +151,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return helpers;
         }
 
-        public ClrAppDomainData GetAppDomainData()
+        public AbstractDac.DomainAndModules GetAppDomainData()
         {
             if (_domainData is null)
             {
                 _ = _sos.GetAppDomainStoreData(out AppDomainStoreData domainStore);
 
-                ClrAppDomainData domainData = new();
+                AbstractDac.DomainAndModules domainData = new();
                 domainData.SystemDomain = CreateAppDomain(domainStore.SystemDomain, "System Domain", domainData.Modules);
 
                 if (domainStore.SharedDomain != 0)
@@ -209,7 +210,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private ClrAppDomain? CreateAppDomain(ulong domainAddress, string? name, Dictionary<ulong, ClrModule> modules)
         {
             int id = -1;
-            if (_sos.GetAppDomainData(domainAddress, out AppDomainData data))
+            if (_sos.GetAppDomainData(domainAddress, out DacInterface.AppDomainData data))
                 id = data.Id;
 
             name ??= _sos.GetAppDomainName(domainAddress);
@@ -298,7 +299,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public IEnumerable<ClrHandle> EnumerateHandles()
         {
-            ClrAppDomainData appDomainData = GetAppDomainData();
+            AbstractDac.DomainAndModules appDomainData = GetAppDomainData();
 
             using SOSHandleEnum? handleEnum = _sos.EnumerateHandles();
             if (handleEnum is null)
