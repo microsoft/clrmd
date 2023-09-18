@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 
@@ -13,15 +14,18 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrAppDomain : IClrAppDomain
     {
-        private readonly IClrAppDomainHelpers _helpers;
+        private readonly IClrNativeHeapHelpers? _nativeHeapHelpers;
 
-        internal ClrAppDomain(ClrRuntime runtime, IClrAppDomainHelpers helpers, ulong address, string? name, int id)
+        internal ClrAppDomain(ClrRuntime runtime, AppDomainInfo info, IClrNativeHeapHelpers? nativeHeapHelpers)
         {
+            _nativeHeapHelpers = nativeHeapHelpers;
             Runtime = runtime;
-            _helpers = helpers;
-            Address = address;
-            Id = id;
-            Name = name;
+            Address = info.Address;
+            Id = info.Id;
+            Name = info.Name;
+            ConfigurationFile = info.ConfigFile;
+            ApplicationBase = info.ApplicationBase;
+            LoaderAllocator = info.LoaderAllocator;
         }
 
         public bool Equals(IClrAppDomain? other) => other is not null && other.Address == Address;
@@ -74,27 +78,27 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the config file used for the AppDomain.  This may be <see langword="null"/> if there was no config file
         /// loaded, or if the targeted runtime does not support enumerating that data.
         /// </summary>
-        public string? ConfigurationFile => _helpers.GetConfigFile(this);
+        public string? ConfigurationFile { get; }
 
         /// <summary>
         /// Gets the base directory for this AppDomain.  This may return <see langword="null"/> if the targeted runtime does
         /// not support enumerating this information.
         /// </summary>
-        public string? ApplicationBase => _helpers.GetApplicationBase(this);
+        public string? ApplicationBase { get; }
 
         /// <summary>
         /// Returns the LoaderAllocator for this AppDomain.  This is used to debug some CLR internal state
         /// and isn't generally useful for most developers.  This field is only available when debugging
         /// .Net 8+ runtimes.
         /// </summary>
-        public ulong LoaderAllocator => _helpers.GetLoaderAllocator(this);
+        public ulong LoaderAllocator { get; }
 
         /// <summary>
         /// Enumerates the native heaps associated with this AppDomain.  Note that this may also enumerate
         /// the same heaps as other domains if they share the same LoaderAllocator (especially SystemDomain).
         /// </summary>
         /// <returns>An enumerable of native heaps associated with this AppDomain.</returns>
-        public IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorHeaps() => _helpers.GetNativeHeapHelpers().EnumerateNativeHeaps(this);
+        public IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorHeaps() => _nativeHeapHelpers?.EnumerateNativeHeaps(Address) ?? Enumerable.Empty<ClrNativeHeapInfo>();
 
         /// <summary>
         /// To string override.

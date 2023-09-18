@@ -8,12 +8,29 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IClrModuleHelpers
     {
-        IDataReader DataReader { get; }
-        IClrNativeHeapHelpers GetNativeHeapHelpers();
         MetadataImport? GetMetadataImport(ClrModule module);
         IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefMap(ClrModule module);
         IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeRefMap(ClrModule module);
-        ExtendedModuleData GetExtendedData(ClrModule module);
-        string? GetAssemblyName(ClrModule module);
+    }
+
+    internal struct ClrModuleInfo
+    {
+        public ulong Address { get; set; }
+        public ulong Assembly { get; set; }
+
+        public bool IsPEFile { get; set; }
+        public bool IsDynamic { get; set; }
+
+        public ulong ImageBase { get; set; }
+        public ulong MetadataAddress { get; set; }
+        public ulong MetadataSize { get; set; }
+
+        public ulong ThunkHeap { get; set; }
+        public ulong LoaderAllocator { get; set; }
+
+        public string? AssemblyName { get; set; }
+        public string? FileName { get; set; }
+        public ModuleLayout Layout { get; set; }
+        public ulong Size { get; set; }
     }
 }

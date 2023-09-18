@@ -13,12 +13,13 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal sealed unsafe class ClrRuntimeHelpers : IClrRuntimeData, IClrAppDomainHelpers
+    internal sealed unsafe class ClrRuntimeHelpers : IClrModuleHelpers, IClrRuntimeData
     {
         private ClrRuntime? _runtime;
 
         private readonly IDataReader _dataReader;
         private readonly ThreadStoreData _threadStore;
+        private readonly AppDomainStoreData _domainStore;
         private readonly ClrInfo _clrInfo;
         private readonly DacLibrary _library;
         private readonly ClrDataProcess _dac;
@@ -28,8 +29,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly SosDac12? _sos12;
         private readonly ISOSDac13? _sos13;
         private readonly CacheOptions _cacheOptions;
-        private readonly IClrModuleHelpers _moduleHelpers;
-        private AbstractDac.DomainAndModules? _domainData;
         private IClrNativeHeapHelpers? _nativeHeapHelpers;
 
         public ClrRuntimeHelpers(ClrInfo clrInfo, DacLibrary library, CacheOptions cacheOptions)
@@ -44,7 +43,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _sos12 = library.SOSDacInterface12;
             _sos13 = library.SOSDacInterface13;
             _cacheOptions = cacheOptions;
-            _moduleHelpers = new ClrModuleHelpers(_sos, _dataReader, this);
 
             int version = 0;
             if (!_dac.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))))
@@ -55,6 +53,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             if (!_sos.GetThreadStoreData(out _threadStore))
                 throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data.    Failed to request ThreadStoreData.");
+
+            if (!_sos.GetAppDomainStoreData(out _domainStore))
+                throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data.    Failed to request AppDomainStoreData.");
 
             library.DacDataTarget.SetMagicCallback(_dac.Flush);
         }
@@ -69,6 +70,45 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _sos12?.Dispose();
             _sos13?.Dispose();
             _library.Dispose();
+        }
+
+        // IClrModuleHelpers
+        private const int mdtTypeDef = 0x02000000;
+        private const int mdtTypeRef = 0x01000000;
+        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefMap(ClrModule module) => GetModuleMap(module, SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable);
+
+        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeRefMap(ClrModule module) => GetModuleMap(module, SOSDac.ModuleMapTraverseKind.TypeRefToMethodTable);
+
+        private List<(ulong MethodTable, int Token)> GetModuleMap(ClrModule module, SOSDac.ModuleMapTraverseKind kind)
+        {
+            int tokenType = kind == SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable ? mdtTypeDef : mdtTypeRef;
+            List<(ulong MethodTable, int Token)> result = new();
+            _sos.TraverseModuleMap(kind, module.Address, (token, mt, _) => {
+                result.Add((mt, token | tokenType));
+            });
+
+            return result;
+        }
+
+        public MetadataImport? GetMetadataImport(ClrModule module) => _sos.GetMetadataImport(module.Address);
+
+        // IClrRuntimeHelpers
+        public IClrModuleHelpers ModuleHelpers => this;
+
+        public IClrNativeHeapHelpers NativeHeapHelpers
+        {
+            get
+            {
+                IClrNativeHeapHelpers? helpers = _nativeHeapHelpers;
+                if (helpers is null)
+                {
+                    // We don't care if this races
+                    helpers = new ClrNativeHeapHelpers(_clrInfo, _sos, _sos13, _dataReader);
+                    _nativeHeapHelpers = helpers;
+                }
+
+                return helpers;
+            }
         }
 
         public IClrHeapHelpers GetHeapHelpers() => new ClrHeapHelpers(_dac, _sos, _sos6, _sos8, _sos12, _dataReader, _cacheOptions);
@@ -93,7 +133,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public void Flush()
         {
-            _domainData = null;
             _nativeHeapHelpers = null;
             FlushDac();
         }
@@ -138,105 +177,72 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public IClrNativeHeapHelpers GetNativeHeapHelpers()
+        public IEnumerable<AppDomainInfo> EnumerateAppDomains()
         {
-            IClrNativeHeapHelpers? helpers = _nativeHeapHelpers;
-            if (helpers is null)
-            {
-                // We don't care if this races
-                helpers = new ClrNativeHeapHelpers(_clrInfo, _sos, _sos13, _dataReader);
-                _nativeHeapHelpers = helpers;
-            }
+            if (_domainStore.SharedDomain != 0)
+                yield return CreateAppDomainInfo(_domainStore.SharedDomain, AppDomainKind.Shared, "Shared Domain");
 
-            return helpers;
+            if (_domainStore.SystemDomain != 0)
+                yield return CreateAppDomainInfo(_domainStore.SystemDomain, AppDomainKind.System, "System Domain");
+
+            foreach (ulong domain in _sos.GetAppDomainList())
+            {
+                string name = _sos.GetAppDomainName(domain) ?? "";
+                yield return CreateAppDomainInfo(domain, AppDomainKind.Normal, name);
+            }
         }
 
-        public AbstractDac.DomainAndModules GetAppDomainData()
+        private AppDomainInfo CreateAppDomainInfo(ulong address, AppDomainKind kind, string name)
         {
-            if (_domainData is null)
+            AppDomainInfo result = new()
             {
-                _ = _sos.GetAppDomainStoreData(out AppDomainStoreData domainStore);
+                Address = address,
+                Kind = kind,
+                Name = name,
+                Id = int.MinValue,
+                ConfigFile = _sos.GetConfigFile(address),
+                ApplicationBase = _sos.GetAppBase(address),
+            };
 
-                AbstractDac.DomainAndModules domainData = new();
-                domainData.SystemDomain = CreateAppDomain(domainStore.SystemDomain, "System Domain", domainData.Modules);
+            if (_sos.GetAppDomainData(address, out AppDomainData data))
+                result.Id = data.Id;
 
-                if (domainStore.SharedDomain != 0)
-                    domainData.SharedDomain = CreateAppDomain(domainStore.SharedDomain, "Shared Domain", domainData.Modules);
+            if (_sos13 is not null)
+                result.LoaderAllocator = _sos13.GetDomainLoaderAllocator(address);
 
-                ImmutableArray<ClrAppDomain>.Builder builder = ImmutableArray.CreateBuilder<ClrAppDomain>(domainStore.AppDomainCount);
-                ClrDataAddress[] domainList = _sos.GetAppDomainList(domainStore.AppDomainCount);
-
-                for (int i = 0; i < domainList.Length; i++)
-                {
-                    ClrAppDomain? domain = CreateAppDomain(domainList[i], null, domainData.Modules);
-                    if (domain is not null)
-                        builder.Add(domain);
-                }
-
-                domainData.AppDomains = builder.MoveOrCopyToImmutable();
-
-                ClrModule? bcl = null;
-                if (_sos.GetCommonMethodTables(out CommonMethodTables mts))
-                    if (_sos.GetMethodTableData(mts.ObjectMethodTable, out MethodTableData mtData))
-                        domainData.Modules.TryGetValue(mtData.Module, out bcl);
-
-                if (bcl is null)
-                {
-                    string bclName = _clrInfo.Flavor == ClrFlavor.Core
-                        ? "SYSTEM.PRIVATE.CORELIB"
-                        : "MSCORLIB";
-
-                    foreach (ClrModule module in domainData.Modules.Values)
-                    {
-                        if (module.Name == bclName)
-                        {
-                            bcl = module;
-                            break;
-                        }
-                    }
-
-                    bcl ??= new(domainData.SystemDomain!, _moduleHelpers, 0);
-                }
-
-
-
-                domainData.BaseClassLibrary = bcl;
-                Interlocked.CompareExchange(ref _domainData, domainData, null);
-            }
-
-            return _domainData;
+            return result;
         }
 
-        private ClrAppDomain? CreateAppDomain(ulong domainAddress, string? name, Dictionary<ulong, ClrModule> modules)
+
+        public IEnumerable<ulong> GetModuleList(ulong domain) => _sos.GetAssemblyList(domain).SelectMany(assembly => _sos.GetModuleList(assembly)).Select(module => (ulong)module);
+
+        public ClrModuleInfo GetModuleInfo(ulong moduleAddress)
         {
-            int id = -1;
-            if (_sos.GetAppDomainData(domainAddress, out DacInterface.AppDomainData data))
-                id = data.Id;
+            _sos.GetModuleData(moduleAddress, out ModuleData data);
 
-            name ??= _sos.GetAppDomainName(domainAddress);
-            ClrAppDomain result = new(Runtime, this, domainAddress, name, id);
+            ClrModuleInfo result = new()
+            {
+                Address = moduleAddress,
+                Assembly = data.Assembly,
+                AssemblyName = _sos.GetAssemblyName(data.Assembly),
+                IsPEFile = data.IsPEFile != 0,
+                ImageBase = data.ILBase,
+                MetadataAddress = data.MetadataStart,
+                MetadataSize = data.MetadataSize,
+                IsDynamic = data.IsReflection != 0,
+                ThunkHeap = data.ThunkHeap,
+                LoaderAllocator = data.LoaderAllocator,
+            };
 
-            ImmutableArray<ClrModule>.Builder moduleBuilder = ImmutableArray.CreateBuilder<ClrModule>();
-            foreach (ulong assembly in _sos.GetAssemblyList(domainAddress))
-                foreach (ulong moduleAddress in _sos.GetModuleList(assembly))
-                {
-                    if (modules.TryGetValue(moduleAddress, out ClrModule? module))
-                    {
-                        moduleBuilder.Add(module);
-                    }
-                    else
-                    {
-                        if (_sos.GetModuleData(moduleAddress, out ModuleData moduleData))
-                            module = new(result, moduleAddress, _moduleHelpers, moduleData);
-                        else
-                            module = new(result, _moduleHelpers, moduleAddress);
+            using ClrDataModule? dataModule = _sos.GetClrDataModule(moduleAddress);
+            if (dataModule is not null && dataModule.GetModuleData(out DacInterface.ExtendedModuleData extended))
+            {
+                result.Layout = extended.IsFlatLayout != 0 ? ModuleLayout.Flat : ModuleLayout.Mapped;
+                result.IsDynamic |= extended.IsDynamic != 0;
+                result.Size = extended.LoadedPESize;
+                result.FileName = dataModule.GetFileName();
+            }
 
-                        modules.Add(moduleAddress, module);
-                        moduleBuilder.Add(module);
-                    }
-                }
-
-            result.Modules = moduleBuilder.MoveOrCopyToImmutable();
             return result;
         }
 
@@ -279,22 +285,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public string? GetApplicationBase(ClrAppDomain domain) => _sos.GetAppBase(domain.Address);
-
-        public string? GetConfigFile(ClrAppDomain domain) => _sos.GetAppBase(domain.Address);
-
-        public ulong GetLoaderAllocator(ClrAppDomain domain)
-        {
-            if (_sos13 is null)
-                return 0;
-
-            return _sos13.GetDomainLoaderAllocator(domain.Address);
-        }
-
         public IEnumerable<ClrJitManager> EnumerateClrJitManagers()
         {
             foreach (JitManagerInfo jitMgr in _sos.GetJitManagers())
-                yield return new ClrJitManager(Runtime, jitMgr, GetNativeHeapHelpers());
+                yield return new ClrJitManager(Runtime, jitMgr, NativeHeapHelpers);
         }
 
         public IEnumerable<HandleInfo> EnumerateHandles()
