@@ -155,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public IEnumerable<StackFrameInfo> EnumerateStackTrace(bool includeContext, int maxFrames)
+        public IEnumerable<StackFrameInfo> EnumerateStackTrace(bool includeContext)
         {
             using ClrStackWalk? stackwalk = _dac.CreateStackWalk(OSThreadId, 0xf);
             if (stackwalk is null)
@@ -194,7 +194,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             HResult hr = HResult.S_OK;
             byte[] context = ArrayPool<byte>.Shared.Rent(contextSize);
-            while (hr.IsOK && maxFrames-- > 0)
+            while (hr.IsOK)
             {
                 hr = stackwalk.GetContext(contextFlags, contextSize, out _, context);
                 if (!hr)
@@ -220,7 +220,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 byte[]? contextCopy = null;
                 if (includeContext)
                 {
-                    contextCopy = context.AsSpan(0, contextSize).ToArray();
+                    contextCopy = new byte[contextSize];
+                    context.AsSpan(0, contextSize).CopyTo(contextCopy);
                 }
 
                 yield return new StackFrameInfo()
@@ -237,6 +238,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (!hr)
                     Trace.TraceInformation($"STACKWALK FAILED - hr:{hr}");
             }
+
+            ArrayPool<byte>.Shared.Return(context);
         }
     }
 }

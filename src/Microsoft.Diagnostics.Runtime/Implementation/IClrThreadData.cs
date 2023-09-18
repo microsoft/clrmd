@@ -96,9 +96,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         /// </summary>
         /// <param name="includeContext">Whether to calculate and include the thread's CONTEXT record or not.
         /// Registers are always in the Windows CONTEXT format, as that's what the OS uses.</param>
-        /// <param name="maxFrames">The maximum number of frames to enumerate.</param>
+        /// 
         /// <returns>An enumeration of stack frames.</returns>
-        IEnumerable<StackFrameInfo> EnumerateStackTrace(bool includeContext, int maxFrames);
+        IEnumerable<StackFrameInfo> EnumerateStackTrace(bool includeContext);
     }
 
     /// <summary>
