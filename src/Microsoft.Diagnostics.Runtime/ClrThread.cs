@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ulong Address => _threadData.Address;
 
-        public ClrThreadState State => _threadData.ThreadState;
+        public ClrThreadState State => _threadData.State;
 
         /// <summary>
         /// Returns true if the thread is alive in the process, false if this thread was recently terminated.
@@ -120,7 +120,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             ClrHeap heap = Runtime.Heap;
             ClrStackFrame[] frames = GetFramesForRoots();
-            IEnumerable<ClrStackRoot> roots = _threadData.EnumerateStackRoots(OSThreadId).Select(r => CreateClrStackRoot(heap, frames, r)).Where(r => r is not null)!;
+            IEnumerable<ClrStackRoot> roots = _threadData.EnumerateStackRoots().Select(r => CreateClrStackRoot(heap, frames, r)).Where(r => r is not null)!;
             if (!Runtime.DataTarget.CacheOptions.CacheStackRoots)
                 return roots;
 
@@ -136,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (cache is not null)
                 return cache.Elements;
 
-            ClrStackFrame[] stack = _threadData.EnumerateStackTrace(OSThreadId, includeContext: false, maxFrames: MaxFrameDefault).Select(r => CreateClrStackFrame(r)).ToArray();
+            ClrStackFrame[] stack = _threadData.EnumerateStackTrace(includeContext: false, maxFrames: MaxFrameDefault).Select(r => CreateClrStackFrame(r)).ToArray();
 
             if (Runtime.DataTarget.CacheOptions.CacheStackTraces)
                 _frameCache = new(stack, includedContext: false, maxFrames: MaxFrameDefault);
@@ -214,7 +214,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (cache is not null && (!includeContext || cache.IncludedContext) && maxFrames <= cache.MaxFrames)
                 return Array.AsReadOnly(cache.Elements);
 
-            IEnumerable<ClrStackFrame> frames = _threadData.EnumerateStackTrace(OSThreadId, includeContext, maxFrames).Select(r => CreateClrStackFrame(r));
+            IEnumerable<ClrStackFrame> frames = _threadData.EnumerateStackTrace(includeContext, maxFrames).Select(r => CreateClrStackFrame(r));
             if (!Runtime.DataTarget.CacheOptions.CacheStackTraces)
                 return frames;
 
