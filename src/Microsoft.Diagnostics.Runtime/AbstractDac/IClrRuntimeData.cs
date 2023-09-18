@@ -6,10 +6,9 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
-    internal interface IClrRuntimeHelpers : IDisposable
+    internal interface IClrRuntimeData : IDisposable
     {
-        void Flush();
-        IEnumerable<IClrThreadData> EnumerateThreads(int max = int.MaxValue);
+        IEnumerable<IClrThreadData> EnumerateThreads();
         IClrHeapHelpers GetHeapHelpers();
         DomainAndModules GetAppDomainData();
         ClrMethod? GetMethodByMethodDesc(ulong methodDesc);
@@ -23,5 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         IEnumerable<ClrNativeHeapInfo> EnumerateGCBookkeepingRegions();
         IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData();
         IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData();
+
+        void Flush();
     }
 }

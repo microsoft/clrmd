@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrRuntime : IClrRuntime
     {
-        private readonly IClrRuntimeHelpers _helpers;
+        private readonly IClrRuntimeData _helpers;
         private volatile DomainAndModules? _appDomainData;
         private volatile ClrHeap? _heap;
         private ImmutableArray<ClrThread> _threads;
@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime
             };
         }
 
-        internal ClrRuntime(ClrInfo clrInfo, DacLibrary library, IClrRuntimeHelpers helpers)
+        internal ClrRuntime(ClrInfo clrInfo, DacLibrary library, IClrRuntimeData helpers)
         {
             ClrInfo = clrInfo;
             DataTarget = clrInfo.DataTarget;
@@ -109,12 +109,15 @@ namespace Microsoft.Diagnostics.Runtime
 
                 ImmutableArray<ClrThread>.Builder builder = ImmutableArray.CreateBuilder<ClrThread>();
 
+                int max = 20000;
                 int maxErrors = 1024;
                 foreach (IClrThreadData data in _helpers.EnumerateThreads())
                 {
                     if (data.HasData)
                         builder.Add(new ClrThread(DataTarget.DataReader, this, data));
                     else if (maxErrors-- == 0)
+                        break;
+                    else if (max-- == 0)
                         break;
                 }
 

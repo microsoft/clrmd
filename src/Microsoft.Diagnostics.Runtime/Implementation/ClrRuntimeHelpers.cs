@@ -13,7 +13,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal sealed unsafe class ClrRuntimeHelpers : IClrRuntimeHelpers, IClrAppDomainHelpers
+    internal sealed unsafe class ClrRuntimeHelpers : IClrRuntimeData, IClrAppDomainHelpers
     {
         private ClrRuntime? _runtime;
 
@@ -267,11 +267,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return GetMethodByMethodDesc(md);
         }
 
-        public IEnumerable<IClrThreadData> EnumerateThreads(int max)
+        public IEnumerable<IClrThreadData> EnumerateThreads()
         {
             HashSet<ulong> seen = new() { 0 };
             ulong addr = _threadStore.FirstThread;
-            for (int i = 0; i < _threadStore.ThreadCount && seen.Add(addr) && i < max; i++)
+            for (int i = 0; i < _threadStore.ThreadCount && seen.Add(addr); i++)
             {
                 DacThreadData threadData = new DacThreadData(_dac, _sos, _dataReader, addr, _threadStore);
                 yield return threadData;
