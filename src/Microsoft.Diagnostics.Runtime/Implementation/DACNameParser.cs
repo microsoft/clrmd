@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     // 2) Fast, non-recursive parsing.
     // 3) Accuracy in the face of complex nesting of types, nesting of generic args, etc...
     // 4) Resiliency to failure (i.e. returns the original DAC name if errors are encountered instead of throwing).
-    internal static class DACNameParser
+    internal static class DacNameParser
     {
         private const char GenericAritySpecifier = '`';
         private const char ArgSeparator = ',';

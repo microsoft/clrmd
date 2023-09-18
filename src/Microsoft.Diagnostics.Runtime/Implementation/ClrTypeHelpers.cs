@@ -8,6 +8,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -155,7 +156,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
             else
             {
-                name = DACNameParser.Parse(name);
+                name = DacNameParser.Parse(name);
             }
 
             if (CacheOptions.CacheTypeNames == StringCaching.Intern)

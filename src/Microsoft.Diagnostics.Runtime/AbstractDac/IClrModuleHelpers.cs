@@ -4,7 +4,7 @@
 using System.Collections.Generic;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
-namespace Microsoft.Diagnostics.Runtime.Implementation
+namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IClrModuleHelpers
     {
@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         MetadataImport? GetMetadataImport(ClrModule module);
         IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefMap(ClrModule module);
         IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeRefMap(ClrModule module);
-        ClrExtendedModuleData GetExtendedData(ClrModule module);
+        ExtendedModuleData GetExtendedData(ClrModule module);
         string? GetAssemblyName(ClrModule module);
     }
 }

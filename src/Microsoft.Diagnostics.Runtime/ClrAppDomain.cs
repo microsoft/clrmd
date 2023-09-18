@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime

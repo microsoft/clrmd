@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Reflection;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {

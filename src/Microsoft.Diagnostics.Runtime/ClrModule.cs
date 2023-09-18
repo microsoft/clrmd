@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
@@ -25,10 +26,10 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly bool _isReflection;
         private (ulong MethodTable, int Token)[]? _typeDefMap;
         private (ulong MethodTable, int Token)[]? _typeRefMap;
-        private ClrExtendedModuleData? _extendedData;
+        private AbstractDac.ExtendedModuleData? _extendedData;
         private ulong? _size;
 
-        private ClrExtendedModuleData ExtendedData => _extendedData ??= _helpers.GetExtendedData(this);
+        private AbstractDac.ExtendedModuleData ExtendedData => _extendedData ??= _helpers.GetExtendedData(this);
 
         internal ClrModule(ClrAppDomain domain, ulong address, IClrModuleHelpers helpers, in ModuleData data)
         {

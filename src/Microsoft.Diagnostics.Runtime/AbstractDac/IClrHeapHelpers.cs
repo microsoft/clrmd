@@ -4,8 +4,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using Microsoft.Diagnostics.Runtime.Implementation;
 
-namespace Microsoft.Diagnostics.Runtime.Implementation
+namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IClrHeapHelpers
     {

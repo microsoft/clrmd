@@ -4,7 +4,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
-namespace Microsoft.Diagnostics.Runtime.Implementation
+namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IClrTypeHelpers
     {

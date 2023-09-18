@@ -4,7 +4,7 @@
 using System.Collections.Generic;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
-namespace Microsoft.Diagnostics.Runtime.Implementation
+namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IClrTypeFactory
     {

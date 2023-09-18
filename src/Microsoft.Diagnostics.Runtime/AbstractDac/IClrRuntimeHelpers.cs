@@ -4,14 +4,14 @@
 using System;
 using System.Collections.Generic;
 
-namespace Microsoft.Diagnostics.Runtime.Implementation
+namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IClrRuntimeHelpers : IDisposable
     {
         void Flush();
         IEnumerable<IClrThreadData> EnumerateThreads(int max = int.MaxValue);
         IClrHeapHelpers GetHeapHelpers();
-        ClrAppDomainData GetAppDomainData();
+        DomainAndModules GetAppDomainData();
         ClrMethod? GetMethodByMethodDesc(ulong methodDesc);
         ClrMethod? GetMethodByInstructionPointer(ulong ip);
         IEnumerable<ClrHandle> EnumerateHandles();

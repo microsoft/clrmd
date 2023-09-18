@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 
@@ -18,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
     public sealed class ClrRuntime : IClrRuntime
     {
         private readonly IClrRuntimeHelpers _helpers;
-        private volatile ClrAppDomainData? _appDomainData;
+        private volatile DomainAndModules? _appDomainData;
         private volatile ClrHeap? _heap;
         private ImmutableArray<ClrThread> _threads;
 
@@ -41,12 +42,12 @@ namespace Microsoft.Diagnostics.Runtime
             _helpers = helpers;
         }
 
-        private ClrAppDomainData GetAppDomainData()
+        private DomainAndModules GetAppDomainData()
         {
             if (_appDomainData is not null)
                 return _appDomainData;
 
-            ClrAppDomainData data = _helpers.GetAppDomainData();
+            DomainAndModules data = _helpers.GetAppDomainData();
             Interlocked.CompareExchange(ref _appDomainData, data, null);
             return _appDomainData;
         }
@@ -227,7 +228,7 @@ namespace Microsoft.Diagnostics.Runtime
             HashSet<ulong> visited = new();
 
             // Ensure we are working on a consistent set of domains/modules
-            ClrAppDomainData domainData = GetAppDomainData();
+            DomainAndModules domainData = GetAppDomainData();
 
             // Walk domains
             if (domainData.SystemDomain is not null)
