@@ -124,10 +124,20 @@ namespace Microsoft.Diagnostics.Runtime
             if (!Runtime.DataTarget.CacheOptions.CacheStackRoots)
                 return roots;
 
+            return CacheAndReturnRoots(roots);
+        }
+
+        private IEnumerable<ClrStackRoot> CacheAndReturnRoots(IEnumerable<ClrStackRoot> roots)
+        {
+            List<ClrStackRoot> cache = new();
+            foreach (ClrStackRoot root in roots)
+            {
+                cache.Add(root);
+                yield return root;
+            }
+
             // it's ok if we race and replace another cache as this will stabilize eventually
-            ClrStackRoot[] rootArray = roots.ToArray();
-            _rootCache = new(rootArray, false, 0);
-            return Array.AsReadOnly(rootArray);
+            _rootCache ??= new(cache.ToArray(), false);
         }
 
         private ClrStackFrame[] GetFramesForRoots()
@@ -136,10 +146,12 @@ namespace Microsoft.Diagnostics.Runtime
             if (cache is not null)
                 return cache.Elements;
 
-            ClrStackFrame[] stack = _threadData.EnumerateStackTrace(includeContext: false, maxFrames: MaxFrameDefault).Select(r => CreateClrStackFrame(r)).ToArray();
-
-            if (Runtime.DataTarget.CacheOptions.CacheStackTraces)
-                _frameCache = new(stack, includedContext: false, maxFrames: MaxFrameDefault);
+            // We need to make sure we don't loop forever when enumerating the stack trace.
+            // We will only cache the stack if we completed enumeratione (i.e. got less
+            // than MaxFrameDefault frames)
+            ClrStackFrame[] stack = _threadData.EnumerateStackTrace(includeContext: false).Select(r => CreateClrStackFrame(r)).Take(MaxFrameDefault).ToArray();
+            if (Runtime.DataTarget.CacheOptions.CacheStackTraces && stack.Length < MaxFrameDefault)
+                _frameCache = new(stack, includedContext: false);
 
             return stack;
         }
@@ -215,17 +227,28 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext, int maxFrames)
         {
             Cache<ClrStackFrame>? cache = _frameCache;
-            if (cache is not null && (!includeContext || cache.IncludedContext) && maxFrames <= cache.MaxFrames)
+            if (cache is not null && (!includeContext || cache.IncludedContext))
                 return Array.AsReadOnly(cache.Elements);
 
-            IEnumerable<ClrStackFrame> frames = _threadData.EnumerateStackTrace(includeContext, maxFrames).Select(r => CreateClrStackFrame(r));
+            IEnumerable<ClrStackFrame> frames = _threadData.EnumerateStackTrace(includeContext).Select(r => CreateClrStackFrame(r));
             if (!Runtime.DataTarget.CacheOptions.CacheStackTraces)
                 return frames;
 
+            return CacheAndReturnFrames(includeContext, frames);
+        }
+
+        private IEnumerable<ClrStackFrame> CacheAndReturnFrames(bool includeContext, IEnumerable<ClrStackFrame> frames)
+        {
+            // Only cache frames if enumeration completed and the user didn't break out of the loop
+            List<ClrStackFrame> cachedFrames = new();
+            foreach (ClrStackFrame frame in frames)
+            {
+                cachedFrames.Add(frame);
+                yield return frame;
+            }
+
             // it's ok if we race and replace another cache as this will stabilize eventually
-            ClrStackFrame[] frameArray = frames.ToArray();
-            _frameCache = new(frameArray, includeContext, maxFrames);
-            return Array.AsReadOnly(frameArray);
+            _frameCache ??= new(cachedFrames.ToArray(), includeContext);
         }
 
         private ClrStackFrame CreateClrStackFrame(in StackFrameInfo frame)
@@ -283,13 +306,11 @@ namespace Microsoft.Diagnostics.Runtime
         {
             public T[] Elements { get; }
             public bool IncludedContext { get; }
-            public int MaxFrames { get; }
 
-            public Cache(T[] elements, bool includedContext, int maxFrames)
+            public Cache(T[] elements, bool includedContext)
             {
                 Elements = elements;
                 IncludedContext = includedContext;
-                MaxFrames = maxFrames;
             }
         }
     }
