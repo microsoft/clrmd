@@ -146,8 +146,12 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ClrStackRoot? CreateClrStackRoot(ClrHeap heap, ClrStackFrame[] stack, StackRootInfo stackRef)
         {
-            ClrStackFrame? frame = stack.FirstOrDefault(f => f.StackPointer == stackRef.Source || f.StackPointer == stackRef.StackPointer && f.InstructionPointer == stackRef.Source);
-            frame ??= new ClrStackFrame(this, null, stackRef.Source, stackRef.StackPointer, ClrStackFrameKind.Unknown, null, null);
+            ClrStackFrame? frame = stack.FirstOrDefault(f =>
+                                    f.Kind == ClrStackFrameKind.Runtime ?
+                                    f.StackPointer == stackRef.StackPointer || f.StackPointer == stackRef.InternalFrame :
+                                    f.InstructionPointer == stackRef.InstructionPointer && f.StackPointer == stackRef.StackPointer);
+
+            frame ??= new ClrStackFrame(this, null, stackRef.InstructionPointer, stackRef.StackPointer, ClrStackFrameKind.Unknown, null, null);
 
             ClrObject clrObject;
             if (stackRef.IsInterior)

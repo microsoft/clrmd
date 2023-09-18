@@ -109,6 +109,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             const int GCInteriorFlag = 1;
             const int GCPinnedFlag = 2;
+            const int SOS_StackSourceIP = 0;
+            const int SOS_StackSourceFrame = 1;
             foreach (StackRefData stackRef in stackRefEnum.ReadStackRefs())
             {
                 if (stackRef.Object == 0)
@@ -127,10 +129,18 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     regName = _sos.GetRegisterName(stackRef.Register);
                 }
 
+                ulong ip = 0;
+                ulong frame = 0;
+                if (stackRef.SourceType == SOS_StackSourceIP)
+                    ip = stackRef.Source;
+                else if (stackRef.SourceType == SOS_StackSourceFrame)
+                    frame = stackRef.Source;
+
                 yield return new StackRootInfo()
                 {
-                    Source = stackRef.Source,
+                    InstructionPointer = ip,
                     StackPointer = stackRef.StackPointer,
+                    InternalFrame = frame,
 
                     IsInterior = interior,
                     IsPinned = isPinned,

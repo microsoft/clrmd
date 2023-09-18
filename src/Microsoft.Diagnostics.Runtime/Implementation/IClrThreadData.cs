@@ -149,8 +149,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     /// </summary>
     internal struct StackRootInfo
     {
-        public ulong Source { get; set; }
+        public ulong InstructionPointer { get; set; }
         public ulong StackPointer { get; set; }
+
+        public ulong InternalFrame { get; set; }
 
         public bool IsInterior { get; set; }
         public bool IsPinned { get; set; }
