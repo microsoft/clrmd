@@ -67,7 +67,6 @@ namespace Microsoft.Diagnostics.Runtime
             FrameName = frameName;
         }
 
-
         public override string? ToString()
         {
             if (Kind == ClrStackFrameKind.ManagedMethod)

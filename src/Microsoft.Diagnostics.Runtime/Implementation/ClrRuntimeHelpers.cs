@@ -70,11 +70,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _library.Dispose();
         }
 
-        public ClrHeap CreateHeap()
-        {
-            ClrHeapHelpers helpers = new(_dac, _sos, _sos6, _sos8, _sos12, _dataReader, _cacheOptions);
-            return new ClrHeap(Runtime, _dataReader, helpers);
-        }
+        public IClrHeapHelpers GetHeapHelpers() => new ClrHeapHelpers(_dac, _sos, _sos6, _sos8, _sos12, _dataReader, _cacheOptions);
 
         public ClrRuntime Runtime
         {
@@ -270,23 +266,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return GetMethodByMethodDesc(md);
         }
 
-        public IEnumerable<ClrThread> EnumerateThreads()
+        public IEnumerable<IClrThreadData> EnumerateThreads(int max)
         {
-            ClrAppDomainData domainData = GetAppDomainData();
-
-            ClrThreadHelpers helpers = new(_dac, _sos, _dataReader);
-
             HashSet<ulong> seen = new() { 0 };
             ulong addr = _threadStore.FirstThread;
-
-            int i;
-            for (i = 0; i < _threadStore.ThreadCount && seen.Add(addr); i++)
+            for (int i = 0; i < _threadStore.ThreadCount && seen.Add(addr) && i < max; i++)
             {
-                if (!_sos.GetThreadData(addr, out ThreadData threadData))
-                    break;
-
-                yield return new(helpers, Runtime, domainData.GetDomainByAddress(threadData.Domain), addr, threadData, addr == _threadStore.FinalizerThread, addr == _threadStore.GCThread);
-
+                DacThreadData threadData = new DacThreadData(_dac, _sos, _dataReader, addr, _threadStore);
+                yield return threadData;
                 addr = threadData.NextThread;
             }
         }

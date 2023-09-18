@@ -22,6 +22,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         internal static readonly Guid IID_ISOSDac = new("436f00f2-b42a-4b9f-870c-e73db66ae930");
 
         private readonly DacLibrary _library;
+        private volatile Dictionary<int, string>? _regNames;
+        private volatile Dictionary<ulong, string>? _frameNames;
 
         public SOSDac(DacLibrary? library, IntPtr ptr)
             : base(library?.OwningLibrary, IID_ISOSDac, ptr)
@@ -62,6 +64,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public string? GetRegisterName(int index)
         {
+            Dictionary<int, string> regNames = _regNames ??= new();
+            lock (regNames)
+                if (regNames.TryGetValue(index, out string? cached))
+                    return cached;
+
             // Register names shouldn't be big.
             Span<char> buffer = stackalloc char[32];
 
@@ -78,7 +85,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 if (len >= 0)
                     buffer = buffer.Slice(0, len);
 
-                return new string(ptr, 0, buffer.Length);
+                string result = new(ptr, 0, buffer.Length);
+                lock (regNames)
+                    regNames[index] = result;
+
+                return result;
             }
         }
 
@@ -261,7 +272,25 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public string GetFrameName(ulong vtable)
         {
-            return GetString(VTable.GetFrameName, vtable, false) ?? "Unknown Frame";
+            Dictionary<ulong, string> frameNames = _frameNames ??= new();
+            lock (frameNames)
+            {
+                if (_frameNames.TryGetValue(vtable, out string? cached))
+                    return cached;
+            }
+
+            string? result = GetString(VTable.GetFrameName, vtable, false);
+            if (result is not null)
+            {
+                lock (frameNames)
+                    _frameNames[vtable] = result;
+
+                return result;
+            }
+
+            // Don't cache failed lookups.  We might have a bad stackwalk where we get 1000s of bad
+            // frame vtables and we won't want to eat up memory storing those in the cache.
+            return "Unknown Frame";
         }
 
         public HResult GetFieldInfo(ulong mt, out FieldInfo data)
