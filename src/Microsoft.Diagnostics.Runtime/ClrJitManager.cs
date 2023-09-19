@@ -2,15 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
-using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
 {
     public sealed class ClrJitManager : IClrJitManager
     {
-        private readonly IClrNativeHeapHelpers _helpers;
+        private readonly IClrNativeHeapHelpers? _helpers;
 
         public ClrRuntime Runtime { get; }
         IClrRuntime IClrJitManager.Runtime => Runtime;
@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public CodeHeapKind Kind { get; }
 
-        internal ClrJitManager(ClrRuntime runtime, in JitManagerInfo info, IClrNativeHeapHelpers helpers)
+        internal ClrJitManager(ClrRuntime runtime, in JitManagerInfo info, IClrNativeHeapHelpers? helpers)
         {
             Runtime = runtime;
             Address = info.Address;
@@ -27,6 +27,6 @@ namespace Microsoft.Diagnostics.Runtime
             _helpers = helpers;
         }
 
-        public IEnumerable<ClrNativeHeapInfo> EnumerateNativeHeaps() => _helpers.EnumerateNativeHeaps(this);
+        public IEnumerable<ClrNativeHeapInfo> EnumerateNativeHeaps() => _helpers?.EnumerateNativeHeaps(this) ?? Enumerable.Empty<ClrNativeHeapInfo>();
     }
 }

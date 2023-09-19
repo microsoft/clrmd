@@ -297,7 +297,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates native heaps that the JIT has allocated.
         /// </summary>
         /// <returns>An enumeration of heaps.</returns>
-        public IEnumerable<ClrJitManager> EnumerateJitManagers() => _helpers.EnumerateClrJitManagers();
+        public IEnumerable<ClrJitManager> EnumerateJitManagers()
+        {
+            return _helpers.EnumerateClrJitManagers().Select(info => new ClrJitManager(this, info, _helpers.NativeHeapHelpers));
+        }
 
         /// <summary>
         /// Flushes the DAC cache.  This function MUST be called any time you expect to call the same function

@@ -413,6 +413,24 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         }
         #endregion
 
+        ////////////////////////////////////////////////////////////////////////////////
+        // JIT
+        ////////////////////////////////////////////////////////////////////////////////
+        #region JIT
+        public IEnumerable<JitManagerInfo> EnumerateClrJitManagers()
+        {
+            foreach (JitManagerData jitMgr in _sos.GetJitManagers())
+                yield return new()
+                {
+                    Address = jitMgr.Address,
+                    Kind = jitMgr.Kind,
+                    HeapList = jitMgr.HeapList,
+                };
+        }
+
+        public string? GetJitHelperFunctionName(ulong address) => _sos.GetJitHelperFunctionName(address);
+        #endregion
+
         public void Dispose()
         {
             Flush();
@@ -505,12 +523,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public IEnumerable<ClrJitManager> EnumerateClrJitManagers()
-        {
-            foreach (JitManagerInfo jitMgr in _sos.GetJitManagers())
-                yield return new ClrJitManager(Runtime, jitMgr, NativeHeapHelpers);
-        }
-
 
         public IEnumerable<ClrNativeHeapInfo> EnumerateGCFreeRegions()
         {
@@ -558,8 +570,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         yield return new ClrNativeHeapInfo(MemoryRange.CreateFromLength(mem.Start, mem.Length), NativeHeapKind.GCBookkeeping, ClrNativeHeapState.RegionOfRegions);
             }
         }
-
-        public string? GetJitHelperFunctionName(ulong address) => _sos.GetJitHelperFunctionName(address);
 
         public ClrThreadPool? GetThreadPool()
         {

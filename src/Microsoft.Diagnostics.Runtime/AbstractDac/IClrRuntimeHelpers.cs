@@ -31,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         IEnumerable<ClrHandleInfo> EnumerateHandles();
 
         // JIT
-        IEnumerable<ClrJitManager> EnumerateClrJitManagers();
+        IEnumerable<JitManagerInfo> EnumerateClrJitManagers();
         string? GetJitHelperFunctionName(ulong address);
 
         // ThreadPool
@@ -104,5 +104,26 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         /// The RefCount of a reference count handle.  Only valid for Kind == Dependent.
         /// </summary>
         public uint RefCount { get; set; }
+    }
+
+    /// <summary>
+    /// Information about a single JitManager.
+    /// </summary>
+    internal struct JitManagerInfo
+    {
+        /// <summary>
+        /// The address of the JitManager.
+        /// </summary>
+        public ulong Address { get; set; }
+
+        /// <summary>
+        /// The kind of code heap this JitManager contains.
+        /// </summary>
+        public CodeHeapKind Kind { get; set; }
+
+        /// <summary>
+        /// The location of the heap list.
+        /// </summary>
+        public ulong HeapList { get; set; }
     }
 }

@@ -624,17 +624,17 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return VTable.GetGCHeapStaticData(Self, out data);
         }
 
-        public JitManagerInfo[] GetJitManagers()
+        public JitManagerData[] GetJitManagers()
         {
             HResult hr = VTable.GetJitManagerList(Self, 0, null, out int needed);
             if (!hr || needed == 0)
-                return Array.Empty<JitManagerInfo>();
+                return Array.Empty<JitManagerData>();
 
-            JitManagerInfo[] result = new JitManagerInfo[needed];
-            fixed (JitManagerInfo* ptr = result)
+            JitManagerData[] result = new JitManagerData[needed];
+            fixed (JitManagerData* ptr = result)
             {
                 hr = VTable.GetJitManagerList(Self, result.Length, ptr, out needed);
-                return hr ? result : Array.Empty<JitManagerInfo>();
+                return hr ? result : Array.Empty<JitManagerData>();
             }
         }
 
@@ -757,7 +757,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             return 0;
         }
-        private delegate HResult DacGetJitManagerInfo(IntPtr self, ClrDataAddress addr, out JitManagerInfo data);
+        private delegate HResult DacGetJitManagerInfo(IntPtr self, ClrDataAddress addr, out JitManagerData data);
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -802,7 +802,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         // JIT Data
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out CodeHeaderData, int> GetCodeHeaderData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, JitManagerInfo*, out int, int> GetJitManagerList;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, JitManagerData*, out int, int> GetJitManagerList;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, int> GetJitHelperFunctionName;
         private readonly IntPtr GetJumpThunkTarget;
 
