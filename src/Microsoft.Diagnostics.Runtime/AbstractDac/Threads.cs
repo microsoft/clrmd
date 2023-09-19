@@ -6,99 +6,101 @@ using System.Collections.Generic;
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     /// <summary>
-    /// Represents the data and functions for a single thread in the CLR runtime.
+    /// Helpers for ClrThreads.
     /// </summary>
-    internal interface IClrThreadData
+    internal interface IClrThreadHelpers
     {
-        /// <summary>
-        /// The address of the underlying coreclr!Thread.  This is never 0.
-        /// </summary>
-        ulong Address { get; }
-
-        /// <summary>
-        /// Returns whether we successfully requested this thread's data or not.
-        /// If HasData == false, it means all members of this interface (other than Address)
-        /// are invalid.
-        /// </summary>
-        bool HasData { get; }
-
-        /// <summary>
-        /// The AppDomain that this thread is currently running in.
-        /// </summary>
-        ulong AppDomain { get; }
-
-        /// <summary>
-        /// The thread ID as the Operating System sees it.
-        /// </summary>
-        uint OSThreadId { get; }
-
-        /// <summary>
-        /// The managed thread id.
-        /// </summary>
-        int ManagedThreadId { get; }
-
-        /// <summary>
-        /// The lock count of the Thread, if available.
-        /// </summary>
-        uint LockCount { get; }
-
-        /// <summary>
-        /// The Windows TEB, if available, 0 otherwise.
-        /// </summary>
-        ulong Teb { get; }
-
-        /// <summary>
-        /// The base address range of the stack space for this thread.
-        /// </summary>
-        ulong StackBase { get; }
-
-        /// <summary>
-        /// The limit of the stack space for this thread.
-        /// </summary>
-        ulong StackLimit { get; }
-
-        /// <summary>
-        /// If an exception is in flight on this thread, a pointer directly to
-        /// the exception object itself.
-        /// </summary>
-        ulong ExceptionInFlight { get; }
-
-        /// <summary>
-        /// Whether this thread is a finalizer thread or not.
-        /// </summary>
-        bool IsFinalizer { get; }
-
-        /// <summary>
-        /// Whether this thread is a GC thread or not.
-        /// </summary>
-        bool IsGC { get; }
-
-        /// <summary>
-        /// The GCMode of this thread (cooperative, preemptive).
-        /// </summary>
-        GCMode GCMode { get; }
-
-        /// <summary>
-        /// The state of this thread.
-        /// </summary>
-        ClrThreadState State { get; }
-
         /// <summary>
         /// Enumerates the roots of this thread.
         /// </summary>
+        /// <param name="osThreadId">The thread to enumerate.</param>
         /// <returns>An enumeration of stack roots.</returns>
-        IEnumerable<StackRootInfo> EnumerateStackRoots();
+        IEnumerable<StackRootInfo> EnumerateStackRoots(uint osThreadId);
 
         /// <summary>
         /// Enumerates the stack trace of this method.  Note that in the event of bugs or corrupted
         /// state, this can occasionally produce bad data and run "forever", so be sure to break out of
         /// the loop when a threshold is reached when calling it.
         /// </summary>
+        /// <param name="osThreadId">The thread to enumerate.</param>
         /// <param name="includeContext">Whether to calculate and include the thread's CONTEXT record or not.
         /// Registers are always in the Windows CONTEXT format, as that's what the OS uses.</param>
         /// <returns>An enumeration of stack frames.</returns>
-        IEnumerable<StackFrameInfo> EnumerateStackTrace(bool includeContext);
+        IEnumerable<StackFrameInfo> EnumerateStackTrace(uint osThreadId, bool includeContext);
     }
+
+    /// <summary>
+    /// Information about a single coreclr!Thread.
+    /// </summary>
+    internal struct ClrThreadInfo
+    {
+        /// <summary>
+        /// The address of the underlying coreclr!Thread.
+        /// </summary>
+        public ulong Address { get; set; }
+
+        /// <summary>
+        /// The AppDomain that this thread is currently running in.
+        /// </summary>
+        public ulong AppDomain { get; set; }
+
+        /// <summary>
+        /// The thread ID as the Operating System sees it.
+        /// </summary>
+        public uint OSThreadId { get; set; }
+
+        /// <summary>
+        /// The managed thread id.
+        /// </summary>
+        public int ManagedThreadId { get; set; }
+
+        /// <summary>
+        /// The lock count of the Thread, if available.
+        /// </summary>
+        public uint LockCount { get; set; }
+
+        /// <summary>
+        /// The Windows TEB, if available, 0 otherwise.
+        /// </summary>
+        public ulong Teb { get; set; }
+
+        /// <summary>
+        /// The base address range of the stack space for this thread.
+        /// </summary>
+        public ulong StackBase { get; set; }
+
+        /// <summary>
+        /// The limit of the stack space for this thread.
+        /// </summary>
+        public ulong StackLimit { get; set; }
+
+        /// <summary>
+        /// If an exception is in flight on this thread, a pointer directly to
+        /// the exception object itself.
+        /// </summary>
+        public ulong ExceptionInFlight { get; set; }
+
+        /// <summary>
+        /// Whether this thread is a finalizer thread or not.
+        /// </summary>
+        public bool IsFinalizer { get; set; }
+
+        /// <summary>
+        /// Whether this thread is a GC thread or not.
+        /// </summary>
+        public bool IsGC { get; set; }
+
+        /// <summary>
+        /// The GCMode of this thread (cooperative, preemptive).
+        /// </summary>
+        public GCMode GCMode { get; set; }
+
+        /// <summary>
+        /// The state of this thread.
+        /// </summary>
+        public ClrThreadState State { get; set; }
+    }
+
 
     /// <summary>
     /// Information about a single stack frame in a stack trace.  This can be a real stack frame as the OS sees

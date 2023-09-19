@@ -8,9 +8,13 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IClrRuntimeHelpers : IDisposable
     {
-        IEnumerable<IClrThreadData> EnumerateThreads();
         IClrHeapHelpers GetHeapHelpers();
 
+        // Threads
+        IClrThreadHelpers ThreadHelpers { get; }
+        IEnumerable<ClrThreadInfo> EnumerateThreads();
+
+        // AppDomains and Modules
         IEnumerable<AppDomainInfo> EnumerateAppDomains();
         IClrModuleHelpers? ModuleHelpers { get; }
         IEnumerable<ulong> GetModuleList(ulong appDomain);

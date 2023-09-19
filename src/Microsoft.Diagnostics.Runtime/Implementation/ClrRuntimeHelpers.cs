@@ -2,16 +2,19 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal sealed unsafe class ClrRuntimeHelpers : IClrModuleHelpers, IClrRuntimeHelpers
+    internal sealed unsafe class ClrRuntimeHelpers : IClrModuleHelpers, IClrRuntimeHelpers, IClrThreadHelpers
     {
         private ClrRuntime? _runtime;
 
@@ -69,6 +72,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _sos13?.Dispose();
             _library.Dispose();
         }
+
 
         // IClrModuleHelpers
         private const int mdtTypeDef = 0x02000000;
@@ -271,16 +275,198 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return GetMethodByMethodDesc(md);
         }
 
-        public IEnumerable<IClrThreadData> EnumerateThreads()
+
+        ////////////////////////////////////////////////////////////////////////////////
+        // Threads
+        ////////////////////////////////////////////////////////////////////////////////
+
+        public IClrThreadHelpers ThreadHelpers => this;
+
+        public IEnumerable<ClrThreadInfo> EnumerateThreads()
         {
             HashSet<ulong> seen = new() { 0 };
-            ulong addr = _threadStore.FirstThread;
-            for (int i = 0; i < _threadStore.ThreadCount && seen.Add(addr); i++)
+            ulong threadAddress = _threadStore.FirstThread;
+
+            uint pointerSize = (uint)_dataReader.PointerSize;
+
+            for (int i = 0; i < _threadStore.ThreadCount && seen.Add(threadAddress); i++)
             {
-                DacThreadData threadData = new DacThreadData(_dac, _sos, _dataReader, addr, _threadStore);
-                yield return threadData;
-                addr = threadData.NextThread;
+                if (!_sos.GetThreadData(threadAddress, out ThreadData threadData))
+                    break;
+
+                ulong ex = 0;
+                if (threadData.LastThrownObjectHandle != 0)
+                    ex = _dataReader.ReadPointer(threadData.LastThrownObjectHandle);
+
+                ulong stackBase = 0;
+                ulong stackLimit = 0;
+                if (threadData.Teb != 0)
+                {
+                    stackBase = _dataReader.ReadPointer(threadData.Teb + pointerSize);
+                    stackLimit = _dataReader.ReadPointer(threadData.Teb + pointerSize * 2);
+                }
+
+                yield return new()
+                {
+                    Address = threadAddress,
+                    AppDomain = threadData.Domain,
+                    ExceptionInFlight = ex,
+                    GCMode = threadData.PreemptiveGCDisabled == 0 ? GCMode.Preemptive : GCMode.Cooperative,
+                    IsFinalizer = _threadStore.FinalizerThread == threadAddress,
+                    IsGC = _threadStore.GCThread == threadAddress,
+                    LockCount = threadData.LockCount,
+                    ManagedThreadId = threadData.ManagedThreadId < int.MaxValue ? (int)threadData.ManagedThreadId : int.MaxValue,
+                    OSThreadId = threadData.OSThreadId,
+                    StackBase = stackBase,
+                    StackLimit = stackLimit,
+                    State = (ClrThreadState)threadData.State,
+                    Teb = threadData.Teb,
+                };
+
+                threadAddress = threadData.NextThread;
             }
+        }
+
+        // IClrThreadHelpers
+        public IEnumerable<StackRootInfo> EnumerateStackRoots(uint osThreadId)
+        {
+            using SOSStackRefEnum? stackRefEnum = _sos.EnumerateStackRefs(osThreadId);
+            if (stackRefEnum is null)
+                yield break;
+
+            const int GCInteriorFlag = 1;
+            const int GCPinnedFlag = 2;
+            const int SOS_StackSourceIP = 0;
+            const int SOS_StackSourceFrame = 1;
+            foreach (StackRefData stackRef in stackRefEnum.ReadStackRefs())
+            {
+                if (stackRef.Object == 0)
+                {
+                    Trace.TraceInformation($"EnumerateStackRoots found an entry with Object == 0, addr:{(ulong)stackRef.Address:x} srcType:{stackRef.SourceType:x}");
+                    continue;
+                }
+
+                bool interior = (stackRef.Flags & GCInteriorFlag) == GCInteriorFlag;
+                bool isPinned = (stackRef.Flags & GCPinnedFlag) == GCPinnedFlag;
+                int regOffset = 0;
+                string? regName = null;
+                if (stackRef.HasRegisterInformation != 0)
+                {
+                    regOffset = stackRef.Offset;
+                    regName = _sos.GetRegisterName(stackRef.Register);
+                }
+
+                ulong ip = 0;
+                ulong frame = 0;
+                if (stackRef.SourceType == SOS_StackSourceIP)
+                    ip = stackRef.Source;
+                else if (stackRef.SourceType == SOS_StackSourceFrame)
+                    frame = stackRef.Source;
+
+                yield return new StackRootInfo()
+                {
+                    InstructionPointer = ip,
+                    StackPointer = stackRef.StackPointer,
+                    InternalFrame = frame,
+
+                    IsInterior = interior,
+                    IsPinned = isPinned,
+
+                    Address = stackRef.Address,
+                    Object = stackRef.Object,
+
+                    IsEnregistered = stackRef.HasRegisterInformation != 0,
+                    RegisterName = regName,
+                    RegisterOffset = regOffset,
+                };
+            }
+        }
+
+        public IEnumerable<StackFrameInfo> EnumerateStackTrace(uint osThreadId, bool includeContext)
+        {
+            using ClrStackWalk? stackwalk = _dac.CreateStackWalk(osThreadId, 0xf);
+            if (stackwalk is null)
+                yield break;
+
+            int ipOffset;
+            int spOffset;
+            int contextSize;
+            uint contextFlags = 0;
+            if (_dataReader.Architecture == Architecture.Arm)
+            {
+                ipOffset = 64;
+                spOffset = 56;
+                contextSize = 416;
+            }
+            else if (_dataReader.Architecture == Architecture.Arm64)
+            {
+                ipOffset = 264;
+                spOffset = 256;
+                contextSize = 912;
+            }
+            else if (_dataReader.Architecture == Architecture.X86)
+            {
+                ipOffset = 184;
+                spOffset = 196;
+                contextSize = 716;
+                contextFlags = 0x1003f;
+            }
+            else // Architecture.X64
+            {
+                ipOffset = 248;
+                spOffset = 152;
+                contextSize = 1232;
+                contextFlags = 0x10003f;
+            }
+
+            HResult hr = HResult.S_OK;
+            byte[] context = ArrayPool<byte>.Shared.Rent(contextSize);
+            while (hr.IsOK)
+            {
+                hr = stackwalk.GetContext(contextFlags, contextSize, out _, context);
+                if (!hr)
+                {
+                    Trace.TraceInformation($"GetContext failed, flags:{contextFlags:x} size: {contextSize:x} hr={hr}");
+                    break;
+                }
+
+                ulong ip = context.AsSpan().AsPointer(ipOffset);
+                ulong sp = context.AsSpan().AsPointer(spOffset);
+
+                ulong frameVtbl = stackwalk.GetFrameVtable();
+                string? frameName = null;
+                ulong frameMethod = 0;
+                if (frameVtbl != 0)
+                {
+                    sp = frameVtbl;
+                    frameVtbl = _dataReader.ReadPointer(sp);
+                    frameName = _sos.GetFrameName(frameVtbl);
+                    frameMethod = _sos.GetMethodDescPtrFromFrame(sp);
+                }
+
+                byte[]? contextCopy = null;
+                if (includeContext)
+                {
+                    contextCopy = new byte[contextSize];
+                    context.AsSpan(0, contextSize).CopyTo(contextCopy);
+                }
+
+                yield return new StackFrameInfo()
+                {
+                    InstructionPointer = ip,
+                    StackPointer = sp,
+                    Context = contextCopy,
+                    InternalFrameVTable = frameVtbl,
+                    InternalFrameName = frameName,
+                    InnerMethodMethodHandle = frameMethod,
+                };
+
+                hr = stackwalk.Next();
+                if (!hr)
+                    Trace.TraceInformation($"STACKWALK FAILED - hr:{hr}");
+            }
+
+            ArrayPool<byte>.Shared.Return(context);
         }
 
         public IEnumerable<ClrJitManager> EnumerateClrJitManagers()

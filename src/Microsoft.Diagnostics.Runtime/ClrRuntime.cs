@@ -102,14 +102,11 @@ namespace Microsoft.Diagnostics.Runtime
                 ImmutableArray<ClrThread>.Builder builder = ImmutableArray.CreateBuilder<ClrThread>();
 
                 int max = 20000;
-                int maxErrors = 1024;
-                foreach (IClrThreadData data in _helpers.EnumerateThreads())
+                foreach (ClrThreadInfo data in _helpers.EnumerateThreads())
                 {
-                    if (data.HasData)
-                        builder.Add(new ClrThread(DataTarget.DataReader, this, data));
-                    else if (maxErrors-- == 0)
-                        break;
-                    else if (max-- == 0)
+                    builder.Add(new ClrThread(DataTarget.DataReader, this, _helpers.ThreadHelpers, data));
+
+                    if (max-- == 0)
                         break;
                 }
 
