@@ -16,8 +16,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed unsafe class ClrRuntimeHelpers : IClrModuleHelpers, IClrRuntimeHelpers, IClrThreadHelpers, IClrThreadPoolHelpers
     {
-        private ClrRuntime? _runtime;
-
         private readonly IDataReader _dataReader;
         private readonly ThreadStoreData _threadStore;
         private readonly AppDomainStoreData _domainStore;
