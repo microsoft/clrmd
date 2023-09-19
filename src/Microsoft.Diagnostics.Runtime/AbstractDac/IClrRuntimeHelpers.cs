@@ -24,8 +24,10 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         ClrModuleInfo GetModuleInfo(ulong module);
 
         // Methods
-        ClrMethod? GetMethodByMethodDesc(ulong methodDesc);
-        ClrMethod? GetMethodByInstructionPointer(ulong ip);
+        ulong GetMethodHandleContainingType(ulong methodDesc);
+        ulong GetMethodHandleByInstructionPointer(ulong ip);
+
+        // HandleTable
         IEnumerable<ClrHandleInfo> EnumerateHandles();
 
         // JIT

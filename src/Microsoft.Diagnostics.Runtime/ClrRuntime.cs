@@ -8,6 +8,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Xml.Linq;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
@@ -130,7 +131,21 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="methodHandle">The method handle (MethodDesc) to look up.</param>
         /// <returns>The ClrMethod for the given method handle, or <see langword="null"/> if no method was found.</returns>
-        public ClrMethod? GetMethodByHandle(ulong methodHandle) => _helpers.GetMethodByMethodDesc(methodHandle);
+        public ClrMethod? GetMethodByHandle(ulong methodHandle)
+        {
+            if (methodHandle == 0)
+                return null;
+
+            ulong mt = _helpers.GetMethodHandleContainingType(methodHandle);
+            if (mt == 0)
+                return null;
+
+            ClrType? type = Heap.GetTypeByMethodTable(mt);
+            if (type is null)
+                return null;
+
+            return type.Methods.FirstOrDefault(m => m.MethodDesc == methodHandle);
+        }
 
         /// <summary>
         /// Gets the <see cref="ClrType"/> corresponding to the given MethodTable.
@@ -188,7 +203,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// Attempts to get a ClrMethod for the given instruction pointer.  This will return NULL if the
         /// given instruction pointer is not within any managed method.
         /// </summary>
-        public ClrMethod? GetMethodByInstructionPointer(ulong ip) => _helpers.GetMethodByInstructionPointer(ip);
+        public ClrMethod? GetMethodByInstructionPointer(ulong ip)
+        {
+            ulong md = _helpers.GetMethodHandleByInstructionPointer(ip);
+            return GetMethodByHandle(md);
+        }
 
         /// <summary>
         /// Enumerate all managed modules in the runtime.

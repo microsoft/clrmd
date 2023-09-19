@@ -308,6 +308,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         ////////////////////////////////////////////////////////////////////////////////
         #region Modules
         public IClrModuleHelpers ModuleHelpers => this;
+
         public IEnumerable<ulong> GetModuleList(ulong domain) => _sos.GetAssemblyList(domain).SelectMany(assembly => _sos.GetModuleList(assembly)).Select(module => (ulong)module);
 
         public ClrModuleInfo GetModuleInfo(ulong moduleAddress)
@@ -359,12 +360,58 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         }
 
         public MetadataImport? GetMetadataImport(ulong module) => _sos.GetMetadataImport(module);
-
-
-
         #endregion
 
+        ////////////////////////////////////////////////////////////////////////////////
+        // Methods
+        ////////////////////////////////////////////////////////////////////////////////
+        #region Methods
+        public ulong GetMethodHandleContainingType(ulong methodDesc)
+        {
+            if (!_sos.GetMethodDescData(methodDesc, 0, out MethodDescData mdData))
+                return 0;
 
+            return mdData.MethodTable;
+        }
+
+        public ulong GetMethodHandleByInstructionPointer(ulong ip)
+        {
+            ulong md = _sos.GetMethodDescPtrFromIP(ip);
+            if (md == 0)
+            {
+                if (_sos.GetCodeHeaderData(ip, out CodeHeaderData codeHeaderData))
+                    md = codeHeaderData.MethodDesc;
+            }
+
+            return md;
+        }
+        #endregion
+
+        ////////////////////////////////////////////////////////////////////////////////
+        // HandleTable
+        ////////////////////////////////////////////////////////////////////////////////
+        #region HandleTable
+        public IEnumerable<ClrHandleInfo> EnumerateHandles()
+        {
+            using SOSHandleEnum? handleEnum = _sos.EnumerateHandles();
+            if (handleEnum is null)
+                yield break;
+
+            ClrHeap heap = Runtime.Heap;
+            foreach (HandleData handle in handleEnum.ReadHandles())
+            {
+                yield return new ClrHandleInfo()
+                {
+                    Address = handle.Handle,
+                    Object = _dataReader.ReadPointer(handle.Handle),
+                    Kind = (ClrHandleKind)handle.Type,
+                    AppDomain = handle.AppDomain,
+                    DependentTarget = handle.Secondary,
+                    RefCount = handle.IsPegged != 0 ? handle.JupiterRefCount : handle.RefCount,
+                };
+            }
+        }
+        #endregion
 
         public void Dispose()
         {
@@ -458,62 +505,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-
-
-        public ClrMethod? GetMethodByMethodDesc(ulong methodDesc)
-        {
-            if (!_sos.GetMethodDescData(methodDesc, 0, out MethodDescData mdData))
-                return null;
-
-            ClrType? type = Runtime.Heap.GetTypeByMethodTable(mdData.MethodTable);
-            if (type is null)
-                return null;
-
-            return type.Methods.FirstOrDefault(m => m.MethodDesc == methodDesc);
-        }
-
-        public ClrMethod? GetMethodByInstructionPointer(ulong ip)
-        {
-            ulong md = _sos.GetMethodDescPtrFromIP(ip);
-            if (md == 0)
-            {
-                if (!_sos.GetCodeHeaderData(ip, out CodeHeaderData codeHeaderData))
-                    return null;
-
-                if ((md = codeHeaderData.MethodDesc) == 0)
-                    return null;
-            }
-
-            return GetMethodByMethodDesc(md);
-        }
-
-
         public IEnumerable<ClrJitManager> EnumerateClrJitManagers()
         {
             foreach (JitManagerInfo jitMgr in _sos.GetJitManagers())
                 yield return new ClrJitManager(Runtime, jitMgr, NativeHeapHelpers);
         }
 
-        public IEnumerable<ClrHandleInfo> EnumerateHandles()
-        {
-            using SOSHandleEnum? handleEnum = _sos.EnumerateHandles();
-            if (handleEnum is null)
-                yield break;
-
-            ClrHeap heap = Runtime.Heap;
-            foreach (HandleData handle in handleEnum.ReadHandles())
-            {
-                yield return new ClrHandleInfo()
-                {
-                    Address = handle.Handle,
-                    Object = _dataReader.ReadPointer(handle.Handle),
-                    Kind = (ClrHandleKind)handle.Type,
-                    AppDomain = handle.AppDomain,
-                    DependentTarget = handle.Secondary,
-                    RefCount = handle.IsPegged != 0 ? handle.JupiterRefCount : handle.RefCount,
-                };
-            }
-        }
 
         public IEnumerable<ClrNativeHeapInfo> EnumerateGCFreeRegions()
         {
