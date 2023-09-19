@@ -289,7 +289,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 yield return new ClrJitManager(Runtime, jitMgr, NativeHeapHelpers);
         }
 
-        public IEnumerable<HandleInfo> EnumerateHandles()
+        public IEnumerable<ClrHandleInfo> EnumerateHandles()
         {
             using SOSHandleEnum? handleEnum = _sos.EnumerateHandles();
             if (handleEnum is null)
@@ -298,7 +298,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ClrHeap heap = Runtime.Heap;
             foreach (HandleData handle in handleEnum.ReadHandles())
             {
-                yield return new HandleInfo()
+                yield return new ClrHandleInfo()
                 {
                     Address = handle.Handle,
                     Object = _dataReader.ReadPointer(handle.Handle),

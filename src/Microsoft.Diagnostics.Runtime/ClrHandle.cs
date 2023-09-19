@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime
             RootKind = IsStrong ? (ClrRootKind)HandleKind : ClrRootKind.None;
         }
 
-        internal ClrHandle(ClrRuntime runtime, in HandleInfo handle)
+        internal ClrHandle(ClrRuntime runtime, in ClrHandleInfo handle)
             : base(handle.Address, runtime.Heap.GetObject(handle.Object), (ClrRootKind)handle.Kind, false, handle.Kind is ClrHandleKind.AsyncPinned or ClrHandleKind.Pinned)
         {
             AppDomain = runtime.GetAppDomainByAddress(handle.AppDomain) ?? runtime.SystemDomain ?? runtime.SharedDomain ?? runtime.AppDomains[0];

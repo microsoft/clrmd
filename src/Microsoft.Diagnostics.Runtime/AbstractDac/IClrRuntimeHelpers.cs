@@ -8,22 +8,21 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IClrRuntimeHelpers : IDisposable
     {
-        IClrNativeHeapHelpers? NativeHeapHelpers { get; }
-        IClrModuleHelpers? ModuleHelpers { get; }
-
         IEnumerable<IClrThreadData> EnumerateThreads();
         IClrHeapHelpers GetHeapHelpers();
 
         IEnumerable<AppDomainInfo> EnumerateAppDomains();
+        IClrModuleHelpers? ModuleHelpers { get; }
         IEnumerable<ulong> GetModuleList(ulong appDomain);
         ClrModuleInfo GetModuleInfo(ulong module);
 
         ClrMethod? GetMethodByMethodDesc(ulong methodDesc);
         ClrMethod? GetMethodByInstructionPointer(ulong ip);
-        IEnumerable<HandleInfo> EnumerateHandles();
+        IEnumerable<ClrHandleInfo> EnumerateHandles();
         IEnumerable<ClrJitManager> EnumerateClrJitManagers();
         string? GetJitHelperFunctionName(ulong address);
         ClrThreadPool? GetThreadPool();
+        IClrNativeHeapHelpers? NativeHeapHelpers { get; }
         IEnumerable<ClrNativeHeapInfo> EnumerateGCFreeRegions();
         IEnumerable<ClrNativeHeapInfo> EnumerateHandleTableRegions();
         IEnumerable<ClrNativeHeapInfo> EnumerateGCBookkeepingRegions();
@@ -36,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// <summary>
     /// Information about a ClrHandle
     /// </summary>
-    internal struct HandleInfo
+    internal struct ClrHandleInfo
     {
         /// <summary>
         /// The address of the handle.  AKA the handle itself.
