@@ -8,24 +8,34 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IClrRuntimeHelpers : IDisposable
     {
+        // Heap
         IClrHeapHelpers GetHeapHelpers();
 
         // Threads
         IClrThreadHelpers ThreadHelpers { get; }
         IEnumerable<ClrThreadInfo> EnumerateThreads();
 
-        // AppDomains and Modules
+        // AppDomains
         IEnumerable<AppDomainInfo> EnumerateAppDomains();
+
+        // Modules
         IClrModuleHelpers? ModuleHelpers { get; }
         IEnumerable<ulong> GetModuleList(ulong appDomain);
         ClrModuleInfo GetModuleInfo(ulong module);
 
+        // Methods
         ClrMethod? GetMethodByMethodDesc(ulong methodDesc);
         ClrMethod? GetMethodByInstructionPointer(ulong ip);
         IEnumerable<ClrHandleInfo> EnumerateHandles();
+
+        // JIT
         IEnumerable<ClrJitManager> EnumerateClrJitManagers();
         string? GetJitHelperFunctionName(ulong address);
+
+        // ThreadPool
         ClrThreadPool? GetThreadPool();
+
+        // Native Heaps
         IClrNativeHeapHelpers? NativeHeapHelpers { get; }
         IEnumerable<ClrNativeHeapInfo> EnumerateGCFreeRegions();
         IEnumerable<ClrNativeHeapInfo> EnumerateHandleTableRegions();
@@ -33,6 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData();
         IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData();
 
+        // Helpers
         void Flush();
     }
 
