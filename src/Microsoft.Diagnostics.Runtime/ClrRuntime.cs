@@ -87,7 +87,15 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets information about CLR's ThreadPool.  May return null if we could not obtain
         /// ThreadPool data from the target process or dump.
         /// </summary>
-        public ClrThreadPool? ThreadPool => _helpers.GetThreadPool();
+        public ClrThreadPool? ThreadPool
+        {
+            get
+            {
+                IClrThreadPoolHelpers? helper = _helpers.LegacyThreadPoolHelpers;
+                ClrThreadPool result = new(this, helper);
+                return result.Initialized ? result : null;
+            }
+        }
 
         /// <summary>
         /// Gets all managed threads in the process.  Only threads which have previously run managed

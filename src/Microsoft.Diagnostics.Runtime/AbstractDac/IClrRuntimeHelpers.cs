@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         string? GetJitHelperFunctionName(ulong address);
 
         // ThreadPool
-        ClrThreadPool? GetThreadPool();
+        IClrThreadPoolHelpers? LegacyThreadPoolHelpers { get; }
 
         // Native Heaps
         IClrNativeHeapHelpers? NativeHeapHelpers { get; }

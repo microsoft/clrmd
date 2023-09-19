@@ -14,7 +14,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal sealed unsafe class ClrRuntimeHelpers : IClrModuleHelpers, IClrRuntimeHelpers, IClrThreadHelpers
+    internal sealed unsafe class ClrRuntimeHelpers : IClrModuleHelpers, IClrRuntimeHelpers, IClrThreadHelpers, IClrThreadPoolHelpers
     {
         private ClrRuntime? _runtime;
 
@@ -397,7 +397,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (handleEnum is null)
                 yield break;
 
-            ClrHeap heap = Runtime.Heap;
             foreach (HandleData handle in handleEnum.ReadHandles())
             {
                 yield return new ClrHandleInfo()
@@ -429,6 +428,25 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         }
 
         public string? GetJitHelperFunctionName(ulong address) => _sos.GetJitHelperFunctionName(address);
+        #endregion
+
+        ////////////////////////////////////////////////////////////////////////////////
+        // ThreadPool
+        ////////////////////////////////////////////////////////////////////////////////
+        #region ThreadPool
+        public IClrThreadPoolHelpers? LegacyThreadPoolHelpers => this;
+
+        public bool GetLegacyThreadPoolData(out ThreadPoolData data, out bool usePortableThreadPool)
+        {
+            HResult hr = _sos.GetThreadPoolData(out data);
+            usePortableThreadPool = hr == HResult.E_NOTIMPL;
+            return hr;
+        }
+
+        public bool GetLegacyWorkRequestData(ulong workRequest, out WorkRequestData workRequestData)
+        {
+            return _sos.GetWorkRequestData(workRequest, out workRequestData);
+        }
         #endregion
 
         public void Dispose()
@@ -569,13 +587,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     foreach (SosMemoryRegion mem in memoryEnum)
                         yield return new ClrNativeHeapInfo(MemoryRange.CreateFromLength(mem.Start, mem.Length), NativeHeapKind.GCBookkeeping, ClrNativeHeapState.RegionOfRegions);
             }
-        }
-
-        public ClrThreadPool? GetThreadPool()
-        {
-            ClrThreadPoolHelper helper = new(_sos);
-            ClrThreadPool result = new(Runtime, helper);
-            return result.Initialized ? result : null;
         }
 
         public IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData()
