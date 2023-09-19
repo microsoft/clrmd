@@ -43,6 +43,8 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         IEnumerable<ClrNativeHeapInfo> EnumerateHandleTableRegions();
         IEnumerable<ClrNativeHeapInfo> EnumerateGCBookkeepingRegions();
         IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData();
+
+        // COM
         IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData();
 
         // Helpers

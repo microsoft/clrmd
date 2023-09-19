@@ -31,10 +31,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrInfo = clrInfo;
             DataTarget = clrInfo.DataTarget;
             DacLibrary = library;
-            _helpers = new ClrRuntimeHelpers(clrInfo, DacLibrary, DataTarget.CacheOptions)
-            {
-                Runtime = this
-            };
+            _helpers = new ClrRuntimeHelpers(clrInfo, DacLibrary, DataTarget.CacheOptions);
         }
 
         internal ClrRuntime(ClrInfo clrInfo, DacLibrary library, IClrRuntimeHelpers helpers)
