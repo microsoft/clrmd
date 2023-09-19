@@ -3,11 +3,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Threading;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
@@ -75,22 +73,22 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         // IClrModuleHelpers
         private const int mdtTypeDef = 0x02000000;
         private const int mdtTypeRef = 0x01000000;
-        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefMap(ClrModule module) => GetModuleMap(module, SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable);
+        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefMap(ulong module) => GetModuleMap(module, SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable);
 
-        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeRefMap(ClrModule module) => GetModuleMap(module, SOSDac.ModuleMapTraverseKind.TypeRefToMethodTable);
+        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeRefMap(ulong module) => GetModuleMap(module, SOSDac.ModuleMapTraverseKind.TypeRefToMethodTable);
 
-        private List<(ulong MethodTable, int Token)> GetModuleMap(ClrModule module, SOSDac.ModuleMapTraverseKind kind)
+        private List<(ulong MethodTable, int Token)> GetModuleMap(ulong module, SOSDac.ModuleMapTraverseKind kind)
         {
             int tokenType = kind == SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable ? mdtTypeDef : mdtTypeRef;
             List<(ulong MethodTable, int Token)> result = new();
-            _sos.TraverseModuleMap(kind, module.Address, (token, mt, _) => {
+            _sos.TraverseModuleMap(kind, module, (token, mt, _) => {
                 result.Add((mt, token | tokenType));
             });
 
             return result;
         }
 
-        public MetadataImport? GetMetadataImport(ClrModule module) => _sos.GetMetadataImport(module.Address);
+        public MetadataImport? GetMetadataImport(ulong module) => _sos.GetMetadataImport(module);
 
         // IClrRuntimeHelpers
         public IClrModuleHelpers ModuleHelpers => this;

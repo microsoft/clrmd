@@ -124,7 +124,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the <c>IMetaDataImport</c> interface for this module.  Note that this API does not provide a
         /// wrapper for <c>IMetaDataImport</c>.  You will need to wrap the API yourself if you need to use this.
         /// </summary>
-        internal MetadataImport? MetadataImport => _metadata ??= _helpers?.GetMetadataImport(this);
+        internal MetadataImport? MetadataImport => _metadata ??= _helpers?.GetMetadataImport(Address);
 
         /// <summary>
         /// The ThunkHeap associated with this Module.  This is only available when debugging a .Net 8 or
@@ -196,9 +196,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates the constructed methodtables in this module which correspond to typedef tokens defined by this module.
         /// </summary>
         /// <returns>An enumeration of (ulong methodTable, uint typeDef).</returns>
-        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefToMethodTableMap() => _typeDefMap ??= (_helpers?.EnumerateTypeDefMap(this) ?? Enumerable.Empty<(ulong, int)>()).ToArray();
+        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefToMethodTableMap() => _typeDefMap ??= (_helpers?.EnumerateTypeDefMap(Address) ?? Enumerable.Empty<(ulong, int)>()).ToArray();
 
-        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeRefToMethodTableMap() => _typeRefMap ??= (_helpers?.EnumerateTypeRefMap(this) ?? Enumerable.Empty<(ulong, int)>()).ToArray();
+        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeRefToMethodTableMap() => _typeRefMap ??= (_helpers?.EnumerateTypeRefMap(Address) ?? Enumerable.Empty<(ulong, int)>()).ToArray();
 
         /// <summary>
         /// Attempts to obtain a ClrType based on the name of the type.  Note this is a "best effort" due to

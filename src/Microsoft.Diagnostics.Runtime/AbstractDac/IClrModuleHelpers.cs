@@ -8,20 +8,20 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IClrModuleHelpers
     {
-        MetadataImport? GetMetadataImport(ClrModule module);
-        IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefMap(ClrModule module);
-        IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeRefMap(ClrModule module);
+        MetadataImport? GetMetadataImport(ulong module);
+        IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefMap(ulong module);
+        IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeRefMap(ulong module);
     }
 
     internal struct ClrModuleInfo
     {
         public ulong Address { get; set; }
+        public ulong ImageBase { get; set; }
         public ulong Assembly { get; set; }
 
         public bool IsPEFile { get; set; }
         public bool IsDynamic { get; set; }
 
-        public ulong ImageBase { get; set; }
         public ulong MetadataAddress { get; set; }
         public ulong MetadataSize { get; set; }
 
