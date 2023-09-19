@@ -51,17 +51,44 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         void Flush();
     }
 
+    /// <summary>
+    /// Information about a single app domain.
+    /// </summary>
     internal struct AppDomainInfo
     {
+        /// <summary>
+        /// The address of coreclr!AppDomain
+        /// </summary>
         public ulong Address { get; set; }
+
+        /// <summary>
+        /// The kind of AppDomain.
+        /// </summary>
         public AppDomainKind Kind { get; set; }
 
+        /// <summary>
+        /// The AppDomain's Id.
+        /// </summary>
         public int Id { get; set; }
+
+        /// <summary>
+        /// The name of the AppDomain.
+        /// </summary>
         public string Name { get; set; }
 
+        /// <summary>
+        /// The ConfigFile associated with this AppDomain (or null if there isn't one).
+        /// </summary>
         public string? ConfigFile { get; set; }
+
+        /// <summary>
+        /// The path associated with this AppDomain (or null if not available in this runtime).
+        /// </summary>
         public string? ApplicationBase { get; set; }
 
+        /// <summary>
+        /// The LoaderAllocator pointer for this AppDomain.
+        /// </summary>
         public ulong LoaderAllocator { get; set; }
     }
 
