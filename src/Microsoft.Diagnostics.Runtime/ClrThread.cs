@@ -17,17 +17,29 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private const int MaxFrameDefault = 8096;
         private readonly IDataReader _dataReader;
-        private readonly IClrThreadData _threadData;
-        private ClrAppDomain? _currentDomain;
+        private readonly IClrThreadHelpers _threadHelpers;
+        private ulong _exceptionInFlight;
         private ClrException? _lastThrownException;
         private volatile Cache<ClrStackFrame>? _frameCache;
         private volatile Cache<ClrStackRoot>? _rootCache;
 
-        internal ClrThread(IDataReader dataReader, ClrRuntime runtime, IClrThreadData data)
+        internal ClrThread(IDataReader dataReader, ClrRuntime runtime, IClrThreadHelpers helpers, in ClrThreadInfo threadInfo)
         {
             _dataReader = dataReader;
-            _threadData = data;
+            _threadHelpers = helpers;
             Runtime = runtime;
+            Address = threadInfo.Address;
+            CurrentAppDomain = Runtime.GetAppDomainByAddress(threadInfo.AppDomain);
+            OSThreadId = threadInfo.OSThreadId;
+            ManagedThreadId = threadInfo.ManagedThreadId;
+            LockCount = threadInfo.LockCount;
+            StackBase = threadInfo.StackBase;
+            StackLimit = threadInfo.StackLimit;
+            _exceptionInFlight = threadInfo.ExceptionInFlight;
+            IsFinalizer = threadInfo.IsFinalizer;
+            IsGc = threadInfo.IsGC;
+            GCMode = threadInfo.GCMode;
+            State = threadInfo.State;
         }
 
         /// <summary>
@@ -40,15 +52,15 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the suspension state of the thread according to the runtime.
         /// </summary>
-        public GCMode GCMode => _threadData.GCMode;
+        public GCMode GCMode { get; }
 
         /// <summary>
         /// Gets the address of the underlying data structure which makes up the Thread object.  This
         /// serves as a unique identifier.
         /// </summary>
-        public ulong Address => _threadData.Address;
+        public ulong Address { get; }
 
-        public ClrThreadState State => _threadData.State;
+        public ClrThreadState State { get; }
 
         /// <summary>
         /// Returns true if the thread is alive in the process, false if this thread was recently terminated.
@@ -58,37 +70,28 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns true if a finalizer thread otherwise false.
         /// </summary>
-        public bool IsFinalizer => _threadData.IsFinalizer;
+        public bool IsFinalizer { get; }
 
         /// <summary>
         /// Returns true if a GC thread otherwise false.
         /// </summary>
-        public bool IsGc => _threadData.IsGC;
+        public bool IsGc { get; }
 
         /// <summary>
         /// Gets the OS thread id for the thread.
         /// </summary>
-        public uint OSThreadId => _threadData.OSThreadId;
+        public uint OSThreadId { get; }
 
         /// <summary>
         /// Gets the managed thread ID (this is equivalent to <see cref="System.Threading.Thread.ManagedThreadId"/>
         /// in the target process).
         /// </summary>
-        public int ManagedThreadId => _threadData.ManagedThreadId;
+        public int ManagedThreadId { get; }
 
         /// <summary>
         /// Gets the AppDomain the thread is running in.
         /// </summary>
-        public ClrAppDomain? CurrentAppDomain
-        {
-            get
-            {
-                if (_currentDomain is not null || _threadData.AppDomain == 0)
-                    return _currentDomain;
-
-                return _currentDomain = Runtime.GetAppDomainByAddress(_threadData.AppDomain);
-            }
-        }
+        public ClrAppDomain? CurrentAppDomain { get; }
 
         IClrAppDomain? IClrThread.CurrentAppDomain => CurrentAppDomain;
 
@@ -96,17 +99,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the number of managed locks (Monitors) the thread has currently entered but not left.
         /// This will be highly inconsistent unless the process is stopped.
         /// </summary>
-        public uint LockCount => _threadData.LockCount;
+        public uint LockCount { get; }
 
         /// <summary>
         /// Gets the base of the stack for this thread, or 0 if the value could not be obtained.
         /// </summary>
-        public ulong StackBase => _threadData.StackBase;
+        public ulong StackBase { get; }
 
         /// <summary>
         /// Gets the limit of the stack for this thread, or 0 if the value could not be obtained.
         /// </summary>
-        public ulong StackLimit => _threadData.StackLimit;
+        public ulong StackLimit { get; }
 
         /// <summary>
         /// Enumerates the GC references (objects) on the stack.
@@ -120,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             ClrHeap heap = Runtime.Heap;
             ClrStackFrame[] frames = GetFramesForRoots();
-            IEnumerable<ClrStackRoot> roots = _threadData.EnumerateStackRoots().Select(r => CreateClrStackRoot(heap, frames, r)).Where(r => r is not null)!;
+            IEnumerable<ClrStackRoot> roots = _threadHelpers.EnumerateStackRoots(OSThreadId).Select(r => CreateClrStackRoot(heap, frames, r)).Where(r => r is not null)!;
             if (!Runtime.DataTarget.CacheOptions.CacheStackRoots)
                 return roots;
 
@@ -149,7 +152,7 @@ namespace Microsoft.Diagnostics.Runtime
             // We need to make sure we don't loop forever when enumerating the stack trace.
             // We will only cache the stack if we completed enumeratione (i.e. got less
             // than MaxFrameDefault frames)
-            ClrStackFrame[] stack = _threadData.EnumerateStackTrace(includeContext: false).Select(r => CreateClrStackFrame(r)).Take(MaxFrameDefault).ToArray();
+            ClrStackFrame[] stack = _threadHelpers.EnumerateStackTrace(OSThreadId, includeContext: false).Select(r => CreateClrStackFrame(r)).Take(MaxFrameDefault).ToArray();
             if (Runtime.DataTarget.CacheOptions.CacheStackTraces && stack.Length < MaxFrameDefault)
                 _frameCache = new(stack, includedContext: false);
 
@@ -230,7 +233,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (cache is not null && (!includeContext || cache.IncludedContext))
                 return Array.AsReadOnly(cache.Elements);
 
-            IEnumerable<ClrStackFrame> frames = _threadData.EnumerateStackTrace(includeContext).Select(r => CreateClrStackFrame(r));
+            IEnumerable<ClrStackFrame> frames = _threadHelpers.EnumerateStackTrace(OSThreadId, includeContext).Select(r => CreateClrStackFrame(r));
             if (!Runtime.DataTarget.CacheOptions.CacheStackTraces)
                 return frames;
 
@@ -297,7 +300,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// be done processing the exception but a crash dump was taken before the current exception was
         /// cleared off the field.
         /// </summary>
-        public ClrException? CurrentException => _lastThrownException ??= _threadData.ExceptionInFlight != 0 ? Runtime.Heap.GetExceptionObject(_threadData.ExceptionInFlight, this) : null;
+        public ClrException? CurrentException => _lastThrownException ??= _exceptionInFlight != 0 ? Runtime.Heap.GetExceptionObject(_exceptionInFlight, this) : null;
 
         IClrException? IClrThread.CurrentException => CurrentException;
 
