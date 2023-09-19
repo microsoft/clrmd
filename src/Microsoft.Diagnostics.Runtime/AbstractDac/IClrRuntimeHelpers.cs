@@ -3,11 +3,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
-    internal interface IClrRuntimeData : IDisposable
+    internal interface IClrRuntimeHelpers : IDisposable
     {
         IClrNativeHeapHelpers? NativeHeapHelpers { get; }
         IClrModuleHelpers? ModuleHelpers { get; }

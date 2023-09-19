@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrRuntime : IClrRuntime
     {
-        private readonly IClrRuntimeData _helpers;
+        private readonly IClrRuntimeHelpers _helpers;
         private volatile ClrHeap? _heap;
         private ImmutableArray<ClrThread> _threads;
         private volatile DomainAndModules? _domainAndModules;
@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime
             };
         }
 
-        internal ClrRuntime(ClrInfo clrInfo, DacLibrary library, IClrRuntimeData helpers)
+        internal ClrRuntime(ClrInfo clrInfo, DacLibrary library, IClrRuntimeHelpers helpers)
         {
             ClrInfo = clrInfo;
             DataTarget = clrInfo.DataTarget;
