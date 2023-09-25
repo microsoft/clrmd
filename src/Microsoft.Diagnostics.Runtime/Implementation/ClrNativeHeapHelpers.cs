@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 foreach (ClrNativeHeapInfo heap in EnumerateLoaderAllocatorNativeHeaps(loaderAllocator))
                     yield return heap;
             }
-            else if (_sos.GetAppDomainData(0, out AppDomainData data))
+            else if (_sos.GetAppDomainData(domain, out AppDomainData data))
             {
                 foreach (ClrNativeHeapInfo heapInfo in LegacyEnumerateLoaderAllocatorHeaps(data.StubHeap, LoaderHeapKind.LoaderHeapKindNormal, NativeHeapKind.StubHeap))
                     yield return heapInfo;
