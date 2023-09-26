@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct GCInfo
+    internal readonly struct GCInfo
     {
         public readonly int ServerMode;
         public readonly int GCStructuresValid;

@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct MethodDescData
+    internal readonly struct MethodDescData
     {
         public readonly uint HasNativeCode;
         public readonly uint IsDynamic;

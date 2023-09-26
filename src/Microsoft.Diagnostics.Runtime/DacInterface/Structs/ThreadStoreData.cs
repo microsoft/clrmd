@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct ThreadStoreData
+    internal readonly struct ThreadStoreData
     {
         public readonly int ThreadCount;
         public readonly int UnstartedThreadCount;

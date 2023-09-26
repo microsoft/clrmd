@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct StackRefData
+    internal readonly struct StackRefData
     {
         public readonly uint HasRegisterInformation;
         public readonly int Register;

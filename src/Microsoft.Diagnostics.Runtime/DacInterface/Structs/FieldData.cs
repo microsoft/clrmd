@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct FieldData
+    internal readonly struct FieldData
     {
         public readonly uint ElementType; // CorElementType
         public readonly uint SigType; // CorElementType

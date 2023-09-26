@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
@@ -18,38 +19,37 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrModule : IClrModule
     {
-        private readonly IClrModuleHelpers _helpers;
+        private readonly IClrModuleHelpers? _helpers;
+        private readonly IClrNativeHeapHelpers? _nativeHeapHelpers;
+        private readonly IDataReader _dataReader;
         private int _debugMode = int.MaxValue;
         private MetadataImport? _metadata;
         private PdbInfo? _pdb;
-        private readonly bool _isReflection;
         private (ulong MethodTable, int Token)[]? _typeDefMap;
         private (ulong MethodTable, int Token)[]? _typeRefMap;
-        private ClrExtendedModuleData? _extendedData;
         private ulong? _size;
 
-        private ClrExtendedModuleData ExtendedData => _extendedData ??= _helpers.GetExtendedData(this);
-
-        internal ClrModule(ClrAppDomain domain, ulong address, IClrModuleHelpers helpers, in ModuleData data)
+        internal ClrModule(ClrAppDomain domain, in ClrModuleInfo data, IClrModuleHelpers? moduleHelpers, IClrNativeHeapHelpers? nativeHeapHelpers, IDataReader dataReader)
         {
-            _helpers = helpers;
+            _helpers = moduleHelpers;
+            _nativeHeapHelpers = nativeHeapHelpers;
+            _dataReader = dataReader;
             AppDomain = domain;
             AssemblyAddress = data.Assembly;
-            Address = address;
-            IsPEFile = data.IsPEFile != 0;
-            ImageBase = data.ILBase;
-            MetadataAddress = data.MetadataStart;
+            Address = data.Address;
+            IsPEFile = data.IsPEFile;
+            ImageBase = data.ImageBase;
+            MetadataAddress = data.MetadataAddress;
             MetadataLength = data.MetadataSize;
-            _isReflection = data.IsReflection != 0;
+            IsDynamic = data.IsDynamic;
             ThunkHeap = data.ThunkHeap;
             LoaderAllocator = data.LoaderAllocator;
-        }
+            Layout = data.Layout;
+            Name = data.FileName ?? data.AssemblyName;
+            AssemblyName = data.AssemblyName ?? data.FileName;
 
-        internal ClrModule(ClrAppDomain domain, IClrModuleHelpers helpers, ulong address)
-        {
-            _helpers = helpers;
-            AppDomain = domain;
-            Address = address;
+            if (data.Size != 0)
+                _size = data.Size;
         }
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the name of the assembly that this module is defined in.
         /// </summary>
-        public string? AssemblyName => _helpers.GetAssemblyName(this) ?? ExtendedData.FileName;
+        public string? AssemblyName { get; }
 
         /// <summary>
         /// Gets an identifier to uniquely represent this assembly.  This value is not used by any other
@@ -80,13 +80,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the name of the module.
         /// </summary>
-        public string? Name => ExtendedData.FileName ?? AssemblyName;
+        public string? Name { get; }
 
         /// <summary>
         /// Gets a value indicating whether this module was created through <c>System.Reflection.Emit</c> (and thus has no associated
         /// file).
         /// </summary>
-        public bool IsDynamic => _isReflection || ExtendedData.IsDynamic;
+        public bool IsDynamic { get; }
 
         /// <summary>
         /// Gets a value indicating whether this module is an actual PEFile on disk.
@@ -102,7 +102,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the in memory layout for PEImages.
         /// </summary>
-        public ModuleLayout Layout => ExtendedData.IsFlatLayout ? ModuleLayout.Flat : ModuleLayout.Unknown;
+        public ModuleLayout Layout { get; }
 
         /// <summary>
         /// Gets the size of the image in memory.
@@ -124,7 +124,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the <c>IMetaDataImport</c> interface for this module.  Note that this API does not provide a
         /// wrapper for <c>IMetaDataImport</c>.  You will need to wrap the API yourself if you need to use this.
         /// </summary>
-        public MetadataImport? MetadataImport => _metadata ??= _helpers.GetMetadataImport(this);
+        internal MetadataImport? MetadataImport => _metadata ??= _helpers?.GetMetadataImport(Address);
 
         /// <summary>
         /// The ThunkHeap associated with this Module.  This is only available when debugging a .Net 8 or
@@ -143,7 +143,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates the native heaps associated with the ThunkHeap.
         /// </summary>
         /// <returns>An enumerable of heaps.</returns>
-        public IEnumerable<ClrNativeHeapInfo> EnumerateThunkHeap() => _helpers.GetNativeHeapHelpers().EnumerateThunkHeaps(ThunkHeap);
+        public IEnumerable<ClrNativeHeapInfo> EnumerateThunkHeap() => _nativeHeapHelpers?.EnumerateThunkHeaps(ThunkHeap) ?? Enumerable.Empty<ClrNativeHeapInfo>();
 
         /// <summary>
         /// Enumerates the native heaps associated with the LoaderAllocator.  This may be the same set of
@@ -151,7 +151,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// equals ClrAppDomain.LoaderAllocator.
         /// </summary>
         /// <returns>An enumerable of heaps.</returns>
-        public IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorHeaps() => _helpers.GetNativeHeapHelpers().EnumerateLoaderAllocatorNativeHeaps(LoaderAllocator);
+        public IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorHeaps() => _nativeHeapHelpers?.EnumerateLoaderAllocatorNativeHeaps(LoaderAllocator) ?? Enumerable.Empty<ClrNativeHeapInfo>();
 
         /// <summary>
         /// Gets the debugging attributes for this module.
@@ -196,9 +196,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates the constructed methodtables in this module which correspond to typedef tokens defined by this module.
         /// </summary>
         /// <returns>An enumeration of (ulong methodTable, uint typeDef).</returns>
-        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefToMethodTableMap() => _typeDefMap ??= _helpers.EnumerateTypeDefMap(this).ToArray();
+        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefToMethodTableMap() => _typeDefMap ??= (_helpers?.EnumerateTypeDefMap(Address) ?? Enumerable.Empty<(ulong, int)>()).ToArray();
 
-        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeRefToMethodTableMap() => _typeRefMap ??= _helpers.EnumerateTypeRefMap(this).ToArray();
+        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeRefToMethodTableMap() => _typeRefMap ??= (_helpers?.EnumerateTypeRefMap(Address) ?? Enumerable.Empty<(ulong, int)>()).ToArray();
 
         /// <summary>
         /// Attempts to obtain a ClrType based on the name of the type.  Note this is a "best effort" due to
@@ -251,10 +251,6 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ulong GetSize()
         {
-            ulong size = ExtendedData.Size;
-            if (size != 0)
-                return size;
-
             try
             {
                 using PEImage peimage = GetPEImage();
@@ -262,7 +258,7 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     unchecked
                     {
-                        size = (ulong)peimage.IndexFileSize;
+                        return (ulong)peimage.IndexFileSize;
                     }
                 }
             }
@@ -270,16 +266,18 @@ namespace Microsoft.Diagnostics.Runtime
             {
             }
 
-            return size;
+            return 0;
         }
 
         private PEImage GetPEImage()
         {
             // Not correct, but as close as we can get until we add more information to the dac.
             bool virt = Layout != ModuleLayout.Flat;
-            long size = (long)ExtendedData.Size;
+            long size = 0;
+            if (_size is ulong sz)
+                size = (long)sz;
 
-            ReadVirtualStream stream = new(_helpers.DataReader, (long)ImageBase, size > 0 ? size : int.MaxValue);
+            ReadVirtualStream stream = new(_dataReader, (long)ImageBase, size > 0 ? size : int.MaxValue);
             return new(stream, leaveOpen: false, isVirtual: virt);
         }
 

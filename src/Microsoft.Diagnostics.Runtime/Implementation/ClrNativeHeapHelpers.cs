@@ -3,8 +3,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13;
@@ -76,20 +76,20 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public IEnumerable<ClrNativeHeapInfo> EnumerateNativeHeaps(ClrAppDomain domain)
+        public IEnumerable<ClrNativeHeapInfo> EnumerateNativeHeaps(ulong domain)
         {
-            if (domain is null)
+            if (domain == 0)
                 yield break;
 
             ulong loaderAllocator;
             if (_sos13 is not null
-                && (loaderAllocator = _sos13.GetDomainLoaderAllocator(domain.Address)) != 0
+                && (loaderAllocator = _sos13.GetDomainLoaderAllocator(domain)) != 0
                 && GetNativeHeaps().Length > 0)
             {
                 foreach (ClrNativeHeapInfo heap in EnumerateLoaderAllocatorNativeHeaps(loaderAllocator))
                     yield return heap;
             }
-            else if (_sos.GetAppDomainData(domain.Address, out AppDomainData data))
+            else if (_sos.GetAppDomainData(domain, out AppDomainData data))
             {
                 foreach (ClrNativeHeapInfo heapInfo in LegacyEnumerateLoaderAllocatorHeaps(data.StubHeap, LoaderHeapKind.LoaderHeapKindNormal, NativeHeapKind.StubHeap))
                     yield return heapInfo;
@@ -135,7 +135,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        private IEnumerable<ClrNativeHeapInfo> LegacyEnumerateStubHeaps(ClrAppDomain domain)
+        private IEnumerable<ClrNativeHeapInfo> LegacyEnumerateStubHeaps(ulong domain)
         {
             List<ClrNativeHeapInfo> result = new(16);
 
@@ -164,10 +164,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 yield return heap;
         }
 
-        private void TraverseOneStubKind(ClrAppDomain domain, List<ClrNativeHeapInfo> result, SOSDac.VCSHeapType vcsType, NativeHeapKind heapKind)
+        private void TraverseOneStubKind(ulong domain, List<ClrNativeHeapInfo> result, SOSDac.VCSHeapType vcsType, NativeHeapKind heapKind)
         {
             result.Clear();
-            HResult hr = _sos.TraverseStubHeap(domain.Address, vcsType, (address, size, current) => {
+            HResult hr = _sos.TraverseStubHeap(domain, vcsType, (address, size, current) => {
                 result.Add(new(MemoryRange.CreateFromLength(address, SanitizeSize(size)), heapKind, current != 0 ? ClrNativeHeapState.Active : ClrNativeHeapState.Inactive));
             });
 

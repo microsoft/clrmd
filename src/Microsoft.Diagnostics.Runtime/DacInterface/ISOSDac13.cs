@@ -6,7 +6,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public interface ISOSDac13 : IDisposable
+    internal interface ISOSDac13 : IDisposable
     {
         ClrDataAddress GetDomainLoaderAllocator(ClrDataAddress domainAddress);
         SosMemoryEnum? GetGCBookkeepingMemoryRegions();

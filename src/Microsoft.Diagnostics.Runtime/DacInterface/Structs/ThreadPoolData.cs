@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct ThreadPoolData
+    internal readonly struct ThreadPoolData
     {
         public readonly int CpuUtilization;
         public readonly int NumIdleWorkerThreads;

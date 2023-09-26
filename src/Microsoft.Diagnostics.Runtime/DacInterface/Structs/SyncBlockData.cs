@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct SyncBlockData
+    internal readonly struct SyncBlockData
     {
         public readonly ClrDataAddress Object;
         public readonly uint Free;

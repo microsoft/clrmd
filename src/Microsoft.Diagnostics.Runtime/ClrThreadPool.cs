@@ -6,8 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
     public sealed class ClrThreadPool : IClrThreadPool
     {
         private readonly ClrRuntime _runtime;
-        private readonly IClrThreadPoolHelper _helpers;
+        private readonly IClrThreadPoolHelpers? _legacyData;
         private readonly ulong _nativeLogAddress;
         private readonly uint _nativeLogStart;
         private readonly uint _nativeLogSize;
@@ -79,12 +79,13 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly ClrDataAddress _firstLegacyWorkRequest;
         private readonly ClrDataAddress _asyncTimerFunction;
 
-        internal ClrThreadPool(ClrRuntime runtime, IClrThreadPoolHelper helpers)
+        internal ClrThreadPool(ClrRuntime runtime, IClrThreadPoolHelpers? helpers)
         {
             _runtime = runtime;
-            _helpers = helpers;
+            _legacyData = helpers;
 
-            bool hasLegacyData = _helpers.GetLegacyThreadPoolData(out ThreadPoolData tpData);
+            ThreadPoolData tpData = default;
+            bool hasLegacyData = _legacyData is not null && _legacyData.GetLegacyThreadPoolData(out tpData);
 
             ClrAppDomain domain = GetDomain();
 
@@ -153,8 +154,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// does not have them.</returns>
         public IEnumerable<LegacyThreadPoolWorkRequest> EnumerateLegacyWorkRequests()
         {
+            if (_legacyData is null)
+                yield break;
+
             ulong curr = _firstLegacyWorkRequest;
-            while (curr != 0 && _helpers.GetLegacyWorkRequestData(curr, out WorkRequestData workRequestData))
+            while (curr != 0 && _legacyData.GetLegacyWorkRequestData(curr, out WorkRequestData workRequestData))
             {
                 yield return new LegacyThreadPoolWorkRequest()
                 {

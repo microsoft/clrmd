@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct RejitData
+    internal readonly struct RejitData
     {
         private readonly ClrDataAddress RejitID;
         private readonly uint Flags;

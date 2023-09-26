@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -18,13 +19,14 @@ namespace Microsoft.Diagnostics.Runtime
             ReferenceCount = referenceCount;
             RootKind = IsStrong ? (ClrRootKind)HandleKind : ClrRootKind.None;
         }
-        internal ClrHandle(ClrAppDomain parent, ulong address, ClrObject obj, ClrHandleKind kind, ClrObject dependent)
-            : base(address, obj, ClrRootKind.None, false, kind is ClrHandleKind.AsyncPinned or ClrHandleKind.Pinned)
+
+        internal ClrHandle(ClrRuntime runtime, in ClrHandleInfo handle)
+            : base(handle.Address, runtime.Heap.GetObject(handle.Object), (ClrRootKind)handle.Kind, false, handle.Kind is ClrHandleKind.AsyncPinned or ClrHandleKind.Pinned)
         {
-            AppDomain = parent;
-            HandleKind = kind;
+            AppDomain = runtime.GetAppDomainByAddress(handle.AppDomain) ?? runtime.SystemDomain ?? runtime.SharedDomain ?? runtime.AppDomains[0];
+            HandleKind = handle.Kind;
+            ReferenceCount = handle.RefCount;
             RootKind = IsStrong ? (ClrRootKind)HandleKind : ClrRootKind.None;
-            Dependent = dependent;
         }
 
         /// <summary>

@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct HeapDetails
+    internal readonly struct HeapDetails
     {
         public readonly ClrDataAddress Address; // Only filled in server mode, otherwise NULL
         public readonly ClrDataAddress Allocated;

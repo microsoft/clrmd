@@ -11,6 +11,14 @@ namespace Microsoft.Diagnostics.Runtime
         public bool CacheFields { get; set; } = true;
         public bool CacheMethods { get; set; } = true;
 
+        /// <summary>
+        /// Whether to cache stack traces or not.  This can take up significant memory in
+        /// larger dump files, but will vastly improve performance if the application needs to
+        /// walk stacks multiple times.
+        /// </summary>
+        public bool CacheStackTraces { get; set; } = true;
+        public bool CacheStackRoots { get; set; } = true;
+
         public StringCaching CacheTypeNames { get; set; } = StringCaching.Cache;
         public StringCaching CacheFieldNames { get; set; } = StringCaching.Cache;
         public StringCaching CacheMethodNames { get; set; } = StringCaching.Cache;

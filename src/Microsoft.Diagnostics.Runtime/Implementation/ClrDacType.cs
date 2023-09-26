@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -54,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (_name == null)
                 {
                     // GetTypeName returns whether the value should be cached or not.
-                    if (!Helpers.TryGetTypeName(MethodTable, out string? name))
+                    if (!Helpers.TryGetTypeName(this, out string? name))
                         return name;
 
                     // Cache the result or "string.Empty" for null.
@@ -381,7 +382,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         }
 
         // convenience function for testing
-        public static string? FixGenerics(string? name) => DACNameParser.Parse(name);
+        public static string? FixGenerics(string? name) => DacNameParser.Parse(name);
 
         private void InitFlags()
         {

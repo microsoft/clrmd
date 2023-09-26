@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct JitManagerInfo
+    internal readonly struct JitManagerData
     {
         public readonly ClrDataAddress Address;
         public readonly CodeHeapKind Kind;

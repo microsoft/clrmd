@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct WorkRequestData
+    internal readonly struct WorkRequestData
     {
         public readonly ClrDataAddress Function;
         public readonly ClrDataAddress Context;

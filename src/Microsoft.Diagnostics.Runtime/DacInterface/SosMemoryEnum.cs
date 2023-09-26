@@ -10,7 +10,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public sealed unsafe class SosMemoryEnum : CallableCOMWrapper, IEnumerable<SosMemoryRegion>
+    internal sealed unsafe class SosMemoryEnum : CallableCOMWrapper, IEnumerable<SosMemoryRegion>
     {
         private ref readonly ISOSMemoryEnumVtable VTable => ref Unsafe.AsRef<ISOSMemoryEnumVtable>(_vtable);
         public static readonly Guid IID_ISOSMemoryEnum = new("E4B860EC-337A-40C0-A591-F09A9680690F");

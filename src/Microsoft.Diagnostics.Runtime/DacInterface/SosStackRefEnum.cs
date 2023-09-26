@@ -3,14 +3,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public sealed unsafe class SOSStackRefEnum : CallableCOMWrapper
+    internal sealed unsafe class SOSStackRefEnum : CallableCOMWrapper
     {
         private readonly List<nint> _data = new();
         private static readonly Guid IID_ISOSStackRefEnum = new("8FA642BD-9F10-4799-9AA3-512AE78C77EE");
@@ -53,7 +52,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             fixed (StackRefData* ptr = span)
             {
                 HResult hr = VTable.Next(Self, span.Length, ptr, out int read);
-                Trace.TraceInformation($"ISOSStackRefEnum::Next({span.Length:n0}, read:{read:n0} hr={hr}");
                 span = span.Slice(0, hr ? read : 0);
                 return span;
             }

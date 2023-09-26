@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     [StructLayout(LayoutKind.Sequential)]
-    public readonly struct MethodTableData
+    internal readonly struct MethodTableData
     {
         public readonly uint IsFree; // everything else is NULL if this is true.
         public readonly ClrDataAddress Module;

@@ -8,7 +8,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    public sealed unsafe class ClrStackWalk : CallableCOMWrapper
+    internal sealed unsafe class ClrStackWalk : CallableCOMWrapper
     {
         private static readonly Guid IID_IXCLRDataStackWalk = new("E59D8D22-ADA7-49a2-89B5-A415AFCFC95F");
 

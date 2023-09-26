@@ -4,8 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Implementation;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -16,32 +15,31 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrThread : IClrThread, IEquatable<ClrThread>
     {
-        private readonly IClrThreadHelpers _helpers;
-        private readonly ulong _exceptionHandle;
-        private ClrStackFrame[]? _frames;
+        private const int MaxFrameDefault = 8096;
+        private readonly IDataReader _dataReader;
+        private readonly IClrThreadHelpers _threadHelpers;
+        private ulong _exceptionInFlight;
+        private ClrException? _lastThrownException;
+        private volatile Cache<ClrStackFrame>? _frameCache;
+        private volatile Cache<ClrStackRoot>? _rootCache;
 
-        internal ClrThread(IClrThreadHelpers helpers, ClrRuntime runtime, ClrAppDomain? currentDomain, ulong address, in ThreadData data, bool isFinalizer, bool isGc)
+        internal ClrThread(IDataReader dataReader, ClrRuntime runtime, IClrThreadHelpers helpers, in ClrThreadInfo threadInfo)
         {
-            _helpers = helpers;
+            _dataReader = dataReader;
+            _threadHelpers = helpers;
             Runtime = runtime;
-            Address = address;
-            OSThreadId = data.OSThreadId;
-            ManagedThreadId = (int)data.ManagedThreadId;
-            CurrentAppDomain = currentDomain;
-            LockCount = data.LockCount;
-            State = (ClrThreadState)data.State;
-            _exceptionHandle = data.LastThrownObjectHandle;
-            IsFinalizer = isFinalizer;
-            IsGc = isGc;
-
-            if (data.Teb != 0)
-            {
-                IMemoryReader reader = _helpers.DataReader;
-                uint pointerSize = (uint)reader.PointerSize;
-                StackBase = reader.ReadPointer(data.Teb + pointerSize);
-                StackLimit = reader.ReadPointer(data.Teb + pointerSize * 2);
-            }
-            GCMode = data.PreemptiveGCDisabled == 0 ? GCMode.Preemptive : GCMode.Cooperative;
+            Address = threadInfo.Address;
+            CurrentAppDomain = Runtime.GetAppDomainByAddress(threadInfo.AppDomain);
+            OSThreadId = threadInfo.OSThreadId;
+            ManagedThreadId = threadInfo.ManagedThreadId;
+            LockCount = threadInfo.LockCount;
+            StackBase = threadInfo.StackBase;
+            StackLimit = threadInfo.StackLimit;
+            _exceptionInFlight = threadInfo.ExceptionInFlight;
+            IsFinalizer = threadInfo.IsFinalizer;
+            IsGc = threadInfo.IsGC;
+            GCMode = threadInfo.GCMode;
+            State = threadInfo.State;
         }
 
         /// <summary>
@@ -57,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime
         public GCMode GCMode { get; }
 
         /// <summary>
-        /// Gets the address of the underlying datastructure which makes up the Thread object.  This
+        /// Gets the address of the underlying data structure which makes up the Thread object.  This
         /// serves as a unique identifier.
         /// </summary>
         public ulong Address { get; }
@@ -117,7 +115,85 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates the GC references (objects) on the stack.
         /// </summary>
         /// <returns>An enumeration of GC references on the stack as the GC sees them.</returns>
-        public IEnumerable<ClrStackRoot> EnumerateStackRoots() => _helpers.EnumerateStackRoots(this);
+        public IEnumerable<ClrStackRoot> EnumerateStackRoots()
+        {
+            Cache<ClrStackRoot>? cache = _rootCache;
+            if (cache is not null)
+                return Array.AsReadOnly(cache.Elements);
+
+            ClrHeap heap = Runtime.Heap;
+            ClrStackFrame[] frames = GetFramesForRoots();
+            IEnumerable<ClrStackRoot> roots = _threadHelpers.EnumerateStackRoots(OSThreadId).Select(r => CreateClrStackRoot(heap, frames, r)).Where(r => r is not null)!;
+            if (!Runtime.DataTarget.CacheOptions.CacheStackRoots)
+                return roots;
+
+            return CacheAndReturnRoots(roots);
+        }
+
+        private IEnumerable<ClrStackRoot> CacheAndReturnRoots(IEnumerable<ClrStackRoot> roots)
+        {
+            List<ClrStackRoot> cache = new();
+            foreach (ClrStackRoot root in roots)
+            {
+                cache.Add(root);
+                yield return root;
+            }
+
+            // it's ok if we race and replace another cache as this will stabilize eventually
+            _rootCache ??= new(cache.ToArray(), false);
+        }
+
+        private ClrStackFrame[] GetFramesForRoots()
+        {
+            Cache<ClrStackFrame>? cache = _frameCache;
+            if (cache is not null)
+                return cache.Elements;
+
+            // We need to make sure we don't loop forever when enumerating the stack trace.
+            // We will only cache the stack if we completed enumeratione (i.e. got less
+            // than MaxFrameDefault frames)
+            ClrStackFrame[] stack = _threadHelpers.EnumerateStackTrace(OSThreadId, includeContext: false).Select(r => CreateClrStackFrame(r)).Take(MaxFrameDefault).ToArray();
+            if (Runtime.DataTarget.CacheOptions.CacheStackTraces && stack.Length < MaxFrameDefault)
+                _frameCache = new(stack, includedContext: false);
+
+            return stack;
+        }
+
+        private ClrStackRoot? CreateClrStackRoot(ClrHeap heap, ClrStackFrame[] stack, StackRootInfo stackRef)
+        {
+            ClrStackFrame? frame = stack.FirstOrDefault(f =>
+                                    f.Kind == ClrStackFrameKind.Runtime ?
+                                    f.StackPointer == stackRef.StackPointer || f.StackPointer == stackRef.InternalFrame :
+                                    f.InstructionPointer == stackRef.InstructionPointer && f.StackPointer == stackRef.StackPointer);
+
+            frame ??= new ClrStackFrame(this, null, stackRef.InstructionPointer, stackRef.StackPointer, ClrStackFrameKind.Unknown, null, null);
+
+            ClrObject clrObject;
+            if (stackRef.IsInterior)
+            {
+                ulong obj = stackRef.Object;
+                ClrSegment? segment = heap.GetSegmentByAddress(obj);
+
+                // If not, this may be a pointer to an object.
+                if (segment is null && _dataReader.ReadPointer(obj, out ulong interiorObj))
+                {
+                    segment = heap.GetSegmentByAddress(interiorObj);
+                    if (segment is not null)
+                        obj = interiorObj;
+                }
+
+                if (segment is null)
+                    return null;
+
+                clrObject = heap.FindPreviousObjectOnSegment(obj + 1);
+            }
+            else
+            {
+                clrObject = heap.GetObject(stackRef.Object);
+            }
+
+            return new ClrStackRoot(stackRef.Address, clrObject, stackRef.IsInterior, stackRef.IsPinned, heap, frame, stackRef.RegisterName, stackRef.RegisterOffset);
+        }
 
         IEnumerable<IClrRoot> IClrThread.EnumerateStackRoots() => EnumerateStackRoots().Cast<IClrRoot>();
 
@@ -128,32 +204,72 @@ namespace Microsoft.Diagnostics.Runtime
         /// unwind is making progress by ensuring that ClrStackFrame.StackPointer is making progress (though it
         /// is expected that sometimes two frames may return the same StackPointer in some corner cases).
         /// </summary>
+        /// <param name="includeContext">Whether to include a CONTEXT record for the frame.  This is always in
+        /// the format of the Windows CONTEXT record (as that's what CLR uses internally, even on non-Windows
+        /// platforms.</param>
         /// <returns>An enumeration of stack frames.</returns>
         public IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext = false)
         {
-            if (_frames is not null)
+            return EnumerateStackTrace(includeContext, maxFrames: MaxFrameDefault);
+        }
+
+        /// <summary>
+        /// Enumerates a stack trace for a given thread.  Note this method may loop infinitely in the case of
+        /// stack corruption or other stack unwind issues which can happen in practice.  When enumerating frames
+        /// out of this method you should be careful to either set a maximum loop count, or to ensure the stack
+        /// unwind is making progress by ensuring that ClrStackFrame.StackPointer is making progress (though it
+        /// is expected that sometimes two frames may return the same StackPointer in some corner cases).
+        /// </summary>
+        /// <param name="includeContext">Whether to include a CONTEXT record for the frame.  This is always in
+        /// the format of the Windows CONTEXT record (as that's what CLR uses internally, even on non-Windows
+        /// platforms.</param>
+        /// <param name="maxFrames">The maximum number of stack frames to return.  It's important to cap the
+        /// stack trace because sometimes bugs in the debugging layer or corruption in the target process
+        /// can cause us to produce an infinite amount of stack frames.</param>
+        /// <returns>An enumeration of stack frames.</returns>
+        public IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext, int maxFrames)
+        {
+            Cache<ClrStackFrame>? cache = _frameCache;
+            if (cache is not null && (!includeContext || cache.IncludedContext))
+                return Array.AsReadOnly(cache.Elements);
+
+            IEnumerable<ClrStackFrame> frames = _threadHelpers.EnumerateStackTrace(OSThreadId, includeContext).Select(r => CreateClrStackFrame(r));
+            if (!Runtime.DataTarget.CacheOptions.CacheStackTraces)
+                return frames;
+
+            return CacheAndReturnFrames(includeContext, frames);
+        }
+
+        private IEnumerable<ClrStackFrame> CacheAndReturnFrames(bool includeContext, IEnumerable<ClrStackFrame> frames)
+        {
+            // Only cache frames if enumeration completed and the user didn't break out of the loop
+            List<ClrStackFrame> cachedFrames = new();
+            foreach (ClrStackFrame frame in frames)
             {
-                if (!includeContext)
-                {
-                    return Array.AsReadOnly(_frames);
-                }
-                else
-                {
-                    // If context was requested, only enumerate the cached frames if they were created with a
-                    // Context.  Since we don't store that as a variable, only return if any frame has a context
-                    // set.
-                    foreach (ClrStackFrame frame in _frames)
-                    {
-                        if (frame.Context.Length > 0)
-                        {
-                            return Array.AsReadOnly(_frames);
-                        }
-                    }
-                }
+                cachedFrames.Add(frame);
+                yield return frame;
             }
 
-            _frames = _helpers.EnumerateStackTrace(this, includeContext).ToArray();
-            return Array.AsReadOnly(_frames);
+            // it's ok if we race and replace another cache as this will stabilize eventually
+            _frameCache ??= new(cachedFrames.ToArray(), includeContext);
+        }
+
+        private ClrStackFrame CreateClrStackFrame(in StackFrameInfo frame)
+        {
+            ClrStackFrameKind kind;
+            ClrMethod? method;
+            if (frame.IsInternalFrame)
+            {
+                kind = ClrStackFrameKind.Runtime;
+                method = frame.InnerMethodMethodHandle != 0 ? Runtime.GetMethodByHandle(frame.InnerMethodMethodHandle) : null;
+            }
+            else
+            {
+                kind = ClrStackFrameKind.ManagedMethod;
+                method = Runtime.GetMethodByInstructionPointer(frame.InstructionPointer);
+            }
+
+            return new ClrStackFrame(this, frame.Context, frame.InstructionPointer, frame.StackPointer, kind, method, frame.InternalFrameName);
         }
 
         IEnumerable<IClrStackFrame> IClrThread.EnumerateStackTrace(bool includeContext) => EnumerateStackTrace(includeContext).Cast<IClrStackFrame>();
@@ -184,20 +300,21 @@ namespace Microsoft.Diagnostics.Runtime
         /// be done processing the exception but a crash dump was taken before the current exception was
         /// cleared off the field.
         /// </summary>
-        public ClrException? CurrentException
-        {
-            get
-            {
-                ulong ptr = _exceptionHandle;
-                if (ptr == 0)
-                    return null;
-
-                ulong obj = _helpers.DataReader.ReadPointer(ptr);
-                ClrException? ex = Runtime.Heap.GetExceptionObject(obj, this);
-                return ex;
-            }
-        }
+        public ClrException? CurrentException => _lastThrownException ??= _exceptionInFlight != 0 ? Runtime.Heap.GetExceptionObject(_exceptionInFlight, this) : null;
 
         IClrException? IClrThread.CurrentException => CurrentException;
+
+        private sealed class Cache<T>
+            where T : class
+        {
+            public T[] Elements { get; }
+            public bool IncludedContext { get; }
+
+            public Cache(T[] elements, bool includedContext)
+            {
+                Elements = elements;
+                IncludedContext = includedContext;
+            }
+        }
     }
 }

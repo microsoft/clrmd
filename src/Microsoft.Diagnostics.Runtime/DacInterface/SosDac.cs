@@ -17,11 +17,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     /// <summary>
     /// This is an undocumented, untested, and unsupported interface.  Do not use.
     /// </summary>
-    public sealed unsafe class SOSDac : CallableCOMWrapper
+    internal sealed unsafe class SOSDac : CallableCOMWrapper
     {
         internal static readonly Guid IID_ISOSDac = new("436f00f2-b42a-4b9f-870c-e73db66ae930");
 
         private readonly DacLibrary _library;
+        private volatile Dictionary<int, string>? _regNames;
+        private volatile Dictionary<ulong, string>? _frameNames;
 
         public SOSDac(DacLibrary? library, IntPtr ptr)
             : base(library?.OwningLibrary, IID_ISOSDac, ptr)
@@ -62,6 +64,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public string? GetRegisterName(int index)
         {
+            Dictionary<int, string> regNames = _regNames ??= new();
+            lock (regNames)
+                if (regNames.TryGetValue(index, out string? cached))
+                    return cached;
+
             // Register names shouldn't be big.
             Span<char> buffer = stackalloc char[32];
 
@@ -78,7 +85,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 if (len >= 0)
                     buffer = buffer.Slice(0, len);
 
-                return new string(ptr, 0, buffer.Length);
+                string result = new(ptr, 0, buffer.Length);
+                lock (regNames)
+                    regNames[index] = result;
+
+                return result;
             }
         }
 
@@ -261,7 +272,25 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public string GetFrameName(ulong vtable)
         {
-            return GetString(VTable.GetFrameName, vtable, false) ?? "Unknown Frame";
+            Dictionary<ulong, string> frameNames = _frameNames ??= new();
+            lock (frameNames)
+            {
+                if (_frameNames.TryGetValue(vtable, out string? cached))
+                    return cached;
+            }
+
+            string? result = GetString(VTable.GetFrameName, vtable, false);
+            if (result is not null)
+            {
+                lock (frameNames)
+                    _frameNames[vtable] = result;
+
+                return result;
+            }
+
+            // Don't cache failed lookups.  We might have a bad stackwalk where we get 1000s of bad
+            // frame vtables and we won't want to eat up memory storing those in the cache.
+            return "Unknown Frame";
         }
 
         public HResult GetFieldInfo(ulong mt, out FieldInfo data)
@@ -299,7 +328,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return result.Count > 16384 ? 0 : 1u;
             };
 
-            VTable.TraverseRCWCleanupList(Self, 0, Marshal.GetFunctionPointerForDelegate(traverse), 0);
+            VTable.TraverseRCWCleanupList(Self, cleanupList, Marshal.GetFunctionPointerForDelegate(traverse), 0);
 
             GC.KeepAlive(traverse);
             return result;
@@ -595,17 +624,17 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return VTable.GetGCHeapStaticData(Self, out data);
         }
 
-        public JitManagerInfo[] GetJitManagers()
+        public JitManagerData[] GetJitManagers()
         {
             HResult hr = VTable.GetJitManagerList(Self, 0, null, out int needed);
             if (!hr || needed == 0)
-                return Array.Empty<JitManagerInfo>();
+                return Array.Empty<JitManagerData>();
 
-            JitManagerInfo[] result = new JitManagerInfo[needed];
-            fixed (JitManagerInfo* ptr = result)
+            JitManagerData[] result = new JitManagerData[needed];
+            fixed (JitManagerData* ptr = result)
             {
                 hr = VTable.GetJitManagerList(Self, result.Length, ptr, out needed);
-                return hr ? result : Array.Empty<JitManagerInfo>();
+                return hr ? result : Array.Empty<JitManagerData>();
             }
         }
 
@@ -728,7 +757,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             return 0;
         }
-        private delegate HResult DacGetJitManagerInfo(IntPtr self, ClrDataAddress addr, out JitManagerInfo data);
+        private delegate HResult DacGetJitManagerInfo(IntPtr self, ClrDataAddress addr, out JitManagerData data);
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -773,7 +802,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         // JIT Data
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out CodeHeaderData, int> GetCodeHeaderData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, JitManagerInfo*, out int, int> GetJitManagerList;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, JitManagerData*, out int, int> GetJitManagerList;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, int> GetJitHelperFunctionName;
         private readonly IntPtr GetJumpThunkTarget;
 

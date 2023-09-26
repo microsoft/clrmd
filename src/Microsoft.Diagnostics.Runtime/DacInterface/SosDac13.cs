@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     /// <summary>
     /// This is an undocumented, untested, and unsupported interface.  Do not use directly.
     /// </summary>
-    public sealed unsafe class SOSDac13 : CallableCOMWrapper, ISOSDac13
+    internal sealed unsafe class SOSDac13 : CallableCOMWrapper, ISOSDac13
     {
         private readonly DacLibrary _library;
 
