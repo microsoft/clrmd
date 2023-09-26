@@ -107,11 +107,11 @@ namespace Microsoft.Diagnostics.Runtime
             }
             else if (UsingPortableThreadPool)
             {
-                CpuUtilization = portableThreadPool!.ReadField<int>("_cpuUtilization");
-                MinThreads = portableThreadPool!.ReadField<ushort>("_minThreads");
-                MaxThreads = portableThreadPool!.ReadField<ushort>("_maxThreads");
+                CpuUtilization = portableThreadPool.ReadField<int>("_cpuUtilization");
+                MinThreads = portableThreadPool.ReadField<ushort>("_minThreads");
+                MaxThreads = portableThreadPool.ReadField<ushort>("_maxThreads");
 
-                ClrValueType counts = portableThreadPool!.ReadValueTypeField("_separated").ReadValueTypeField("counts").ReadValueTypeField("_data");
+                ClrValueType counts = portableThreadPool.ReadValueTypeField("_separated").ReadValueTypeField("counts").ReadValueTypeField("_data");
                 ulong dataValue = counts.ReadField<ulong>("m_value");
 
                 int processingWorkCount = (ushort)(dataValue & 0xffff);
@@ -235,7 +235,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             usingPortableThreadPool = usingWindowsThreadPool = false;
             portableThreadPool = default;
-            windowsThreadPoolType = default;
+            windowsThreadPoolType = null;
 
             ClrModule bcl = _runtime.BaseClassLibrary;
             ClrType? threadPoolType = bcl.GetTypeByName("System.Threading.ThreadPool");
@@ -259,7 +259,7 @@ namespace Microsoft.Diagnostics.Runtime
             // Check if the Portable thread pool is being used
             if (portableThreadPoolType != null)
             {
-                ClrStaticField? instanceField = portableThreadPoolType?.GetStaticFieldByName("ThreadPoolInstance");
+                ClrStaticField? instanceField = portableThreadPoolType.GetStaticFieldByName("ThreadPoolInstance");
                 if (instanceField is null)
                     return;
 
