@@ -2,7 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
-using Microsoft.Diagnostics.Runtime.DacInterface;
+using System.Linq;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -40,14 +41,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ImmutableArray<ComInterfaceData> Interfaces { get; }
 
-        internal ComCallableWrapper(in CcwData data, ImmutableArray<ComInterfaceData> interfaces)
+        internal ComCallableWrapper(ClrRuntime runtime, in CcwInfo ccw)
         {
-            Address = data.CCWAddress;
-            IUnknown = data.OuterIUnknown;
-            Object = data.ManagedObject;
-            Handle = data.Handle;
-            RefCount = data.RefCount + data.JupiterRefCount;
-            Interfaces = interfaces;
+            Address = ccw.Address;
+            IUnknown = ccw.IUnknown;
+            Object = ccw.Object;
+            Handle = ccw.Handle;
+            RefCount = ccw.RefCount + ccw.JupiterRefCount;
+
+            ClrHeap heap = runtime.Heap;
+            Interfaces = ccw.Interfaces.Select(r => new ComInterfaceData(heap.GetTypeByMethodTable(r.MethodTable), r.InterfacePointer)).ToImmutableArray();
         }
     }
 }

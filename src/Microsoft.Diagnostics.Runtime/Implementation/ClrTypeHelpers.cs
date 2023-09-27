@@ -39,55 +39,6 @@ namespace Microsoft.Diagnostics.Runtime
             _methodHelpers = new ClrMethodHelpers(clrDataProcess, sos, DataReader);
         }
 
-        public ComCallableWrapper? CreateCCWForObject(ulong obj)
-        {
-            if (!_sos.GetObjectData(obj, out ObjectData data))
-                return null;
-
-            if (data.CCW == 0)
-                return null;
-
-            if (!_sos.GetCCWData(data.CCW, out CcwData ccwData))
-                return null;
-
-            COMInterfacePointerData[]? ptrs = _sos.GetCCWInterfaces(data.CCW, ccwData.InterfaceCount);
-            ImmutableArray<ComInterfaceData> interfaces = ptrs != null ? GetComInterfaces(ptrs) : ImmutableArray<ComInterfaceData>.Empty;
-            return new(ccwData, interfaces);
-        }
-
-        public RuntimeCallableWrapper? CreateRCWForObject(ulong obj)
-        {
-            if (!_sos.GetObjectData(obj, out ObjectData objData) || objData.RCW == 0)
-                return null;
-
-            if (!_sos.GetRCWData(objData.RCW, out RcwData rcw))
-                return null;
-
-            COMInterfacePointerData[]? ptrs = _sos.GetRCWInterfaces(objData.RCW, rcw.InterfaceCount);
-            ImmutableArray<ComInterfaceData> interfaces = ptrs != null ? GetComInterfaces(ptrs) : ImmutableArray<ComInterfaceData>.Empty;
-            return new RuntimeCallableWrapper(objData.RCW, rcw, interfaces);
-        }
-
-        public ImmutableArray<ComInterfaceData> GetRCWInterfaces(ulong address, int interfaceCount)
-        {
-            COMInterfacePointerData[]? ifs = _sos.GetRCWInterfaces(address, interfaceCount);
-            if (ifs is null)
-                return ImmutableArray<ComInterfaceData>.Empty;
-
-            return GetComInterfaces(ifs);
-        }
-
-        private ImmutableArray<ComInterfaceData> GetComInterfaces(COMInterfacePointerData[] ifs)
-        {
-            ImmutableArray<ComInterfaceData>.Builder result = ImmutableArray.CreateBuilder<ComInterfaceData>(ifs.Length);
-            result.Count = result.Capacity;
-
-            for (int i = 0; i < ifs.Length; i++)
-                result[i] = new ComInterfaceData(_typeFactory.GetOrCreateType(ifs[i].MethodTable, 0), ifs[i].InterfacePointer);
-
-            return result.MoveOrCopyToImmutable();
-        }
-
         public string? GetTypeName(ulong methodTable)
         {
             string? name = _sos.GetMethodTableName(methodTable);

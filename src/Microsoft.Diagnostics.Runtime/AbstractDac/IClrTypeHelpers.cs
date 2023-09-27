@@ -14,10 +14,6 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         ulong GetLoaderAllocatorHandle(ulong mt);
         ulong GetAssemblyLoadContextAddress(ulong mt);
 
-        ComCallableWrapper? CreateCCWForObject(ulong obj);
-        RuntimeCallableWrapper? CreateRCWForObject(ulong obj);
-        ImmutableArray<ComInterfaceData> GetRCWInterfaces(ulong address, int interfaceCount);
-
         bool GetObjectArrayInformation(ulong objRef, out ObjectArrayInformation data);
         ImmutableArray<ClrMethod> GetMethodsForType(ClrType type);
         IEnumerable<ClrField> EnumerateFields(ClrType type);

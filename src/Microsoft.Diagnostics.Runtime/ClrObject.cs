@@ -187,7 +187,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsNull || !IsValid || !HasComCallableWrapper)
                 return null;
 
-            return Helpers.CreateCCWForObject(Address);
+            return GetTypeOrThrow().Heap.Runtime.CreateCCWForObject(Address);
         }
 
         /// <summary>
@@ -199,7 +199,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsNull || !IsValid)
                 return null;
 
-            return Helpers.CreateRCWForObject(Address);
+            return GetTypeOrThrow().Heap.Runtime.CreateRCWForObject(Address);
         }
 
         /// <summary>
