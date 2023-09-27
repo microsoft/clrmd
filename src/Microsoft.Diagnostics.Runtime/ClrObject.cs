@@ -17,6 +17,8 @@ namespace Microsoft.Diagnostics.Runtime
     {
         internal const string RuntimeTypeName = "System.RuntimeType";
 
+        private readonly ClrType? _type;
+
         private IClrTypeHelpers Helpers => GetTypeOrThrow().Helpers;
         private IDataReader DataReader => GetTypeOrThrow().Module.DataReader;
 
@@ -25,10 +27,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="address">The address of the object.</param>
         /// <param name="type">The concrete type of the object.</param>
+        [Obsolete("Use ClrHeap.GetObject instead.")]
         public ClrObject(ulong address, ClrType? type)
         {
             Address = address;
-            Type = type;
+            _type = type;
         }
 
         /// <summary>
@@ -129,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the type of the object.
         /// </summary>
-        public ClrType? Type { get; }
+        public ClrType? Type => _type is null || _type.Heap.ErrorType == _type ? null : _type;
 
         IClrType? IClrValue.Type => Type;
 

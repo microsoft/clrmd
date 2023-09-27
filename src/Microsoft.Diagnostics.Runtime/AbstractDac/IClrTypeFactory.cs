@@ -12,6 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         ClrType StringType { get; }
         ClrType ObjectType { get; }
         ClrType ExceptionType { get; }
+        ClrType ErrorType { get; }
 
         string? GetTypeName(ulong mt);
         ClrType? TryGetType(ulong mt);

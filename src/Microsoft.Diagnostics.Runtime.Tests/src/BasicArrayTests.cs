@@ -122,7 +122,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             DataReader.ReadPointer(elementAddress, out ulong actualValue);
 
-            string actual = (string)new ClrObject(actualValue, _heap.GetObjectType(actualValue));
+            string actual = (string)_heap.GetObject(actualValue);
 
             // Assert
             Assert.Equal(originalArray[index], actual);

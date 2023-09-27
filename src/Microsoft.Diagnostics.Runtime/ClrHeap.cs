@@ -12,6 +12,9 @@ using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 
+// Disable warning for ClrObject ctor.  TODO:  Remove this in 3.1.
+#pragma warning disable CS0618 // Type or member is obsolete
+
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
@@ -44,6 +47,12 @@ namespace Microsoft.Diagnostics.Runtime
             StringType = _typeFactory.StringType;
             ExceptionType = _typeFactory.ExceptionType;
         }
+
+        /// <summary>
+        /// An internal only instance of ClrType used to mark that we could not create a valid type...
+        /// but we still need to access the properties off of ClrType, such IClrTypeHelpers, IDataReader, etc.
+        /// </summary>
+        internal ClrType ErrorType => _typeFactory.ErrorType;
 
         internal IClrHeapHelpers Helpers { get; }
 
@@ -117,9 +126,27 @@ namespace Microsoft.Diagnostics.Runtime
         /// The returned object will have a <see langword="null"/> <see cref="ClrObject.Type"/> if objRef does not point to
         /// a valid managed object.
         /// </remarks>
-        /// <param name="objRef"></param>
+        /// <param name="objRef">The address of an object.</param>
         /// <returns></returns>
-        public ClrObject GetObject(ulong objRef) => new(objRef, GetObjectType(objRef));
+        public ClrObject GetObject(ulong objRef) => new(objRef, GetObjectType(objRef) ?? ErrorType);
+
+        /// <summary>
+        /// Gets a <see cref="ClrObject"/> for the given address on this heap.
+        /// </summary>
+        /// <remarks>
+        /// The returned object will have a <see langword="null"/> <see cref="ClrObject.Type"/> if objRef does not point to
+        /// a valid managed object.
+        /// </remarks>
+        /// <param name="objRef">The address of an object.</param>
+        /// <param name="type">The type of the object.</param>
+        /// <returns></returns>
+        public ClrObject GetObject(ulong objRef, ClrType type)
+        {
+            if (type is null)
+                throw new ArgumentNullException(nameof(type));
+
+            return new(objRef, type);
+        }
 
         /// <summary>
         /// Obtains the type of an object at the given address.  Returns <see langword="null"/> if objRef does not point to
@@ -334,7 +361,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 ClrType? type = _typeFactory.GetOrCreateType(mt, obj);
-                ClrObject result = new(obj, type);
+                ClrObject result = new(obj, type ?? ErrorType);
                 yield return result;
                 if (type is null)
                 {
@@ -856,7 +883,7 @@ namespace Microsoft.Diagnostics.Runtime
                         while (index < dependent.Length && dependent[index].Source == obj)
                         {
                             ulong dependantObj = dependent[index++].Target;
-                            yield return new(dependantObj, GetObjectType(dependantObj));
+                            yield return new(dependantObj, GetObjectType(dependantObj) ?? ErrorType);
                         }
                     }
                 }
@@ -866,7 +893,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 ulong la = _memoryReader.ReadPointer(type.LoaderAllocatorHandle);
                 if (la != 0)
-                    yield return new(la, GetObjectType(la));
+                    yield return new(la, GetObjectType(la) ?? ErrorType);
             }
 
             if (type.ContainsPointers)
@@ -892,7 +919,7 @@ namespace Microsoft.Diagnostics.Runtime
                     if (read > IntPtr.Size)
                     {
                         foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
-                            yield return new(reference, GetObjectType(reference));
+                            yield return new(reference, GetObjectType(reference) ?? ErrorType);
                     }
 
                     ArrayPool<byte>.Shared.Return(buffer);
@@ -932,7 +959,7 @@ namespace Microsoft.Diagnostics.Runtime
                         while (index < dependent.Length && dependent[index].Source == obj)
                         {
                             ulong dependantObj = dependent[index++].Target;
-                            ClrObject target = new(dependantObj, GetObjectType(dependantObj));
+                            ClrObject target = new(dependantObj, GetObjectType(dependantObj) ?? ErrorType);
                             yield return ClrReference.CreateFromDependentHandle(target);
                         }
                     }
@@ -963,7 +990,7 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
                         {
-                            ClrObject target = new(reference, GetObjectType(reference));
+                            ClrObject target = new(reference, GetObjectType(reference) ?? ErrorType);
 
                             DebugOnly.Assert(offset >= IntPtr.Size);
                             yield return ClrReference.CreateFromFieldOrArray(target, type, offset - IntPtr.Size);

@@ -27,6 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private Dictionary<ulong, ClrModule>? _modules;
         private readonly IClrTypeHelpers _objectHelpers;
         private ClrModule? _errorModule;
+        private ClrType? _errorType;
 
         public ClrTypeFactory(ClrHeap heap, ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, CacheOptions options)
         {
@@ -66,6 +67,19 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public ClrType ObjectType => _objectType;
 
         public ClrType ExceptionType => CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.ExceptionMethodTable, "System.Exception") ?? _objectType;
+        public ClrType ErrorType
+        {
+            get
+            {
+                if (_errorType is null)
+                {
+                    ClrDacType e = new ClrDacType(_objectHelpers, _heap, null, null, _heap.Runtime.BaseClassLibrary, 0, default);
+                    Interlocked.CompareExchange(ref _errorType, e, null);
+                }
+
+                return _errorType;
+            }
+        }
 
         public ClrType? CreateSystemType(ClrHeap heap, ClrModule bcl, ulong mt, string typeName)
         {
