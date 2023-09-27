@@ -7,8 +7,8 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IClrNativeHeapHelpers
     {
-        IEnumerable<ClrNativeHeapInfo> EnumerateNativeHeaps(ulong domain);
-        IEnumerable<ClrNativeHeapInfo> EnumerateNativeHeaps(ClrJitManager jitManager);
+        IEnumerable<ClrNativeHeapInfo> EnumerateDomainHeaps(ulong domain);
+        IEnumerable<ClrNativeHeapInfo> EnumerateJitManagerHeaps(ulong jitManager);
         IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorNativeHeaps(ulong loaderAllocator);
         IEnumerable<ClrNativeHeapInfo> EnumerateThunkHeaps(ulong thunkHeapAddress);
     }

@@ -27,6 +27,6 @@ namespace Microsoft.Diagnostics.Runtime
             _helpers = helpers;
         }
 
-        public IEnumerable<ClrNativeHeapInfo> EnumerateNativeHeaps() => _helpers?.EnumerateNativeHeaps(this) ?? Enumerable.Empty<ClrNativeHeapInfo>();
+        public IEnumerable<ClrNativeHeapInfo> EnumerateNativeHeaps() => _helpers?.EnumerateJitManagerHeaps(Address) ?? Enumerable.Empty<ClrNativeHeapInfo>();
     }
 }
