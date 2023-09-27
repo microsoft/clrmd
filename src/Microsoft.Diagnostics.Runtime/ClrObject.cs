@@ -416,7 +416,24 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         public bool IsRuntimeType => Type?.Name == RuntimeTypeName;
-        public ClrType? AsRuntimeType() => Helpers.CreateRuntimeType(this);
+        public ClrType? AsRuntimeType()
+        {
+            if (!IsRuntimeType)
+                throw new InvalidOperationException($"Object {Address:x} is of type '{Type?.Name ?? "null"}', expected '{RuntimeTypeName}'.");
+
+            ClrType type = GetTypeOrThrow();
+            ClrInstanceField? field = type.Fields.Where(f => f.Name == "m_handle").FirstOrDefault();
+            if (field is null)
+                return null;
+
+            ulong mt;
+            if (field.ElementType == ClrElementType.NativeInt)
+                mt = (ulong)ReadField<nint>("m_handle");
+            else
+                mt = (ulong)ReadValueTypeField("m_handle").ReadField<nint>("m_ptr");
+
+            return type.Heap.Runtime.GetTypeByMethodTable(mt);
+        }
 
         /// <summary>
         /// Returns true if this object is a delegate, false otherwise.

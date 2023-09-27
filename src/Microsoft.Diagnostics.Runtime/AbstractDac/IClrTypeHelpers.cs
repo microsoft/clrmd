@@ -18,7 +18,6 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         ComCallableWrapper? CreateCCWForObject(ulong obj);
         RuntimeCallableWrapper? CreateRCWForObject(ulong obj);
         ImmutableArray<ComInterfaceData> GetRCWInterfaces(ulong address, int interfaceCount);
-        ClrType? CreateRuntimeType(ClrObject obj);
 
         ulong GetObjectDataPointer(ulong objRef);
         ClrElementType GetObjectElementType(ulong objRef);

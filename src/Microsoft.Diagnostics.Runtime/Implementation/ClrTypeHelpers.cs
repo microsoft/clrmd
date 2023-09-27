@@ -49,7 +49,6 @@ namespace Microsoft.Diagnostics.Runtime
             if (address == 0)
                 return null;
 
-
             int length = DataReader.Read<int>(address + _stringLength);
             length = Math.Min(length, maxLength);
             if (length == 0)
@@ -120,24 +119,6 @@ namespace Microsoft.Diagnostics.Runtime
                 result[i] = new ComInterfaceData(_typeFactory.GetOrCreateType(ifs[i].MethodTable, 0), ifs[i].InterfacePointer);
 
             return result.MoveOrCopyToImmutable();
-        }
-
-        public ClrType? CreateRuntimeType(ClrObject obj)
-        {
-            if (!obj.IsRuntimeType)
-                throw new InvalidOperationException($"Object {obj.Address:x} is of type '{obj.Type?.Name ?? "null"}', expected '{ClrObject.RuntimeTypeName}'.");
-
-            ClrInstanceField? field = obj.Type?.Fields.Where(f => f.Name == "m_handle").FirstOrDefault();
-            if (field is null)
-                return null;
-
-            ulong mt;
-            if (field.ElementType == ClrElementType.NativeInt)
-                mt = (ulong)obj.ReadField<IntPtr>("m_handle");
-            else
-                mt = (ulong)obj.ReadValueTypeField("m_handle").ReadField<IntPtr>("m_ptr");
-
-            return _typeFactory.GetOrCreateType(mt, 0);
         }
 
         public string? GetTypeName(ulong methodTable)
