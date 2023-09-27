@@ -8,6 +8,7 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.Interfaces;
+using MethodInfo = Microsoft.Diagnostics.Runtime.AbstractDac.MethodInfo;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -202,7 +203,11 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!_methods.IsDefault)
                     return _methods;
 
-                ImmutableArray<ClrMethod> methods = Helpers.GetMethodsForType(this);
+                ImmutableArray<ClrMethod>.Builder builder = ImmutableArray.CreateBuilder<ClrMethod>();
+                foreach (MethodInfo mi in Helpers.EnumerateMethodsForType(MethodTable))
+                    builder.Add(new(Helpers, this, mi));
+
+                ImmutableArray<ClrMethod> methods = builder.MoveOrCopyToImmutable();
                 if (GetCacheOptions().CacheMethods)
                     _methods = methods;
 

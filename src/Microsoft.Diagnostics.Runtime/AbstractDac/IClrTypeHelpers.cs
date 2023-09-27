@@ -15,8 +15,13 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         ulong GetAssemblyLoadContextAddress(ulong mt);
 
         bool GetObjectArrayInformation(ulong objRef, out ObjectArrayInformation data);
-        ImmutableArray<ClrMethod> GetMethodsForType(ClrType type);
+        IEnumerable<MethodInfo> EnumerateMethodsForType(ulong methodTable);
         IEnumerable<ClrField> EnumerateFields(ClrType type);
+
+        // Method helpers
+        string? GetMethodSignature(ulong methodDesc);
+        ImmutableArray<ILToNativeMap> GetILMap(ulong ip, in HotColdRegions hotCold);
+        ulong GetILForModule(ulong address, uint rva);
     }
 
     internal struct ObjectArrayInformation
@@ -27,5 +32,13 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         /// The location of the first element in the array.
         /// </summary>
         public int DataPointer { get; set; }
+    }
+
+    internal struct MethodInfo
+    {
+        public ulong MethodDesc { get; set; }
+        public int Token { get; set; }
+        public MethodCompilationType CompilationType { get; set; }
+        public HotColdRegions HotCold { get; set; }
     }
 }

@@ -10,6 +10,7 @@ using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
+using MethodInfo = Microsoft.Diagnostics.Runtime.AbstractDac.MethodInfo;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -17,11 +18,11 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private readonly string UnloadedTypeName = "<Unloaded Type>";
 
+        private readonly ClrDataProcess _clrDataProcess;
         private readonly SOSDac _sos;
         private readonly SOSDac6? _sos6;
         private readonly SOSDac8? _sos8;
         private readonly IClrTypeFactory _typeFactory;
-        private readonly IClrMethodHelpers _methodHelpers;
 
         public ClrHeap Heap { get; }
 
@@ -30,13 +31,13 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ClrTypeHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, IClrTypeFactory typeFactory, ClrHeap heap)
         {
+            _clrDataProcess = clrDataProcess;
             _sos = sos;
             _sos6 = sos6;
             _sos8 = sos8;
             _typeFactory = typeFactory;
             Heap = heap;
             DataReader = heap.Runtime.DataTarget.DataReader;
-            _methodHelpers = new ClrMethodHelpers(clrDataProcess, sos, DataReader);
         }
 
         public string? GetTypeName(ulong methodTable)
@@ -113,24 +114,26 @@ namespace Microsoft.Diagnostics.Runtime
             return false;
         }
 
-        public ImmutableArray<ClrMethod> GetMethodsForType(ClrType type)
+        public IEnumerable<MethodInfo> EnumerateMethodsForType(ulong methodTable)
         {
-            ulong mt = type.MethodTable;
-            if (!_sos.GetMethodTableData(mt, out MethodTableData data) || data.NumMethods == 0)
-                return ImmutableArray<ClrMethod>.Empty;
+            if (!_sos.GetMethodTableData(methodTable, out MethodTableData data) || data.NumMethods == 0)
+                yield break;
 
-            ImmutableArray<ClrMethod>.Builder builder = ImmutableArray.CreateBuilder<ClrMethod>(data.NumMethods);
             for (uint i = 0; i < data.NumMethods; i++)
             {
-                ulong slot = _sos.GetMethodTableSlot(mt, i);
+                ulong slot = _sos.GetMethodTableSlot(methodTable, i);
                 if (_sos.GetCodeHeaderData(slot, out CodeHeaderData chd) && _sos.GetMethodDescData(chd.MethodDesc, 0, out MethodDescData mdd))
                 {
                     HotColdRegions regions = new(mdd.NativeCodeAddr, chd.HotRegionSize, chd.ColdRegionStart, chd.ColdRegionSize);
-                    builder.Add(new(_methodHelpers, type, chd.MethodDesc, (int)mdd.MDToken, (MethodCompilationType)chd.JITType, regions));
+                    yield return new()
+                    {
+                        MethodDesc = chd.MethodDesc,
+                        Token = (int)mdd.MDToken,
+                        CompilationType = (MethodCompilationType)chd.JITType,
+                        HotCold = regions,
+                    };
                 }
             }
-
-            return builder.MoveOrCopyToImmutable();
         }
 
         public IEnumerable<ClrField> EnumerateFields(ClrType type)
@@ -169,7 +172,6 @@ namespace Microsoft.Diagnostics.Runtime
                 nextField = fieldData.NextField;
             }
         }
-
 
         public bool ReadProperties(ClrType parentType, int fieldToken, out string? name, out FieldAttributes attributes, ref ClrType? type)
         {
@@ -242,6 +244,55 @@ namespace Microsoft.Diagnostics.Runtime
                 return false;
 
             return (flags & 1) != 0;
+        }
+
+        // Method helpers
+
+        public string? GetMethodSignature(ulong methodDesc) => _sos.GetMethodDescName(methodDesc);
+
+        public ulong GetILForModule(ulong address, uint rva) => _sos.GetILForModule(address, rva);
+
+        public ImmutableArray<ILToNativeMap> GetILMap(ulong ip, in HotColdRegions hotCold)
+        {
+            ImmutableArray<ILToNativeMap>.Builder result = ImmutableArray.CreateBuilder<ILToNativeMap>();
+
+            foreach (ClrDataMethod method in _clrDataProcess.EnumerateMethodInstancesByAddress(ip))
+            {
+                ILToNativeMap[]? map = method.GetILToNativeMap();
+                if (map != null)
+                {
+                    for (int i = 0; i < map.Length; i++)
+                    {
+                        if (map[i].StartAddress > map[i].EndAddress)
+                        {
+                            if (i + 1 == map.Length)
+                                map[i].EndAddress = FindEnd(hotCold, map[i].StartAddress);
+                            else
+                                map[i].EndAddress = map[i + 1].StartAddress - 1;
+                        }
+                    }
+
+                    result.AddRange(map);
+                }
+
+                method.Dispose();
+            }
+
+            return result.MoveOrCopyToImmutable();
+        }
+
+        private static ulong FindEnd(in HotColdRegions reg, ulong address)
+        {
+            ulong hotEnd = reg.HotStart + reg.HotSize;
+            if (reg.HotStart <= address && address < hotEnd)
+                return hotEnd;
+
+            ulong coldEnd = reg.ColdStart + reg.ColdSize;
+            if (reg.ColdStart <= address && address < coldEnd)
+                return coldEnd;
+
+            // Shouldn't reach here, but give a sensible answer if we do.
+            return address + 0x20;
         }
     }
 }
