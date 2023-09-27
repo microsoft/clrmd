@@ -128,7 +128,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             IDebugDataSpaces spaces = GetDataReader(dt).DebugDataSpaces;
 
             ClrHeap heap = runtime.Heap;
-            ClrObject obj = new(0x12345678, null);
+            ClrObject obj = heap.GetObject(0x12345678);
 
             Assert.True(heap.IsObjectCorrupted(obj, out ObjectCorruption result));
             Assert.NotNull(result);

@@ -305,7 +305,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // Assert
             Assert.Equal(_prototype.StructArray[0].Number, intFieldValue);
             Assert.True(fieldType.IsString);
-            Assert.Equal(_prototype.StructArray[0].ReferenceLoad, new ClrObject(stringFieldValue.ToUInt64(), fieldType).AsString());
+            Assert.Equal(_prototype.StructArray[0].ReferenceLoad, fieldType.Heap.GetObject(stringFieldValue.ToUInt64(), fieldType).AsString());
         }
 
 
