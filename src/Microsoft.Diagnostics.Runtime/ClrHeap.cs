@@ -1149,7 +1149,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrObject obj = GetObject(objAddress);
             if (obj.IsValid && !obj.IsException)
                 return null;
-            return new ClrException(obj.Type?.Helpers ?? FreeType.Helpers, thread, obj);
+            return new ClrException(thread, obj);
         }
 
         IEnumerable<IClrValue> IClrHeap.EnumerateFinalizableObjects() => EnumerateFinalizableObjects().Cast<IClrValue>();

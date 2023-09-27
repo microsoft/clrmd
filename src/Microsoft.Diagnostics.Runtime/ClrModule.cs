@@ -21,19 +21,22 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private readonly IClrModuleHelpers? _helpers;
         private readonly IClrNativeHeapHelpers? _nativeHeapHelpers;
-        private readonly IDataReader _dataReader;
         private int _debugMode = int.MaxValue;
         private MetadataImport? _metadata;
         private PdbInfo? _pdb;
         private (ulong MethodTable, int Token)[]? _typeDefMap;
         private (ulong MethodTable, int Token)[]? _typeRefMap;
         private ulong? _size;
+        private ClrHeap? _heap;
+
+        internal ClrHeap Heap => _heap ??= AppDomain.Runtime.Heap;
+        internal IDataReader DataReader { get; }
 
         internal ClrModule(ClrAppDomain domain, in ClrModuleInfo data, IClrModuleHelpers? moduleHelpers, IClrNativeHeapHelpers? nativeHeapHelpers, IDataReader dataReader)
         {
             _helpers = moduleHelpers;
             _nativeHeapHelpers = nativeHeapHelpers;
-            _dataReader = dataReader;
+            DataReader = dataReader;
             AppDomain = domain;
             AssemblyAddress = data.Assembly;
             Address = data.Address;
@@ -277,7 +280,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (_size is ulong sz)
                 size = (long)sz;
 
-            ReadVirtualStream stream = new(_dataReader, (long)ImageBase, size > 0 ? size : int.MaxValue);
+            ReadVirtualStream stream = new(DataReader, (long)ImageBase, size > 0 ? size : int.MaxValue);
             return new(stream, leaveOpen: false, isVirtual: virt);
         }
 

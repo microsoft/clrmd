@@ -117,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (Type is null || !Type.IsException)
                 return null;
 
-            return new ClrException(Helpers, null, this);
+            return new ClrException(null, this);
         }
 
         /// <summary>

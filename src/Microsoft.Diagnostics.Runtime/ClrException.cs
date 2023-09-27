@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Security.AccessControl;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 
@@ -16,15 +17,14 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrException : IClrException
     {
-        private readonly IClrTypeHelpers _helpers;
         private readonly ClrObject _object;
 
         /// <summary>
         /// Gets the original thread this exception was thrown from.  This may be <see langword="null"/> if we do not know.
         /// </summary>
-        public ClrThread? Thread { get; internal set; }
+        public ClrThread? Thread { get; }
 
-        internal ClrException(IClrTypeHelpers helpers, ClrThread? thread, ClrObject obj)
+        internal ClrException(ClrThread? thread, ClrObject obj)
         {
             if (obj.IsNull)
                 throw new InvalidOperationException($"Cannot construct a ClrException from a null object.");
@@ -32,7 +32,6 @@ namespace Microsoft.Diagnostics.Runtime
             if (obj.Type is null)
                 throw new InvalidOperationException($"Cannot construct a ClrException with a null Type.");
 
-            _helpers = helpers ?? throw new ArgumentNullException(nameof(helpers));
             _object = obj;
             Thread = thread;
 
@@ -68,11 +67,11 @@ namespace Microsoft.Diagnostics.Runtime
                 if (offset == 0)
                     return null;
 
-                ulong address = _helpers.DataReader.ReadPointer(Address + offset);
+                ulong address = Type.Module.DataReader.ReadPointer(Address + offset);
                 if (address == 0)
                     return null;
 
-                ClrObject obj = _helpers.Heap.GetObject(address);
+                ClrObject obj = Type.Heap.GetObject(address);
                 if (obj.IsValid)
                     return obj.AsString();
 
@@ -93,8 +92,8 @@ namespace Microsoft.Diagnostics.Runtime
                 if (offset == 0)
                     return null;
 
-                ulong address = _helpers.DataReader.ReadPointer(Address + offset);
-                ClrObject obj = _helpers.Heap.GetObject(address);
+                ulong address = Type.Module.DataReader.ReadPointer(Address + offset);
+                ClrObject obj = Type.Module.Heap.GetObject(address);
                 if (obj.IsNull)
                     return null;
 
@@ -116,7 +115,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return 0;
 
                 DebugOnly.Assert(offset != uint.MaxValue);
-                return _helpers.DataReader.Read<int>(Address + offset);
+                return Type.Module.DataReader.Read<int>(Address + offset);
             }
         }
 
@@ -148,16 +147,16 @@ namespace Microsoft.Diagnostics.Runtime
             if (field != null && field.Offset >= 0)
                 return (uint)(field.Offset + IntPtr.Size);
 
-            uint result = _helpers.Heap.Runtime.ClrInfo.Flavor switch
+            uint result = Type.Module.Heap.Runtime.ClrInfo.Flavor switch
             {
-                ClrFlavor.Core => _helpers.DataReader.PointerSize switch
+                ClrFlavor.Core => Type.Module.DataReader.PointerSize switch
                 {
                     4 => 0x14,
                     8 => 0x28,
                     _ => uint.MaxValue
                 },
 
-                ClrFlavor.Desktop => _helpers.DataReader.PointerSize switch
+                ClrFlavor.Desktop => Type.Module.DataReader.PointerSize switch
                 {
                     4 => 0x1c,
                     8 => 0x38,
@@ -177,16 +176,16 @@ namespace Microsoft.Diagnostics.Runtime
             if (field != null && field.Offset >= 0)
                 return (uint)(field.Offset + IntPtr.Size);
 
-            uint result = _helpers.Heap.Runtime.ClrInfo.Flavor switch
+            uint result = Type.Module.Heap.Runtime.ClrInfo.Flavor switch
             {
-                ClrFlavor.Core => _helpers.DataReader.PointerSize switch
+                ClrFlavor.Core => Type.Module.DataReader.PointerSize switch
                 {
                     4 => 0xc,
                     8 => 0x18,
                     _ => uint.MaxValue
                 },
 
-                ClrFlavor.Desktop => _helpers.DataReader.PointerSize switch
+                ClrFlavor.Desktop => Type.Module.DataReader.PointerSize switch
                 {
                     4 => 0x14,
                     8 => 0x28,
@@ -206,16 +205,16 @@ namespace Microsoft.Diagnostics.Runtime
             if (field != null && field.Offset >= 0)
                 return (uint)(field.Offset + IntPtr.Size);
 
-            uint result = _helpers.Heap.Runtime.ClrInfo.Flavor switch
+            uint result = Type.Module.Heap.Runtime.ClrInfo.Flavor switch
             {
-                ClrFlavor.Core => _helpers.DataReader.PointerSize switch
+                ClrFlavor.Core => Type.Module.DataReader.PointerSize switch
                 {
                     4 => 0x38,
                     8 => 0x6c,
                     _ => uint.MaxValue
                 },
 
-                ClrFlavor.Desktop => _helpers.DataReader.PointerSize switch
+                ClrFlavor.Desktop => Type.Module.DataReader.PointerSize switch
                 {
                     4 => 0x3c,
                     8 => 0x84,
@@ -235,16 +234,16 @@ namespace Microsoft.Diagnostics.Runtime
             if (field != null && field.Offset >= 0)
                 return (uint)(field.Offset + IntPtr.Size);
 
-            uint result = _helpers.Heap.Runtime.ClrInfo.Flavor switch
+            uint result = Type.Module.Heap.Runtime.ClrInfo.Flavor switch
             {
-                ClrFlavor.Core => _helpers.DataReader.PointerSize switch
+                ClrFlavor.Core => Type.Module.DataReader.PointerSize switch
                 {
                     4 => 4,
                     8 => 8,
                     _ => uint.MaxValue
                 },
 
-                ClrFlavor.Desktop => _helpers.DataReader.PointerSize switch
+                ClrFlavor.Desktop => Type.Module.DataReader.PointerSize switch
                 {
                     4 => 0xc,
                     8 => 0x18,
@@ -264,8 +263,9 @@ namespace Microsoft.Diagnostics.Runtime
             if (offset == 0)
                 return ImmutableArray<ClrStackFrame>.Empty;
 
-            ulong address = _helpers.DataReader.ReadPointer(_object.Address + offset);
-            ClrObject _stackTrace = _helpers.Heap.GetObject(address);
+            IDataReader dataReader = Type.Module.DataReader;
+            ulong address = dataReader.ReadPointer(_object.Address + offset);
+            ClrObject _stackTrace = Type.Module.Heap.GetObject(address);
 
             if (_stackTrace.IsNull)
                 return ImmutableArray<ClrStackFrame>.Empty;
@@ -276,7 +276,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             int elementSize = IntPtr.Size * 4;
             ulong dataPtr = _stackTrace + (ulong)(IntPtr.Size * 2);
-            if (!_helpers.DataReader.ReadPointer(dataPtr, out ulong count))
+            if (!dataReader.ReadPointer(dataPtr, out ulong count))
                 return ImmutableArray<ClrStackFrame>.Empty;
 
             ImmutableArray<ClrStackFrame>.Builder result = ImmutableArray.CreateBuilder<ClrStackFrame>((int)count);
@@ -287,11 +287,11 @@ namespace Microsoft.Diagnostics.Runtime
 
             for (int i = 0; i < (int)count; ++i)
             {
-                ulong ip = _helpers.DataReader.ReadPointer(dataPtr);
-                ulong sp = _helpers.DataReader.ReadPointer(dataPtr + (ulong)IntPtr.Size);
-                ulong md = _helpers.DataReader.ReadPointer(dataPtr + (ulong)IntPtr.Size + (ulong)IntPtr.Size);
+                ulong ip = dataReader.ReadPointer(dataPtr);
+                ulong sp = dataReader.ReadPointer(dataPtr + (ulong)IntPtr.Size);
+                ulong md = dataReader.ReadPointer(dataPtr + (ulong)IntPtr.Size + (ulong)IntPtr.Size);
 
-                ClrMethod? method = _helpers.Heap.Runtime.GetMethodByHandle(md);
+                ClrMethod? method = Type.Module.Heap.Runtime.GetMethodByHandle(md);
                 result[i] = new ClrStackFrame(Thread, null, ip, sp, ClrStackFrameKind.ManagedMethod, method, frameName: null);
                 dataPtr += (ulong)elementSize;
             }

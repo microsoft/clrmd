@@ -9,7 +9,6 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IClrTypeHelpers
     {
-        ClrHeap Heap { get; }
         IDataReader DataReader { get; }
 
         string? GetTypeName(ulong methodTable);
