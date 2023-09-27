@@ -19,9 +19,18 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         RuntimeCallableWrapper? CreateRCWForObject(ulong obj);
         ImmutableArray<ComInterfaceData> GetRCWInterfaces(ulong address, int interfaceCount);
 
-        ulong GetObjectDataPointer(ulong objRef);
-        ClrElementType GetObjectElementType(ulong objRef);
+        bool GetObjectArrayInformation(ulong objRef, out ObjectArrayInformation data);
         ImmutableArray<ClrMethod> GetMethodsForType(ClrType type);
         IEnumerable<ClrField> EnumerateFields(ClrType type);
+    }
+
+    internal struct ObjectArrayInformation
+    {
+        public ClrElementType ComponentType { get; set; }
+
+        /// <summary>
+        /// The location of the first element in the array.
+        /// </summary>
+        public int DataPointer { get; set; }
     }
 }

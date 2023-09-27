@@ -335,20 +335,25 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 ClrType? componentType = ComponentType;
 
-                ulong dataPointer = Helpers.GetObjectDataPointer(objRef);
-                if (dataPointer > 0)
+                if (Helpers.GetObjectArrayInformation(objRef, out ObjectArrayInformation data))
                 {
-                    _baseArrayOffset = (int)(dataPointer - objRef);
-                    DebugOnly.Assert(_baseArrayOffset >= 0);
-                }
-                else if (componentType != null)
-                {
-                    if (!componentType.IsObjectReference)
-                        _baseArrayOffset = IntPtr.Size * 2;
+                    if (data.DataPointer > 0)
+                    {
+                        _baseArrayOffset = data.DataPointer;
+                    }
+                    else if (componentType != null)
+                    {
+                        if (!componentType.IsObjectReference)
+                            _baseArrayOffset = IntPtr.Size * 2;
+                    }
+                    else
+                    {
+                        _baseArrayOffset = int.MinValue;
+                    }
                 }
                 else
                 {
-                    return 0;
+                    _baseArrayOffset = int.MinValue;
                 }
             }
 
@@ -370,7 +375,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             else
             {
                 // Slow path, we need to get the element type of the array.
-                cet = Helpers.GetObjectElementType(objRef);
+                if (!Helpers.GetObjectArrayInformation(objRef, out ObjectArrayInformation data))
+                    return null;
+
+                cet = data.ComponentType;
             }
 
             if (cet == ClrElementType.Unknown)

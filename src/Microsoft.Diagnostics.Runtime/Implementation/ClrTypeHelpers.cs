@@ -181,20 +181,18 @@ namespace Microsoft.Diagnostics.Runtime
             return 0;
         }
 
-        public ulong GetObjectDataPointer(ulong objRef)
+        public bool GetObjectArrayInformation(ulong objRef, out ObjectArrayInformation data)
         {
-            if (_sos.GetObjectData(objRef, out ObjectData data))
-                return data.ArrayDataPointer;
+            data = default;
+            if (_sos.GetObjectData(objRef, out ObjectData objData))
+            {
+                data.ComponentType = (ClrElementType)objData.ElementType;
+                ulong dataPointer = objData.ArrayDataPointer > objRef ? objData.ArrayDataPointer - objRef : 0;
+                data.DataPointer = dataPointer > int.MaxValue ? int.MaxValue : (int)dataPointer;
+                return true;
+            }
 
-            return 0;
-        }
-
-        public ClrElementType GetObjectElementType(ulong objRef)
-        {
-            if (_sos.GetObjectData(objRef, out ObjectData data))
-                return (ClrElementType)data.ElementType;
-
-            return 0;
+            return false;
         }
 
         public ImmutableArray<ClrMethod> GetMethodsForType(ClrType type)
