@@ -2,13 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Xml.Linq;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
@@ -20,8 +17,6 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private readonly string UnloadedTypeName = "<Unloaded Type>";
 
-        private readonly uint _firstChar = (uint)IntPtr.Size + 4;
-        private readonly uint _stringLength = (uint)IntPtr.Size;
         private readonly SOSDac _sos;
         private readonly SOSDac6? _sos6;
         private readonly SOSDac8? _sos8;
@@ -42,34 +37,6 @@ namespace Microsoft.Diagnostics.Runtime
             Heap = heap;
             DataReader = heap.Runtime.DataTarget.DataReader;
             _methodHelpers = new ClrMethodHelpers(clrDataProcess, sos, DataReader);
-        }
-
-        public string? ReadString(ulong address, int maxLength)
-        {
-            if (address == 0)
-                return null;
-
-            int length = DataReader.Read<int>(address + _stringLength);
-            length = Math.Min(length, maxLength);
-            if (length == 0)
-                return string.Empty;
-
-            ulong data = address + _firstChar;
-            char[] buffer = ArrayPool<char>.Shared.Rent(length);
-            try
-            {
-                Span<char> charSpan = new Span<char>(buffer).Slice(0, length);
-                Span<byte> bytes = MemoryMarshal.AsBytes(charSpan);
-                int read = DataReader.Read(data, bytes);
-                if (read == 0)
-                    return null;
-
-                return new string(buffer, 0, read / sizeof(char));
-            }
-            finally
-            {
-                ArrayPool<char>.Shared.Return(buffer);
-            }
         }
 
         public ComCallableWrapper? CreateCCWForObject(ulong obj)

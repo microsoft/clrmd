@@ -306,7 +306,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (strPtr == 0)
                 return false;
 
-            result = Helpers.ReadString(strPtr, maxLength ?? 1024);
+            result = type.Heap.ReadString(strPtr, maxLength ?? 1024);
             return true;
         }
 
@@ -488,14 +488,15 @@ namespace Microsoft.Diagnostics.Runtime
         public string? ReadStringField(string fieldName, int maxLength = 4096)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
-            IDataReader dataReader = GetTypeOrThrow().Module.DataReader;
+            ClrType type = GetTypeOrThrow();
+            IDataReader dataReader = type.Module.DataReader;
             if (!dataReader.ReadPointer(address, out ulong strPtr))
                 return null;
 
             if (strPtr == 0)
                 return null;
 
-            return Helpers.ReadString(strPtr, maxLength);
+            return type.Heap.ReadString(strPtr, maxLength);
         }
 
         public string? AsString(int maxLength = 4096)
@@ -504,7 +505,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!type.IsString)
                 throw new InvalidOperationException($"Object {Address:x} is not a string, actual type: {Type?.Name ?? "null"}.");
 
-            return Helpers.ReadString(Address, maxLength);
+            return type.Heap.ReadString(Address, maxLength);
         }
 
         private ulong GetFieldAddress(string fieldName, ClrElementType element, string typeName)

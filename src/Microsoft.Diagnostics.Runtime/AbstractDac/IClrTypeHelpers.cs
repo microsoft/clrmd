@@ -14,7 +14,6 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         ulong GetLoaderAllocatorHandle(ulong mt);
         ulong GetAssemblyLoadContextAddress(ulong mt);
 
-        string? ReadString(ulong addr, int maxLength);
         ComCallableWrapper? CreateCCWForObject(ulong obj);
         RuntimeCallableWrapper? CreateRCWForObject(ulong obj);
         ImmutableArray<ComInterfaceData> GetRCWInterfaces(ulong address, int interfaceCount);

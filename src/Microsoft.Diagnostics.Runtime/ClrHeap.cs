@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.Implementation;
@@ -24,6 +25,9 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private const int EnumerateBufferSize = 0x10000;
         private const int MaxGen2ObjectSize = 85000;
+
+        private readonly uint _firstChar = (uint)IntPtr.Size + 4;
+        private readonly uint _stringLength = (uint)IntPtr.Size;
 
         private readonly IClrTypeFactory _typeFactory;
         private readonly IMemoryReader _memoryReader;
@@ -1210,6 +1214,34 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ArgumentException($"{nameof(name)} cannot be empty");
 
             return FindTypeName(module.EnumerateTypeDefToMethodTableMap(), name);
+        }
+
+        internal string? ReadString(ulong stringPtr, int maxLength)
+        {
+            if (stringPtr == 0)
+                return null;
+
+            int length = _memoryReader.Read<int>(stringPtr + _stringLength);
+            length = Math.Min(length, maxLength);
+            if (length == 0)
+                return string.Empty;
+
+            ulong data = stringPtr + _firstChar;
+            char[] buffer = ArrayPool<char>.Shared.Rent(length);
+            try
+            {
+                Span<char> charSpan = new Span<char>(buffer).Slice(0, length);
+                Span<byte> bytes = MemoryMarshal.AsBytes(charSpan);
+                int read = _memoryReader.Read(data, bytes);
+                if (read == 0)
+                    return null;
+
+                return new string(buffer, 0, read / sizeof(char));
+            }
+            finally
+            {
+                ArrayPool<char>.Shared.Return(buffer);
+            }
         }
 
         private sealed class SubHeapData
