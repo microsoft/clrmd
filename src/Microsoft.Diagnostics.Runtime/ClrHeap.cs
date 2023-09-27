@@ -12,6 +12,7 @@ using System.Threading;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 // Disable warning for ClrObject ctor.  TODO:  Remove this in 3.1.
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -1132,6 +1133,11 @@ namespace Microsoft.Diagnostics.Runtime
             return _subHeapData;
         }
 
+
+        internal ClrType? GetOrCreateTypeFromSignature(ClrModule module, SigParser sigParser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters)
+        {
+            return _typeFactory.GetOrCreateTypeFromSignature(module, sigParser, typeParameters, methodParameters);
+        }
         public ClrType? GetTypeByMethodTable(ulong methodTable) => _typeFactory.GetOrCreateType(methodTable, 0);
 
         public ClrType? GetTypeByName(string name) => Runtime.EnumerateModules().OrderBy(m => m.Name ?? "").Select(m => GetTypeByName(m, name)).Where(r => r != null).FirstOrDefault();

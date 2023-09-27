@@ -10,11 +10,12 @@ using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
+using FieldInfo = Microsoft.Diagnostics.Runtime.AbstractDac.FieldInfo;
 using MethodInfo = Microsoft.Diagnostics.Runtime.AbstractDac.MethodInfo;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class ClrTypeHelpers : IClrTypeHelpers, IClrFieldHelpers
+    internal sealed class ClrTypeHelpers : IClrTypeHelpers
     {
         private readonly string UnloadedTypeName = "<Unloaded Type>";
 
@@ -151,47 +152,51 @@ namespace Microsoft.Diagnostics.Runtime
 
         private IEnumerable<ClrField> EnumerateFieldsWorker(ClrType type, int baseFieldCount)
         {
-            if (!_sos.GetFieldInfo(type.MethodTable, out DacInterface.FieldInfo fieldInfo) || fieldInfo.FirstFieldAddress == 0)
+            if (!_sos.GetFieldInfo(type.MethodTable, out MethodTableFieldInfo fieldInfo) || fieldInfo.FirstFieldAddress == 0)
                 yield break;
 
             ulong nextField = fieldInfo.FirstFieldAddress;
             for (int i = baseFieldCount; i < fieldInfo.NumInstanceFields + fieldInfo.NumStaticFields; i++)
             {
-                if (!_sos.GetFieldData(nextField, out FieldData fieldData))
+                if (!_sos.GetFieldData(nextField, out FieldData dacFieldData))
                     break;
 
-                if (fieldData.IsContextLocal == 0 && fieldData.IsThreadLocal == 0)
+                FieldInfo fi = new()
                 {
-                    ClrType? fieldType = _typeFactory.GetOrCreateType(fieldData.TypeMethodTable, 0);
-                    if (fieldData.IsStatic != 0)
-                        yield return new ClrStaticField(type, fieldType, this, fieldData);
+                    FieldDesc = nextField,
+                    ElementType = (ClrElementType)dacFieldData.ElementType,
+                    Offset = dacFieldData.Offset <= int.MaxValue ? (int)dacFieldData.Offset : int.MaxValue,
+                    Token = dacFieldData.FieldToken <= int.MaxValue ? (int)dacFieldData.FieldToken : int.MaxValue
+                };
+
+                if (dacFieldData.IsContextLocal == 0 && dacFieldData.IsThreadLocal == 0)
+                {
+                    ClrType? fieldType = _typeFactory.GetOrCreateType(dacFieldData.TypeMethodTable, 0);
+                    if (dacFieldData.IsStatic != 0)
+                        yield return new ClrStaticField(type, fieldType, this, fi);
                     else
-                        yield return new ClrInstanceField(type, fieldType, this, fieldData);
+                        yield return new ClrInstanceField(type, fieldType, this, fi);
                 }
 
-                nextField = fieldData.NextField;
+                nextField = dacFieldData.NextField;
             }
         }
 
-        public bool ReadProperties(ClrType parentType, int fieldToken, out string? name, out FieldAttributes attributes, ref ClrType? type)
+        public bool GetFieldMetadataInfo(MetadataImport import, int token, out FieldMetadataInfo info)
         {
-            MetadataImport? import = parentType.Module.MetadataImport;
-            if (import is null || !import.GetFieldProps(fieldToken, out name, out attributes, out IntPtr fieldSig, out int sigLen, out _, out _))
+            if (!import.GetFieldProps(token, out string? name, out FieldAttributes attributes, out nint fieldSig, out int sigLen, out _, out _))
             {
-                name = null;
-                attributes = default;
+                info = default;
                 return false;
             }
 
-            if (type is null)
+            info = new()
             {
-                SigParser sigParser = new(fieldSig, sigLen);
-                if (sigParser.GetCallingConvInfo(out int sigType) && sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD)
-                {
-                    sigParser.SkipCustomModifiers();
-                    type = _typeFactory.GetOrCreateTypeFromSignature(parentType.Module, sigParser, parentType.EnumerateGenericParameters(), Array.Empty<ClrGenericParameter>());
-                }
-            }
+                Name = name,
+                Attributes = attributes,
+                Signature = fieldSig,
+                SignatureSize = sigLen,
+            };
 
             return true;
         }

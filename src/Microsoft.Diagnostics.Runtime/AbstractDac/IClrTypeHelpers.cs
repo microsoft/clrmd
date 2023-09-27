@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Reflection;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
@@ -22,6 +23,10 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         string? GetMethodSignature(ulong methodDesc);
         ImmutableArray<ILToNativeMap> GetILMap(ulong ip, in HotColdRegions hotCold);
         ulong GetILForModule(ulong address, uint rva);
+
+        // Field helpers
+        bool GetFieldMetadataInfo(MetadataImport import, int token, out FieldMetadataInfo info);
+        ulong GetStaticFieldAddress(ClrStaticField field, ulong appDomain);
     }
 
     internal struct ObjectArrayInformation
@@ -40,5 +45,21 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public int Token { get; set; }
         public MethodCompilationType CompilationType { get; set; }
         public HotColdRegions HotCold { get; set; }
+    }
+
+    internal struct FieldInfo
+    {
+        public ulong FieldDesc { get; set; }
+        public int Token { get; set; }
+        public ClrElementType ElementType { get; set; }
+        public int Offset { get; set; }
+    }
+
+    internal struct FieldMetadataInfo
+    {
+        public string? Name { get; set; }
+        public FieldAttributes Attributes { get; set; }
+        public nint Signature { get; set; }
+        public int SignatureSize { get; set; }
     }
 }

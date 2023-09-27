@@ -4,9 +4,12 @@
 using System;
 using System.Diagnostics;
 using System.Reflection;
+using System.Threading;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Interfaces;
+using Microsoft.Diagnostics.Runtime.Utilities;
+using FieldInfo = Microsoft.Diagnostics.Runtime.AbstractDac.FieldInfo;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -15,28 +18,22 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrInstanceField : ClrField, IClrInstanceField
     {
-        private FieldAttributes _attributes = FieldAttributes.ReservedMask;
+        private int _attributes = (int)FieldAttributes.ReservedMask;
 
-        private readonly IClrFieldHelpers _helpers;
+        private readonly IClrTypeHelpers _helpers;
+        private readonly FieldInfo _data;
         private string? _name;
         private ClrType? _type;
 
-        internal ClrInstanceField(ClrType containingType, ClrType? type, IClrFieldHelpers helpers, in FieldData data)
+        internal ClrInstanceField(ClrType containingType, ClrType? type, IClrTypeHelpers helpers, in FieldInfo data)
         {
-            if (containingType is null)
-                throw new ArgumentNullException(nameof(containingType));
-
-            ContainingType = containingType;
-            Token = (int)data.FieldToken;
-            ElementType = (ClrElementType)data.ElementType;
-            Offset = (int)data.Offset;
-
             _helpers = helpers;
+            _data = data;
+            ContainingType = containingType;
 
-            // Must be the last use of 'data' in this constructor.
             _type = type;
-            if (ElementType == ClrElementType.Class && _type != null)
-                ElementType = _type.ElementType;
+            if (_data.ElementType == ClrElementType.Class && _type != null)
+                _data.ElementType = _type.ElementType;
 
             DebugOnlyLoadLazyValues();
         }
@@ -49,28 +46,37 @@ namespace Microsoft.Diagnostics.Runtime
 
         private void InitData()
         {
-            if (_attributes != FieldAttributes.ReservedMask)
+            if (_attributes != (int)FieldAttributes.ReservedMask)
                 return;
 
-            ReadData();
-        }
-
-        private string? ReadData()
-        {
-            if (!_helpers.ReadProperties(ContainingType, Token, out string? name, out _attributes, ref _type))
-                return null;
-
-            StringCaching options = ContainingType.Heap.Runtime.DataTarget?.CacheOptions.CacheFieldNames ?? StringCaching.Cache;
-            if (name != null)
+            MetadataImport? import = ContainingType.Module.MetadataImport;
+            if (import is null || !_helpers.GetFieldMetadataInfo(import, Token, out FieldMetadataInfo info))
             {
-                if (options == StringCaching.Intern)
-                    name = string.Intern(name);
-
-                if (options != StringCaching.None)
-                    _name = name;
+                _attributes = 0;
+                return;
             }
 
-            return name;
+            StringCaching options = ContainingType.Heap.Runtime.DataTarget.CacheOptions.CacheFieldNames;
+            if (info.Name != null)
+            {
+                if (options == StringCaching.Intern)
+                    info.Name = string.Intern(info.Name);
+
+                if (options != StringCaching.None)
+                    _name = info.Name;
+            }
+
+            if (_type is null)
+            {
+                SigParser sigParser = new(info.Signature, info.SignatureSize);
+                if (sigParser.GetCallingConvInfo(out int sigType) && sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD)
+                {
+                    sigParser.SkipCustomModifiers();
+                    _type = ContainingType.Heap.GetOrCreateTypeFromSignature(ContainingType.Module, sigParser, ContainingType.EnumerateGenericParameters(), Array.Empty<ClrGenericParameter>());
+                }
+            }
+
+            Interlocked.Exchange(ref _attributes, (int)info.Attributes);
         }
 
         public override FieldAttributes Attributes
@@ -78,11 +84,11 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 InitData();
-                return _attributes;
+                return (FieldAttributes)_attributes;
             }
         }
 
-        public override ClrElementType ElementType { get; }
+        public override ClrElementType ElementType => _data.ElementType;
         public override bool IsObjectReference => ElementType.IsObjectReference();
         public override bool IsValueType => ElementType.IsValueType();
         public override bool IsPrimitive => ElementType.IsPrimitive();
@@ -94,7 +100,8 @@ namespace Microsoft.Diagnostics.Runtime
                 if (_name != null)
                     return _name;
 
-                return ReadData();
+                InitData();
+                return _name;
             }
         }
 
@@ -110,9 +117,9 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public override int Token { get; }
+        public override int Token => _data.Token;
 
-        public override int Offset { get; }
+        public override int Offset => _data.Offset;
 
         public override ClrType ContainingType { get; }
 
@@ -129,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (address == 0)
                 return default;
 
-            if (!_helpers.DataReader.Read(address, out T value))
+            if (!ContainingType.Module.DataReader.Read(address, out T value))
                 return default;
 
             return value;
@@ -144,7 +151,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrObject ReadObject(ulong objRef, bool interior)
         {
             ulong address = GetAddress(objRef, interior);
-            if (address == 0 || !_helpers.DataReader.ReadPointer(address, out ulong obj) || obj == 0)
+            if (address == 0 || !ContainingType.Module.DataReader.ReadPointer(address, out ulong obj) || obj == 0)
                 return default;
 
             return ContainingType.Heap.GetObject(obj);
