@@ -276,7 +276,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool ReadProperties(ClrType parentType, int fieldToken, out string? name, out FieldAttributes attributes, ref ClrType? type)
         {
-            MetadataImport? import = parentType.Module?.MetadataImport;
+            MetadataImport? import = parentType.Module.MetadataImport;
             if (import is null || !import.GetFieldProps(fieldToken, out name, out attributes, out IntPtr fieldSig, out int sigLen, out _, out _))
             {
                 name = null;
@@ -286,8 +286,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (type is null)
             {
-                Utilities.SigParser sigParser = new(fieldSig, sigLen);
-                if (sigParser.GetCallingConvInfo(out int sigType) && sigType == Utilities.SigParser.IMAGE_CEE_CS_CALLCONV_FIELD)
+                SigParser sigParser = new(fieldSig, sigLen);
+                if (sigParser.GetCallingConvInfo(out int sigType) && sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD)
                 {
                     sigParser.SkipCustomModifiers();
                     type = _typeFactory.GetOrCreateTypeFromSignature(parentType.Module, sigParser, parentType.EnumerateGenericParameters(), Array.Empty<ClrGenericParameter>());

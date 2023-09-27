@@ -18,11 +18,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         public ClrGenericParameter GenericParameter { get; }
 
-        public ClrGenericType(IClrTypeHelpers helpers, ClrHeap heap, ClrModule? module, ClrGenericParameter clrGenericParameter)
-            : base(helpers)
+        public ClrGenericType(IClrTypeHelpers helpers, ClrHeap heap, ClrModule module, ClrGenericParameter clrGenericParameter)
+            : base(module, helpers)
         {
             Heap = heap ?? throw new ArgumentNullException(nameof(heap));
-            Module = module;
             GenericParameter = clrGenericParameter;
             _fields = ImmutableArray<ClrInstanceField>.Empty;
             _staticFields = ImmutableArray<ClrStaticField>.Empty;
@@ -37,8 +36,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override string? Name => GenericParameter.Name;
 
         public override ClrHeap Heap { get; }
-
-        public override ClrModule? Module { get; }
 
         public override ClrElementType ElementType => ClrElementType.Var;
 

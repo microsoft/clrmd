@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         ClrType GetOrCreateBasicType(ClrElementType basicType);
         ClrType? GetOrCreateArrayType(ClrType inner, int ranks);
         ClrType? GetOrCreateTypeFromToken(ClrModule module, int token);
-        ClrType? GetOrCreateTypeFromSignature(ClrModule? module, SigParser parser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters);
+        ClrType? GetOrCreateTypeFromSignature(ClrModule module, SigParser parser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters);
         ClrType? GetOrCreatePointerType(ClrType innerType, int depth);
     }
 }

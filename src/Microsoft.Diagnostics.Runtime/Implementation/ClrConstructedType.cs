@@ -15,7 +15,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly int _ranks;
         public override ClrHeap Heap => ComponentType.Heap;
 
-        public override ClrModule Module => Heap.Runtime.BaseClassLibrary;
         public override ClrType ComponentType { get; }
         public override string Name
         {
@@ -41,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         }
 
         public ClrConstructedType(ClrType componentType, int ranks, bool pointer)
-            : base(componentType.Helpers)
+            : base(componentType.Module, componentType.Helpers)
         {
             ComponentType = componentType ?? throw new ArgumentNullException(nameof(componentType));
             ElementType = pointer ? ClrElementType.Pointer : ClrElementType.SZArray;

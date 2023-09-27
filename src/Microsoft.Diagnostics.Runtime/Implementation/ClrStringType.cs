@@ -12,8 +12,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ClrStringType : ClrType
     {
-        public ClrStringType(IClrTypeHelpers helpers, ClrHeap heap, ulong mt, int token)
-            : base(helpers)
+        public ClrStringType(ClrModule module, IClrTypeHelpers helpers, ClrHeap heap, ulong mt, int token)
+            : base(module, helpers)
         {
             Heap = heap;
             MethodTable = mt;
@@ -30,8 +30,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override string? Name => "System.String";
 
         public override ClrHeap Heap { get; }
-
-        public override ClrModule? Module => Heap.Runtime.BaseClassLibrary;
 
         public override ClrElementType ElementType => ClrElementType.String;
 
@@ -61,7 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IEnumerable<ClrInterface> EnumerateInterfaces()
         {
-            MetadataImport? import = Module?.MetadataImport;
+            MetadataImport? import = Module.MetadataImport;
             if (import is null)
                 yield break;
 

@@ -79,7 +79,7 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     string? signature = _helpers.GetSignature(MethodDesc);
 
-                    StringCaching? caching = Type.GetCacheOptions()?.CacheMethodNames ?? StringCaching.Cache;
+                    StringCaching caching = Type.GetCacheOptions().CacheMethodNames;
                     if (caching is StringCaching.Intern)
                         _signature = signature is not null && signature.Length > 0 ? string.Intern(signature) : string.Empty;
                     else if (caching is StringCaching.Cache)
@@ -128,7 +128,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ILInfo? GetILInfo()
         {
             IDataReader dataReader = _helpers.DataReader;
-            ClrModule? module = Type.Module;
+            ClrModule module = Type.Module;
             if (module is null)
                 return null;
 
@@ -198,7 +198,7 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (!_attributes.HasValue)
-                    _attributes = Type.Module?.MetadataImport?.GetMethodAttributes(MetadataToken) ?? default;
+                    _attributes = Type.Module.MetadataImport?.GetMethodAttributes(MetadataToken) ?? default;
 
                 return _attributes.Value;
             }

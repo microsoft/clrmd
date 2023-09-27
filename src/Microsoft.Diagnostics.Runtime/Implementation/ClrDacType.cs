@@ -57,18 +57,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     string? name = Helpers.GetTypeName(MethodTable);
                     if (name is null && MetadataToken != 0)
                     {
-                        MetadataImport? import = Module?.MetadataImport;
+                        MetadataImport? import = Module.MetadataImport;
                         if (import is not null)
                             name = Helpers.GetTypeName(import, MetadataToken);
                     }
 
                     name ??= string.Empty;
 
-                    // If we can't determine caching, just cache the type name, it's the right thing to do in most cases
-                    StringCaching? caching = GetCacheOptions()?.CacheTypeNames;
-                    if (caching is null or StringCaching.Cache)
+                    StringCaching caching = GetCacheOptions().CacheTypeNames;
+                    if (caching is StringCaching.Cache)
                         _name = name;
-                    if (caching == StringCaching.Intern)
+                    if (caching is StringCaching.Intern)
                         _name = string.Intern(name);
                     else
                         return name.Length != 0 ? name : null;
@@ -84,7 +83,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override int StaticSize { get; }
         public override int ComponentSize { get; }
         public override ClrType? ComponentType => _componentType;
-        public override ClrModule? Module { get; }
         public override GCDesc GCDesc => GetOrCreateGCDesc();
 
         public override ClrElementType ElementType => GetElementType();
@@ -97,14 +95,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool ContainsPointers { get; }
         public override bool IsShared { get; }
 
-        public ClrDacType(IClrTypeHelpers helpers, ClrHeap heap, ClrType? baseType, ClrType? componentType, ClrModule? module, ulong methodTable, in MethodTableData data, string? name = null)
-            : base(helpers)
+        public ClrDacType(IClrTypeHelpers helpers, ClrHeap heap, ClrType? baseType, ClrType? componentType, ClrModule module, ulong methodTable, in MethodTableData data, string? name = null)
+            : base(module, helpers)
         {
             MethodTable = methodTable;
             Heap = heap;
             BaseType = baseType;
             _componentType = componentType;
-            Module = module;
             MetadataToken = unchecked((int)data.Token);
             StaticSize = unchecked((int)data.BaseSize);
             ComponentSize = unchecked((int)data.ComponentSize);
@@ -163,7 +160,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IEnumerable<ClrInterface> EnumerateInterfaces()
         {
-            MetadataImport? import = Module?.MetadataImport;
+            MetadataImport? import = Module.MetadataImport;
             if (import is null)
                 yield break;
 
@@ -401,7 +398,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (_attributes != 0 || Module is null)
                 return;
 
-            MetadataImport? import = Module?.MetadataImport;
+            MetadataImport? import = Module.MetadataImport;
             if (import is null)
             {
                 _attributes = (TypeAttributes)0x70000000;

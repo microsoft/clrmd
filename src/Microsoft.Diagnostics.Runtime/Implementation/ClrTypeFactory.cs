@@ -26,6 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly ClrType _objectType;
         private Dictionary<ulong, ClrModule>? _modules;
         private readonly IClrTypeHelpers _objectHelpers;
+        private ClrModule? _errorModule;
 
         public ClrTypeFactory(ClrHeap heap, ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, CacheOptions options)
         {
@@ -53,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     if (_sos.GetMethodTableData(_commonMTs.StringMethodTable, out MethodTableData mtd))
                         token = (int)mtd.Token;
 
-                    stringType = new ClrStringType(_objectHelpers, _heap, _commonMTs.StringMethodTable, token);
+                    stringType = new ClrStringType(_heap.Runtime.BaseClassLibrary, _objectHelpers, _heap, _commonMTs.StringMethodTable, token);
                 }
 
                 return stringType;
@@ -66,7 +67,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public ClrType ExceptionType => CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.ExceptionMethodTable, "System.Exception") ?? _objectType;
 
-        public ClrType? CreateSystemType(ClrHeap heap, ClrModule? bcl, ulong mt, string typeName)
+        public ClrType? CreateSystemType(ClrHeap heap, ClrModule bcl, ulong mt, string typeName)
         {
             _sos.GetMethodTableData(mt, out MethodTableData mtd);
 
@@ -108,7 +109,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return null;
 
             ClrType? baseType = GetOrCreateType(mtd.ParentMethodTable, 0);
-            ClrModule? module = GetModule(mtd.Module);
+            ClrModule module = GetModule(mtd.Module);
             ClrType? componentType = null;
 
             if (obj != 0 && mtd.ComponentSize != 0)
@@ -133,7 +134,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public ClrType? GetOrCreateTypeFromSignature(ClrModule? module, SigParser parser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters)
+        public ClrType? GetOrCreateTypeFromSignature(ClrModule module, SigParser parser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters)
         {
             // ECMA 335 - II.23.2.12 - Type
 
@@ -349,7 +350,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return basicTypes[index] = new ClrPrimitiveType(_objectHelpers, bcl, _heap, basicType);
         }
 
-        private ClrModule? GetModule(ulong moduleAddress)
+        private ClrModule GetModule(ulong moduleAddress)
         {
             if (_modules is null)
             {
@@ -357,7 +358,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 Interlocked.CompareExchange(ref _modules, modules, null);
             }
 
-            _modules.TryGetValue(moduleAddress, out ClrModule? module);
+            if (!_modules.TryGetValue(moduleAddress, out ClrModule? module))
+                module = _errorModule ??= new(_heap.Runtime.AppDomains[0], default, null, null, _heap.Runtime.DataTarget.DataReader);
+
             return module;
         }
     }

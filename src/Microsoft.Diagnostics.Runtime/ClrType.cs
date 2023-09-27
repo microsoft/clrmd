@@ -28,8 +28,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         internal IClrTypeHelpers Helpers { get; }
 
-        internal ClrType(IClrTypeHelpers helpers)
+        internal ClrType(ClrModule module, IClrTypeHelpers helpers)
         {
+            Module = module;
             Helpers = helpers ?? throw new ArgumentNullException(nameof(helpers));
         }
 
@@ -82,7 +83,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the module this type is defined in.
         /// </summary>
-        public abstract ClrModule? Module { get; }
+        public ClrModule Module { get; }
 
         /// <summary>
         /// Gets the <see cref="ClrElementType"/> of this Type.  Can return <see cref="ClrElementType.Unknown"/> on error.
@@ -145,7 +146,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!_fields.IsDefault)
                     return _fields;
 
-                if (GetCacheOptions()?.CacheFields ?? false)
+                if (GetCacheOptions().CacheFields)
                     CacheFields();
                 else
                     return Helpers.EnumerateFields(this).OfType<ClrInstanceField>().ToImmutableArray();
@@ -154,7 +155,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        internal CacheOptions? GetCacheOptions() => Module?.AppDomain.Runtime.DataTarget.CacheOptions;
+        internal CacheOptions GetCacheOptions() => Module.AppDomain.Runtime.DataTarget.CacheOptions;
 
         /// <summary>
         /// Gets a list of static fields on this type.  Returns an empty list if there are no fields.
@@ -166,7 +167,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!_staticFields.IsDefault)
                     return _staticFields;
 
-                if (GetCacheOptions()?.CacheFields ?? false)
+                if (GetCacheOptions().CacheFields)
                     CacheFields();
                 else
                     return Helpers.EnumerateFields(this).OfType<ClrStaticField>().ToImmutableArray();
@@ -202,7 +203,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return _methods;
 
                 ImmutableArray<ClrMethod> methods = Helpers.GetMethodsForType(this);
-                if (GetCacheOptions()?.CacheMethods ?? false)
+                if (GetCacheOptions().CacheMethods)
                     _methods = methods;
 
                 return methods;
@@ -313,7 +314,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         ImmutableArray<IClrMethod> IClrType.Methods => Methods.Cast<IClrMethod>().ToImmutableArray();
 
-        IClrModule? IClrType.Module => Module;
+        IClrModule IClrType.Module => Module;
 
         ImmutableArray<IClrStaticField> IClrType.StaticFields => StaticFields.Cast<IClrStaticField>().ToImmutableArray();
 
