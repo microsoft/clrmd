@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         string? Message { get; }
         ImmutableArray<IClrStackFrame> StackTrace { get; }
         IClrThread? Thread { get; }
-        IClrType? Type { get; }
+        IClrType Type { get; }
 
         IClrValue AsObject();
         string ToString();
