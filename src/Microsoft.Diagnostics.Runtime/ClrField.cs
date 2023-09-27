@@ -2,8 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Diagnostics;
 using System.Reflection;
+using System.Threading;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Interfaces;
+using Microsoft.Diagnostics.Runtime.Utilities;
+using FieldInfo = Microsoft.Diagnostics.Runtime.AbstractDac.FieldInfo;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -12,28 +18,120 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public abstract class ClrField : IClrField
     {
+        private string? _name;
+        internal readonly IClrTypeHelpers _helpers;
+        internal readonly FieldInfo _data;
+        private ClrType? _type;
+        private int _attributes = (int)FieldAttributes.ReservedMask;
+
+        internal ClrField(ClrType containingType, ClrType? type, IClrTypeHelpers helpers, in FieldInfo data)
+        {
+            _helpers = helpers;
+            _data = data;
+            ContainingType = containingType;
+            _type = type;
+
+            if (_data.ElementType == ClrElementType.Class && _type != null)
+                _data.ElementType = _type.ElementType;
+
+            DebugOnlyLoadLazyValues();
+        }
+
+        [Conditional("DEBUG")]
+        private void DebugOnlyLoadLazyValues()
+        {
+            InitData(false);
+        }
+
+
         /// <summary>
         /// Gets the <see cref="ClrType"/> containing this field.
         /// </summary>
-        public abstract ClrType ContainingType { get; }
+        public ClrType ContainingType { get; }
 
         IClrType IClrField.ContainingType => ContainingType;
 
         /// <summary>
         /// Gets the name of the field.
         /// </summary>
-        public abstract string? Name { get; }
+
+        public string? Name
+        {
+            get
+            {
+                if (_name is not null)
+                    return _name;
+
+                StringCaching options = ContainingType.Heap.Runtime.DataTarget.CacheOptions.CacheFieldNames;
+                if (options == StringCaching.None)
+                {
+                    MetadataImport? import = ContainingType.Module.MetadataImport;
+                    if (import is null || !_helpers.GetFieldMetadataInfo(import, Token, out FieldMetadataInfo info))
+                        return null;
+
+                    return info.Name;
+                }
+
+                InitData(true);
+                return _name;
+            }
+        }
 
         /// <summary>
         /// Gets the type token of this field.
         /// </summary>
-        public abstract int Token { get; }
+        public int Token => _data.Token;
 
         /// <summary>
         /// Gets the type of the field.  Note this property may return <see langword="null"/> on error.  There is a bug in several versions
         /// of our debugging layer which causes this.  You should always null-check the return value of this field.
         /// </summary>
-        public abstract ClrType? Type { get; }
+        public virtual ClrType? Type
+        {
+            get
+            {
+                if (_type != null)
+                    return _type;
+
+                InitData(false);
+                return _type;
+            }
+        }
+
+        private void InitData(bool forName)
+        {
+            if (!forName && _attributes != (int)FieldAttributes.ReservedMask)
+                return;
+
+            MetadataImport? import = ContainingType.Module.MetadataImport;
+            if (import is null || !_helpers.GetFieldMetadataInfo(import, Token, out FieldMetadataInfo info))
+            {
+                _attributes = 0;
+                return;
+            }
+
+            StringCaching options = ContainingType.Heap.Runtime.DataTarget.CacheOptions.CacheFieldNames;
+            if (info.Name != null)
+            {
+                if (options == StringCaching.Intern)
+                    info.Name = string.Intern(info.Name);
+
+                if (options != StringCaching.None)
+                    _name = info.Name;
+            }
+
+            if (_type is null)
+            {
+                SigParser sigParser = new(info.Signature, info.SignatureSize);
+                if (sigParser.GetCallingConvInfo(out int sigType) && sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD)
+                {
+                    sigParser.SkipCustomModifiers();
+                    _type = ContainingType.Heap.GetOrCreateTypeFromSignature(ContainingType.Module, sigParser, ContainingType.EnumerateGenericParameters(), Array.Empty<ClrGenericParameter>());
+                }
+            }
+
+            Interlocked.Exchange(ref _attributes, (int)info.Attributes);
+        }
 
         IClrType? IClrField.Type => Type;
 
@@ -41,25 +139,25 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the element type of this field.  Note that even when Type is <see langword="null"/>, this should still tell you
         /// the element type of the field.
         /// </summary>
-        public abstract ClrElementType ElementType { get; }
+        public ClrElementType ElementType => _data.ElementType;
 
         /// <summary>
         /// Gets a value indicating whether this field is a primitive (<see cref="int"/>, <see cref="float"/>, etc).
         /// </summary>
         /// <returns>True if this field is a primitive (<see cref="int"/>, <see cref="float"/>, etc), false otherwise.</returns>
-        public virtual bool IsPrimitive => ElementType.IsPrimitive();
+        public bool IsPrimitive => ElementType.IsPrimitive();
 
         /// <summary>
         /// Gets a value indicating whether this field is a value type.
         /// </summary>
         /// <returns>True if this field is a value type, false otherwise.</returns>
-        public virtual bool IsValueType => ElementType.IsValueType();
+        public bool IsValueType => ElementType.IsValueType();
 
         /// <summary>
         /// Gets a value indicating whether this field is an object reference.
         /// </summary>
         /// <returns>True if this field is an object reference, false otherwise.</returns>
-        public virtual bool IsObjectReference => ElementType.IsObjectReference();
+        public bool IsObjectReference => ElementType.IsObjectReference();
 
         /// <summary>
         /// Gets the size of this field.
@@ -69,13 +167,20 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Attributes of this field;
         /// </summary>
-        public abstract FieldAttributes Attributes { get; }
+        public FieldAttributes Attributes
+        {
+            get
+            {
+                InitData(false);
+                return (FieldAttributes)_attributes;
+            }
+        }
 
         /// <summary>
         /// For instance fields, this is the offset of the field within the object.
         /// For static fields this is the offset within the block of memory allocated for the module's static fields.
         /// </summary>
-        public abstract int Offset { get; }
+        public int Offset => _data.Offset;
 
         /// <summary>
         /// Returns a string representation of this object.
