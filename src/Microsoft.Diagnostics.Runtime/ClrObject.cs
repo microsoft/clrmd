@@ -18,6 +18,7 @@ namespace Microsoft.Diagnostics.Runtime
         internal const string RuntimeTypeName = "System.RuntimeType";
 
         private IClrTypeHelpers Helpers => GetTypeOrThrow().Helpers;
+        private IDataReader DataReader => GetTypeOrThrow().Module.DataReader;
 
         /// <summary>
         /// Constructor.
@@ -104,7 +105,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (helpers is null)
                 return default;
 
-            return helpers.DataReader.Read<T>(Address + (ulong)IntPtr.Size);
+            return DataReader.Read<T>(Address + (ulong)IntPtr.Size);
         }
 
         public bool IsException => Type != null && Type.IsException;
@@ -263,7 +264,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrHeap heap = type.Heap;
 
             ulong addr = field.GetAddress(Address);
-            if (!type.Helpers.DataReader.ReadPointer(addr, out ulong obj))
+            if (!DataReader.ReadPointer(addr, out ulong obj))
                 return false;
 
             result = heap.GetObject(obj);
@@ -296,8 +297,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return false;
 
             ulong addr = field.GetAddress(Address);
-            IDataReader dataReader = type.Helpers.DataReader;
-            if (!dataReader.ReadPointer(addr, out ulong strPtr))
+            if (!DataReader.ReadPointer(addr, out ulong strPtr))
                 return false;
 
             if (strPtr == 0)
@@ -324,7 +324,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrHeap heap = type.Heap;
 
             ulong addr = field.GetAddress(Address);
-            if (!type.Helpers.DataReader.ReadPointer(addr, out ulong obj))
+            if (!DataReader.ReadPointer(addr, out ulong obj))
                 return default;
 
             return heap.GetObject(obj);
@@ -468,7 +468,7 @@ namespace Microsoft.Diagnostics.Runtime
         public string? ReadStringField(string fieldName, int maxLength = 4096)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
-            IDataReader dataReader = Helpers.DataReader;
+            IDataReader dataReader = GetTypeOrThrow().Module.DataReader;
             if (!dataReader.ReadPointer(address, out ulong strPtr))
                 return null;
 

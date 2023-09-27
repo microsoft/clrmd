@@ -15,8 +15,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ClrDacType : ClrType
     {
-        private IDataReader DataReader => Helpers.DataReader;
-
         private string? _name;
         private TypeAttributes _attributes;
         private ulong _loaderAllocatorHandle = ulong.MaxValue - 1;
@@ -129,7 +127,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (!ContainsPointers || !_gcDesc.IsEmpty)
                 return _gcDesc;
 
-            IDataReader reader = Helpers.DataReader;
+            IDataReader reader = Module.DataReader;
             if (reader is null)
                 return default;
 
@@ -286,7 +284,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsFinalizeSuppressed(ulong obj)
         {
             // TODO move to ClrObject?
-            uint value = Helpers.DataReader.Read<uint>(obj - 4);
+            uint value = Module.DataReader.Read<uint>(obj - 4);
 
             return (value & FinalizationSuppressedFlag) == FinalizationSuppressedFlag;
         }
@@ -384,7 +382,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             T[] values = new T[count];
             Span<byte> buffer = MemoryMarshal.Cast<T, byte>(values);
 
-            if (DataReader.Read(address, buffer) == buffer.Length)
+            if (Module.DataReader.Read(address, buffer) == buffer.Length)
                 return values;
 
             return null;

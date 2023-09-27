@@ -115,7 +115,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsFinalizeSuppressed(ulong obj)
         {
             // TODO move to ClrObject?
-            uint value = Helpers.DataReader.Read<uint>(obj - 4);
+            uint value = Module.DataReader.Read<uint>(obj - 4);
 
             return (value & FinalizationSuppressedFlag) == FinalizationSuppressedFlag;
         }

@@ -9,8 +9,6 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IClrTypeHelpers
     {
-        IDataReader DataReader { get; }
-
         string? GetTypeName(ulong methodTable);
         string? GetTypeName(MetadataImport metadata, int token);
         ulong GetLoaderAllocatorHandle(ulong mt);

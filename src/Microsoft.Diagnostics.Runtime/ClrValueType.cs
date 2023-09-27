@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public readonly struct ClrValueType : IClrValue
     {
-        private IDataReader DataReader => GetTypeOrThrow().Helpers.DataReader;
+        private IDataReader DataReader => GetTypeOrThrow().Module.DataReader;
         private readonly bool _interior;
 
         /// <summary>
@@ -169,8 +169,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return false;
 
             ulong addr = field.GetAddress(Address);
-            IDataReader dataReader = type.Helpers.DataReader;
-            if (!dataReader.ReadPointer(addr, out ulong strPtr))
+            if (!DataReader.ReadPointer(addr, out ulong strPtr))
                 return false;
 
             if (strPtr == 0)
@@ -278,7 +277,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (helpers is null)
                 return default;
 
-            return helpers.DataReader.Read<T>(Address);
+            return DataReader.Read<T>(Address);
         }
 
         IClrValue IClrValue.ReadObjectField(string fieldName) => ReadObjectField(fieldName);
