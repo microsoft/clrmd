@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _heap = heap;
             _sos = sos;
             _options = options;
-            _objectHelpers = new ClrTypeHelpers(clrDataProcess, sos, sos6, sos8, this, heap, options);
+            _objectHelpers = new ClrTypeHelpers(clrDataProcess, sos, sos6, sos8, this, heap);
 
             _sos.GetCommonMethodTables(out _commonMTs);
             _objectType = CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.ObjectMethodTable, "System.Object") ?? throw new InvalidDataException("Could not create Object type.");

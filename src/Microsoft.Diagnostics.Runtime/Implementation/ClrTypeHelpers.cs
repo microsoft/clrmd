@@ -8,6 +8,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Xml.Linq;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
@@ -27,23 +28,20 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly IClrTypeFactory _typeFactory;
         private readonly IClrMethodHelpers _methodHelpers;
 
-        public CacheOptions CacheOptions { get; }
-
         public ClrHeap Heap { get; }
 
 
         public IDataReader DataReader { get; }
 
-        public ClrTypeHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, IClrTypeFactory typeFactory, ClrHeap heap, CacheOptions cacheOptions)
+        public ClrTypeHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, IClrTypeFactory typeFactory, ClrHeap heap)
         {
             _sos = sos;
             _sos6 = sos6;
             _sos8 = sos8;
             _typeFactory = typeFactory;
-            CacheOptions = cacheOptions;
             Heap = heap;
             DataReader = heap.Runtime.DataTarget.DataReader;
-            _methodHelpers = new ClrMethodHelpers(clrDataProcess, sos, DataReader, cacheOptions);
+            _methodHelpers = new ClrMethodHelpers(clrDataProcess, sos, DataReader);
         }
 
         public string? ReadString(ulong address, int maxLength)
@@ -142,27 +140,27 @@ namespace Microsoft.Diagnostics.Runtime
             return _typeFactory.GetOrCreateType(mt, 0);
         }
 
-        public bool TryGetTypeName(ClrType type, out string? name)
+        public string? GetTypeName(ulong methodTable)
         {
-            name = _sos.GetMethodTableName(type.MethodTable);
-            if (string.IsNullOrWhiteSpace(name))
-                return true;
+            string? name = _sos.GetMethodTableName(methodTable);
+            if (string.IsNullOrWhiteSpace(name) || name == UnloadedTypeName)
+                return null;
 
             if (name == UnloadedTypeName)
-            {
-                string? nameFromToken = GetNameFromToken(type.Module?.MetadataImport, type.MetadataToken);
-                if (nameFromToken is not null)
-                    name = nameFromToken;
-            }
-            else
-            {
-                name = DacNameParser.Parse(name);
-            }
+                return null;
 
-            if (CacheOptions.CacheTypeNames == StringCaching.Intern)
-                name = string.Intern(name);
+            name = DacNameParser.Parse(name);
+            return name;
+        }
 
-            return CacheOptions.CacheTypeNames != StringCaching.None;
+        public string? GetTypeName(MetadataImport import, int token)
+        {
+            string? name = GetNameFromToken(import, token);
+            if (string.IsNullOrWhiteSpace(name))
+                return null;
+
+            name = DacNameParser.Parse(name);
+            return name;
         }
 
         private static string? GetNameFromToken(MetadataImport? import, int token)

@@ -3,16 +3,17 @@
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IClrTypeHelpers
     {
-        CacheOptions CacheOptions { get; }
         ClrHeap Heap { get; }
         IDataReader DataReader { get; }
 
-        bool TryGetTypeName(ClrType type, out string? name);
+        string? GetTypeName(ulong methodTable);
+        string? GetTypeName(MetadataImport metadata, int token);
         ulong GetLoaderAllocatorHandle(ulong mt);
         ulong GetAssemblyLoadContextAddress(ulong mt);
 

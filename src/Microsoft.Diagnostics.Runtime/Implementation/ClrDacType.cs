@@ -54,12 +54,24 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 // over.
                 if (_name == null)
                 {
-                    // GetTypeName returns whether the value should be cached or not.
-                    if (!Helpers.TryGetTypeName(this, out string? name))
-                        return name;
+                    string? name = Helpers.GetTypeName(MethodTable);
+                    if (name is null && MetadataToken != 0)
+                    {
+                        MetadataImport? import = Module?.MetadataImport;
+                        if (import is not null)
+                            name = Helpers.GetTypeName(import, MetadataToken);
+                    }
 
-                    // Cache the result or "string.Empty" for null.
-                    _name = name ?? string.Empty;
+                    name ??= string.Empty;
+
+                    // If we can't determine caching, just cache the type name, it's the right thing to do in most cases
+                    StringCaching? caching = GetCacheOptions()?.CacheTypeNames;
+                    if (caching is null or StringCaching.Cache)
+                        _name = name;
+                    if (caching == StringCaching.Intern)
+                        _name = string.Intern(name);
+                    else
+                        return name.Length != 0 ? name : null;
                 }
 
                 if (_name.Length == 0)

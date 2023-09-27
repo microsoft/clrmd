@@ -11,32 +11,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         private readonly ClrDataProcess _clrDataProcess;
         private readonly SOSDac _sos;
-        private readonly CacheOptions _cacheOptions;
 
         public IDataReader DataReader { get; }
 
-        public ClrMethodHelpers(ClrDataProcess clrDataProcess, SOSDac sos, IDataReader reader, CacheOptions cacheOptions)
+        public ClrMethodHelpers(ClrDataProcess clrDataProcess, SOSDac sos, IDataReader reader)
         {
             _clrDataProcess = clrDataProcess;
             _sos = sos;
-            _cacheOptions = cacheOptions;
             DataReader = reader;
         }
 
-        public bool GetSignature(ulong methodDesc, out string? signature)
-        {
-            signature = _sos.GetMethodDescName(methodDesc);
-
-            // Always cache an empty name, no reason to keep requesting it.
-            // Implementations may ignore this (ClrmdMethod doesn't cache null signatures).
-            if (string.IsNullOrWhiteSpace(signature))
-                return true;
-
-            if (_cacheOptions.CacheMethodNames == StringCaching.Intern)
-                signature = string.Intern(signature);
-
-            return _cacheOptions.CacheMethodNames != StringCaching.None;
-        }
+        public string? GetSignature(ulong methodDesc) => _sos.GetMethodDescName(methodDesc);
 
         public ulong GetILForModule(ulong address, uint rva) => _sos.GetILForModule(address, rva);
 

@@ -23,6 +23,11 @@ namespace Microsoft.Diagnostics.Runtime
         protected ImmutableArray<ClrStaticField> _staticFields;
         protected ImmutableArray<ClrMethod> _methods;
 
+        /// <summary>
+        /// Used to provide functionality to ClrObject.
+        /// </summary>
+        internal IClrTypeHelpers Helpers { get; }
+
         internal ClrType(IClrTypeHelpers helpers)
         {
             Helpers = helpers ?? throw new ArgumentNullException(nameof(helpers));
@@ -140,7 +145,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!_fields.IsDefault)
                     return _fields;
 
-                if (Helpers.CacheOptions.CacheFields)
+                if (GetCacheOptions()?.CacheFields ?? false)
                     CacheFields();
                 else
                     return Helpers.EnumerateFields(this).OfType<ClrInstanceField>().ToImmutableArray();
@@ -148,6 +153,8 @@ namespace Microsoft.Diagnostics.Runtime
                 return _fields;
             }
         }
+
+        internal CacheOptions? GetCacheOptions() => Module?.AppDomain.Runtime.DataTarget.CacheOptions;
 
         /// <summary>
         /// Gets a list of static fields on this type.  Returns an empty list if there are no fields.
@@ -159,7 +166,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!_staticFields.IsDefault)
                     return _staticFields;
 
-                if (Helpers.CacheOptions.CacheFields)
+                if (GetCacheOptions()?.CacheFields ?? false)
                     CacheFields();
                 else
                     return Helpers.EnumerateFields(this).OfType<ClrStaticField>().ToImmutableArray();
@@ -195,7 +202,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return _methods;
 
                 ImmutableArray<ClrMethod> methods = Helpers.GetMethodsForType(this);
-                if (Helpers.CacheOptions.CacheMethods)
+                if (GetCacheOptions()?.CacheMethods ?? false)
                     _methods = methods;
 
                 return methods;
@@ -295,11 +302,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <returns>A string representation of this object.</returns>
         public override string? ToString() => Name;
-
-        /// <summary>
-        /// Used to provide functionality to ClrObject.
-        /// </summary>
-        internal IClrTypeHelpers Helpers { get; }
 
         IClrType? IClrType.BaseType => BaseType;
 

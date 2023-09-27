@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     {
         IDataReader DataReader { get; }
 
-        bool GetSignature(ulong methodDesc, out string? signature);
+        string? GetSignature(ulong methodDesc);
         ImmutableArray<ILToNativeMap> GetILMap(ClrMethod method);
         ulong GetILForModule(ulong address, uint rva);
     }

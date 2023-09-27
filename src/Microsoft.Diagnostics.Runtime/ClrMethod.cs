@@ -75,14 +75,23 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                if (_signature != null)
-                    return _signature;
+                if (_signature is null)
+                {
+                    string? signature = _helpers.GetSignature(MethodDesc);
 
-                // returns whether we should cache the signature or not.
-                if (_helpers.GetSignature(MethodDesc, out string? signature))
-                    _signature = signature;
+                    StringCaching? caching = Type.GetCacheOptions()?.CacheMethodNames ?? StringCaching.Cache;
+                    if (caching is StringCaching.Intern)
+                        _signature = signature is not null && signature.Length > 0 ? string.Intern(signature) : string.Empty;
+                    else if (caching is StringCaching.Cache)
+                        _signature = signature ?? string.Empty;
+                    else
+                        return signature;
+                }
 
-                return signature;
+                if (_signature.Length == 0)
+                    return null;
+
+                return _signature;
             }
         }
 
