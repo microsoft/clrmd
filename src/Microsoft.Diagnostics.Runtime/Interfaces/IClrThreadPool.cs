@@ -43,13 +43,14 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         /// </summary>
         int ActiveWorkerThreads { get; }
 
-        int ThreadCount { get; }
+        int WindowsThreadPoolThreadCount { get; }
         int TotalCompletionPorts { get; }
         int FreeCompletionPorts { get; }
         int MaxFreeCompletionPorts { get; }
         int CompletionPortCurrentLimit { get; }
         int MinCompletionPorts { get; }
         int MaxCompletionPorts { get; }
+        bool HasLegacyData { get; }
 
         /// <summary>
         /// The number of retired worker threads.

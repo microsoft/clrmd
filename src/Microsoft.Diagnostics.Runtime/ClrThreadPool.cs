@@ -63,13 +63,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public int ActiveWorkerThreads { get; }
 
-        public int ThreadCount { get; }
+        public int WindowsThreadPoolThreadCount { get; }
         public int TotalCompletionPorts { get; }
         public int FreeCompletionPorts { get; }
         public int MaxFreeCompletionPorts { get; }
         public int CompletionPortCurrentLimit { get; }
         public int MinCompletionPorts { get; }
         public int MaxCompletionPorts { get; }
+        public bool HasLegacyData { get; }
 
         /// <summary>
         /// The number of retired worker threads.
@@ -85,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime
             _legacyData = helpers;
 
             ThreadPoolData tpData = default;
-            bool hasLegacyData = _legacyData is not null && _legacyData.GetLegacyThreadPoolData(out tpData);
+            HasLegacyData = _legacyData is not null && _legacyData.GetLegacyThreadPoolData(out tpData);
 
             ClrAppDomain domain = GetDomain();
 
@@ -98,12 +99,12 @@ namespace Microsoft.Diagnostics.Runtime
             UsingPortableThreadPool = usingPortableThreadPool;
             UsingWindowsThreadPool = usingWindowsThreadPool;
 
-            Initialized = UsingPortableThreadPool || UsingWindowsThreadPool || hasLegacyData;
+            Initialized = UsingPortableThreadPool || UsingWindowsThreadPool || HasLegacyData;
 
             if (UsingWindowsThreadPool)
             {
                 ClrStaticField threadCountField = windowsThreadPoolType!.GetStaticFieldByName("s_threadCount")!;
-                ThreadCount = threadCountField.Read<int>(domain);
+                WindowsThreadPoolThreadCount = threadCountField.Read<int>(domain);
             }
             else if (UsingPortableThreadPool)
             {
@@ -122,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 RetiredWorkerThreads = 0;
             }
-            else if (hasLegacyData)
+            else if (HasLegacyData)
             {
                 CpuUtilization = tpData.CpuUtilization;
                 MinThreads = tpData.MinLimitTotalWorkerThreads;
