@@ -12,6 +12,7 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using FieldInfo = Microsoft.Diagnostics.Runtime.AbstractDac.FieldInfo;
 using MethodInfo = Microsoft.Diagnostics.Runtime.AbstractDac.MethodInfo;
+using TypeInfo = Microsoft.Diagnostics.Runtime.AbstractDac.TypeInfo;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -27,7 +28,6 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ClrHeap Heap { get; }
 
-
         public IDataReader DataReader { get; }
 
         public ClrTypeHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, IClrTypeFactory typeFactory, ClrHeap heap)
@@ -39,6 +39,29 @@ namespace Microsoft.Diagnostics.Runtime
             _typeFactory = typeFactory;
             Heap = heap;
             DataReader = heap.Runtime.DataTarget.DataReader;
+        }
+
+        public bool GetTypeInfo(ulong methodTable, out TypeInfo info)
+        {
+            if (!_sos.GetMethodTableData(methodTable, out MethodTableData data))
+            {
+                info = default;
+                return false;
+            }
+
+            info = new()
+            {
+                MetadataToken = unchecked((int)data.Token),
+                StaticSize = unchecked((int)data.BaseSize),
+                ComponentSize = unchecked((int)data.ComponentSize),
+                ContainsPointers = data.ContainsPointers != 0,
+                IsShared = data.Shared != 0,
+                MethodCount = data.NumMethods,
+                MethodTable = methodTable,
+                ParentMethodTable = data.ParentMethodTable,
+                ModuleAddress = data.Module,
+            };
+            return true;
         }
 
         public string? GetTypeName(ulong methodTable)
@@ -137,20 +160,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public IEnumerable<ClrField> EnumerateFields(ClrType type)
-        {
-            int baseFieldCount = 0;
-            IEnumerable<ClrField> result = Enumerable.Empty<ClrField>();
-            if (type.BaseType is not null)
-            {
-                result = result.Concat(type.BaseType.Fields);
-                baseFieldCount = type.BaseType.Fields.Length;
-            }
-
-            return result.Concat(EnumerateFieldsWorker(type, baseFieldCount));
-        }
-
-        private IEnumerable<ClrField> EnumerateFieldsWorker(ClrType type, int baseFieldCount)
+        public IEnumerable<FieldInfo> EnumerateFields(TypeInfo type, int baseFieldCount)
         {
             if (!_sos.GetFieldInfo(type.MethodTable, out MethodTableFieldInfo fieldInfo) || fieldInfo.FirstFieldAddress == 0)
                 yield break;
@@ -161,21 +171,27 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!_sos.GetFieldData(nextField, out FieldData dacFieldData))
                     break;
 
-                FieldInfo fi = new()
+                if (dacFieldData.IsContextLocal == 0)
                 {
-                    FieldDesc = nextField,
-                    ElementType = (ClrElementType)dacFieldData.ElementType,
-                    Offset = dacFieldData.Offset <= int.MaxValue ? (int)dacFieldData.Offset : int.MaxValue,
-                    Token = dacFieldData.FieldToken <= int.MaxValue ? (int)dacFieldData.FieldToken : int.MaxValue
-                };
-
-                if (dacFieldData.IsContextLocal == 0 && dacFieldData.IsThreadLocal == 0)
-                {
-                    ClrType? fieldType = _typeFactory.GetOrCreateType(dacFieldData.TypeMethodTable, 0);
-                    if (dacFieldData.IsStatic != 0)
-                        yield return new ClrStaticField(type, fieldType, this, fi);
+                    FieldKind kind;
+                    if (dacFieldData.IsThreadLocal != 0)
+                        kind = FieldKind.ThreadStatic;
+                    else if (dacFieldData.IsStatic != 0)
+                        kind = FieldKind.Static;
+                    else if (dacFieldData.IsContextLocal != 0)
+                        kind = FieldKind.Unsupported;
                     else
-                        yield return new ClrInstanceField(type, fieldType, this, fi);
+                        kind = FieldKind.Instance;
+
+                    yield return new()
+                    {
+                        FieldDesc = nextField,
+                        MethodTable = dacFieldData.TypeMethodTable,
+                        ElementType = (ClrElementType)dacFieldData.ElementType,
+                        Offset = dacFieldData.Offset <= int.MaxValue ? (int)dacFieldData.Offset : int.MaxValue,
+                        Token = dacFieldData.FieldToken <= int.MaxValue ? (int)dacFieldData.FieldToken : int.MaxValue,
+                        Kind = kind,
+                    };
                 }
 
                 nextField = dacFieldData.NextField;
@@ -201,28 +217,14 @@ namespace Microsoft.Diagnostics.Runtime
             return true;
         }
 
-        public ulong GetStaticFieldAddress(ClrStaticField field, ulong appDomain)
+        public ulong GetStaticFieldAddress(in AppDomainInfo appDomain, in ClrModuleInfo module, in TypeInfo type, in FieldInfo field)
         {
-            if (appDomain == 0)
+            if (appDomain.Address == 0)
                 return 0;
 
-            ClrType type = field.ContainingType;
-            ClrModule? module = type.Module;
-            if (module is null)
-                return 0;
-
-            bool shared = type.IsShared;
-
-            // TODO: Perf and testing
-            if (shared)
+            if (type.IsShared)
             {
-                if (!_sos.GetModuleData(module.Address, out ModuleData data))
-                    return 0;
-
-                if (!_sos.GetDomainLocalModuleDataFromAppDomain(appDomain, (int)data.ModuleID, out DomainLocalModuleData dlmd))
-                    return 0;
-
-                if (!shared && !IsInitialized(dlmd, type.MetadataToken))
+                if (!_sos.GetDomainLocalModuleDataFromAppDomain(appDomain.Address, (int)module.Id, out DomainLocalModuleData dlmd))
                     return 0;
 
                 if (field.ElementType.IsPrimitive())
@@ -233,6 +235,9 @@ namespace Microsoft.Diagnostics.Runtime
             else
             {
                 if (!_sos.GetDomainLocalModuleDataFromModule(module.Address, out DomainLocalModuleData dlmd))
+                    return 0;
+
+                if (!IsInitialized(dlmd, type.MetadataToken))
                     return 0;
 
                 if (field.ElementType.IsPrimitive())

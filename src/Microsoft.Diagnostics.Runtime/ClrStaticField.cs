@@ -37,9 +37,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the address of the static field's value in memory.
         /// </summary>
         /// <returns>The address of the field's value.</returns>
-        public ulong GetAddress(ClrAppDomain appDomain) => _helpers.GetStaticFieldAddress(this, appDomain.Address);
+        public ulong GetAddress(ClrAppDomain appDomain) => _helpers.GetStaticFieldAddress(appDomain.AppDomainInfo, ContainingType.Module.ModuleInfo, ContainingType.TypeInfo, FieldInfo);
 
-        public ulong GetAddress(IClrAppDomain appDomain) => _helpers.GetStaticFieldAddress(this, appDomain.Address);
+        public ulong GetAddress(IClrAppDomain appDomain) => 0;
 
         /// <summary>
         /// Reads the value of the field as an unmanaged struct or primitive type.

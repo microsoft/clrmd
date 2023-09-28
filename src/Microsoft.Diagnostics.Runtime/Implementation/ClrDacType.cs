@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using TypeInfo = Microsoft.Diagnostics.Runtime.AbstractDac.TypeInfo;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -78,37 +79,26 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override int StaticSize { get; }
-        public override int ComponentSize { get; }
         public override ClrType? ComponentType => _componentType;
         public override GCDesc GCDesc => GetOrCreateGCDesc();
 
         public override ClrElementType ElementType => GetElementType();
 
-        public override ulong MethodTable { get; }
         public override ClrHeap Heap { get; }
 
         public override ClrType? BaseType { get; }
 
-        public override bool ContainsPointers { get; }
-        public override bool IsShared { get; }
 
-        public ClrDacType(IClrTypeHelpers helpers, ClrHeap heap, ClrType? baseType, ClrType? componentType, ClrModule module, ulong methodTable, in MethodTableData data, string? name = null)
-            : base(module, helpers)
+        public ClrDacType(IClrTypeHelpers helpers, ClrHeap heap, ClrType? baseType, ClrType? componentType, ClrModule module, in TypeInfo data, string? name = null)
+            : base(module, data, helpers)
         {
-            MethodTable = methodTable;
             Heap = heap;
             BaseType = baseType;
             _componentType = componentType;
-            MetadataToken = unchecked((int)data.Token);
-            StaticSize = unchecked((int)data.BaseSize);
-            ComponentSize = unchecked((int)data.ComponentSize);
-            ContainsPointers = data.ContainsPointers != 0;
-            IsShared = data.Shared != 0;
             _name = name;
 
             // If there are no methods, preempt the expensive work to create methods
-            if (data.NumMethods == 0)
+            if (data.MethodCount == 0)
                 _methods = ImmutableArray<ClrMethod>.Empty;
 
             DebugOnlyLoadLazyValues();
@@ -153,8 +143,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // Construct the gc desc
             return _gcDesc = new GCDesc(buffer);
         }
-
-        public override int MetadataToken { get; }
 
         public override IEnumerable<ClrInterface> EnumerateInterfaces()
         {

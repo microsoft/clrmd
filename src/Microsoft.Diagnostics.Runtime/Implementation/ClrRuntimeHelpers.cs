@@ -318,6 +318,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 Address = moduleAddress,
                 Assembly = data.Assembly,
                 AssemblyName = _sos.GetAssemblyName(data.Assembly),
+                Id = data.ModuleID,
                 IsPEFile = data.IsPEFile != 0,
                 ImageBase = data.ILBase,
                 MetadataAddress = data.MetadataStart,

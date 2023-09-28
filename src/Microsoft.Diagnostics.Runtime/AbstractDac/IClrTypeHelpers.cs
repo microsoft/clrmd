@@ -10,6 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IClrTypeHelpers
     {
+        bool GetTypeInfo(ulong methodTable, out TypeInfo info);
         string? GetTypeName(ulong methodTable);
         string? GetTypeName(MetadataImport metadata, int token);
         ulong GetLoaderAllocatorHandle(ulong mt);
@@ -17,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 
         bool GetObjectArrayInformation(ulong objRef, out ObjectArrayInformation data);
         IEnumerable<MethodInfo> EnumerateMethodsForType(ulong methodTable);
-        IEnumerable<ClrField> EnumerateFields(ClrType type);
+        IEnumerable<FieldInfo> EnumerateFields(TypeInfo type, int baseFieldCount);
 
         // Method helpers
         string? GetMethodSignature(ulong methodDesc);
@@ -26,7 +27,20 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 
         // Field helpers
         bool GetFieldMetadataInfo(MetadataImport import, int token, out FieldMetadataInfo info);
-        ulong GetStaticFieldAddress(ClrStaticField field, ulong appDomain);
+        ulong GetStaticFieldAddress(in AppDomainInfo appDomain, in ClrModuleInfo module, in TypeInfo typeInfo, in FieldInfo field);
+    }
+
+    internal struct TypeInfo
+    {
+        public ulong MethodTable { get; set; }
+        public ulong ModuleAddress { get; set; }
+        public ulong ParentMethodTable { get; set; }
+        public int MetadataToken { get; set; }
+        public int StaticSize { get; set; }
+        public int ComponentSize { get; set; }
+        public bool IsShared { get; set; }
+        public int MethodCount { get; set; }
+        public bool ContainsPointers { get; set; }
     }
 
     internal struct ObjectArrayInformation
@@ -51,8 +65,18 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     {
         public ulong FieldDesc { get; set; }
         public int Token { get; set; }
+        public ulong MethodTable { get; set; }
         public ClrElementType ElementType { get; set; }
         public int Offset { get; set; }
+        public FieldKind Kind { get; set; }
+    }
+
+    internal enum FieldKind
+    {
+        Unsupported,
+        Instance,
+        Static,
+        ThreadStatic
     }
 
     internal struct FieldMetadataInfo

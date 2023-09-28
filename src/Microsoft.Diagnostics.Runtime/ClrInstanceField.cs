@@ -2,13 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Diagnostics;
-using System.Reflection;
-using System.Threading;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
-using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Interfaces;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using FieldInfo = Microsoft.Diagnostics.Runtime.AbstractDac.FieldInfo;
 
 namespace Microsoft.Diagnostics.Runtime

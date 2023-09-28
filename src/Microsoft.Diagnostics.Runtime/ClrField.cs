@@ -20,20 +20,21 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private string? _name;
         internal readonly IClrTypeHelpers _helpers;
-        internal readonly FieldInfo _data;
         private ClrType? _type;
         private int _attributes = (int)FieldAttributes.ReservedMask;
 
-        internal ClrField(ClrType containingType, ClrType? type, IClrTypeHelpers helpers, in FieldInfo data)
+        internal FieldInfo FieldInfo { get; }
+
+        internal ClrField(ClrType containingType, ClrType? type, IClrTypeHelpers helpers, FieldInfo data)
         {
             _helpers = helpers;
-            _data = data;
             ContainingType = containingType;
             _type = type;
 
-            if (_data.ElementType == ClrElementType.Class && _type != null)
-                _data.ElementType = _type.ElementType;
+            if (data.ElementType == ClrElementType.Class && _type != null)
+                data.ElementType = _type.ElementType;
 
+            FieldInfo = data;
             DebugOnlyLoadLazyValues();
         }
 
@@ -80,7 +81,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the type token of this field.
         /// </summary>
-        public int Token => _data.Token;
+        public int Token => FieldInfo.Token;
 
         /// <summary>
         /// Gets the type of the field.  Note this property may return <see langword="null"/> on error.  There is a bug in several versions
@@ -139,7 +140,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the element type of this field.  Note that even when Type is <see langword="null"/>, this should still tell you
         /// the element type of the field.
         /// </summary>
-        public ClrElementType ElementType => _data.ElementType;
+        public ClrElementType ElementType => FieldInfo.ElementType;
 
         /// <summary>
         /// Gets a value indicating whether this field is a primitive (<see cref="int"/>, <see cref="float"/>, etc).
@@ -180,7 +181,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// For instance fields, this is the offset of the field within the object.
         /// For static fields this is the offset within the block of memory allocated for the module's static fields.
         /// </summary>
-        public int Offset => _data.Offset;
+        public int Offset => FieldInfo.Offset;
 
         /// <summary>
         /// Returns a string representation of this object.

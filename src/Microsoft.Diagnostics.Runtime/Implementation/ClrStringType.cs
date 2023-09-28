@@ -12,28 +12,27 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ClrStringType : ClrType
     {
-        public ClrStringType(ClrModule module, IClrTypeHelpers helpers, ClrHeap heap, ulong mt, int token)
-            : base(module, helpers)
+        public ClrStringType(ClrModule module, IClrTypeHelpers helpers, ClrHeap heap, ulong objMt, ulong mt, int token)
+            : base(module, new()
+            {
+                ParentMethodTable = objMt,
+                MethodTable = mt,
+                MetadataToken = token,
+                IsShared = true,
+                StaticSize = IntPtr.Size + sizeof(int),
+                ComponentSize = sizeof(char),
+            }, helpers)
         {
             Heap = heap;
-            MethodTable = mt;
-
-            MetadataToken = token;
         }
 
         public override GCDesc GCDesc => default;
-
-        public override ulong MethodTable { get; }
-
-        public override int MetadataToken { get; }
 
         public override string? Name => "System.String";
 
         public override ClrHeap Heap { get; }
 
         public override ClrElementType ElementType => ClrElementType.String;
-
-        public override bool ContainsPointers => false;
 
         public override bool IsFinalizable => true;
 
@@ -45,13 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsArray => false;
 
-        public override int StaticSize => IntPtr.Size + sizeof(int);
-
-        public override int ComponentSize => sizeof(char);
-
         public override bool IsEnum => false;
-
-        public override bool IsShared => true;
 
         public override bool IsString => true;
 
