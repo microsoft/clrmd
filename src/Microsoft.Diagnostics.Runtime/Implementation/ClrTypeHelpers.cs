@@ -24,21 +24,16 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly SOSDac _sos;
         private readonly SOSDac6? _sos6;
         private readonly SOSDac8? _sos8;
-        private readonly IClrTypeFactory _typeFactory;
-
-        public ClrHeap Heap { get; }
 
         public IDataReader DataReader { get; }
 
-        public ClrTypeHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, IClrTypeFactory typeFactory, ClrHeap heap)
+        public ClrTypeHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, IDataReader dataReader)
         {
             _clrDataProcess = clrDataProcess;
             _sos = sos;
             _sos6 = sos6;
             _sos8 = sos8;
-            _typeFactory = typeFactory;
-            Heap = heap;
-            DataReader = heap.Runtime.DataTarget.DataReader;
+            DataReader = dataReader;
         }
 
         public bool GetTypeInfo(ulong methodTable, out TypeInfo info)

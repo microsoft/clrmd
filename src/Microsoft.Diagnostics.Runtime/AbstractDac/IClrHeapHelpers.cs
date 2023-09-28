@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IClrHeapHelpers
     {
-        IClrTypeFactory CreateTypeFactory(ClrHeap heap);
+        ClrTypeFactory CreateTypeFactory(ClrHeap heap);
 
         bool IsServerMode { get; }
         bool AreGCStructuresValid { get; }
