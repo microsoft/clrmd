@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly uint _firstChar = (uint)IntPtr.Size + 4;
         private readonly uint _stringLength = (uint)IntPtr.Size;
 
-        private readonly IClrTypeFactory _typeFactory;
+        private readonly ClrTypeFactory _typeFactory;
         private readonly IMemoryReader _memoryReader;
         private volatile Dictionary<ulong, ulong>? _allocationContexts;
         private volatile (ulong Source, ulong Target)[]? _dependentHandles;

@@ -15,10 +15,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ClrHeapHelpers : IClrHeapHelpers
     {
-        private readonly ClrDataProcess _clrDataProcess;
+        private readonly IClrRuntimeHelpers _runtimeHelpers;
         private readonly SOSDac _sos;
         private readonly SOSDac8? _sos8;
-        private readonly SOSDac6? _sos6;
         private readonly SosDac12? _sos12;
         private readonly IMemoryReader _memoryReader;
         private readonly CacheOptions _cacheOptions;
@@ -38,12 +37,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public bool AreGCStructuresValid => _gcInfo.GCStructuresValid != 0;
 
-        public ClrHeapHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, SosDac12? sos12, IMemoryReader reader, CacheOptions cacheOptions)
+        public ClrHeapHelpers(IClrRuntimeHelpers runtime, SOSDac sos, SOSDac8? sos8, SosDac12? sos12, IMemoryReader reader, CacheOptions cacheOptions)
         {
-            _clrDataProcess = clrDataProcess;
+            _runtimeHelpers = runtime;
             _sos = sos;
             _sos8 = sos8;
-            _sos6 = sos6;
             _sos12 = sos12;
             _memoryReader = reader;
             _cacheOptions = cacheOptions;
@@ -52,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 _gcInfo = default; // Ensure _gcInfo.GCStructuresValid == false.
         }
 
-        public IClrTypeFactory CreateTypeFactory(ClrHeap heap) => new ClrTypeFactory(heap, _clrDataProcess, _sos, _sos6, _sos8, _cacheOptions);
+        public ClrTypeFactory CreateTypeFactory(ClrHeap heap) => new(heap, _runtimeHelpers.GetClrTypeHelpers(), _sos, _cacheOptions);
 
         public IEnumerable<MemoryRange> EnumerateThreadAllocationContexts()
         {

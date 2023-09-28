@@ -12,7 +12,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal sealed class ClrTypeFactory : IClrTypeFactory
+    internal sealed class ClrTypeFactory
     {
         private const int mdtTypeDef = 0x02000000;
         private const int mdtTypeRef = 0x01000000;
@@ -29,12 +29,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private ClrModule? _errorModule;
         private ClrType? _errorType;
 
-        public ClrTypeFactory(ClrHeap heap, ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, CacheOptions options)
+        public ClrTypeFactory(ClrHeap heap, IClrTypeHelpers typeHelpers, SOSDac sos, CacheOptions options)
         {
             _heap = heap;
             _sos = sos;
             _options = options;
-            _typeHelpers = new ClrTypeHelpers(clrDataProcess, sos, sos6, sos8, this, heap);
+            _typeHelpers = typeHelpers;
 
             _sos.GetCommonMethodTables(out _commonMTs);
             _objectType = CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.ObjectMethodTable, "System.Object") ?? throw new InvalidDataException("Could not create Object type.");
@@ -278,9 +278,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return GetOrCreateType(mt, 0);
         }
 
+#pragma warning disable CA1822 // Mark members as static
         public ClrType? GetOrCreateArrayType(ClrType innerType, int ranks) => innerType != null ? new ClrConstructedType(innerType, ranks, pointer: false) : null;
 
         public ClrType? GetOrCreatePointerType(ClrType innerType, int depth) => innerType != null ? new ClrConstructedType(innerType, depth, pointer: true) : null;
+#pragma warning restore CA1822 // Mark members as static
 
         private ClrType? TryGetComponentType(ulong obj)
         {

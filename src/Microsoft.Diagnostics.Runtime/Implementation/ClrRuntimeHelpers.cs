@@ -63,7 +63,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         // Heaps
         ////////////////////////////////////////////////////////////////////////////////
         #region Heaps
-        public IClrHeapHelpers GetHeapHelpers() => new ClrHeapHelpers(_dac, _sos, _sos6, _sos8, _sos12, _dataReader, _cacheOptions);
+        public IClrHeapHelpers GetHeapHelpers() => new ClrHeapHelpers(this, _sos, _sos8, _sos12, _dataReader, _cacheOptions);
+
+        public IClrTypeHelpers GetClrTypeHelpers() => new ClrTypeHelpers(_dac, _sos, _sos6, _sos8, _dataReader);
         #endregion
 
         ////////////////////////////////////////////////////////////////////////////////

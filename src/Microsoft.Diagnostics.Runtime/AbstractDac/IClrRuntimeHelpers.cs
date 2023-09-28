@@ -10,6 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     {
         // Heap
         IClrHeapHelpers GetHeapHelpers();
+        IClrTypeHelpers GetClrTypeHelpers();
 
         // Threads
         IClrThreadHelpers ThreadHelpers { get; }
