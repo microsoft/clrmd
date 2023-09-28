@@ -18,11 +18,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         public ClrGenericParameter GenericParameter { get; }
 
-        public ClrGenericType(IClrTypeHelpers helpers, ClrHeap heap, ClrModule? module, ClrGenericParameter clrGenericParameter)
-            : base(helpers)
+        public ClrGenericType(IClrTypeHelpers helpers, ClrHeap heap, ClrModule module, ClrGenericParameter clrGenericParameter)
+            : base(module, default, helpers)
         {
             Heap = heap ?? throw new ArgumentNullException(nameof(heap));
-            Module = module;
             GenericParameter = clrGenericParameter;
             _fields = ImmutableArray<ClrInstanceField>.Empty;
             _staticFields = ImmutableArray<ClrStaticField>.Empty;
@@ -30,15 +29,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override GCDesc GCDesc => default;
 
-        public override ulong MethodTable => 0;
-
-        public override int MetadataToken => GenericParameter.MetadataToken;
-
         public override string? Name => GenericParameter.Name;
 
         public override ClrHeap Heap { get; }
-
-        public override ClrModule? Module { get; }
 
         public override ClrElementType ElementType => ClrElementType.Var;
 
@@ -52,13 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsArray => false;
 
-        public override int StaticSize => 0;
-
-        public override int ComponentSize => 0;
-
         public override bool IsEnum => false;
-
-        public override bool IsShared => false;
 
         public override ClrEnum AsEnum() => throw new InvalidOperationException();
 

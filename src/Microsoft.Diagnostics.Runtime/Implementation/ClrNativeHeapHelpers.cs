@@ -52,11 +52,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }).ToArray();
         }
 
-        public IEnumerable<ClrNativeHeapInfo> EnumerateNativeHeaps(ClrJitManager jitManager)
+        public IEnumerable<ClrNativeHeapInfo> EnumerateJitManagerHeaps(ulong jitManager)
         {
             List<ClrNativeHeapInfo>? codeLoaderHeaps = null;
 
-            foreach (JitCodeHeapInfo mem in _sos.GetCodeHeapList(jitManager.Address))
+            foreach (JitCodeHeapInfo mem in _sos.GetCodeHeapList(jitManager))
             {
                 if (mem.Kind == CodeHeapKind.Loader)
                 {
@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public IEnumerable<ClrNativeHeapInfo> EnumerateNativeHeaps(ulong domain)
+        public IEnumerable<ClrNativeHeapInfo> EnumerateDomainHeaps(ulong domain)
         {
             if (domain == 0)
                 yield break;

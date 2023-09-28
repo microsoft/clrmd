@@ -7,10 +7,15 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
+using Microsoft.Diagnostics.Runtime.Utilities;
+
+// Disable warning for ClrObject ctor.  TODO:  Remove this in 3.1.
+#pragma warning disable CS0618 // Type or member is obsolete
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -21,6 +26,9 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private const int EnumerateBufferSize = 0x10000;
         private const int MaxGen2ObjectSize = 85000;
+
+        private readonly uint _firstChar = (uint)IntPtr.Size + 4;
+        private readonly uint _stringLength = (uint)IntPtr.Size;
 
         private readonly IClrTypeFactory _typeFactory;
         private readonly IMemoryReader _memoryReader;
@@ -44,6 +52,12 @@ namespace Microsoft.Diagnostics.Runtime
             StringType = _typeFactory.StringType;
             ExceptionType = _typeFactory.ExceptionType;
         }
+
+        /// <summary>
+        /// An internal only instance of ClrType used to mark that we could not create a valid type...
+        /// but we still need to access the properties off of ClrType, such IClrTypeHelpers, IDataReader, etc.
+        /// </summary>
+        internal ClrType ErrorType => _typeFactory.ErrorType;
 
         internal IClrHeapHelpers Helpers { get; }
 
@@ -117,9 +131,27 @@ namespace Microsoft.Diagnostics.Runtime
         /// The returned object will have a <see langword="null"/> <see cref="ClrObject.Type"/> if objRef does not point to
         /// a valid managed object.
         /// </remarks>
-        /// <param name="objRef"></param>
+        /// <param name="objRef">The address of an object.</param>
         /// <returns></returns>
-        public ClrObject GetObject(ulong objRef) => new(objRef, GetObjectType(objRef));
+        public ClrObject GetObject(ulong objRef) => new(objRef, GetObjectType(objRef) ?? ErrorType);
+
+        /// <summary>
+        /// Gets a <see cref="ClrObject"/> for the given address on this heap.
+        /// </summary>
+        /// <remarks>
+        /// The returned object will have a <see langword="null"/> <see cref="ClrObject.Type"/> if objRef does not point to
+        /// a valid managed object.
+        /// </remarks>
+        /// <param name="objRef">The address of an object.</param>
+        /// <param name="type">The type of the object.</param>
+        /// <returns></returns>
+        public ClrObject GetObject(ulong objRef, ClrType type)
+        {
+            if (type is null)
+                throw new ArgumentNullException(nameof(type));
+
+            return new(objRef, type);
+        }
 
         /// <summary>
         /// Obtains the type of an object at the given address.  Returns <see langword="null"/> if objRef does not point to
@@ -334,7 +366,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 ClrType? type = _typeFactory.GetOrCreateType(mt, obj);
-                ClrObject result = new(obj, type);
+                ClrObject result = new(obj, type ?? ErrorType);
                 yield return result;
                 if (type is null)
                 {
@@ -856,7 +888,7 @@ namespace Microsoft.Diagnostics.Runtime
                         while (index < dependent.Length && dependent[index].Source == obj)
                         {
                             ulong dependantObj = dependent[index++].Target;
-                            yield return new(dependantObj, GetObjectType(dependantObj));
+                            yield return new(dependantObj, GetObjectType(dependantObj) ?? ErrorType);
                         }
                     }
                 }
@@ -866,7 +898,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 ulong la = _memoryReader.ReadPointer(type.LoaderAllocatorHandle);
                 if (la != 0)
-                    yield return new(la, GetObjectType(la));
+                    yield return new(la, GetObjectType(la) ?? ErrorType);
             }
 
             if (type.ContainsPointers)
@@ -892,7 +924,7 @@ namespace Microsoft.Diagnostics.Runtime
                     if (read > IntPtr.Size)
                     {
                         foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
-                            yield return new(reference, GetObjectType(reference));
+                            yield return new(reference, GetObjectType(reference) ?? ErrorType);
                     }
 
                     ArrayPool<byte>.Shared.Return(buffer);
@@ -932,7 +964,7 @@ namespace Microsoft.Diagnostics.Runtime
                         while (index < dependent.Length && dependent[index].Source == obj)
                         {
                             ulong dependantObj = dependent[index++].Target;
-                            ClrObject target = new(dependantObj, GetObjectType(dependantObj));
+                            ClrObject target = new(dependantObj, GetObjectType(dependantObj) ?? ErrorType);
                             yield return ClrReference.CreateFromDependentHandle(target);
                         }
                     }
@@ -963,7 +995,7 @@ namespace Microsoft.Diagnostics.Runtime
                     {
                         foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
                         {
-                            ClrObject target = new(reference, GetObjectType(reference));
+                            ClrObject target = new(reference, GetObjectType(reference) ?? ErrorType);
 
                             DebugOnly.Assert(offset >= IntPtr.Size);
                             yield return ClrReference.CreateFromFieldOrArray(target, type, offset - IntPtr.Size);
@@ -1101,6 +1133,11 @@ namespace Microsoft.Diagnostics.Runtime
             return _subHeapData;
         }
 
+
+        internal ClrType? GetOrCreateTypeFromSignature(ClrModule module, SigParser sigParser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters)
+        {
+            return _typeFactory.GetOrCreateTypeFromSignature(module, sigParser, typeParameters, methodParameters);
+        }
         public ClrType? GetTypeByMethodTable(ulong methodTable) => _typeFactory.GetOrCreateType(methodTable, 0);
 
         public ClrType? GetTypeByName(string name) => Runtime.EnumerateModules().OrderBy(m => m.Name ?? "").Select(m => GetTypeByName(m, name)).Where(r => r != null).FirstOrDefault();
@@ -1149,7 +1186,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrObject obj = GetObject(objAddress);
             if (obj.IsValid && !obj.IsException)
                 return null;
-            return new ClrException(obj.Type?.Helpers ?? FreeType.Helpers, thread, obj);
+            return new ClrException(thread, obj);
         }
 
         IEnumerable<IClrValue> IClrHeap.EnumerateFinalizableObjects() => EnumerateFinalizableObjects().Cast<IClrValue>();
@@ -1183,6 +1220,34 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ArgumentException($"{nameof(name)} cannot be empty");
 
             return FindTypeName(module.EnumerateTypeDefToMethodTableMap(), name);
+        }
+
+        internal string? ReadString(ulong stringPtr, int maxLength)
+        {
+            if (stringPtr == 0)
+                return null;
+
+            int length = _memoryReader.Read<int>(stringPtr + _stringLength);
+            length = Math.Min(length, maxLength);
+            if (length == 0)
+                return string.Empty;
+
+            ulong data = stringPtr + _firstChar;
+            char[] buffer = ArrayPool<char>.Shared.Rent(length);
+            try
+            {
+                Span<char> charSpan = new Span<char>(buffer).Slice(0, length);
+                Span<byte> bytes = MemoryMarshal.AsBytes(charSpan);
+                int read = _memoryReader.Read(data, bytes);
+                if (read == 0)
+                    return null;
+
+                return new string(buffer, 0, read / sizeof(char));
+            }
+            finally
+            {
+                ArrayPool<char>.Shared.Return(buffer);
+            }
         }
 
         private sealed class SubHeapData

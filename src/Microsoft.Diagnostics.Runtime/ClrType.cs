@@ -8,6 +8,9 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.Interfaces;
+using FieldInfo = Microsoft.Diagnostics.Runtime.AbstractDac.FieldInfo;
+using MethodInfo = Microsoft.Diagnostics.Runtime.AbstractDac.MethodInfo;
+using TypeInfo = Microsoft.Diagnostics.Runtime.AbstractDac.TypeInfo;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -23,9 +26,17 @@ namespace Microsoft.Diagnostics.Runtime
         protected ImmutableArray<ClrStaticField> _staticFields;
         protected ImmutableArray<ClrMethod> _methods;
 
-        internal ClrType(IClrTypeHelpers helpers)
+        /// <summary>
+        /// Used to provide functionality to ClrObject.
+        /// </summary>
+        internal IClrTypeHelpers Helpers { get; }
+        internal TypeInfo TypeInfo { get; }
+
+        internal ClrType(ClrModule module, in TypeInfo info, IClrTypeHelpers helpers)
         {
+            Module = module;
             Helpers = helpers ?? throw new ArgumentNullException(nameof(helpers));
+            TypeInfo = info;
         }
 
         /// <summary>
@@ -36,12 +47,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the MethodTable of this type (this is the TypeHandle if this is a type without a MethodTable).
         /// </summary>
-        public abstract ulong MethodTable { get; }
+        public ulong MethodTable => TypeInfo.MethodTable;
 
         /// <summary>
         /// Gets the metadata token of this type.
         /// </summary>
-        public abstract int MetadataToken { get; }
+        public int MetadataToken => TypeInfo.MetadataToken;
 
         /// <summary>
         /// Gets the name of this type.
@@ -52,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets a value indicating whether the type <b>can</b> contain references to other objects.  This is used in optimizations
         /// and 'true' can always be returned safely.
         /// </summary>
-        public virtual bool ContainsPointers => true;
+        public bool ContainsPointers => TypeInfo.ContainsPointers;
 
         /// <summary>
         /// Gets a value indicating whether this is a collectible type.
@@ -77,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the module this type is defined in.
         /// </summary>
-        public abstract ClrModule? Module { get; }
+        public ClrModule Module { get; }
 
         /// <summary>
         /// Gets the <see cref="ClrElementType"/> of this Type.  Can return <see cref="ClrElementType.Unknown"/> on error.
@@ -140,14 +151,12 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!_fields.IsDefault)
                     return _fields;
 
-                if (Helpers.CacheOptions.CacheFields)
-                    CacheFields();
-                else
-                    return Helpers.EnumerateFields(this).OfType<ClrInstanceField>().ToImmutableArray();
-
-                return _fields;
+                CacheFields(out ImmutableArray<ClrInstanceField> fields, out _);
+                return fields;
             }
         }
+
+        internal CacheOptions GetCacheOptions() => Module.AppDomain.Runtime.DataTarget.CacheOptions;
 
         /// <summary>
         /// Gets a list of static fields on this type.  Returns an empty list if there are no fields.
@@ -159,29 +168,45 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!_staticFields.IsDefault)
                     return _staticFields;
 
-                if (Helpers.CacheOptions.CacheFields)
-                    CacheFields();
-                else
-                    return Helpers.EnumerateFields(this).OfType<ClrStaticField>().ToImmutableArray();
+                CacheFields(out _, out ImmutableArray<ClrStaticField> staticFields);
+                return staticFields;
 
-                return _staticFields;
             }
         }
 
-        private void CacheFields()
+        private void CacheFields(out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> staticFields)
         {
-            ImmutableArray<ClrInstanceField>.Builder instanceFields = ImmutableArray.CreateBuilder<ClrInstanceField>();
-            ImmutableArray<ClrStaticField>.Builder staticFields = ImmutableArray.CreateBuilder<ClrStaticField>();
-            foreach (ClrField field in Helpers.EnumerateFields(this))
+            ImmutableArray<ClrInstanceField>.Builder instanceFieldsBuilder = ImmutableArray.CreateBuilder<ClrInstanceField>();
+            ImmutableArray<ClrStaticField>.Builder staticFieldsBuilder = ImmutableArray.CreateBuilder<ClrStaticField>();
+
+            ImmutableArray<ClrInstanceField>? baseFields = BaseType?.Fields;
+            if (baseFields.HasValue)
             {
-                if (field is ClrInstanceField instanceField)
-                    instanceFields.Add(instanceField);
-                else if (field is ClrStaticField staticField)
-                    staticFields.Add(staticField);
+                instanceFieldsBuilder.AddRange(baseFields.Value);
             }
 
-            _fields = instanceFields.ToImmutableArray();
-            _staticFields = staticFields.ToImmutableArray();
+            ClrHeap heap = Module.Heap;
+            foreach (FieldInfo field in Helpers.EnumerateFields(TypeInfo, baseFields.HasValue ? baseFields.Value.Length : 0))
+            {
+                if (field.Kind is not FieldKind.Instance and not FieldKind.Static)
+                    continue;
+
+                ClrType? type = heap.GetTypeByMethodTable(field.MethodTable);
+                if (field.Kind == FieldKind.Static)
+                    staticFieldsBuilder.Add(new ClrStaticField(this, type, Helpers, field));
+                else if (field.Kind == FieldKind.Instance)
+                    instanceFieldsBuilder.Add(new ClrInstanceField(this, type, Helpers, field));
+            }
+
+
+            fields = instanceFieldsBuilder.MoveOrCopyToImmutable();
+            staticFields = staticFieldsBuilder.MoveOrCopyToImmutable();
+
+            if (GetCacheOptions().CacheFields)
+            {
+                _fields = fields;
+                _staticFields = staticFields;
+            }
         }
 
         /// <summary>
@@ -194,8 +219,12 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!_methods.IsDefault)
                     return _methods;
 
-                ImmutableArray<ClrMethod> methods = Helpers.GetMethodsForType(this);
-                if (Helpers.CacheOptions.CacheMethods)
+                ImmutableArray<ClrMethod>.Builder builder = ImmutableArray.CreateBuilder<ClrMethod>();
+                foreach (MethodInfo mi in Helpers.EnumerateMethodsForType(MethodTable))
+                    builder.Add(new(Helpers, this, mi));
+
+                ImmutableArray<ClrMethod> methods = builder.MoveOrCopyToImmutable();
+                if (GetCacheOptions().CacheMethods)
                     _methods = methods;
 
                 return methods;
@@ -249,12 +278,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the static size of objects of this type when they are created on the CLR heap.
         /// </summary>
-        public abstract int StaticSize { get; }
+        public int StaticSize => TypeInfo.StaticSize;
 
         /// <summary>
         /// Gets the size of elements of this object.
         /// </summary>
-        public abstract int ComponentSize { get; }
+        public int ComponentSize => TypeInfo.ComponentSize;
 
         /// <summary>
         /// Gets a value indicating whether this type is <see cref="string"/>.
@@ -288,18 +317,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets a value indicating whether this type is shared across multiple AppDomains.
         /// </summary>
-        public abstract bool IsShared { get; }
+        public bool IsShared => TypeInfo.IsShared;
 
         /// <summary>
         /// Returns a string representation of this object.
         /// </summary>
         /// <returns>A string representation of this object.</returns>
         public override string? ToString() => Name;
-
-        /// <summary>
-        /// Used to provide functionality to ClrObject.
-        /// </summary>
-        internal IClrTypeHelpers Helpers { get; }
 
         IClrType? IClrType.BaseType => BaseType;
 
@@ -311,7 +335,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         ImmutableArray<IClrMethod> IClrType.Methods => Methods.Cast<IClrMethod>().ToImmutableArray();
 
-        IClrModule? IClrType.Module => Module;
+        IClrModule IClrType.Module => Module;
 
         ImmutableArray<IClrStaticField> IClrType.StaticFields => StaticFields.Cast<IClrStaticField>().ToImmutableArray();
 

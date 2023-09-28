@@ -21,41 +21,34 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private readonly IClrModuleHelpers? _helpers;
         private readonly IClrNativeHeapHelpers? _nativeHeapHelpers;
-        private readonly IDataReader _dataReader;
         private int _debugMode = int.MaxValue;
         private MetadataImport? _metadata;
         private PdbInfo? _pdb;
         private (ulong MethodTable, int Token)[]? _typeDefMap;
         private (ulong MethodTable, int Token)[]? _typeRefMap;
         private ulong? _size;
+        private ClrHeap? _heap;
+
+        internal ClrModuleInfo ModuleInfo { get; }
+        internal ClrHeap Heap => _heap ??= AppDomain.Runtime.Heap;
+        internal IDataReader DataReader { get; }
 
         internal ClrModule(ClrAppDomain domain, in ClrModuleInfo data, IClrModuleHelpers? moduleHelpers, IClrNativeHeapHelpers? nativeHeapHelpers, IDataReader dataReader)
         {
             _helpers = moduleHelpers;
             _nativeHeapHelpers = nativeHeapHelpers;
-            _dataReader = dataReader;
+            DataReader = dataReader;
             AppDomain = domain;
-            AssemblyAddress = data.Assembly;
-            Address = data.Address;
-            IsPEFile = data.IsPEFile;
-            ImageBase = data.ImageBase;
-            MetadataAddress = data.MetadataAddress;
-            MetadataLength = data.MetadataSize;
-            IsDynamic = data.IsDynamic;
-            ThunkHeap = data.ThunkHeap;
-            LoaderAllocator = data.LoaderAllocator;
-            Layout = data.Layout;
-            Name = data.FileName ?? data.AssemblyName;
-            AssemblyName = data.AssemblyName ?? data.FileName;
+            ModuleInfo = data;
 
-            if (data.Size != 0)
-                _size = data.Size;
+            if (ModuleInfo.Size != 0)
+                _size = ModuleInfo.Size;
         }
 
         /// <summary>
         /// Gets the address of the clr!Module object.
         /// </summary>
-        public ulong Address { get; }
+        public ulong Address => ModuleInfo.Address;
 
         /// <summary>
         /// Gets the AppDomain parent of this module.
@@ -67,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the name of the assembly that this module is defined in.
         /// </summary>
-        public string? AssemblyName { get; }
+        public string? AssemblyName => ModuleInfo.AssemblyName ?? ModuleInfo.FileName;
 
         /// <summary>
         /// Gets an identifier to uniquely represent this assembly.  This value is not used by any other
@@ -75,34 +68,34 @@ namespace Microsoft.Diagnostics.Runtime
         /// for this, as reflection and other special assemblies can share the same name, but actually be
         /// different.)
         /// </summary>
-        public ulong AssemblyAddress { get; }
+        public ulong AssemblyAddress => ModuleInfo.Assembly;
 
         /// <summary>
         /// Gets the name of the module.
         /// </summary>
-        public string? Name { get; }
+        public string? Name => ModuleInfo.FileName ?? ModuleInfo.AssemblyName;
 
         /// <summary>
         /// Gets a value indicating whether this module was created through <c>System.Reflection.Emit</c> (and thus has no associated
         /// file).
         /// </summary>
-        public bool IsDynamic { get; }
+        public bool IsDynamic => ModuleInfo.IsDynamic;
 
         /// <summary>
         /// Gets a value indicating whether this module is an actual PEFile on disk.
         /// </summary>
-        public bool IsPEFile { get; }
+        public bool IsPEFile => ModuleInfo.IsPEFile;
 
         /// <summary>
         /// Gets the base of the image loaded into memory.  This may be 0 if there is not a physical
         /// file backing it.
         /// </summary>
-        public ulong ImageBase { get; }
+        public ulong ImageBase => ModuleInfo.ImageBase;
 
         /// <summary>
         /// Returns the in memory layout for PEImages.
         /// </summary>
-        public ModuleLayout Layout { get; }
+        public ModuleLayout Layout => ModuleInfo.Layout;
 
         /// <summary>
         /// Gets the size of the image in memory.
@@ -113,12 +106,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the location of metadata for this module in the process's memory.  This is useful if you
         /// need to manually create IMetaData* objects.
         /// </summary>
-        public ulong MetadataAddress { get; }
+        public ulong MetadataAddress => ModuleInfo.MetadataAddress;
 
         /// <summary>
         /// Gets the length of the metadata for this module.
         /// </summary>
-        public ulong MetadataLength { get; }
+        public ulong MetadataLength => ModuleInfo.MetadataSize;
 
         /// <summary>
         /// Gets the <c>IMetaDataImport</c> interface for this module.  Note that this API does not provide a
@@ -130,14 +123,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// The ThunkHeap associated with this Module.  This is only available when debugging a .Net 8 or
         /// later runtime.
         /// </summary>
-        public ulong ThunkHeap { get; }
+        public ulong ThunkHeap => ModuleInfo.ThunkHeap;
 
         /// <summary>
         /// The LoaderAllocator associated with this Module.  This is only available when debugging a .Net 8 or
         /// later runtime.  Note that this LoaderAllocator is usually share with its parent domain, except in
         /// rare circumstances, like for collectable assemblies.
         /// </summary>
-        public ulong LoaderAllocator { get; }
+        public ulong LoaderAllocator => ModuleInfo.LoaderAllocator;
 
         /// <summary>
         /// Enumerates the native heaps associated with the ThunkHeap.
@@ -277,7 +270,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (_size is ulong sz)
                 size = (long)sz;
 
-            ReadVirtualStream stream = new(_dataReader, (long)ImageBase, size > 0 ? size : int.MaxValue);
+            ReadVirtualStream stream = new(DataReader, (long)ImageBase, size > 0 ? size : int.MaxValue);
             return new(stream, leaveOpen: false, isVirtual: virt);
         }
 

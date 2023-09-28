@@ -10,13 +10,12 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using TypeInfo = Microsoft.Diagnostics.Runtime.AbstractDac.TypeInfo;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ClrDacType : ClrType
     {
-        private IDataReader DataReader => Helpers.DataReader;
-
         private string? _name;
         private TypeAttributes _attributes;
         private ulong _loaderAllocatorHandle = ulong.MaxValue - 1;
@@ -54,12 +53,23 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 // over.
                 if (_name == null)
                 {
-                    // GetTypeName returns whether the value should be cached or not.
-                    if (!Helpers.TryGetTypeName(this, out string? name))
-                        return name;
+                    string? name = Helpers.GetTypeName(MethodTable);
+                    if (name is null && MetadataToken != 0)
+                    {
+                        MetadataImport? import = Module.MetadataImport;
+                        if (import is not null)
+                            name = Helpers.GetTypeName(import, MetadataToken);
+                    }
 
-                    // Cache the result or "string.Empty" for null.
-                    _name = name ?? string.Empty;
+                    name ??= string.Empty;
+
+                    StringCaching caching = GetCacheOptions().CacheTypeNames;
+                    if (caching is StringCaching.Cache)
+                        _name = name;
+                    if (caching is StringCaching.Intern)
+                        _name = string.Intern(name);
+                    else
+                        return name.Length != 0 ? name : null;
                 }
 
                 if (_name.Length == 0)
@@ -69,39 +79,26 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public override int StaticSize { get; }
-        public override int ComponentSize { get; }
         public override ClrType? ComponentType => _componentType;
-        public override ClrModule? Module { get; }
         public override GCDesc GCDesc => GetOrCreateGCDesc();
 
         public override ClrElementType ElementType => GetElementType();
 
-        public override ulong MethodTable { get; }
         public override ClrHeap Heap { get; }
 
         public override ClrType? BaseType { get; }
 
-        public override bool ContainsPointers { get; }
-        public override bool IsShared { get; }
 
-        public ClrDacType(IClrTypeHelpers helpers, ClrHeap heap, ClrType? baseType, ClrType? componentType, ClrModule? module, ulong methodTable, in MethodTableData data, string? name = null)
-            : base(helpers)
+        public ClrDacType(IClrTypeHelpers helpers, ClrHeap heap, ClrType? baseType, ClrType? componentType, ClrModule module, in TypeInfo data, string? name = null)
+            : base(module, data, helpers)
         {
-            MethodTable = methodTable;
             Heap = heap;
             BaseType = baseType;
             _componentType = componentType;
-            Module = module;
-            MetadataToken = unchecked((int)data.Token);
-            StaticSize = unchecked((int)data.BaseSize);
-            ComponentSize = unchecked((int)data.ComponentSize);
-            ContainsPointers = data.ContainsPointers != 0;
-            IsShared = data.Shared != 0;
             _name = name;
 
             // If there are no methods, preempt the expensive work to create methods
-            if (data.NumMethods == 0)
+            if (data.MethodCount == 0)
                 _methods = ImmutableArray<ClrMethod>.Empty;
 
             DebugOnlyLoadLazyValues();
@@ -120,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (!ContainsPointers || !_gcDesc.IsEmpty)
                 return _gcDesc;
 
-            IDataReader reader = Helpers.DataReader;
+            IDataReader reader = Module.DataReader;
             if (reader is null)
                 return default;
 
@@ -147,11 +144,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return _gcDesc = new GCDesc(buffer);
         }
 
-        public override int MetadataToken { get; }
-
         public override IEnumerable<ClrInterface> EnumerateInterfaces()
         {
-            MetadataImport? import = Module?.MetadataImport;
+            MetadataImport? import = Module.MetadataImport;
             if (import is null)
                 yield break;
 
@@ -277,7 +272,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsFinalizeSuppressed(ulong obj)
         {
             // TODO move to ClrObject?
-            uint value = Helpers.DataReader.Read<uint>(obj - 4);
+            uint value = Module.DataReader.Read<uint>(obj - 4);
 
             return (value & FinalizationSuppressedFlag) == FinalizationSuppressedFlag;
         }
@@ -328,20 +323,25 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 ClrType? componentType = ComponentType;
 
-                ulong dataPointer = Helpers.GetObjectDataPointer(objRef);
-                if (dataPointer > 0)
+                if (Helpers.GetObjectArrayInformation(objRef, out ObjectArrayInformation data))
                 {
-                    _baseArrayOffset = (int)(dataPointer - objRef);
-                    DebugOnly.Assert(_baseArrayOffset >= 0);
-                }
-                else if (componentType != null)
-                {
-                    if (!componentType.IsObjectReference)
-                        _baseArrayOffset = IntPtr.Size * 2;
+                    if (data.DataPointer > 0)
+                    {
+                        _baseArrayOffset = data.DataPointer;
+                    }
+                    else if (componentType != null)
+                    {
+                        if (!componentType.IsObjectReference)
+                            _baseArrayOffset = IntPtr.Size * 2;
+                    }
+                    else
+                    {
+                        _baseArrayOffset = int.MinValue;
+                    }
                 }
                 else
                 {
-                    return 0;
+                    _baseArrayOffset = int.MinValue;
                 }
             }
 
@@ -363,7 +363,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             else
             {
                 // Slow path, we need to get the element type of the array.
-                cet = Helpers.GetObjectElementType(objRef);
+                if (!Helpers.GetObjectArrayInformation(objRef, out ObjectArrayInformation data))
+                    return null;
+
+                cet = data.ComponentType;
             }
 
             if (cet == ClrElementType.Unknown)
@@ -375,7 +378,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             T[] values = new T[count];
             Span<byte> buffer = MemoryMarshal.Cast<T, byte>(values);
 
-            if (DataReader.Read(address, buffer) == buffer.Length)
+            if (Module.DataReader.Read(address, buffer) == buffer.Length)
                 return values;
 
             return null;
@@ -389,7 +392,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (_attributes != 0 || Module is null)
                 return;
 
-            MetadataImport? import = Module?.MetadataImport;
+            MetadataImport? import = Module.MetadataImport;
             if (import is null)
             {
                 _attributes = (TypeAttributes)0x70000000;

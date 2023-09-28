@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         int MetadataToken { get; }
         ImmutableArray<IClrMethod> Methods { get; }
         ulong MethodTable { get; }
-        IClrModule? Module { get; }
+        IClrModule Module { get; }
         string? Name { get; }
         ImmutableArray<IClrStaticField> StaticFields { get; }
         int StaticSize { get; }

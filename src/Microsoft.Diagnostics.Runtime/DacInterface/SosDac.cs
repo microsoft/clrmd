@@ -293,7 +293,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return "Unknown Frame";
         }
 
-        public HResult GetFieldInfo(ulong mt, out FieldInfo data)
+        public HResult GetFieldInfo(ulong mt, out MethodTableFieldInfo data)
         {
             return VTable.GetMethodTableFieldData(Self, mt, out data);
         }
@@ -821,7 +821,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, int> GetMethodTableName;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out MethodTableData, int> GetMethodTableData;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, uint, out ClrDataAddress, int> GetMethodTableSlot;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out FieldInfo, int> GetMethodTableFieldData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out MethodTableFieldInfo, int> GetMethodTableFieldData;
         private readonly IntPtr GetMethodTableTransparencyData;
 
         // EEClass

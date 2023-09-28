@@ -16,16 +16,13 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private readonly IClrNativeHeapHelpers? _nativeHeapHelpers;
 
+        internal AppDomainInfo AppDomainInfo { get; }
+
         internal ClrAppDomain(ClrRuntime runtime, AppDomainInfo info, IClrNativeHeapHelpers? nativeHeapHelpers)
         {
             _nativeHeapHelpers = nativeHeapHelpers;
+            AppDomainInfo = info;
             Runtime = runtime;
-            Address = info.Address;
-            Id = info.Id;
-            Name = info.Name;
-            ConfigurationFile = info.ConfigFile;
-            ApplicationBase = info.ApplicationBase;
-            LoaderAllocator = info.LoaderAllocator;
         }
 
         public bool Equals(IClrAppDomain? other) => other is not null && other.Address == Address;
@@ -57,17 +54,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets address of the AppDomain.
         /// </summary>
-        public ulong Address { get; }
+        public ulong Address => AppDomainInfo.Address;
 
         /// <summary>
         /// Gets the AppDomain's ID.
         /// </summary>
-        public int Id { get; }
+        public int Id => AppDomainInfo.Id;
 
         /// <summary>
         /// Gets the name of the AppDomain, as specified when the domain was created.
         /// </summary>
-        public string? Name { get; }
+        public string? Name => AppDomainInfo.Name;
 
         /// <summary>
         /// Gets a list of modules loaded into this AppDomain.
@@ -78,27 +75,27 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the config file used for the AppDomain.  This may be <see langword="null"/> if there was no config file
         /// loaded, or if the targeted runtime does not support enumerating that data.
         /// </summary>
-        public string? ConfigurationFile { get; }
+        public string? ConfigurationFile => AppDomainInfo.ConfigFile;
 
         /// <summary>
         /// Gets the base directory for this AppDomain.  This may return <see langword="null"/> if the targeted runtime does
         /// not support enumerating this information.
         /// </summary>
-        public string? ApplicationBase { get; }
+        public string? ApplicationBase => AppDomainInfo.ApplicationBase;
 
         /// <summary>
         /// Returns the LoaderAllocator for this AppDomain.  This is used to debug some CLR internal state
         /// and isn't generally useful for most developers.  This field is only available when debugging
         /// .Net 8+ runtimes.
         /// </summary>
-        public ulong LoaderAllocator { get; }
+        public ulong LoaderAllocator =>  AppDomainInfo.Address;
 
         /// <summary>
         /// Enumerates the native heaps associated with this AppDomain.  Note that this may also enumerate
         /// the same heaps as other domains if they share the same LoaderAllocator (especially SystemDomain).
         /// </summary>
         /// <returns>An enumerable of native heaps associated with this AppDomain.</returns>
-        public IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorHeaps() => _nativeHeapHelpers?.EnumerateNativeHeaps(Address) ?? Enumerable.Empty<ClrNativeHeapInfo>();
+        public IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorHeaps() => _nativeHeapHelpers?.EnumerateDomainHeaps(Address) ?? Enumerable.Empty<ClrNativeHeapInfo>();
 
         /// <summary>
         /// To string override.

@@ -8,6 +8,7 @@ using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
+using MethodInfo = Microsoft.Diagnostics.Runtime.AbstractDac.MethodInfo;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -19,18 +20,18 @@ namespace Microsoft.Diagnostics.Runtime
         IEquatable<ClrMethod>, IClrMethod
 #nullable restore
     {
-        private readonly IClrMethodHelpers _helpers;
+        private readonly IClrTypeHelpers _helpers;
         private string? _signature;
         private MethodAttributes? _attributes;
 
-        internal ClrMethod(IClrMethodHelpers helpers, ClrType type, ulong md, int token, MethodCompilationType compilationType, in HotColdRegions regions)
+        internal ClrMethod(IClrTypeHelpers helpers, ClrType type, in MethodInfo info)
         {
             _helpers = helpers;
             Type = type;
-            MethodDesc = md;
-            MetadataToken = token;
-            HotColdInfo = regions;
-            CompilationType = compilationType;
+            MethodDesc = info.MethodDesc;
+            MetadataToken = info.Token;
+            HotColdInfo = info.HotCold;
+            CompilationType = info.CompilationType;
         }
 
         /// <summary>
@@ -75,14 +76,23 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                if (_signature != null)
-                    return _signature;
+                if (_signature is null)
+                {
+                    string? signature = _helpers.GetMethodSignature(MethodDesc);
 
-                // returns whether we should cache the signature or not.
-                if (_helpers.GetSignature(MethodDesc, out string? signature))
-                    _signature = signature;
+                    StringCaching caching = Type.GetCacheOptions().CacheMethodNames;
+                    if (caching is StringCaching.Intern)
+                        _signature = signature is not null && signature.Length > 0 ? string.Intern(signature) : string.Empty;
+                    else if (caching is StringCaching.Cache)
+                        _signature = signature ?? string.Empty;
+                    else
+                        return signature;
+                }
 
-                return signature;
+                if (_signature.Length == 0)
+                    return null;
+
+                return _signature;
             }
         }
 
@@ -118,8 +128,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ILInfo? GetILInfo()
         {
-            IDataReader dataReader = _helpers.DataReader;
-            ClrModule? module = Type.Module;
+            ClrModule module = Type.Module;
+            IDataReader dataReader = module.DataReader;
             if (module is null)
                 return null;
 
@@ -170,7 +180,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the IL to native offset mapping.
         /// </summary>
-        public ImmutableArray<ILToNativeMap> ILOffsetMap => _helpers.GetILMap(this);
+        public ImmutableArray<ILToNativeMap> ILOffsetMap => _helpers.GetILMap(NativeCode, HotColdInfo);
 
         /// <summary>
         /// Gets the metadata token of the current method.
@@ -189,7 +199,7 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (!_attributes.HasValue)
-                    _attributes = Type.Module?.MetadataImport?.GetMethodAttributes(MetadataToken) ?? default;
+                    _attributes = Type.Module.MetadataImport?.GetMethodAttributes(MetadataToken) ?? default;
 
                 return _attributes.Value;
             }

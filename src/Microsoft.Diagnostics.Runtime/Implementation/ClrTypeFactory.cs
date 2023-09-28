@@ -25,14 +25,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly CommonMethodTables _commonMTs;
         private readonly ClrType _objectType;
         private Dictionary<ulong, ClrModule>? _modules;
-        private readonly IClrTypeHelpers _objectHelpers;
+        private readonly IClrTypeHelpers _typeHelpers;
+        private ClrModule? _errorModule;
+        private ClrType? _errorType;
 
         public ClrTypeFactory(ClrHeap heap, ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, CacheOptions options)
         {
             _heap = heap;
             _sos = sos;
             _options = options;
-            _objectHelpers = new ClrTypeHelpers(clrDataProcess, sos, sos6, sos8, this, heap, options);
+            _typeHelpers = new ClrTypeHelpers(clrDataProcess, sos, sos6, sos8, this, heap);
 
             _sos.GetCommonMethodTables(out _commonMTs);
             _objectType = CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.ObjectMethodTable, "System.Object") ?? throw new InvalidDataException("Could not create Object type.");
@@ -53,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     if (_sos.GetMethodTableData(_commonMTs.StringMethodTable, out MethodTableData mtd))
                         token = (int)mtd.Token;
 
-                    stringType = new ClrStringType(_objectHelpers, _heap, _commonMTs.StringMethodTable, token);
+                    stringType = new ClrStringType(_heap.Runtime.BaseClassLibrary, _typeHelpers, _heap, _commonMTs.ObjectMethodTable, _commonMTs.StringMethodTable, token);
                 }
 
                 return stringType;
@@ -65,10 +67,23 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public ClrType ObjectType => _objectType;
 
         public ClrType ExceptionType => CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.ExceptionMethodTable, "System.Exception") ?? _objectType;
-
-        public ClrType? CreateSystemType(ClrHeap heap, ClrModule? bcl, ulong mt, string typeName)
+        public ClrType ErrorType
         {
-            _sos.GetMethodTableData(mt, out MethodTableData mtd);
+            get
+            {
+                if (_errorType is null)
+                {
+                    ClrDacType e = new ClrDacType(_typeHelpers, _heap, null, null, _heap.Runtime.BaseClassLibrary, default);
+                    Interlocked.CompareExchange(ref _errorType, e, null);
+                }
+
+                return _errorType;
+            }
+        }
+
+        public ClrType? CreateSystemType(ClrHeap heap, ClrModule bcl, ulong mt, string typeName)
+        {
+            _typeHelpers.GetTypeInfo(mt, out TypeInfo mtd);
 
             ClrType? baseType = null;
             if (mtd.ParentMethodTable != 0)
@@ -78,7 +93,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         throw new InvalidOperationException($"Base type for '{typeName}' was not pre-created from MethodTable {mtd.ParentMethodTable:x}.");
             }
 
-            ClrDacType result = new(_objectHelpers, heap, baseType, null, bcl, mt, mtd, typeName);
+            ClrDacType result = new(_typeHelpers, heap, baseType, null, bcl, mtd, typeName);
 
             // Regardless of caching options, we always cache important system types and basic types
             lock (_types)
@@ -104,17 +119,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return existing;
             }
 
-            if (!_sos.GetMethodTableData(mt, out MethodTableData mtd))
+            if (!_typeHelpers.GetTypeInfo(mt, out TypeInfo mtd))
                 return null;
 
             ClrType? baseType = GetOrCreateType(mtd.ParentMethodTable, 0);
-            ClrModule? module = GetModule(mtd.Module);
+            ClrModule module = GetModule(mtd.ModuleAddress);
             ClrType? componentType = null;
 
             if (obj != 0 && mtd.ComponentSize != 0)
                 componentType = TryGetComponentType(obj);
 
-            ClrType result = new ClrDacType(_objectHelpers, _heap, baseType, componentType, module, mt, mtd);
+            ClrType result = new ClrDacType(_typeHelpers, _heap, baseType, componentType, module, mtd);
             if (_options.CacheTypes)
             {
                 lock (_types)
@@ -133,7 +148,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public ClrType? GetOrCreateTypeFromSignature(ClrModule? module, SigParser parser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters)
+        public ClrType? GetOrCreateTypeFromSignature(ClrModule module, SigParser parser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters)
         {
             // ECMA 335 - II.23.2.12 - Type
 
@@ -220,7 +235,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (index < 0 || index >= param.Length)
                     return null;
 
-                return new ClrGenericType(_objectHelpers, _heap, module, param[index]);
+                return new ClrGenericType(_typeHelpers, _heap, module, param[index]);
             }
 
             if (etype == ClrElementType.Pointer || etype == ClrElementType.ByRef)
@@ -346,10 +361,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (result is not null)
                 return result;
 
-            return basicTypes[index] = new ClrPrimitiveType(_objectHelpers, bcl, _heap, basicType);
+            return basicTypes[index] = new ClrPrimitiveType(_typeHelpers, bcl, _heap, basicType);
         }
 
-        private ClrModule? GetModule(ulong moduleAddress)
+        private ClrModule GetModule(ulong moduleAddress)
         {
             if (_modules is null)
             {
@@ -357,7 +372,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 Interlocked.CompareExchange(ref _modules, modules, null);
             }
 
-            _modules.TryGetValue(moduleAddress, out ClrModule? module);
+            if (!_modules.TryGetValue(moduleAddress, out ClrModule? module))
+                module = _errorModule ??= new(_heap.Runtime.AppDomains[0], default, null, null, _heap.Runtime.DataTarget.DataReader);
+
             return module;
         }
     }

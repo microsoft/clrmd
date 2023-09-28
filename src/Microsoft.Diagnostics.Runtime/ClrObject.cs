@@ -17,17 +17,21 @@ namespace Microsoft.Diagnostics.Runtime
     {
         internal const string RuntimeTypeName = "System.RuntimeType";
 
+        private readonly ClrType? _type;
+
         private IClrTypeHelpers Helpers => GetTypeOrThrow().Helpers;
+        private IDataReader DataReader => GetTypeOrThrow().Module.DataReader;
 
         /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="address">The address of the object.</param>
         /// <param name="type">The concrete type of the object.</param>
+        [Obsolete("Use ClrHeap.GetObject instead.")]
         public ClrObject(ulong address, ClrType? type)
         {
             Address = address;
-            Type = type;
+            _type = type;
         }
 
         /// <summary>
@@ -104,7 +108,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (helpers is null)
                 return default;
 
-            return helpers.DataReader.Read<T>(Address + (ulong)IntPtr.Size);
+            return DataReader.Read<T>(Address + (ulong)IntPtr.Size);
         }
 
         public bool IsException => Type != null && Type.IsException;
@@ -117,7 +121,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (Type is null || !Type.IsException)
                 return null;
 
-            return new ClrException(Helpers, null, this);
+            return new ClrException(null, this);
         }
 
         /// <summary>
@@ -128,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the type of the object.
         /// </summary>
-        public ClrType? Type { get; }
+        public ClrType? Type => _type is null || _type.Heap.ErrorType == _type ? null : _type;
 
         IClrType? IClrValue.Type => Type;
 
@@ -183,7 +187,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsNull || !IsValid || !HasComCallableWrapper)
                 return null;
 
-            return Helpers.CreateCCWForObject(Address);
+            return GetTypeOrThrow().Heap.Runtime.CreateCCWForObject(Address);
         }
 
         /// <summary>
@@ -195,7 +199,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsNull || !IsValid)
                 return null;
 
-            return Helpers.CreateRCWForObject(Address);
+            return GetTypeOrThrow().Heap.Runtime.CreateRCWForObject(Address);
         }
 
         /// <summary>
@@ -263,7 +267,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrHeap heap = type.Heap;
 
             ulong addr = field.GetAddress(Address);
-            if (!type.Helpers.DataReader.ReadPointer(addr, out ulong obj))
+            if (!DataReader.ReadPointer(addr, out ulong obj))
                 return false;
 
             result = heap.GetObject(obj);
@@ -296,14 +300,13 @@ namespace Microsoft.Diagnostics.Runtime
                 return false;
 
             ulong addr = field.GetAddress(Address);
-            IDataReader dataReader = type.Helpers.DataReader;
-            if (!dataReader.ReadPointer(addr, out ulong strPtr))
+            if (!DataReader.ReadPointer(addr, out ulong strPtr))
                 return false;
 
             if (strPtr == 0)
                 return false;
 
-            result = Helpers.ReadString(strPtr, maxLength ?? 1024);
+            result = type.Heap.ReadString(strPtr, maxLength ?? 1024);
             return true;
         }
 
@@ -324,7 +327,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrHeap heap = type.Heap;
 
             ulong addr = field.GetAddress(Address);
-            if (!type.Helpers.DataReader.ReadPointer(addr, out ulong obj))
+            if (!DataReader.ReadPointer(addr, out ulong obj))
                 return default;
 
             return heap.GetObject(obj);
@@ -413,7 +416,24 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         public bool IsRuntimeType => Type?.Name == RuntimeTypeName;
-        public ClrType? AsRuntimeType() => Helpers.CreateRuntimeType(this);
+        public ClrType? AsRuntimeType()
+        {
+            if (!IsRuntimeType)
+                throw new InvalidOperationException($"Object {Address:x} is of type '{Type?.Name ?? "null"}', expected '{RuntimeTypeName}'.");
+
+            ClrType type = GetTypeOrThrow();
+            ClrInstanceField? field = type.Fields.Where(f => f.Name == "m_handle").FirstOrDefault();
+            if (field is null)
+                return null;
+
+            ulong mt;
+            if (field.ElementType == ClrElementType.NativeInt)
+                mt = (ulong)ReadField<nint>("m_handle");
+            else
+                mt = (ulong)ReadValueTypeField("m_handle").ReadField<nint>("m_ptr");
+
+            return type.Heap.Runtime.GetTypeByMethodTable(mt);
+        }
 
         /// <summary>
         /// Returns true if this object is a delegate, false otherwise.
@@ -468,14 +488,15 @@ namespace Microsoft.Diagnostics.Runtime
         public string? ReadStringField(string fieldName, int maxLength = 4096)
         {
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
-            IDataReader dataReader = Helpers.DataReader;
+            ClrType type = GetTypeOrThrow();
+            IDataReader dataReader = type.Module.DataReader;
             if (!dataReader.ReadPointer(address, out ulong strPtr))
                 return null;
 
             if (strPtr == 0)
                 return null;
 
-            return Helpers.ReadString(strPtr, maxLength);
+            return type.Heap.ReadString(strPtr, maxLength);
         }
 
         public string? AsString(int maxLength = 4096)
@@ -484,7 +505,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!type.IsString)
                 throw new InvalidOperationException($"Object {Address:x} is not a string, actual type: {Type?.Name ?? "null"}.");
 
-            return Helpers.ReadString(Address, maxLength);
+            return type.Heap.ReadString(Address, maxLength);
         }
 
         private ulong GetFieldAddress(string fieldName, ClrElementType element, string typeName)

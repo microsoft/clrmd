@@ -15,7 +15,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly int _ranks;
         public override ClrHeap Heap => ComponentType.Heap;
 
-        public override ClrModule Module => Heap.Runtime.BaseClassLibrary;
         public override ClrType ComponentType { get; }
         public override string Name
         {
@@ -41,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         }
 
         public ClrConstructedType(ClrType componentType, int ranks, bool pointer)
-            : base(componentType.Helpers)
+            : base(componentType.Module, default, componentType.Helpers)
         {
             ComponentType = componentType ?? throw new ArgumentNullException(nameof(componentType));
             ElementType = pointer ? ClrElementType.Pointer : ClrElementType.SZArray;
@@ -60,7 +59,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         // We have no good way of finding this value, unfortunately
         public override ClrElementType ElementType { get; }
-        public override ulong MethodTable => 0;
         public override bool IsFinalizeSuppressed(ulong obj) => false;
         public override bool IsPointer => ElementType is not ClrElementType.SZArray and not ClrElementType.Array;
         public override IEnumerable<ClrInterface> EnumerateInterfaces() => Enumerable.Empty<ClrInterface>();
@@ -70,12 +68,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ClrType? BaseType => null;
         public override ulong GetArrayElementAddress(ulong objRef, int index) => 0;
         public override T[]? ReadArrayElements<T>(ulong objRef, int start, int count) => null;
-        public override int StaticSize => IntPtr.Size;
         public override GCDesc GCDesc => default;
-        public override int MetadataToken => 0;
         public override bool IsArray => !IsPointer;
-        public override int ComponentSize => IntPtr.Size;
         public override TypeAttributes TypeAttributes => TypeAttributes.Public;
-        public override bool IsShared => true;
     }
 }

@@ -2,7 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
-using Microsoft.Diagnostics.Runtime.DacInterface;
+using System.Linq;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -55,16 +56,18 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ImmutableArray<ComInterfaceData> Interfaces { get; }
 
-        internal RuntimeCallableWrapper(ulong address, in RcwData rcw, ImmutableArray<ComInterfaceData> interfaces)
+        internal RuntimeCallableWrapper(ClrRuntime runtime, in RcwInfo rcw)
         {
-            Address = address;
-            IUnknown = rcw.IUnknownPointer;
+            Address = rcw.Address;
+            IUnknown = rcw.IUnknown;
             VTablePointer = rcw.VTablePointer;
             RefCount = rcw.RefCount;
-            Object = rcw.ManagedObject;
-            IsDisconnected = rcw.IsDisconnected != 0;
+            Object = rcw.Object;
+            IsDisconnected = rcw.IsDisconnected;
             CreatorThreadAddress = rcw.CreatorThread;
-            Interfaces = interfaces;
+
+            ClrHeap heap = runtime.Heap;
+            Interfaces = rcw.Interfaces.Select(r => new ComInterfaceData(heap.GetTypeByMethodTable(r.MethodTable), r.InterfacePointer)).ToImmutableArray();
         }
     }
 }

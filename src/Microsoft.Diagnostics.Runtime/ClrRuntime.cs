@@ -8,7 +8,6 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Xml.Linq;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
@@ -297,6 +296,22 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData() => _helpers.EnumerateSyncBlockCleanupData();
         public IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData() => _helpers.EnumerateRcwCleanupData();
+
+        internal RuntimeCallableWrapper? CreateRCWForObject(ulong obj)
+        {
+            if (_helpers.GetRcwInfo(obj, out RcwInfo info))
+                return new(this, info);
+
+            return null;
+        }
+
+        internal ComCallableWrapper? CreateCCWForObject(ulong obj)
+        {
+            if (_helpers.GetCcwInfo(obj, out CcwInfo info))
+                return new(this, info);
+
+            return null;
+        }
 
         /// <summary>
         /// Enumerates native heaps that the JIT has allocated.

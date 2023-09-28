@@ -13,12 +13,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     internal sealed class ClrPrimitiveType : ClrType
     {
         public ClrPrimitiveType(IClrTypeHelpers helpers, ClrModule module, ClrHeap heap, ClrElementType type)
-            : base(helpers)
+            : base(module, new() { StaticSize = ClrField.GetSize(null, type) }, helpers)
         {
             if (helpers is null)
                 throw new ArgumentNullException(nameof(helpers));
 
-            Module = module ?? throw new ArgumentNullException(nameof(module));
             Heap = heap ?? throw new ArgumentNullException(nameof(heap));
             ElementType = type;
             _fields = ImmutableArray<ClrInstanceField>.Empty;
@@ -28,17 +27,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override bool IsEnum => false;
         public override ClrEnum AsEnum() => throw new InvalidOperationException();
-        public override ClrModule Module { get; }
         public override ClrElementType ElementType { get; }
-        public override bool IsShared => false;
-        public override int StaticSize => ClrField.GetSize(this, ElementType);
         public override ClrType? BaseType => null; // todo;
         public override ClrHeap Heap { get; }
         public override IEnumerable<ClrInterface> EnumerateInterfaces() => Enumerable.Empty<ClrInterface>();
         public override bool IsFinalizable => false;
         public override TypeAttributes TypeAttributes => TypeAttributes.Public;
-        public override int MetadataToken => 0;
-        public override ulong MethodTable => 0;
 
         public override string Name => ElementType switch
         {
@@ -75,7 +69,5 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ClrType? ComponentType => null;
 
         public override bool IsArray => false;
-
-        public override int ComponentSize => 0;
     }
 }
