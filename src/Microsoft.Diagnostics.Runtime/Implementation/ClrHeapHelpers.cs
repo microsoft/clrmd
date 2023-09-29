@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Extensions;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -81,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public IEnumerable<SyncBlock> EnumerateSyncBlocks()
+        public IEnumerable<SyncBlockInfo> EnumerateSyncBlocks()
         {
             HResult hr = _sos.GetSyncBlockData(1, out SyncBlockData data);
             if (!hr || data.TotalSyncBlockCount == 0)
@@ -94,12 +95,18 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 if (data.Free == 0)
                 {
-                    if (data.MonitorHeld != 0 || data.HoldingThread != 0 || data.Recursion != 0 || data.AdditionalThreadCount != 0)
-                        yield return new FullSyncBlock(data, curr);
-                    else if (data.COMFlags != 0)
-                        yield return new ComSyncBlock(data.Object, curr, data.COMFlags);
-                    else
-                        yield return new SyncBlock(data.Object, curr);
+                    yield return new()
+                    {
+                        Index = curr,
+                        Address = data.Address,
+                        Object = data.Object,
+                        AppDomain = data.AppDomain,
+                        AdditionalThreadCount = data.AdditionalThreadCount.ToSigned(),
+                        COMFlags = (SyncBlockComFlags)data.COMFlags,
+                        HoldingThread = data.HoldingThread,
+                        MonitorHeldCount = data.MonitorHeld.ToSigned(),
+                        Recursion = data.Recursion.ToSigned()
+                    };
                 }
 
                 curr++;

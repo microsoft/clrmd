@@ -4,6 +4,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -16,14 +17,24 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public SyncBlock this[int index] => _syncBlocks[index];
         public SyncBlock this[uint index] => _syncBlocks[index];
 
-        public SyncBlockContainer(IEnumerable<SyncBlock> syncBlocks)
+        public SyncBlockContainer(IEnumerable<SyncBlockInfo> syncBlocks)
         {
-            _syncBlocks = syncBlocks.ToArray();
+            _syncBlocks = syncBlocks.Select(CreateSyncBlock).ToArray();
             foreach (SyncBlock item in _syncBlocks)
             {
                 if (item.Object != 0)
                     _mapping[item.Object] = item;
             }
+        }
+
+        private SyncBlock CreateSyncBlock(SyncBlockInfo data)
+        {
+            if (data.MonitorHeldCount != 0 || data.HoldingThread != 0 || data.Recursion != 0 || data.AdditionalThreadCount != 0)
+                return new FullSyncBlock(data);
+            else if (data.COMFlags != 0)
+                return new ComSyncBlock(data.Object, data.Index, data.COMFlags);
+            else
+                return new SyncBlock(data.Object, data.Index);
         }
 
         public SyncBlock? TryGetSyncBlock(ulong obj)
