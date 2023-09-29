@@ -173,7 +173,7 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 ClrHeap? heap = _heap;
-                while (heap is null)
+                while (heap is null) // Flush can cause a race.
                 {
                     IClrHeapHelpers heapHelpers = _helpers.GetHeapHelpers();
                     IClrTypeHelpers typeHelpers = _helpers.GetClrTypeHelpers();
