@@ -15,8 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         IEnumerable<SyncBlockInfo> EnumerateSyncBlocks();
         ImmutableArray<ClrSubHeap> GetSubHeaps(ClrHeap heap);
         IEnumerable<ClrSegment> EnumerateSegments(ClrSubHeap heap);
-        ClrThinLock? GetThinLock(ClrHeap clrHeap, uint header);
-        int VerifyObject(SyncBlockContainer syncBlocks, ClrSegment seg, ClrObject obj, Span<ObjectCorruption> result);
+        (ulong Thread, int Recursion) GetThinLock(uint header);
         bool IsValidMethodTable(ulong mt);
         MemoryRange GetInternalRootArray(ClrSubHeap subHeap);
         ClrOutOfMemoryInfo? GetOOMInfo(ClrSubHeap subHeap);

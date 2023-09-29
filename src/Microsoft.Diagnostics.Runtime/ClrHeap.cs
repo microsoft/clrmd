@@ -6,8 +6,8 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
@@ -25,8 +25,12 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrHeap : IClrHeap
     {
+        private const uint SyncBlockHashOrSyncBlockIndex = 0x08000000;
+        private const uint SyncBlockHashCodeIndex = 0x04000000;
         private const int EnumerateBufferSize = 0x10000;
         private const int MaxGen2ObjectSize = 85000;
+        private const int SyncBlockIndexBits = 26;
+        private const uint SyncBlockIndexMask = ((1u << SyncBlockIndexBits) - 1u);
 
         private readonly uint _firstChar = (uint)IntPtr.Size + 4;
         private readonly uint _stringLength = (uint)IntPtr.Size;
@@ -248,7 +252,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             ObjectCorruption[] array = RentObjectCorruptionArray();
-            int count = Helpers.VerifyObject(GetSyncBlocks(), seg, obj, array.AsSpan(0, 1));
+            int count = VerifyObject(GetSyncBlocks(), seg, obj, array.AsSpan(0, 1));
             result = count > 0 ? array[0] : null;
 
             ReturnObjectCorruptionArray(array);
@@ -281,7 +285,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             ObjectCorruption[] result = RentObjectCorruptionArray();
-            int count = Helpers.VerifyObject(GetSyncBlocks(), seg, obj, result);
+            int count = VerifyObject(GetSyncBlocks(), seg, obj, result);
             if (count == 0)
             {
                 ReturnObjectCorruptionArray(result);
@@ -796,7 +800,11 @@ namespace Microsoft.Diagnostics.Runtime
             if (header == 0)
                 return null;
 
-            return Helpers.GetThinLock(this, header);
+            (ulong Thread, int Recursion) thinlock = Helpers.GetThinLock(header);
+            if (thinlock != default)
+                return new ClrThinLock(Runtime.Threads.FirstOrDefault(r => r.Address == thinlock.Thread), thinlock.Recursion);
+
+            return null;
         }
 
         /// <summary>
@@ -1264,5 +1272,285 @@ namespace Microsoft.Diagnostics.Runtime
                 Segments = subheaps.SelectMany(s => s.Segments).OrderBy(s => s.FirstObjectAddress).ToImmutableArray();
             }
         }
+
+
+
+
+        private int VerifyObject(SyncBlockContainer syncBlocks, ClrSegment seg, ClrObject obj, Span<ObjectCorruption> result)
+        {
+            if (result.Length == 0)
+                throw new ArgumentException($"{nameof(result)} must have at least one element.");
+
+
+            // Is the object address pointer aligned?
+            if ((obj.Address & ((uint)_memoryReader.PointerSize - 1)) != 0)
+            {
+                result[0] = new(obj, 0, ObjectCorruptionKind.ObjectNotPointerAligned);
+                return 1;
+            }
+
+            if (!obj.IsFree)
+            {
+                // Can we read the method table?
+                if (!_memoryReader.Read(obj.Address, out ulong mt))
+                {
+                    result[0] = new(obj, 0, ObjectCorruptionKind.CouldNotReadMethodTable);
+                    return 1;
+                }
+
+                // Is the method table we read valid?
+                if (!Helpers.IsValidMethodTable(mt))
+                {
+                    result[0] = new(obj, 0, ObjectCorruptionKind.InvalidMethodTable);
+                    return 1;
+                }
+                else if (obj.Type is null)
+                {
+                    // This shouldn't happen if VerifyMethodTable above returns success, but we'll make sure.
+                    result[0] = new(obj, 0, ObjectCorruptionKind.InvalidMethodTable);
+                    return 1;
+                }
+            }
+
+            // Any previous failures are fatal, we can't keep verifying the object.  From here, though, we'll
+            // attempt to report any and all failures we encounter.
+            int index = 0;
+
+            // Check object size
+            int intSize = obj.Size > int.MaxValue ? int.MaxValue : (int)obj.Size;
+            if (obj + obj.Size > seg.ObjectRange.End || (!obj.IsFree && obj.Size > seg.MaxObjectSize))
+                if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, _memoryReader.PointerSize, ObjectCorruptionKind.ObjectTooLarge)))
+                    return index;
+
+            // If we are inspecting a free object, the rest of this method is not needed.
+            if (obj.IsFree)
+                return index;
+
+            // Validate members
+            bool verifyMembers;
+            try
+            {
+                // Type can't be null, we checked above.  The compiler just get lost in the IsFree checks.
+                verifyMembers = obj.Type!.ContainsPointers && ShouldVerifyMembers(seg, obj);
+
+                // If the object is an array and too large, it likely means someone wrote over the size
+                // field of our array.  Trying to verify the members of the array will generate a ton
+                // of noisy failures, so we'll avoid doing that.
+                if (verifyMembers && obj.Type.IsArray)
+                {
+                    for (int i = 0; i < index; i++)
+                    {
+                        if (result[i].Kind == ObjectCorruptionKind.ObjectTooLarge)
+                        {
+                            verifyMembers = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            catch (IOException)
+            {
+                if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, 0, ObjectCorruptionKind.CouldNotReadCardTable)))
+                    return index;
+
+                verifyMembers = false;
+            }
+
+            if (verifyMembers)
+            {
+                GCDesc gcdesc = obj.Type!.GCDesc;
+                if (gcdesc.IsEmpty)
+                    if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, 0, ObjectCorruptionKind.CouldNotReadGCDesc)))
+                        return index;
+
+                ulong freeMt = seg.SubHeap.Heap.FreeType.MethodTable;
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
+                int read = _memoryReader.Read(obj, new Span<byte>(buffer, 0, intSize));
+                if (read != intSize)
+                    if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, read >= 0 ? read : 0, ObjectCorruptionKind.CouldNotReadObject)))
+                        return index;
+
+                foreach ((ulong objRef, int offset) in gcdesc.WalkObject(buffer, intSize))
+                {
+                    if ((objRef & ((uint)_memoryReader.PointerSize - 1)) != 0)
+                    {
+                        if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, offset, ObjectCorruptionKind.ObjectReferenceNotPointerAligned)))
+                            break;
+                    }
+
+                    if (!_memoryReader.Read(objRef, out ulong mt) || !Helpers.IsValidMethodTable(mt))
+                    {
+                        if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, offset, ObjectCorruptionKind.InvalidObjectReference)))
+                            break;
+                    }
+                    else if ((mt & ~1ul) == freeMt)
+                    {
+                        if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, offset, ObjectCorruptionKind.FreeObjectReference)))
+                            break;
+                    }
+                }
+
+                ArrayPool<byte>.Shared.Return(buffer);
+                if (index >= result.Length)
+                    return index;
+            }
+
+            // Object header validation tests:
+            uint objHeader = _memoryReader.Read<uint>(obj - sizeof(uint));
+
+            // Validate SyncBlock
+            SyncBlock? blk = syncBlocks.TryGetSyncBlock(obj);
+            if ((objHeader & SyncBlockHashOrSyncBlockIndex) != 0 && (objHeader & SyncBlockHashCodeIndex) == 0)
+            {
+                uint sblkIndex = objHeader & SyncBlockIndexMask;
+                int clrIndex = blk?.Index ?? -1;
+
+                if (sblkIndex == 0)
+                {
+                    if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockZero, -1, clrIndex)))
+                        return index;
+                }
+                else if (sblkIndex != clrIndex)
+                {
+                    if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockMismatch, (int)sblkIndex, clrIndex)))
+                        return index;
+                }
+            }
+            else if (blk is not null)
+            {
+                if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockMismatch, -1, blk.Index)))
+                    return index;
+            }
+
+            // Validate Thinlock
+            (ulong Thread, int Recursion) thinlock = Helpers.GetThinLock(objHeader);
+            if (thinlock.Thread != 0)
+            {
+                ClrRuntime runtime = seg.SubHeap.Heap.Runtime;
+                if (!runtime.Threads.Any(th => th.Address == thinlock.Thread))
+                {
+                    if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, -4, ObjectCorruptionKind.InvalidThinlock)))
+                        return index;
+                }
+            }
+
+            return index;
+        }
+
+        private static bool AddCorruptionAndContinue(Span<ObjectCorruption> result, ref int curr, ObjectCorruption objectCorruption)
+        {
+            result[curr++] = objectCorruption;
+            return curr < result.Length;
+        }
+
+        private bool ShouldVerifyMembers(ClrSegment seg, ClrObject obj)
+        {
+            ShouldCheckBgcMark(seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep);
+            return FgcShouldConsiderObject(seg, obj, considerBgcMark, checkCurrentSweep, checkSavedSweep);
+        }
+
+        private bool FgcShouldConsiderObject(ClrSegment seg, ClrObject obj, bool considerBgcMark, bool checkCurrentSweep, bool checkSavedSweep)
+        {
+            // fgc_should_consider_object in gc.cpp
+            ClrSubHeap heap = seg.SubHeap;
+            bool noBgcMark = false;
+            if (considerBgcMark)
+            {
+                // gc.cpp:  if (check_current_sweep_p && (o < current_sweep_pos))
+                if (checkCurrentSweep && obj < heap.CurrentSweepPosition)
+                {
+                    noBgcMark = true;
+                }
+
+                if (!noBgcMark)
+                {
+                    // gc.cpp:  if(check_saved_sweep_p && (o >= saved_sweep_ephemeral_start))
+                    if (checkSavedSweep && obj >= heap.SavedSweepEphemeralStart)
+                    {
+                        noBgcMark = true;
+                    }
+
+                    // gc.cpp:  if (o >= background_allocated)
+                    if (obj >= seg.BackgroundAllocated)
+                        noBgcMark = true;
+                }
+            }
+            else
+            {
+                noBgcMark = true;
+            }
+
+            // gc.cpp: return (no_bgc_mark_p ? TRUE : background_object_marked (o, FALSE))
+            return noBgcMark || BackgroundObjectMarked(heap, obj);
+        }
+
+        private const uint MarkBitPitch = 8;
+        private const uint MarkWordWidth = 32;
+        private const uint MarkWordSize = MarkBitPitch * MarkWordWidth;
+
+#pragma warning disable IDE0051 // Remove unused private members. This is information we'd like to keep.
+        private const uint DtGcPageSize = 0x1000;
+        private const uint CardWordWidth = 32;
+        private uint CardSize => ((uint)_memoryReader.PointerSize / 4) * DtGcPageSize / CardWordWidth;
+#pragma warning restore IDE0051 // Remove unused private members
+
+        private static void ShouldCheckBgcMark(ClrSegment seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep)
+        {
+            // Keep in sync with should_check_bgc_mark in gc.cpp
+            considerBgcMark = false;
+            checkCurrentSweep = false;
+            checkSavedSweep = false;
+
+            // if (current_c_gc_state == c_gc_state_planning)
+            ClrSubHeap heap = seg.SubHeap;
+            if (heap.State == ClrSubHeap.GCState.Planning)
+            {
+                if ((seg.Flags & ClrSegmentFlags.Swept) == ClrSegmentFlags.Swept || !seg.ObjectRange.Contains(heap.CurrentSweepPosition))
+                {
+                    // gc.cpp: if ((seg->flags & heap_segment_flags_swept) || (current_sweep_pos == heap_segment_reserved (seg)))
+
+                    // this seg was already swept
+                }
+                else if (seg.BackgroundAllocated == 0)
+                {
+                    // gc.cpp:  else if (heap_segment_background_allocated (seg) == 0)
+
+                    // newly alloc during bgc
+                }
+                else
+                {
+                    considerBgcMark = true;
+
+                    // gc.cpp:  if (seg == saved_sweep_ephemeral_seg)
+                    if (seg.Address == heap.SavedSweepEphemeralSegment)
+                        checkSavedSweep = true;
+
+                    // gc.cpp:  if (in_range_for_segment (current_sweep_pos, seg))
+                    if (seg.ObjectRange.Contains(heap.CurrentSweepPosition))
+                        checkCurrentSweep = true;
+                }
+            }
+        }
+
+        private bool BackgroundObjectMarked(ClrSubHeap heap, ClrObject obj)
+        {
+            // gc.cpp: if ((o >= background_saved_lowest_address) && (o < background_saved_highest_address))
+            if (obj >= heap.BackgroundSavedLowestAddress && obj < heap.BackgroundSavedHighestAddress)
+                return MarkArrayMarked(heap, obj);
+
+            return true;
+        }
+
+        private bool MarkArrayMarked(ClrSubHeap heap, ClrObject obj)
+        {
+            ulong address = heap.MarkArray + sizeof(uint) * MarkWordOf(obj);
+            if (!_memoryReader.Read(address, out uint entry))
+                throw new IOException($"Could not read mark array at {address:x}");
+
+            return (entry & (1u << MarkBitOf(obj))) != 0;
+        }
+
+        private static int MarkBitOf(ulong address) => (int)((address / MarkBitPitch) % MarkWordWidth);
+        private static ulong MarkWordOf(ulong address) => address / MarkWordSize;
     }
 }
