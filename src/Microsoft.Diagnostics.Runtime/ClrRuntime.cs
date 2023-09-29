@@ -173,7 +173,7 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 ClrHeap? heap = _heap;
-                if (heap is null)
+                while (heap is null)
                 {
                     IClrHeapHelpers heapHelpers = _helpers.GetHeapHelpers();
                     IClrTypeHelpers typeHelpers = _helpers.GetClrTypeHelpers();
