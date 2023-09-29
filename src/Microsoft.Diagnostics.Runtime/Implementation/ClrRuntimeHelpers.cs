@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
+using GCKind = Microsoft.Diagnostics.Runtime.AbstractDac.GCKind;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -63,6 +64,30 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         // Heaps
         ////////////////////////////////////////////////////////////////////////////////
         #region Heaps
+        public bool GetGCState(out GCState state)
+        {
+            if (!_sos.GetGCHeapData(out GCInfo gcInfo) || !_sos.GetCommonMethodTables(out CommonMethodTables commonMethodTables))
+            {
+                state = default;
+                return false;
+            }
+
+            state = new()
+            {
+                Kind = gcInfo.ServerMode != 0 ? GCKind.Server : GCKind.Workstation,
+                AreGCStructuresValid = gcInfo.GCStructuresValid != 0,
+                HeapCount = gcInfo.HeapCount,
+                MaxGeneration = gcInfo.MaxGeneration,
+                ExceptionMethodTable = commonMethodTables.ExceptionMethodTable,
+                FreeMethodTable = commonMethodTables.FreeMethodTable,
+                ObjectMethodTable = commonMethodTables.ObjectMethodTable,
+                StringMethodTable = commonMethodTables.StringMethodTable,
+            };
+
+            return state.ObjectMethodTable != 0;
+        }
+
+
         public IClrHeapHelpers GetHeapHelpers() => new ClrHeapHelpers(this, _sos, _sos8, _sos12, _dataReader, _cacheOptions);
 
         public IClrTypeHelpers GetClrTypeHelpers() => new ClrTypeHelpers(_dac, _sos, _sos6, _sos8, _dataReader);

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
@@ -40,17 +41,17 @@ namespace Microsoft.Diagnostics.Runtime
         private volatile ArrayPool<ObjectCorruption>? _objectCorruptionPool;
         private ulong _lastComFlags;
 
-        internal ClrHeap(ClrRuntime runtime, IMemoryReader memoryReader, IClrHeapHelpers helpers)
+        internal ClrHeap(ClrRuntime runtime, IMemoryReader memoryReader, IClrHeapHelpers helpers, IClrTypeHelpers typeHelpers, in GCState gcInfo)
         {
             Runtime = runtime;
             _memoryReader = memoryReader;
             Helpers = helpers;
 
-            _typeFactory = helpers.CreateTypeFactory(this);
-            FreeType = _typeFactory.FreeType;
+            _typeFactory = new(this, typeHelpers, gcInfo);
+            FreeType = _typeFactory.CreateFreeType();
             ObjectType = _typeFactory.ObjectType;
-            StringType = _typeFactory.StringType;
-            ExceptionType = _typeFactory.ExceptionType;
+            StringType = _typeFactory.CreateStringType();
+            ExceptionType = _typeFactory.CreateExceptionType();
         }
 
         /// <summary>

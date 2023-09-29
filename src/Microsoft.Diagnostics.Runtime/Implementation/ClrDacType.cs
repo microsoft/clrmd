@@ -366,7 +366,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (!Helpers.GetObjectArrayInformation(objRef, out ObjectArrayInformation data))
                     return null;
 
-                cet = data.ComponentType;
+                cet = data.ComponentElementType;
             }
 
             if (cet == ClrElementType.Unknown)

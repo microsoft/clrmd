@@ -9,6 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     internal interface IClrRuntimeHelpers : IDisposable
     {
         // Heap
+        bool GetGCState(out GCState state);
         IClrHeapHelpers GetHeapHelpers();
         IClrTypeHelpers GetClrTypeHelpers();
 
@@ -52,6 +53,25 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 
         // Helpers
         void Flush();
+    }
+
+    internal struct GCState
+    {
+        public GCKind Kind { get; set; }
+        public bool AreGCStructuresValid { get; set; }
+        public int HeapCount { get; set; }
+        public int MaxGeneration { get; set; }
+        public ulong StringMethodTable { get; set; }
+        public ulong ObjectMethodTable { get; set; }
+        public ulong ExceptionMethodTable { get; set; }
+        public ulong FreeMethodTable { get; set; }
+    }
+
+    internal enum GCKind
+    {
+        Unknown,
+        Workstation,
+        Server,
     }
 
     internal struct RcwInfo

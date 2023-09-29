@@ -7,21 +7,14 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using TypeInfo = Microsoft.Diagnostics.Runtime.AbstractDac.TypeInfo;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ClrStringType : ClrType
     {
-        public ClrStringType(ClrModule module, IClrTypeHelpers helpers, ClrHeap heap, ulong objMt, ulong mt, int token)
-            : base(module, new()
-            {
-                ParentMethodTable = objMt,
-                MethodTable = mt,
-                MetadataToken = token,
-                IsShared = true,
-                StaticSize = IntPtr.Size + sizeof(int),
-                ComponentSize = sizeof(char),
-            }, helpers)
+        public ClrStringType(ClrModule module, IClrTypeHelpers helpers, ClrHeap heap, in TypeInfo typeInfo)
+            : base(module, typeInfo, helpers)
         {
             Heap = heap;
         }

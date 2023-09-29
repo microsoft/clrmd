@@ -10,8 +10,6 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IClrHeapHelpers
     {
-        ClrTypeFactory CreateTypeFactory(ClrHeap heap);
-
         bool IsServerMode { get; }
         bool AreGCStructuresValid { get; }
         IEnumerable<MemoryRange> EnumerateThreadAllocationContexts();

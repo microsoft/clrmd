@@ -50,8 +50,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 _gcInfo = default; // Ensure _gcInfo.GCStructuresValid == false.
         }
 
-        public ClrTypeFactory CreateTypeFactory(ClrHeap heap) => new(heap, _runtimeHelpers.GetClrTypeHelpers(), _sos, _cacheOptions);
-
         public IEnumerable<MemoryRange> EnumerateThreadAllocationContexts()
         {
             if (_sos12 is not null && _sos12.GetGlobalAllocationContext(out ulong allocPointer, out ulong allocLimit))

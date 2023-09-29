@@ -45,7 +45,9 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 
     internal struct ObjectArrayInformation
     {
-        public ClrElementType ComponentType { get; set; }
+        public ulong ComponentType { get; set; }
+
+        public ClrElementType ComponentElementType { get; set; }
 
         /// <summary>
         /// The location of the first element in the array.

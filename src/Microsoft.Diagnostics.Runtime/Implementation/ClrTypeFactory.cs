@@ -7,7 +7,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
-using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -17,56 +16,61 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private const int mdtTypeDef = 0x02000000;
         private const int mdtTypeRef = 0x01000000;
 
-        private readonly SOSDac _sos;
-        private readonly CacheOptions _options;
         private readonly ClrHeap _heap;
+        private readonly IClrTypeHelpers _typeHelpers;
+        private readonly CacheOptions _options;
+        private readonly GCState _gcInfo;
         private volatile ClrType?[]? _basicTypes;
         private readonly Dictionary<ulong, ClrType> _types = new();
-        private readonly CommonMethodTables _commonMTs;
         private readonly ClrType _objectType;
         private Dictionary<ulong, ClrModule>? _modules;
-        private readonly IClrTypeHelpers _typeHelpers;
         private ClrModule? _errorModule;
         private ClrType? _errorType;
 
-        public ClrTypeFactory(ClrHeap heap, IClrTypeHelpers typeHelpers, SOSDac sos, CacheOptions options)
+        public ClrTypeFactory(ClrHeap heap, IClrTypeHelpers typeHelpers, in GCState gcInfo)
         {
             _heap = heap;
-            _sos = sos;
-            _options = options;
             _typeHelpers = typeHelpers;
+            _options = heap.Runtime.DataTarget.CacheOptions;
+            _gcInfo = gcInfo;
 
-            _sos.GetCommonMethodTables(out _commonMTs);
-            _objectType = CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.ObjectMethodTable, "System.Object") ?? throw new InvalidDataException("Could not create Object type.");
-            _types = new() { { (ulong)_commonMTs.ObjectMethodTable, _objectType } };
+            if (_gcInfo.ObjectMethodTable == 0)
+                throw new InvalidDataException("Debugging layer reported ObjectMethodTable of 0.");
+
+            _objectType = CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _gcInfo.ObjectMethodTable, "System.Object") ?? throw new InvalidDataException("Could not create Object type.");
+            _types = new() { { _gcInfo.ObjectMethodTable, _objectType } };
         }
 
-        public ClrType FreeType =>
-            CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.FreeMethodTable, "Free") ?? throw new InvalidDataException("Could not create Free type.");
+        public ClrType CreateFreeType() => CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _gcInfo.FreeMethodTable, "Free") ?? throw new InvalidDataException("Could not create Free type.");
 
-        public ClrType StringType
+        public ClrType CreateStringType()
         {
-            get
+            ClrType? stringType = CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _gcInfo.StringMethodTable, "System.String");
+            if (stringType is null)
             {
-                ClrType? stringType = CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.StringMethodTable, "System.String");
-                if (stringType is null)
+                if (!_typeHelpers.GetTypeInfo(_gcInfo.StringMethodTable, out TypeInfo stringInfo))
                 {
-                    int token = 0;
-                    if (_sos.GetMethodTableData(_commonMTs.StringMethodTable, out MethodTableData mtd))
-                        token = (int)mtd.Token;
-
-                    stringType = new ClrStringType(_heap.Runtime.BaseClassLibrary, _typeHelpers, _heap, _commonMTs.ObjectMethodTable, _commonMTs.StringMethodTable, token);
+                    stringInfo = new()
+                    {
+                        ParentMethodTable = _gcInfo.ObjectMethodTable,
+                        MethodTable = _gcInfo.StringMethodTable,
+                        IsShared = true,
+                        StaticSize = IntPtr.Size + sizeof(int),
+                        ComponentSize = sizeof(char),
+                    };
                 }
 
-                return stringType;
+                stringType = new ClrStringType(_heap.Runtime.BaseClassLibrary, _typeHelpers, _heap, stringInfo);
             }
+
+            return stringType;
         }
 
-        public string? GetTypeName(ulong mt) => DacNameParser.Parse(_sos.GetMethodTableName(mt));
+        public string? GetTypeName(ulong mt) => DacNameParser.Parse(_typeHelpers.GetTypeName(mt));
 
         public ClrType ObjectType => _objectType;
 
-        public ClrType ExceptionType => CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _commonMTs.ExceptionMethodTable, "System.Exception") ?? _objectType;
+        public ClrType CreateExceptionType() => CreateSystemType(_heap, _heap.Runtime.BaseClassLibrary, _gcInfo.ExceptionMethodTable, "System.Exception") ?? _objectType;
         public ClrType ErrorType
         {
             get
@@ -287,13 +291,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private ClrType? TryGetComponentType(ulong obj)
         {
             ClrType? result = null;
-            if (_sos.GetObjectData(obj, out ObjectData data))
+            if (_typeHelpers.GetObjectArrayInformation(obj, out ObjectArrayInformation data))
             {
-                if (data.ElementTypeHandle != 0)
-                    result = GetOrCreateType(data.ElementTypeHandle, 0);
+                if (data.ComponentType != 0)
+                    result = GetOrCreateType(data.ComponentType, 0);
 
-                if (result is null && data.ElementType != 0)
-                    result = GetOrCreateBasicType((ClrElementType)data.ElementType);
+                if (result is null && data.ComponentElementType != 0)
+                    result = GetOrCreateBasicType(data.ComponentElementType);
             }
 
             return result;
@@ -316,7 +320,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 {
                     foreach ((ulong mt, int _) in bcl.EnumerateTypeDefToMethodTableMap())
                     {
-                        string? name = _sos.GetMethodTableName(mt);
+                        string? name = _typeHelpers.GetTypeName(mt);
                         ClrElementType type = name switch
                         {
                             "System.Void" => ClrElementType.Void,
