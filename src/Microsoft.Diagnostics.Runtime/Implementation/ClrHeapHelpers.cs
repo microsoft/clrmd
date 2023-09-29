@@ -371,21 +371,37 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return new(analyzeData.InternalRootArray, end);
         }
 
-        public ClrOutOfMemoryInfo? GetOOMInfo(ClrSubHeap subHeap)
+        public bool GetOOMInfo(ulong subHeapAddress, out OomInfo oomInfo)
         {
             DacOOMData oomData;
-            if (subHeap.Heap.IsServer)
+            if (subHeapAddress != 0)
             {
-                if (!_sos.GetOOMData(subHeap.Address, out oomData) || (oomData.Reason == OutOfMemoryReason.None && oomData.GetMemoryFailure == GetMemoryFailureReason.None))
-                    return null;
+                if (!_sos.GetOOMData(subHeapAddress, out oomData) || (oomData.Reason == OutOfMemoryReason.None && oomData.GetMemoryFailure == GetMemoryFailureReason.None))
+                {
+                    oomInfo = default;
+                    return false;
+                }
             }
             else
             {
                 if (!_sos.GetOOMData(out oomData) || (oomData.Reason == OutOfMemoryReason.None && oomData.GetMemoryFailure == GetMemoryFailureReason.None))
-                    return null;
+                {
+                    oomInfo = default;
+                    return false;
+                }
             }
 
-            return new ClrOutOfMemoryInfo(oomData);
+            oomInfo = new()
+            {
+                AllocSize = oomData.AllocSize,
+                AvailablePageFileMB = oomData.AvailablePageFileMB,
+                GCIndex = oomData.GCIndex,
+                GetMemoryFailure = oomData.GetMemoryFailure,
+                IsLOH = oomData.IsLOH != 0,
+                Reason = oomData.Reason,
+                Size = oomData.Size,
+            };
+            return true;
         }
     }
 }

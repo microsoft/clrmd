@@ -106,7 +106,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong HighestAddress { get; }
         public ulong CardTable { get; }
 
-        public ClrOutOfMemoryInfo? OomInfo => Heap.Helpers.GetOOMInfo(this);
+        public ClrOutOfMemoryInfo? OomInfo => Heap.Helpers.GetOOMInfo(Address, out OomInfo oomInfo) ? new(oomInfo) : null;
 
         public MemoryRange InternalRootArray => Heap.Helpers.GetInternalRootArray(this);
 

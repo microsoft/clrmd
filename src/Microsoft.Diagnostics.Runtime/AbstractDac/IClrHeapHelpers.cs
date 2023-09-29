@@ -1,10 +1,8 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
@@ -18,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         (ulong Thread, int Recursion) GetThinLock(uint header);
         bool IsValidMethodTable(ulong mt);
         MemoryRange GetInternalRootArray(ClrSubHeap subHeap);
-        ClrOutOfMemoryInfo? GetOOMInfo(ClrSubHeap subHeap);
+        bool GetOOMInfo(ulong subHeapAddress, out OomInfo oomInfo);
     }
 
     internal struct SyncBlockInfo
@@ -32,5 +30,16 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public ulong HoldingThread { get; set; }
         public int AdditionalThreadCount { get; set; }
         public ulong AppDomain { get; set; }
+    }
+
+    internal struct OomInfo
+    {
+        public OutOfMemoryReason Reason { get; set; }
+        public ulong AllocSize { get; set; }
+        public ulong AvailablePageFileMB { get; set; }
+        public ulong GCIndex { get; set; }
+        public GetMemoryFailureReason GetMemoryFailure { get; set; }
+        public ulong Size { get; set; }
+        public bool IsLOH { get; set; }
     }
 }
