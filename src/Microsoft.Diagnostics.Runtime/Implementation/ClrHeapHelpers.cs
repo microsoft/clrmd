@@ -15,13 +15,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ClrHeapHelpers : IClrHeapHelpers
     {
-        private readonly IClrRuntimeHelpers _runtimeHelpers;
         private readonly SOSDac _sos;
         private readonly SOSDac8? _sos8;
         private readonly SosDac12? _sos12;
         private readonly IMemoryReader _memoryReader;
-        private readonly CacheOptions _cacheOptions;
-        private readonly GCInfo _gcInfo;
+        private readonly GCState _gcState;
         private HashSet<ulong>? _validMethodTables;
 
         private const uint SyncBlockRecLevelMask = 0x0000FC00;
@@ -33,21 +31,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private const int SyncBlockIndexBits = 26;
         private const uint SyncBlockIndexMask = ((1u << SyncBlockIndexBits) - 1u);
 
-        public bool IsServerMode => _gcInfo.ServerMode != 0;
-
-        public bool AreGCStructuresValid => _gcInfo.GCStructuresValid != 0;
-
-        public ClrHeapHelpers(IClrRuntimeHelpers runtime, SOSDac sos, SOSDac8? sos8, SosDac12? sos12, IMemoryReader reader, CacheOptions cacheOptions)
+        public ClrHeapHelpers(SOSDac sos, SOSDac8? sos8, SosDac12? sos12, IMemoryReader reader, in GCState gcState)
         {
-            _runtimeHelpers = runtime;
             _sos = sos;
             _sos8 = sos8;
             _sos12 = sos12;
             _memoryReader = reader;
-            _cacheOptions = cacheOptions;
-
-            if (!_sos.GetGCHeapData(out _gcInfo))
-                _gcInfo = default; // Ensure _gcInfo.GCStructuresValid == false.
+            _gcState = gcState;
         }
 
         public IEnumerable<MemoryRange> EnumerateThreadAllocationContexts()
@@ -122,9 +112,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public ImmutableArray<ClrSubHeap> GetSubHeaps(ClrHeap heap)
         {
-            if (IsServerMode)
+            if (_gcState.Kind == AbstractDac.GCKind.Server)
             {
-                ClrDataAddress[] heapAddresses = _sos.GetHeapList(_gcInfo.HeapCount);
+                ClrDataAddress[] heapAddresses = _sos.GetHeapList(_gcState.HeapCount);
                 ImmutableArray<ClrSubHeap>.Builder heapsBuilder = ImmutableArray.CreateBuilder<ClrSubHeap>(heapAddresses.Length);
                 for (int i = 0; i < heapAddresses.Length; i++)
                 {
@@ -320,7 +310,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (!HasThinlock(header))
                 return null;
 
-            (uint threadId, uint recursion) = ClrHeapHelpers.GetThinlockData(header);
+            (uint threadId, uint recursion) = GetThinlockData(header);
             ulong threadAddress = _sos.GetThreadFromThinlockId(threadId);
 
             if (threadAddress == 0)

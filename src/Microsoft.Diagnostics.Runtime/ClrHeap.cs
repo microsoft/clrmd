@@ -52,6 +52,8 @@ namespace Microsoft.Diagnostics.Runtime
             ObjectType = _typeFactory.ObjectType;
             StringType = _typeFactory.CreateStringType();
             ExceptionType = _typeFactory.CreateExceptionType();
+            CanWalkHeap = gcInfo.AreGCStructuresValid;
+            IsServer = gcInfo.Kind == AbstractDac.GCKind.Server;
         }
 
         /// <summary>
@@ -73,7 +75,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Note, you may still attempt to walk the heap if this function returns false, but you will likely
         /// only be able to partially walk each segment.
         /// </summary>
-        public bool CanWalkHeap => Helpers.AreGCStructuresValid;
+        public bool CanWalkHeap { get; }
 
         /// <summary>
         /// Returns the number of logical heaps in the process.
@@ -109,7 +111,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets a value indicating whether the GC heap is in Server mode.
         /// </summary>
-        public bool IsServer => Helpers.IsServerMode;
+        public bool IsServer { get; }
 
         IClrType IClrHeap.ExceptionType => ExceptionType;
 

@@ -10,8 +10,6 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IClrHeapHelpers
     {
-        bool IsServerMode { get; }
-        bool AreGCStructuresValid { get; }
         IEnumerable<MemoryRange> EnumerateThreadAllocationContexts();
         IEnumerable<(ulong Source, ulong Target)> EnumerateDependentHandles();
         IEnumerable<SyncBlock> EnumerateSyncBlocks();

@@ -87,8 +87,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return state.ObjectMethodTable != 0;
         }
 
-
-        public IClrHeapHelpers GetHeapHelpers() => new ClrHeapHelpers(this, _sos, _sos8, _sos12, _dataReader, _cacheOptions);
+        public IClrHeapHelpers GetHeapHelpers()
+        {
+            GetGCState(out GCState state);
+            return new ClrHeapHelpers(_sos, _sos8, _sos12, _dataReader, state);
+        }
 
         public IClrTypeHelpers GetClrTypeHelpers() => new ClrTypeHelpers(_dac, _sos, _sos6, _sos8, _dataReader);
         #endregion
