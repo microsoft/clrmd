@@ -175,9 +175,13 @@ namespace Microsoft.Diagnostics.Runtime
                 ClrHeap? heap = _heap;
                 if (heap is null)
                 {
-                    IClrHeapHelpers heapHelpers = _helpers.GetHeapHelpers() ?? throw new NotSupportedException("Unable to create a ClrHeap for this runtime.");
-                    IClrTypeHelpers typeHelpers = _helpers.GetClrTypeHelpers() ?? throw new NotSupportedException("Unable to create a ClrHeap for this runtime.");
-                    _helpers.GetGCState(out GCState gcInfo);
+                    IClrHeapHelpers heapHelpers = _helpers.GetHeapHelpers();
+                    IClrTypeHelpers typeHelpers = _helpers.GetClrTypeHelpers();
+
+                    // These are defined as non-nullable but just in case, double check we have a non-null instance.
+                    if (heapHelpers is null || typeHelpers is null || !_helpers.GetGCState(out GCState gcInfo))
+                        throw new NotSupportedException("Unable to create a ClrHeap for this runtime.");
+
                     heap = new(this, DataTarget.DataReader, heapHelpers, typeHelpers, gcInfo);
                     Interlocked.CompareExchange(ref _heap, heap, null);
                     heap = _heap;
