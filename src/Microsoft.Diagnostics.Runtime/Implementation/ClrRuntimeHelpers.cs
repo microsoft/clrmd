@@ -437,10 +437,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         #region ThreadPool
         public IClrThreadPoolHelpers? LegacyThreadPoolHelpers => this;
 
-        public bool GetLegacyThreadPoolData(out ThreadPoolData data, out bool usePortableThreadPool)
+        public bool GetLegacyThreadPoolData(out ThreadPoolData data)
         {
             HResult hr = _sos.GetThreadPoolData(out data);
-            usePortableThreadPool = hr == HResult.E_NOTIMPL;
             return hr;
         }
 

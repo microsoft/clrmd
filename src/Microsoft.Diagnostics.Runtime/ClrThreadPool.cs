@@ -26,12 +26,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Used to track whether we successfully initialized this object to prevent throw/catch.
         /// </summary>
-        internal bool Initialized { get; } = true;
+        internal bool Initialized { get; }
 
         /// <summary>
         /// Whether this runtime is using the Portable threadpool or not.
         /// </summary>
-        public bool Portable { get; }
+        public bool UsingPortableThreadPool { get; }
+
+        /// <summary>
+        /// Whether this runtime is using the Windows threadpool or not.
+        /// </summary>
+        public bool UsingWindowsThreadPool { get; }
 
         /// <summary>
         /// The current CPU utilization of the ThreadPool (a number between 0 and 100).
@@ -58,12 +63,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public int ActiveWorkerThreads { get; }
 
+        public int WindowsThreadPoolThreadCount { get; }
         public int TotalCompletionPorts { get; }
         public int FreeCompletionPorts { get; }
         public int MaxFreeCompletionPorts { get; }
         public int CompletionPortCurrentLimit { get; }
         public int MinCompletionPorts { get; }
         public int MaxCompletionPorts { get; }
+        public bool HasLegacyData { get; }
 
         /// <summary>
         /// The number of retired worker threads.
@@ -79,18 +86,33 @@ namespace Microsoft.Diagnostics.Runtime
             _legacyData = helpers;
 
             ThreadPoolData tpData = default;
-            bool mustBePortable = true;
-            bool hasLegacyData = _legacyData is not null && _legacyData.GetLegacyThreadPoolData(out tpData, out mustBePortable);
+            HasLegacyData = _legacyData is not null && _legacyData.GetLegacyThreadPoolData(out tpData);
 
-            ClrObject threadPool = GetPortableThreadPool(mustBePortable);
-            if (!threadPool.IsNull && threadPool.IsValid)
+            ClrAppDomain domain = GetDomain();
+
+            GetPortableOrWindowsThreadPoolInfo(domain,
+                                            out bool usingPortableThreadPool,
+                                            out ClrObject portableThreadPool,
+                                            out bool usingWindowsThreadPool,
+                                            out ClrType? windowsThreadPoolType);
+
+            UsingPortableThreadPool = usingPortableThreadPool;
+            UsingWindowsThreadPool = usingWindowsThreadPool;
+
+            Initialized = UsingPortableThreadPool || UsingWindowsThreadPool || HasLegacyData;
+
+            if (UsingWindowsThreadPool)
             {
-                Portable = true;
-                CpuUtilization = threadPool.ReadField<int>("_cpuUtilization");
-                MinThreads = threadPool.ReadField<ushort>("_minThreads");
-                MaxThreads = threadPool.ReadField<ushort>("_maxThreads");
+                ClrStaticField threadCountField = windowsThreadPoolType!.GetStaticFieldByName("s_threadCount")!;
+                WindowsThreadPoolThreadCount = threadCountField.Read<int>(domain);
+            }
+            else if (UsingPortableThreadPool)
+            {
+                CpuUtilization = portableThreadPool.ReadField<int>("_cpuUtilization");
+                MinThreads = portableThreadPool.ReadField<ushort>("_minThreads");
+                MaxThreads = portableThreadPool.ReadField<ushort>("_maxThreads");
 
-                ClrValueType counts = threadPool.ReadValueTypeField("_separated").ReadValueTypeField("counts").ReadValueTypeField("_data");
+                ClrValueType counts = portableThreadPool.ReadValueTypeField("_separated").ReadValueTypeField("counts").ReadValueTypeField("_data");
                 ulong dataValue = counts.ReadField<ulong>("m_value");
 
                 int processingWorkCount = (ushort)(dataValue & 0xffff);
@@ -101,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 RetiredWorkerThreads = 0;
             }
-            else if (hasLegacyData)
+            else if (HasLegacyData)
             {
                 CpuUtilization = tpData.CpuUtilization;
                 MinThreads = tpData.MinLimitTotalWorkerThreads;
@@ -123,10 +145,6 @@ namespace Microsoft.Diagnostics.Runtime
 
                 _firstLegacyWorkRequest = tpData.FirstUnmanagedWorkRequest;
                 _asyncTimerFunction = tpData.AsyncTimerCallbackCompletionFPtr;
-            }
-            else
-            {
-                Initialized = false;
             }
         }
 
@@ -164,7 +182,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumeration of the HillClimbing log, or an empty enumeration for Desktop CLR.</returns>
         public IEnumerable<HillClimbingLogEntry> EnumerateHillClimbingLog()
         {
-            if (Portable)
+            if (UsingPortableThreadPool)
             {
                 ClrType? hillClimbingType = _runtime.BaseClassLibrary.GetTypeByName("System.Threading.PortableThreadPool+HillClimbing");
                 ClrStaticField? hillClimberField = hillClimbingType?.GetStaticFieldByName("ThreadPoolHillClimber");
@@ -209,31 +227,46 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        private ClrObject GetPortableThreadPool(bool mustBePortable)
+        private void GetPortableOrWindowsThreadPoolInfo(
+            ClrAppDomain domain,
+            out bool usingPortableThreadPool,
+            out ClrObject portableThreadPool,
+            out bool usingWindowsThreadPool,
+            out ClrType? windowsThreadPoolType)
         {
+            usingPortableThreadPool = usingWindowsThreadPool = false;
+            portableThreadPool = default;
+            windowsThreadPoolType = null;
+
             ClrModule bcl = _runtime.BaseClassLibrary;
             ClrType? threadPoolType = bcl.GetTypeByName("System.Threading.ThreadPool");
             if (threadPoolType is null)
-                return default;
+                return;
 
-            ClrAppDomain domain = GetDomain();
+            windowsThreadPoolType = bcl.GetTypeByName("System.Threading.WindowsThreadPool");
+            ClrType? portableThreadPoolType = bcl.GetTypeByName("System.Threading.PortableThreadPool");
 
-            if (!mustBePortable)
+            // Check if the Windows thread pool is being used
+            ClrStaticField? useWindowsThreadPool = threadPoolType.GetStaticFieldByName("s_useWindowsThreadPool");
+            bool useWindowsThreadPoolOnSwitch = useWindowsThreadPool != null && useWindowsThreadPool.Read<bool>(domain);
+            bool onlyWindowsThreadPool = windowsThreadPoolType != null && portableThreadPoolType is null;
+            // For Windows thread pool, check if the switch is on (.NET8) or if it's the only thread pool present
+            if (useWindowsThreadPoolOnSwitch || onlyWindowsThreadPool)
             {
-                ClrStaticField? usePortableThreadPoolField = threadPoolType.GetStaticFieldByName("UsePortableThreadPool");
-                if (usePortableThreadPoolField is null)
-                    return default;
-
-                if (!usePortableThreadPoolField.Read<bool>(domain))
-                    return default;
+                usingWindowsThreadPool = true;
+                return;
             }
 
-            ClrType? portableThreadPoolType = bcl.GetTypeByName("System.Threading.PortableThreadPool");
-            ClrStaticField? instanceField = portableThreadPoolType?.GetStaticFieldByName("ThreadPoolInstance");
-            if (instanceField is null)
-                return default;
+            // Check if the Portable thread pool is being used
+            if (portableThreadPoolType != null)
+            {
+                ClrStaticField? instanceField = portableThreadPoolType.GetStaticFieldByName("ThreadPoolInstance");
+                if (instanceField is null)
+                    return;
 
-            return instanceField.ReadObject(domain);
+                portableThreadPool = instanceField.ReadObject(domain);
+                usingPortableThreadPool = !portableThreadPool.IsNull && portableThreadPool.IsValid;
+            }
         }
 
         private ClrAppDomain GetDomain() => _runtime.SharedDomain ?? _runtime.SystemDomain ?? _runtime.AppDomains[0];
