@@ -17,26 +17,26 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public class ClrSubHeap : IClrSubHeap
     {
-        internal ClrSubHeap(IClrHeapHelpers helpers, ClrHeap clrHeap, int index, ulong address, in HeapDetails heap, IEnumerable<GenerationData> genData, IEnumerable<ulong> finalizationPointers)
+        internal ClrSubHeap(ClrHeap clrHeap, in SubHeapInfo subHeap)
         {
             Heap = clrHeap;
-            Address = address;
-            Index = index;
-            Allocated = heap.Allocated;
-            MarkArray = heap.MarkArray;
-            State = (GCState)(ulong)heap.CurrentGCState;
-            CurrentSweepPosition = heap.NextSweepObj;
-            SavedSweepEphemeralSegment = heap.SavedSweepEphemeralSeg;
-            SavedSweepEphemeralStart = heap.SavedSweepEphemeralStart;
-            BackgroundSavedLowestAddress = heap.BackgroundSavedLowestAddress;
-            BackgroundSavedHighestAddress = heap.BackgroundSavedHighestAddress;
-            EphemeralHeapSegment = heap.EphemeralHeapSegment;
-            LowestAddress = heap.LowestAddress;
-            HighestAddress = heap.HighestAddress;
-            CardTable = heap.CardTable;
+            Address = subHeap.Address;
+            Index = subHeap.HeapIndex;
+            Allocated = subHeap.Allocated;
+            MarkArray = subHeap.MarkArray;
+            State = subHeap.State;
+            CurrentSweepPosition = subHeap.CurrentSweepPosition;
+            SavedSweepEphemeralSegment = subHeap.SavedSweepEphemeralSegment;
+            SavedSweepEphemeralStart = subHeap.SavedSweepEphemeralStart;
+            BackgroundSavedLowestAddress = subHeap.BackgroundSavedLowestAddress;
+            BackgroundSavedHighestAddress = subHeap.BackgroundSavedHighestAddress;
+            EphemeralHeapSegment = subHeap.EphemeralHeapSegment;
+            LowestAddress = subHeap.LowestAddress;
+            HighestAddress = subHeap.HighestAddress;
+            CardTable = subHeap.CardTable;
 
-            GenerationTable = genData.Select(data => new ClrGenerationData(data)).ToImmutableArray();
-            FinalizationPointers = finalizationPointers.ToImmutableArray();
+            GenerationTable = subHeap.Generations.Select(data => new ClrGenerationData(data)).ToImmutableArray();
+            FinalizationPointers = subHeap.FinalizationPointers.ToImmutableArray();
 
             if (FinalizationPointers.Length == 6)
             {
@@ -61,9 +61,9 @@ namespace Microsoft.Diagnostics.Runtime
             HasRegions = GenerationTable.Length >= 2 && GenerationTable[0].StartSegment != GenerationTable[1].StartSegment;
             HasPinnedObjectHeap = GenerationTable.Length > 4;
 
-            AllocationContext = new MemoryRange(heap.EphemeralAllocContextPtr, heap.EphemeralAllocContextLimit);
+            AllocationContext = new MemoryRange(subHeap.EphemeralAllocContextPointer, subHeap.EphemeralAllocContextLimit);
 
-            Segments = helpers.EnumerateSegments(this).ToImmutableArray();
+            Segments = subHeap.Segments.Select(r => new ClrSegment(this, r)).ToImmutableArray();
         }
 
         private static MemoryRange CreateMemoryRangeCarefully(ulong start, ulong stop) => start <= stop ? new(start, stop) : default;
@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong Allocated { get; }
         public ulong MarkArray { get; }
 
-        internal GCState State { get; }
+        internal HeapMarkState State { get; }
 
         internal ulong CurrentSweepPosition { get; }
         public ulong SavedSweepEphemeralSegment { get; }
@@ -108,19 +108,12 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ClrOutOfMemoryInfo? OomInfo => Heap.Helpers.GetOOMInfo(Address, out OomInfo oomInfo) ? new(oomInfo) : null;
 
-        public MemoryRange InternalRootArray => Heap.Helpers.GetInternalRootArray(this);
+        public MemoryRange InternalRootArray => Heap.Helpers.GetInternalRootArray(Address);
 
         ImmutableArray<IClrSegment> IClrSubHeap.Segments => Segments.CastArray<IClrSegment>();
 
         IClrOutOfMemoryInfo? IClrSubHeap.OomInfo => OomInfo;
 
         ImmutableArray<IClrGenerationData> IClrSubHeap.GenerationTable => GenerationTable.CastArray<IClrGenerationData>();
-
-        internal enum GCState
-        {
-            Marking,
-            Planning,
-            Free
-        }
     }
 }

@@ -41,7 +41,6 @@ namespace Microsoft.Diagnostics.Runtime
         private volatile (ulong Source, ulong Target)[]? _dependentHandles;
         private volatile SyncBlockContainer? _syncBlocks;
         private volatile ClrSegment? _currSegment;
-        private volatile SubHeapData? _subHeapData;
         private volatile ArrayPool<ObjectCorruption>? _objectCorruptionPool;
         private ulong _lastComFlags;
 
@@ -58,6 +57,9 @@ namespace Microsoft.Diagnostics.Runtime
             ExceptionType = _typeFactory.CreateExceptionType();
             CanWalkHeap = gcInfo.AreGCStructuresValid;
             IsServer = gcInfo.Kind == AbstractDac.GCKind.Server;
+
+            SubHeaps = Helpers.EnumerateSubHeaps().Select(r => new ClrSubHeap(this, r)).ToImmutableArray();
+            Segments = SubHeaps.SelectMany(r => r.Segments).OrderBy(r => r.FirstObjectAddress).ToImmutableArray();
         }
 
         /// <summary>
@@ -84,13 +86,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the number of logical heaps in the process.
         /// </summary>
-        public ImmutableArray<ClrSubHeap> SubHeaps => GetSubHeapData().SubHeaps;
+        public ImmutableArray<ClrSubHeap> SubHeaps { get; }
 
         /// <summary>
         /// A heap is has a list of contiguous memory regions called segments.  This list is returned in order of
         /// of increasing object addresses.
         /// </summary>
-        public ImmutableArray<ClrSegment> Segments => GetSubHeapData().Segments;
+        public ImmutableArray<ClrSegment> Segments { get; }
 
         /// <summary>
         /// Gets the <see cref="ClrType"/> representing free space on the GC heap.
@@ -1133,18 +1135,6 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        private SubHeapData GetSubHeapData()
-        {
-            SubHeapData? data = _subHeapData;
-            if (data is not null)
-                return data;
-
-            data = new(Helpers.GetSubHeaps(this));
-            Interlocked.CompareExchange(ref _subHeapData, data, null);
-            return _subHeapData;
-        }
-
-
         internal ClrType? GetOrCreateTypeFromSignature(ClrModule module, SigParser sigParser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters)
         {
             return _typeFactory.GetOrCreateTypeFromSignature(module, sigParser, typeParameters, methodParameters);
@@ -1260,21 +1250,6 @@ namespace Microsoft.Diagnostics.Runtime
                 ArrayPool<char>.Shared.Return(buffer);
             }
         }
-
-        private sealed class SubHeapData
-        {
-            public ImmutableArray<ClrSubHeap> SubHeaps { get; }
-            public ImmutableArray<ClrSegment> Segments { get; }
-
-            public SubHeapData(ImmutableArray<ClrSubHeap> subheaps)
-            {
-                SubHeaps = subheaps;
-                Segments = subheaps.SelectMany(s => s.Segments).OrderBy(s => s.FirstObjectAddress).ToImmutableArray();
-            }
-        }
-
-
-
 
         private int VerifyObject(SyncBlockContainer syncBlocks, ClrSegment seg, ClrObject obj, Span<ObjectCorruption> result)
         {
@@ -1503,7 +1478,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             // if (current_c_gc_state == c_gc_state_planning)
             ClrSubHeap heap = seg.SubHeap;
-            if (heap.State == ClrSubHeap.GCState.Planning)
+            if (heap.State == HeapMarkState.Planning)
             {
                 if ((seg.Flags & ClrSegmentFlags.Swept) == ClrSegmentFlags.Swept || !seg.ObjectRange.Contains(heap.CurrentSweepPosition))
                 {

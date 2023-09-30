@@ -4,8 +4,6 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.IO;
 using System.Linq;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
@@ -114,55 +112,87 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             } while (hr);
         }
 
-        public ImmutableArray<ClrSubHeap> GetSubHeaps(ClrHeap heap)
+        public IEnumerable<SubHeapInfo> EnumerateSubHeaps()
         {
             if (_gcState.Kind == AbstractDac.GCKind.Server)
             {
                 ClrDataAddress[] heapAddresses = _sos.GetHeapList(_gcState.HeapCount);
-                ImmutableArray<ClrSubHeap>.Builder heapsBuilder = ImmutableArray.CreateBuilder<ClrSubHeap>(heapAddresses.Length);
                 for (int i = 0; i < heapAddresses.Length; i++)
                 {
                     if (_sos.GetServerHeapDetails(heapAddresses[i], out HeapDetails heapData))
                     {
-                        GenerationData[] genData = heapData.GenerationTable;
-                        IEnumerable<ClrDataAddress> finalization = heapData.FinalizationFillPointers.Take(6);
-
-                        if (_sos8 is not null)
-                        {
-                            genData = _sos8.GetGenerationTable(heapAddresses[i]) ?? genData;
-                            finalization = _sos8.GetFinalizationFillPointers(heapAddresses[i]) ?? finalization;
-                        }
-
-                        heapsBuilder.Add(new(this, heap, i, heapAddresses[i], heapData, genData, finalization.Select(addr => (ulong)addr)));
+                        SubHeapInfo subHeapInfo = CreateSubHeapInfo(heapAddresses[i], i, heapData);
+                        yield return subHeapInfo;
                     }
                 }
-
-                return heapsBuilder.MoveOrCopyToImmutable();
             }
             else
             {
                 if (_sos.GetWksHeapDetails(out HeapDetails heapData))
                 {
-                    GenerationData[] genData = heapData.GenerationTable;
-                    IEnumerable<ClrDataAddress> finalization = heapData.FinalizationFillPointers.Take(6);
-
-                    if (_sos8 is not null)
-                    {
-                        genData = _sos8.GetGenerationTable() ?? genData;
-                        finalization = _sos8.GetFinalizationFillPointers() ?? finalization;
-                    }
-
-                    return ImmutableArray.Create(new ClrSubHeap(this, heap, 0, 0, heapData, genData, finalization.Select(addr => (ulong)addr)));
+                    SubHeapInfo subHeapInfo = CreateSubHeapInfo(0, 0, heapData);
+                    yield return subHeapInfo;
                 }
             }
-
-            return ImmutableArray<ClrSubHeap>.Empty;
         }
 
-        public IEnumerable<ClrSegment> EnumerateSegments(ClrSubHeap heap)
+        private SubHeapInfo CreateSubHeapInfo(ulong address, int i, HeapDetails heapData)
+        {
+            GenerationData[] genData = heapData.GenerationTable;
+            IEnumerable<ClrDataAddress> finalization = heapData.FinalizationFillPointers.Take(6);
+
+            if (_sos8 is not null)
+            {
+                genData = _sos8.GetGenerationTable(address) ?? genData;
+                finalization = _sos8.GetFinalizationFillPointers(address) ?? finalization;
+            }
+
+            SubHeapInfo subHeapInfo = new()
+            {
+                Address = address,
+                HeapIndex = i,
+                Allocated = heapData.Allocated,
+                MarkArray = heapData.MarkArray,
+                State = (HeapMarkState)(ulong)heapData.CurrentGCState,
+                CurrentSweepPosition = heapData.NextSweepObj,
+                SavedSweepEphemeralSegment = heapData.SavedSweepEphemeralSeg,
+                SavedSweepEphemeralStart = heapData.SavedSweepEphemeralStart,
+                BackgroundSavedLowestAddress = heapData.BackgroundSavedLowestAddress,
+                BackgroundSavedHighestAddress = heapData.BackgroundSavedHighestAddress,
+                EphemeralHeapSegment = heapData.EphemeralHeapSegment,
+                LowestAddress = heapData.LowestAddress,
+                HighestAddress = heapData.HighestAddress,
+                CardTable = heapData.CardTable,
+                EphemeralAllocContextPointer = heapData.EphemeralAllocContextPtr,
+                EphemeralAllocContextLimit = heapData.EphemeralAllocContextLimit,
+
+                FinalizationPointers = finalization.Select(r => (ulong)r).ToArray(),
+                Generations = ConvertGenerations(genData),
+            };
+
+            subHeapInfo.Segments = EnumerateSegments(subHeapInfo).ToArray();
+            return subHeapInfo;
+        }
+
+        private static GenerationInfo[] ConvertGenerations(GenerationData[] genData)
+        {
+            GenerationInfo[] result = new GenerationInfo[genData.Length];
+            for (int i = 0; i < result.Length; i++)
+                result[i] = new()
+                {
+                    AllocationStart = genData[i].AllocationStart,
+                    StartSegment = genData[i].StartSegment,
+                    AllocationContextLimit = genData[i].AllocationContextLimit,
+                    AllocationContextPointer = genData[i].AllocationContextPointer,
+                };
+
+            return result;
+        }
+
+        private IEnumerable<SegmentInfo> EnumerateSegments(in SubHeapInfo heap)
         {
             HashSet<ulong> seen = new() { 0 };
-            IEnumerable<ClrSegment> segments = EnumerateSegments(heap, 3, seen);
+            IEnumerable<SegmentInfo> segments = EnumerateSegments(heap, 3, seen);
             segments = segments.Concat(EnumerateSegments(heap, 2, seen));
             if (heap.HasRegions)
             {
@@ -170,32 +200,33 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 segments = segments.Concat(EnumerateSegments(heap, 0, seen));
             }
 
-            if (heap.GenerationTable.Length > 4)
+            if (heap.Generations.Length > 4)
                 segments = segments.Concat(EnumerateSegments(heap, 4, seen));
 
             return segments;
         }
 
-        private IEnumerable<ClrSegment> EnumerateSegments(ClrSubHeap heap, int generation, HashSet<ulong> seen)
+        private IEnumerable<SegmentInfo> EnumerateSegments(SubHeapInfo heap, int generation, HashSet<ulong> seen)
         {
-            ulong address = heap.GenerationTable[generation].StartSegment;
+            ulong address = heap.Generations[generation].StartSegment;
 
             while (address != 0 && seen.Add(address))
             {
-                ClrSegment? segment = CreateSegment(heap, address, generation);
-
-                if (segment is null)
+                if (!TryCreateSegment(heap, address, generation, out SegmentInfo segInfo))
                     break;
 
-                yield return segment;
-                address = segment.Next;
+                yield return segInfo;
+                address = segInfo.Next;
             }
         }
 
-        private ClrSegment? CreateSegment(ClrSubHeap subHeap, ulong address, int generation)
+        private bool TryCreateSegment(SubHeapInfo subHeap, ulong address, int generation, out SegmentInfo segInfo)
         {
             if (!_sos.GetSegmentData(address, out SegmentData data))
-                return null;
+            {
+                segInfo = default;
+                return false;
+            }
 
             ClrSegmentFlags flags = (ClrSegmentFlags)data.Flags;
             GCSegmentKind kind = GCSegmentKind.Generation2;
@@ -278,8 +309,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 committed = new(committedStart, data.Committed);
                 if (kind == GCSegmentKind.Ephemeral)
                 {
-                    gen0 = new(subHeap.GenerationTable[0].AllocationStart, allocated.End);
-                    gen1 = new(subHeap.GenerationTable[1].AllocationStart, gen0.Start);
+                    gen0 = new(subHeap.Generations[0].AllocationStart, allocated.End);
+                    gen1 = new(subHeap.Generations[1].AllocationStart, gen0.Start);
                     gen2 = new(allocated.Start, gen1.Start);
                 }
                 else
@@ -293,7 +324,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // The range of memory reserved
             MemoryRange reserved = new(committed.End, data.Reserved);
 
-            return new ClrSegment(subHeap)
+            segInfo = new()
             {
                 Address = data.Address,
                 Kind = kind,
@@ -307,6 +338,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 Next = data.Next,
                 BackgroundAllocated = data.BackgroundAllocated,
             };
+            return true;
         }
 
         public (ulong Thread, int Recursion) GetThinLock(uint header)
@@ -356,11 +388,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return verified;
         }
 
-        public MemoryRange GetInternalRootArray(ClrSubHeap subHeap)
+        public MemoryRange GetInternalRootArray(ulong subHeapAddress)
         {
             DacHeapAnalyzeData analyzeData;
-            if (subHeap.Heap.IsServer)
-                _sos.GetHeapAnalyzeData(subHeap.Address, out analyzeData);
+            if (subHeapAddress != 0)
+                _sos.GetHeapAnalyzeData(subHeapAddress, out analyzeData);
             else
                 _sos.GetHeapAnalyzeData(out analyzeData);
 
