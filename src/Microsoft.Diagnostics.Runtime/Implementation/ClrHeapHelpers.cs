@@ -4,24 +4,21 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.IO;
 using System.Linq;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Extensions;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ClrHeapHelpers : IClrHeapHelpers
     {
-        private readonly IClrRuntimeHelpers _runtimeHelpers;
         private readonly SOSDac _sos;
         private readonly SOSDac8? _sos8;
         private readonly SosDac12? _sos12;
         private readonly IMemoryReader _memoryReader;
-        private readonly CacheOptions _cacheOptions;
-        private readonly GCInfo _gcInfo;
+        private readonly GCState _gcState;
         private HashSet<ulong>? _validMethodTables;
 
         private const uint SyncBlockRecLevelMask = 0x0000FC00;
@@ -29,28 +26,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private const uint SyncBlockThreadIdMask = 0x000003FF;
         private const uint SyncBlockSpinLock = 0x10000000;
         private const uint SyncBlockHashOrSyncBlockIndex = 0x08000000;
-        private const uint SyncBlockHashCodeIndex = 0x04000000;
-        private const int SyncBlockIndexBits = 26;
-        private const uint SyncBlockIndexMask = ((1u << SyncBlockIndexBits) - 1u);
 
-        public bool IsServerMode => _gcInfo.ServerMode != 0;
-
-        public bool AreGCStructuresValid => _gcInfo.GCStructuresValid != 0;
-
-        public ClrHeapHelpers(IClrRuntimeHelpers runtime, SOSDac sos, SOSDac8? sos8, SosDac12? sos12, IMemoryReader reader, CacheOptions cacheOptions)
+        public ClrHeapHelpers(SOSDac sos, SOSDac8? sos8, SosDac12? sos12, IMemoryReader reader, in GCState gcState)
         {
-            _runtimeHelpers = runtime;
             _sos = sos;
             _sos8 = sos8;
             _sos12 = sos12;
             _memoryReader = reader;
-            _cacheOptions = cacheOptions;
-
-            if (!_sos.GetGCHeapData(out _gcInfo))
-                _gcInfo = default; // Ensure _gcInfo.GCStructuresValid == false.
+            _gcState = gcState;
         }
-
-        public ClrTypeFactory CreateTypeFactory(ClrHeap heap) => new(heap, _runtimeHelpers.GetClrTypeHelpers(), _sos, _cacheOptions);
 
         public IEnumerable<MemoryRange> EnumerateThreadAllocationContexts()
         {
@@ -93,7 +77,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public IEnumerable<SyncBlock> EnumerateSyncBlocks()
+        public IEnumerable<SyncBlockInfo> EnumerateSyncBlocks()
         {
             HResult hr = _sos.GetSyncBlockData(1, out SyncBlockData data);
             if (!hr || data.TotalSyncBlockCount == 0)
@@ -106,12 +90,18 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 if (data.Free == 0)
                 {
-                    if (data.MonitorHeld != 0 || data.HoldingThread != 0 || data.Recursion != 0 || data.AdditionalThreadCount != 0)
-                        yield return new FullSyncBlock(data, curr);
-                    else if (data.COMFlags != 0)
-                        yield return new ComSyncBlock(data.Object, curr, data.COMFlags);
-                    else
-                        yield return new SyncBlock(data.Object, curr);
+                    yield return new()
+                    {
+                        Index = curr,
+                        Address = data.Address,
+                        Object = data.Object,
+                        AppDomain = data.AppDomain,
+                        AdditionalThreadCount = data.AdditionalThreadCount.ToSigned(),
+                        COMFlags = (SyncBlockComFlags)data.COMFlags,
+                        HoldingThread = data.HoldingThread,
+                        MonitorHeldCount = data.MonitorHeld.ToSigned(),
+                        Recursion = data.Recursion.ToSigned()
+                    };
                 }
 
                 curr++;
@@ -122,55 +112,87 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             } while (hr);
         }
 
-        public ImmutableArray<ClrSubHeap> GetSubHeaps(ClrHeap heap)
+        public IEnumerable<SubHeapInfo> EnumerateSubHeaps()
         {
-            if (IsServerMode)
+            if (_gcState.Kind == AbstractDac.GCKind.Server)
             {
-                ClrDataAddress[] heapAddresses = _sos.GetHeapList(_gcInfo.HeapCount);
-                ImmutableArray<ClrSubHeap>.Builder heapsBuilder = ImmutableArray.CreateBuilder<ClrSubHeap>(heapAddresses.Length);
+                ClrDataAddress[] heapAddresses = _sos.GetHeapList(_gcState.HeapCount);
                 for (int i = 0; i < heapAddresses.Length; i++)
                 {
                     if (_sos.GetServerHeapDetails(heapAddresses[i], out HeapDetails heapData))
                     {
-                        GenerationData[] genData = heapData.GenerationTable;
-                        IEnumerable<ClrDataAddress> finalization = heapData.FinalizationFillPointers.Take(6);
-
-                        if (_sos8 is not null)
-                        {
-                            genData = _sos8.GetGenerationTable(heapAddresses[i]) ?? genData;
-                            finalization = _sos8.GetFinalizationFillPointers(heapAddresses[i]) ?? finalization;
-                        }
-
-                        heapsBuilder.Add(new(this, heap, i, heapAddresses[i], heapData, genData, finalization.Select(addr => (ulong)addr)));
+                        SubHeapInfo subHeapInfo = CreateSubHeapInfo(heapAddresses[i], i, heapData);
+                        yield return subHeapInfo;
                     }
                 }
-
-                return heapsBuilder.MoveOrCopyToImmutable();
             }
             else
             {
                 if (_sos.GetWksHeapDetails(out HeapDetails heapData))
                 {
-                    GenerationData[] genData = heapData.GenerationTable;
-                    IEnumerable<ClrDataAddress> finalization = heapData.FinalizationFillPointers.Take(6);
-
-                    if (_sos8 is not null)
-                    {
-                        genData = _sos8.GetGenerationTable() ?? genData;
-                        finalization = _sos8.GetFinalizationFillPointers() ?? finalization;
-                    }
-
-                    return ImmutableArray.Create(new ClrSubHeap(this, heap, 0, 0, heapData, genData, finalization.Select(addr => (ulong)addr)));
+                    SubHeapInfo subHeapInfo = CreateSubHeapInfo(0, 0, heapData);
+                    yield return subHeapInfo;
                 }
             }
-
-            return ImmutableArray<ClrSubHeap>.Empty;
         }
 
-        public IEnumerable<ClrSegment> EnumerateSegments(ClrSubHeap heap)
+        private SubHeapInfo CreateSubHeapInfo(ulong address, int i, HeapDetails heapData)
+        {
+            GenerationData[] genData = heapData.GenerationTable;
+            IEnumerable<ClrDataAddress> finalization = heapData.FinalizationFillPointers.Take(6);
+
+            if (_sos8 is not null)
+            {
+                genData = _sos8.GetGenerationTable(address) ?? genData;
+                finalization = _sos8.GetFinalizationFillPointers(address) ?? finalization;
+            }
+
+            SubHeapInfo subHeapInfo = new()
+            {
+                Address = address,
+                HeapIndex = i,
+                Allocated = heapData.Allocated,
+                MarkArray = heapData.MarkArray,
+                State = (HeapMarkState)(ulong)heapData.CurrentGCState,
+                CurrentSweepPosition = heapData.NextSweepObj,
+                SavedSweepEphemeralSegment = heapData.SavedSweepEphemeralSeg,
+                SavedSweepEphemeralStart = heapData.SavedSweepEphemeralStart,
+                BackgroundSavedLowestAddress = heapData.BackgroundSavedLowestAddress,
+                BackgroundSavedHighestAddress = heapData.BackgroundSavedHighestAddress,
+                EphemeralHeapSegment = heapData.EphemeralHeapSegment,
+                LowestAddress = heapData.LowestAddress,
+                HighestAddress = heapData.HighestAddress,
+                CardTable = heapData.CardTable,
+                EphemeralAllocContextPointer = heapData.EphemeralAllocContextPtr,
+                EphemeralAllocContextLimit = heapData.EphemeralAllocContextLimit,
+
+                FinalizationPointers = finalization.Select(r => (ulong)r).ToArray(),
+                Generations = ConvertGenerations(genData),
+            };
+
+            subHeapInfo.Segments = EnumerateSegments(subHeapInfo).ToArray();
+            return subHeapInfo;
+        }
+
+        private static GenerationInfo[] ConvertGenerations(GenerationData[] genData)
+        {
+            GenerationInfo[] result = new GenerationInfo[genData.Length];
+            for (int i = 0; i < result.Length; i++)
+                result[i] = new()
+                {
+                    AllocationStart = genData[i].AllocationStart,
+                    StartSegment = genData[i].StartSegment,
+                    AllocationContextLimit = genData[i].AllocationContextLimit,
+                    AllocationContextPointer = genData[i].AllocationContextPointer,
+                };
+
+            return result;
+        }
+
+        private IEnumerable<SegmentInfo> EnumerateSegments(in SubHeapInfo heap)
         {
             HashSet<ulong> seen = new() { 0 };
-            IEnumerable<ClrSegment> segments = EnumerateSegments(heap, 3, seen);
+            IEnumerable<SegmentInfo> segments = EnumerateSegments(heap, 3, seen);
             segments = segments.Concat(EnumerateSegments(heap, 2, seen));
             if (heap.HasRegions)
             {
@@ -178,32 +200,33 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 segments = segments.Concat(EnumerateSegments(heap, 0, seen));
             }
 
-            if (heap.GenerationTable.Length > 4)
+            if (heap.Generations.Length > 4)
                 segments = segments.Concat(EnumerateSegments(heap, 4, seen));
 
             return segments;
         }
 
-        private IEnumerable<ClrSegment> EnumerateSegments(ClrSubHeap heap, int generation, HashSet<ulong> seen)
+        private IEnumerable<SegmentInfo> EnumerateSegments(SubHeapInfo heap, int generation, HashSet<ulong> seen)
         {
-            ulong address = heap.GenerationTable[generation].StartSegment;
+            ulong address = heap.Generations[generation].StartSegment;
 
             while (address != 0 && seen.Add(address))
             {
-                ClrSegment? segment = CreateSegment(heap, address, generation);
-
-                if (segment is null)
+                if (!TryCreateSegment(heap, address, generation, out SegmentInfo segInfo))
                     break;
 
-                yield return segment;
-                address = segment.Next;
+                yield return segInfo;
+                address = segInfo.Next;
             }
         }
 
-        private ClrSegment? CreateSegment(ClrSubHeap subHeap, ulong address, int generation)
+        private bool TryCreateSegment(SubHeapInfo subHeap, ulong address, int generation, out SegmentInfo segInfo)
         {
             if (!_sos.GetSegmentData(address, out SegmentData data))
-                return null;
+            {
+                segInfo = default;
+                return false;
+            }
 
             ClrSegmentFlags flags = (ClrSegmentFlags)data.Flags;
             GCSegmentKind kind = GCSegmentKind.Generation2;
@@ -286,8 +309,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 committed = new(committedStart, data.Committed);
                 if (kind == GCSegmentKind.Ephemeral)
                 {
-                    gen0 = new(subHeap.GenerationTable[0].AllocationStart, allocated.End);
-                    gen1 = new(subHeap.GenerationTable[1].AllocationStart, gen0.Start);
+                    gen0 = new(subHeap.Generations[0].AllocationStart, allocated.End);
+                    gen1 = new(subHeap.Generations[1].AllocationStart, gen0.Start);
                     gen2 = new(allocated.Start, gen1.Start);
                 }
                 else
@@ -301,7 +324,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // The range of memory reserved
             MemoryRange reserved = new(committed.End, data.Reserved);
 
-            return new ClrSegment(subHeap)
+            segInfo = new()
             {
                 Address = data.Address,
                 Kind = kind,
@@ -315,21 +338,21 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 Next = data.Next,
                 BackgroundAllocated = data.BackgroundAllocated,
             };
+            return true;
         }
 
-        public ClrThinLock? GetThinLock(ClrHeap heap, uint header)
+        public (ulong Thread, int Recursion) GetThinLock(uint header)
         {
             if (!HasThinlock(header))
-                return null;
+                return default;
 
-            (uint threadId, uint recursion) = ClrHeapHelpers.GetThinlockData(header);
+            (uint threadId, uint recursion) = GetThinlockData(header);
             ulong threadAddress = _sos.GetThreadFromThinlockId(threadId);
 
             if (threadAddress == 0)
-                return null;
+                return default;
 
-            ClrThread? thread = heap.Runtime.Threads.FirstOrDefault(t => t.Address == threadAddress);
-            return new ClrThinLock(thread, (int)recursion);
+            return (threadAddress, recursion.ToSigned());
         }
 
         private static bool HasThinlock(uint header)
@@ -344,285 +367,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             return (threadId, recursion);
         }
-
-        public int VerifyObject(SyncBlockContainer syncBlocks, ClrSegment seg, ClrObject obj, Span<ObjectCorruption> result)
-        {
-            if (result.Length == 0)
-                throw new ArgumentException($"{nameof(result)} must have at least one element.");
-
-
-            // Is the object address pointer aligned?
-            if ((obj.Address & ((uint)_memoryReader.PointerSize - 1)) != 0)
-            {
-                result[0] = new(obj, 0, ObjectCorruptionKind.ObjectNotPointerAligned);
-                return 1;
-            }
-
-            if (!obj.IsFree)
-            {
-                // Can we read the method table?
-                if (!_memoryReader.Read(obj.Address, out ulong mt))
-                {
-                    result[0] = new(obj, 0, ObjectCorruptionKind.CouldNotReadMethodTable);
-                    return 1;
-                }
-
-                // Is the method table we read valid?
-                if (!IsValidMethodTable(mt))
-                {
-                    result[0] = new(obj, 0, ObjectCorruptionKind.InvalidMethodTable);
-                    return 1;
-                }
-                else if (obj.Type is null)
-                {
-                    // This shouldn't happen if VerifyMethodTable above returns success, but we'll make sure.
-                    result[0] = new(obj, 0, ObjectCorruptionKind.InvalidMethodTable);
-                    return 1;
-                }
-            }
-
-            // Any previous failures are fatal, we can't keep verifying the object.  From here, though, we'll
-            // attempt to report any and all failures we encounter.
-            int index = 0;
-
-            // Check object size
-            int intSize = obj.Size > int.MaxValue ? int.MaxValue : (int)obj.Size;
-            if (obj + obj.Size > seg.ObjectRange.End || (!obj.IsFree && obj.Size > seg.MaxObjectSize))
-                if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, _memoryReader.PointerSize, ObjectCorruptionKind.ObjectTooLarge)))
-                    return index;
-
-            // If we are inspecting a free object, the rest of this method is not needed.
-            if (obj.IsFree)
-                return index;
-
-            // Validate members
-            bool verifyMembers;
-            try
-            {
-                // Type can't be null, we checked above.  The compiler just get lost in the IsFree checks.
-                verifyMembers = obj.Type!.ContainsPointers && ShouldVerifyMembers(seg, obj);
-
-                // If the object is an array and too large, it likely means someone wrote over the size
-                // field of our array.  Trying to verify the members of the array will generate a ton
-                // of noisy failures, so we'll avoid doing that.
-                if (verifyMembers && obj.Type.IsArray)
-                {
-                    for (int i = 0; i < index; i++)
-                    {
-                        if (result[i].Kind == ObjectCorruptionKind.ObjectTooLarge)
-                        {
-                            verifyMembers = false;
-                            break;
-                        }
-                    }
-                }
-            }
-            catch (IOException)
-            {
-                if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, 0, ObjectCorruptionKind.CouldNotReadCardTable)))
-                    return index;
-
-                verifyMembers = false;
-            }
-
-            if (verifyMembers)
-            {
-                GCDesc gcdesc = obj.Type!.GCDesc;
-                if (gcdesc.IsEmpty)
-                    if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, 0, ObjectCorruptionKind.CouldNotReadGCDesc)))
-                        return index;
-
-                ulong freeMt = seg.SubHeap.Heap.FreeType.MethodTable;
-                byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
-                int read = _memoryReader.Read(obj, new Span<byte>(buffer, 0, intSize));
-                if (read != intSize)
-                    if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, read >= 0 ? read : 0, ObjectCorruptionKind.CouldNotReadObject)))
-                        return index;
-
-                foreach ((ulong objRef, int offset) in gcdesc.WalkObject(buffer, intSize))
-                {
-                    if ((objRef & ((uint)_memoryReader.PointerSize - 1)) != 0)
-                    {
-                        if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, offset, ObjectCorruptionKind.ObjectReferenceNotPointerAligned)))
-                            break;
-                    }
-
-                    if (!_memoryReader.Read(objRef, out ulong mt) || !IsValidMethodTable(mt))
-                    {
-                        if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, offset, ObjectCorruptionKind.InvalidObjectReference)))
-                            break;
-                    }
-                    else if ((mt & ~1ul) == freeMt)
-                    {
-                        if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, offset, ObjectCorruptionKind.FreeObjectReference)))
-                            break;
-                    }
-                }
-
-                ArrayPool<byte>.Shared.Return(buffer);
-                if (index >= result.Length)
-                    return index;
-            }
-
-            // Object header validation tests:
-            uint objHeader = _memoryReader.Read<uint>(obj - sizeof(uint));
-
-            // Validate SyncBlock
-            SyncBlock? blk = syncBlocks.TryGetSyncBlock(obj);
-            if ((objHeader & SyncBlockHashOrSyncBlockIndex) != 0 && (objHeader & SyncBlockHashCodeIndex) == 0)
-            {
-                uint sblkIndex = objHeader & SyncBlockIndexMask;
-                int clrIndex = blk?.Index ?? -1;
-
-                if (sblkIndex == 0)
-                {
-                    if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockZero, -1, clrIndex)))
-                        return index;
-                }
-                else if (sblkIndex != clrIndex)
-                {
-                    if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockMismatch, (int)sblkIndex, clrIndex)))
-                        return index;
-                }
-            }
-            else if (blk is not null)
-            {
-                if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, -sizeof(uint), ObjectCorruptionKind.SyncBlockMismatch, -1, blk.Index)))
-                    return index;
-            }
-
-            // Validate Thinlock
-            if (HasThinlock(objHeader))
-            {
-                ClrRuntime runtime = seg.SubHeap.Heap.Runtime;
-                (uint threadId, _) = GetThinlockData(objHeader);
-                ulong address = _sos.GetThreadFromThinlockId(threadId);
-                if (address == 0 || !runtime.Threads.Any(th => th.Address == address))
-                {
-                    if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, -4, ObjectCorruptionKind.InvalidThinlock)))
-                        return index;
-                }
-            }
-
-            return index;
-        }
-
-        private static bool AddCorruptionAndContinue(Span<ObjectCorruption> result, ref int curr, ObjectCorruption objectCorruption)
-        {
-            result[curr++] = objectCorruption;
-            return curr < result.Length;
-        }
-
-        private bool ShouldVerifyMembers(ClrSegment seg, ClrObject obj)
-        {
-            ShouldCheckBgcMark(seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep);
-            return FgcShouldConsiderObject(seg, obj, considerBgcMark, checkCurrentSweep, checkSavedSweep);
-        }
-
-        private bool FgcShouldConsiderObject(ClrSegment seg, ClrObject obj, bool considerBgcMark, bool checkCurrentSweep, bool checkSavedSweep)
-        {
-            // fgc_should_consider_object in gc.cpp
-            ClrSubHeap heap = seg.SubHeap;
-            bool noBgcMark = false;
-            if (considerBgcMark)
-            {
-                // gc.cpp:  if (check_current_sweep_p && (o < current_sweep_pos))
-                if (checkCurrentSweep && obj < heap.CurrentSweepPosition)
-                {
-                    noBgcMark = true;
-                }
-
-                if (!noBgcMark)
-                {
-                    // gc.cpp:  if(check_saved_sweep_p && (o >= saved_sweep_ephemeral_start))
-                    if (checkSavedSweep && obj >= heap.SavedSweepEphemeralStart)
-                    {
-                        noBgcMark = true;
-                    }
-
-                    // gc.cpp:  if (o >= background_allocated)
-                    if (obj >= seg.BackgroundAllocated)
-                        noBgcMark = true;
-                }
-            }
-            else
-            {
-                noBgcMark = true;
-            }
-
-            // gc.cpp: return (no_bgc_mark_p ? TRUE : background_object_marked (o, FALSE))
-            return noBgcMark || BackgroundObjectMarked(heap, obj);
-        }
-
-        private const uint MarkBitPitch = 8;
-        private const uint MarkWordWidth = 32;
-        private const uint MarkWordSize = MarkBitPitch * MarkWordWidth;
-
-#pragma warning disable IDE0051 // Remove unused private members. This is information we'd like to keep.
-        private const uint DtGcPageSize = 0x1000;
-        private const uint CardWordWidth = 32;
-        private uint CardSize => ((uint)_memoryReader.PointerSize / 4) * DtGcPageSize / CardWordWidth;
-#pragma warning restore IDE0051 // Remove unused private members
-
-        private static void ShouldCheckBgcMark(ClrSegment seg, out bool considerBgcMark, out bool checkCurrentSweep, out bool checkSavedSweep)
-        {
-            // Keep in sync with should_check_bgc_mark in gc.cpp
-            considerBgcMark = false;
-            checkCurrentSweep = false;
-            checkSavedSweep = false;
-
-            // if (current_c_gc_state == c_gc_state_planning)
-            ClrSubHeap heap = seg.SubHeap;
-            if (heap.State == ClrSubHeap.GCState.Planning)
-            {
-                if ((seg.Flags & ClrSegmentFlags.Swept) == ClrSegmentFlags.Swept || !seg.ObjectRange.Contains(heap.CurrentSweepPosition))
-                {
-                    // gc.cpp: if ((seg->flags & heap_segment_flags_swept) || (current_sweep_pos == heap_segment_reserved (seg)))
-
-                    // this seg was already swept
-                }
-                else if (seg.BackgroundAllocated == 0)
-                {
-                    // gc.cpp:  else if (heap_segment_background_allocated (seg) == 0)
-
-                    // newly alloc during bgc
-                }
-                else
-                {
-                    considerBgcMark = true;
-
-                    // gc.cpp:  if (seg == saved_sweep_ephemeral_seg)
-                    if (seg.Address == heap.SavedSweepEphemeralSegment)
-                        checkSavedSweep = true;
-
-                    // gc.cpp:  if (in_range_for_segment (current_sweep_pos, seg))
-                    if (seg.ObjectRange.Contains(heap.CurrentSweepPosition))
-                        checkCurrentSweep = true;
-                }
-            }
-        }
-
-        private bool BackgroundObjectMarked(ClrSubHeap heap, ClrObject obj)
-        {
-            // gc.cpp: if ((o >= background_saved_lowest_address) && (o < background_saved_highest_address))
-            if (obj >= heap.BackgroundSavedLowestAddress && obj < heap.BackgroundSavedHighestAddress)
-                return MarkArrayMarked(heap, obj);
-
-            return true;
-        }
-
-        private bool MarkArrayMarked(ClrSubHeap heap, ClrObject obj)
-        {
-            ulong address = heap.MarkArray + sizeof(uint) * MarkWordOf(obj);
-            if (!_memoryReader.Read(address, out uint entry))
-                throw new IOException($"Could not read mark array at {address:x}");
-
-            return (entry & (1u << MarkBitOf(obj))) != 0;
-        }
-
-        private static int MarkBitOf(ulong address) => (int)((address / MarkBitPitch) % MarkWordWidth);
-        private static ulong MarkWordOf(ulong address) => address / MarkWordSize;
-
 
         public bool IsValidMethodTable(ulong mt)
         {
@@ -644,11 +388,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return verified;
         }
 
-        public MemoryRange GetInternalRootArray(ClrSubHeap subHeap)
+        public MemoryRange GetInternalRootArray(ulong subHeapAddress)
         {
             DacHeapAnalyzeData analyzeData;
-            if (subHeap.Heap.IsServer)
-                _sos.GetHeapAnalyzeData(subHeap.Address, out analyzeData);
+            if (subHeapAddress != 0)
+                _sos.GetHeapAnalyzeData(subHeapAddress, out analyzeData);
             else
                 _sos.GetHeapAnalyzeData(out analyzeData);
 
@@ -659,21 +403,37 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return new(analyzeData.InternalRootArray, end);
         }
 
-        public ClrOutOfMemoryInfo? GetOOMInfo(ClrSubHeap subHeap)
+        public bool GetOOMInfo(ulong subHeapAddress, out OomInfo oomInfo)
         {
             DacOOMData oomData;
-            if (subHeap.Heap.IsServer)
+            if (subHeapAddress != 0)
             {
-                if (!_sos.GetOOMData(subHeap.Address, out oomData) || (oomData.Reason == OutOfMemoryReason.None && oomData.GetMemoryFailure == GetMemoryFailureReason.None))
-                    return null;
+                if (!_sos.GetOOMData(subHeapAddress, out oomData) || (oomData.Reason == OutOfMemoryReason.None && oomData.GetMemoryFailure == GetMemoryFailureReason.None))
+                {
+                    oomInfo = default;
+                    return false;
+                }
             }
             else
             {
                 if (!_sos.GetOOMData(out oomData) || (oomData.Reason == OutOfMemoryReason.None && oomData.GetMemoryFailure == GetMemoryFailureReason.None))
-                    return null;
+                {
+                    oomInfo = default;
+                    return false;
+                }
             }
 
-            return new ClrOutOfMemoryInfo(oomData);
+            oomInfo = new()
+            {
+                AllocSize = oomData.AllocSize,
+                AvailablePageFileMB = oomData.AvailablePageFileMB,
+                GCIndex = oomData.GCIndex,
+                GetMemoryFailure = oomData.GetMemoryFailure,
+                IsLOH = oomData.IsLOH != 0,
+                Reason = oomData.Reason,
+                Size = oomData.Size,
+            };
+            return true;
         }
     }
 }

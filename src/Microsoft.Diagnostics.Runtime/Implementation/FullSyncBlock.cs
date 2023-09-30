@@ -1,7 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -18,16 +18,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override int RecursionCount { get; }
         public override int WaitingThreadCount { get; }
 
-        public FullSyncBlock(in SyncBlockData syncBlk, int index)
-            : base(syncBlk.Object, index)
+        public FullSyncBlock(in SyncBlockInfo syncBlk)
+            : base(syncBlk.Object, syncBlk.Index)
         {
-            ComFlags = (SyncBlockComFlags)syncBlk.COMFlags;
+            ComFlags = syncBlk.COMFlags;
 
-            IsMonitorHeld = syncBlk.MonitorHeld != 0;
+            IsMonitorHeld = syncBlk.MonitorHeldCount > 0;
             HoldingThreadAddress = syncBlk.HoldingThread;
-            RecursionCount = syncBlk.Recursion >= int.MaxValue ? int.MaxValue : (int)syncBlk.Recursion;
+            RecursionCount = syncBlk.Recursion >= int.MaxValue ? int.MaxValue : syncBlk.Recursion;
             // https://stackoverflow.com/questions/2203000/windbg-sos-explanation-of-syncblk-output
-            WaitingThreadCount = IsMonitorHeld ? (int)((syncBlk.MonitorHeld - 1) / 2) : (int)syncBlk.AdditionalThreadCount;
+            WaitingThreadCount = IsMonitorHeld ? (syncBlk.MonitorHeldCount - 1) / 2 : syncBlk.AdditionalThreadCount;
         }
     }
 }

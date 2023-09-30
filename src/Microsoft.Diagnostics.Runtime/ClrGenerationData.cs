@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ulong AllocationContextPointer { get; }
         public ulong AllocationContextLimit { get; }
 
-        internal ClrGenerationData(in GenerationData generationData)
+        internal ClrGenerationData(in GenerationInfo generationData)
         {
             StartSegment = generationData.StartSegment;
             AllocationStart = generationData.AllocationStart;

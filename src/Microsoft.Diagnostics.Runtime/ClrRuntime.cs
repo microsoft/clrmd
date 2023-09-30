@@ -173,10 +173,16 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 ClrHeap? heap = _heap;
-                if (heap is null)
+                while (heap is null) // Flush can cause a race.
                 {
-                    IClrHeapHelpers heapHelpers = _helpers.GetHeapHelpers() ?? throw new NotSupportedException("Unable to create a ClrHeap for this runtime.");
-                    heap = new ClrHeap(this, DataTarget.DataReader, heapHelpers);
+                    IClrHeapHelpers heapHelpers = _helpers.GetHeapHelpers();
+                    IClrTypeHelpers typeHelpers = _helpers.GetClrTypeHelpers();
+
+                    // These are defined as non-nullable but just in case, double check we have a non-null instance.
+                    if (heapHelpers is null || typeHelpers is null || !_helpers.GetGCState(out GCState gcInfo))
+                        throw new NotSupportedException("Unable to create a ClrHeap for this runtime.");
+
+                    heap = new(this, DataTarget.DataReader, heapHelpers, typeHelpers, gcInfo);
                     Interlocked.CompareExchange(ref _heap, heap, null);
                     heap = _heap;
                 }

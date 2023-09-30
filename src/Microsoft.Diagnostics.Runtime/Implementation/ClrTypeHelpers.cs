@@ -121,16 +121,20 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool GetObjectArrayInformation(ulong objRef, out ObjectArrayInformation data)
         {
-            data = default;
-            if (_sos.GetObjectData(objRef, out ObjectData objData))
+            if (!_sos.GetObjectData(objRef, out ObjectData objData))
             {
-                data.ComponentType = (ClrElementType)objData.ElementType;
-                ulong dataPointer = objData.ArrayDataPointer > objRef ? objData.ArrayDataPointer - objRef : 0;
-                data.DataPointer = dataPointer > int.MaxValue ? int.MaxValue : (int)dataPointer;
-                return true;
+                data = default;
+                return false;
             }
 
-            return false;
+            ulong dataPointer = objData.ArrayDataPointer > objRef ? objData.ArrayDataPointer - objRef : 0;
+            data = new()
+            {
+                ComponentType = objData.ElementTypeHandle,
+                ComponentElementType = (ClrElementType)objData.ElementType,
+                DataPointer = dataPointer > int.MaxValue ? int.MaxValue : (int)dataPointer
+            };
+            return true;
         }
 
         public IEnumerable<MethodInfo> EnumerateMethodsForType(ulong methodTable)

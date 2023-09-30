@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -17,9 +18,19 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private uint[]? _markers;
 
-        internal ClrSegment(ClrSubHeap subHeap)
+        internal ClrSegment(ClrSubHeap subHeap, in SegmentInfo segInfo)
         {
             SubHeap = subHeap;
+            Address = segInfo.Address;
+            Kind = segInfo.Kind;
+            ObjectRange = segInfo.ObjectRange;
+            CommittedMemory = segInfo.CommittedMemory;
+            ReservedMemory = segInfo.ReservedMemory;
+            Generation0 = segInfo.Generation0;
+            Generation1 = segInfo.Generation1;
+            Generation2 = segInfo.Generation2;
+            Flags = segInfo.Flags;
+            BackgroundAllocated = segInfo.BackgroundAllocated;
         }
 
         public bool Equals(IClrSegment? other)
@@ -209,11 +220,6 @@ namespace Microsoft.Diagnostics.Runtime
                 return markers;
             }
         }
-
-        /// <summary>
-        /// The next segment in the heap.
-        /// </summary>
-        internal ulong Next { get; set; }
 
         IClrSubHeap IClrSegment.SubHeap => SubHeap;
         internal ulong BackgroundAllocated { get; set; }
