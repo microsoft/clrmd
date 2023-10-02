@@ -122,27 +122,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return new(clrInfo.DataTarget, dacPath, clrInfo.ModuleInfo.ImageBase);
         }
 
-        public ClrInfo? ProvideClrInfoForModule(DataTarget dataTarget, ModuleInfo module)
+        public virtual ClrInfo? ProvideClrInfoForModule(DataTarget dataTarget, ModuleInfo module)
         {
             ulong runtimeInfo = 0;
-            bool isSingleFile = false;
-            if (!IsSupportedRuntime(module, out ClrFlavor flavor))
-            {
-                if ((dataTarget.DataReader.TargetPlatform != OSPlatform.Windows) || Path.GetExtension(module.FileName).Equals(".exe", StringComparison.OrdinalIgnoreCase))
-                {
-                    runtimeInfo = module.GetExportSymbolAddress(ClrRuntimeInfo.SymbolValue);
-                    if (runtimeInfo == 0)
-                        return null;
+            if (IsSupportedRuntime(module, out ClrFlavor flavor))
+                return CreateClrInfo(dataTarget, module, runtimeInfo, flavor);
 
-                    flavor = ClrFlavor.Core;
-                    isSingleFile = true;
-                }
-                else
-                {
-                    return null;
-                }
-            }
+            return null;
+        }
 
+        protected ClrInfo CreateClrInfo(DataTarget dataTarget, ModuleInfo module, ulong runtimeInfo, ClrFlavor flavor)
+        {
             Version version;
             int indexTimeStamp = 0;
             int indexFileSize = 0;
@@ -158,7 +148,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             string? dacTargetPlatform = GetDacFileName(flavor, targetPlatform);
             string? dbiCurrentPlatform = GetDbiFileName(flavor, currentPlatform);
             string? dbiTargetPlatform = GetDbiFileName(flavor, targetPlatform);
-            if (isSingleFile)
+            if (runtimeInfo != 0)
             {
                 if (ClrRuntimeInfo.TryReadClrRuntimeInfo(dataTarget.DataReader, runtimeInfo, out ClrRuntimeInfo info, out version))
                 {
@@ -337,7 +327,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             ClrInfo result = new(dataTarget, module, version, this)
             {
-                IsSingleFile = isSingleFile,
                 Flavor = flavor,
                 DebuggingLibraries = orderedDebugLibraries.ToImmutableArray(),
                 IndexFileSize = indexFileSize,

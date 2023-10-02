@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class DataTarget : IDisposable, IDataTarget
     {
-        private static readonly List<IClrInfoProvider> s_clrInfoProviders = new() { new DotNetClrInfoProvider() };
+        private static readonly List<IClrInfoProvider> s_clrInfoProviders = new() { new DotNetClrInfoProvider(), new SingleFileClrInfoProvider() };
 
         private readonly CustomDataTarget _target;
         private bool _disposed;
