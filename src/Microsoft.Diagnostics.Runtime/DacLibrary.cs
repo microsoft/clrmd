@@ -7,7 +7,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public sealed class DacLibrary : IDisposable
+    internal sealed class DacLibrary : IDisposable
     {
         private bool _disposed;
         private SOSDac? _sos;

@@ -3,6 +3,7 @@
 
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -17,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.AppDomains.LoadFullDumpWithDbgEng();
             IThreadReader threadReader = (IThreadReader)dt.DataReader;
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-            using SOSDac dac = runtime.DacLibrary.SOSDacInterface;
+            using SOSDac dac = ((ClrRuntimeHelpers)runtime.DacLibrary).SOSDacInterface;
 
             foreach (ClrThread thread in runtime.Threads)
             {

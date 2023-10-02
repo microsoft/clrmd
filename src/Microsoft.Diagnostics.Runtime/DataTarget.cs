@@ -21,6 +21,8 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class DataTarget : IDisposable, IDataTarget
     {
+        private static readonly List<IClrInfoProvider> s_clrInfoProviders = new() { new DotNetClrInfoProvider(), new SingleFileClrInfoProvider() };
+
         private readonly CustomDataTarget _target;
         private bool _disposed;
         private ImmutableArray<ClrInfo> _clrs;
@@ -187,7 +189,8 @@ namespace Microsoft.Diagnostics.Runtime
                 // to debug .Net Core (assuming the user is just debugging one of them)
 
                 IEnumerable<ClrInfo> clrs = from module in EnumerateModules()
-                                            let clrInfo = ClrInfo.TryCreate(this, module)
+                                            let clrInfoEnumerable = s_clrInfoProviders.Select(provider => provider.ProvideClrInfoForModule(this, module))
+                                            let clrInfo = clrInfoEnumerable.LastOrDefault()
                                             where clrInfo != null
                                             orderby clrInfo.Flavor descending, clrInfo.Version
                                             select clrInfo;

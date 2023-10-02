@@ -28,10 +28,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly SOSDac8? _sos8;
         private readonly SosDac12? _sos12;
         private readonly ISOSDac13? _sos13;
-        private readonly CacheOptions _cacheOptions;
         private IClrNativeHeapHelpers? _nativeHeapHelpers;
 
-        public ClrRuntimeHelpers(ClrInfo clrInfo, DacLibrary library, CacheOptions cacheOptions)
+        // for testing purposes only
+        internal DacLibrary Library => _library;
+        // for testing purposes only
+        internal SOSDac SOSDacInterface => _sos;
+
+        public ClrRuntimeHelpers(ClrInfo clrInfo, DacLibrary library)
         {
             _clrInfo = clrInfo;
             _dataReader = clrInfo.DataTarget.DataReader;
@@ -42,7 +46,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _sos8 = library.SOSDacInterface8;
             _sos12 = library.SOSDacInterface12;
             _sos13 = library.SOSDacInterface13;
-            _cacheOptions = cacheOptions;
 
             int version = 0;
             if (!_dac.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))))

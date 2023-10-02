@@ -9,7 +9,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
-using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -20,31 +19,18 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrRuntime : IClrRuntime
     {
-        private readonly IClrRuntimeHelpers _helpers;
         private volatile ClrHeap? _heap;
         private ImmutableArray<ClrThread> _threads;
         private volatile DomainAndModules? _domainAndModules;
 
-        internal ClrRuntime(ClrInfo clrInfo, DacLibrary library)
+        internal ClrRuntime(ClrInfo clrInfo, IClrRuntimeHelpers dac)
         {
             ClrInfo = clrInfo;
             DataTarget = clrInfo.DataTarget;
-            DacLibrary = library;
-            _helpers = new ClrRuntimeHelpers(clrInfo, DacLibrary, DataTarget.CacheOptions);
+            DacLibrary = dac;
         }
 
-        internal ClrRuntime(ClrInfo clrInfo, DacLibrary library, IClrRuntimeHelpers helpers)
-        {
-            ClrInfo = clrInfo;
-            DataTarget = clrInfo.DataTarget;
-            DacLibrary = library;
-            _helpers = helpers;
-        }
-
-        /// <summary>
-        /// Used for internal purposes.
-        /// </summary>
-        public DacLibrary DacLibrary { get; }
+        internal IClrRuntimeHelpers DacLibrary { get; }
 
         /// <summary>
         /// Gets the <see cref="ClrInfo"/> of the current runtime.
@@ -87,7 +73,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                IClrThreadPoolHelpers? helper = _helpers.LegacyThreadPoolHelpers;
+                IClrThreadPoolHelpers? helper = DacLibrary.LegacyThreadPoolHelpers;
                 ClrThreadPool result = new(this, helper);
                 return result.Initialized ? result : null;
             }
@@ -107,9 +93,9 @@ namespace Microsoft.Diagnostics.Runtime
                 ImmutableArray<ClrThread>.Builder builder = ImmutableArray.CreateBuilder<ClrThread>();
 
                 int max = 20000;
-                foreach (ClrThreadInfo data in _helpers.EnumerateThreads())
+                foreach (ClrThreadInfo data in DacLibrary.EnumerateThreads())
                 {
-                    builder.Add(new ClrThread(DataTarget.DataReader, this, _helpers.ThreadHelpers, data));
+                    builder.Add(new ClrThread(DataTarget.DataReader, this, DacLibrary.ThreadHelpers, data));
 
                     if (max-- == 0)
                         break;
@@ -140,7 +126,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (methodHandle == 0)
                 return null;
 
-            ulong mt = _helpers.GetMethodHandleContainingType(methodHandle);
+            ulong mt = DacLibrary.GetMethodHandleContainingType(methodHandle);
             if (mt == 0)
                 return null;
 
@@ -163,7 +149,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// depending on the state of the process when we attempt to walk the handle table.
         /// </summary>
         /// <returns>An enumeration of GC handles in the process.</returns>
-        public IEnumerable<ClrHandle> EnumerateHandles() => _helpers.EnumerateHandles().Select(r => new ClrHandle(this, r));
+        public IEnumerable<ClrHandle> EnumerateHandles() => DacLibrary.EnumerateHandles().Select(r => new ClrHandle(this, r));
 
         /// <summary>
         /// Gets the GC heap of the process.
@@ -175,11 +161,11 @@ namespace Microsoft.Diagnostics.Runtime
                 ClrHeap? heap = _heap;
                 while (heap is null) // Flush can cause a race.
                 {
-                    IClrHeapHelpers heapHelpers = _helpers.GetHeapHelpers();
-                    IClrTypeHelpers typeHelpers = _helpers.GetClrTypeHelpers();
+                    IClrHeapHelpers heapHelpers = DacLibrary.GetHeapHelpers();
+                    IClrTypeHelpers typeHelpers = DacLibrary.GetClrTypeHelpers();
 
                     // These are defined as non-nullable but just in case, double check we have a non-null instance.
-                    if (heapHelpers is null || typeHelpers is null || !_helpers.GetGCState(out GCState gcInfo))
+                    if (heapHelpers is null || typeHelpers is null || !DacLibrary.GetGCState(out GCState gcInfo))
                         throw new NotSupportedException("Unable to create a ClrHeap for this runtime.");
 
                     heap = new(this, DataTarget.DataReader, heapHelpers, typeHelpers, gcInfo);
@@ -215,7 +201,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ClrMethod? GetMethodByInstructionPointer(ulong ip)
         {
-            ulong md = _helpers.GetMethodHandleByInstructionPointer(ip);
+            ulong md = DacLibrary.GetMethodHandleByInstructionPointer(ip);
             return GetMethodByHandle(md);
         }
 
@@ -284,28 +270,28 @@ namespace Microsoft.Diagnostics.Runtime
                 }
             }
 
-            foreach (ClrNativeHeapInfo gcFreeRegion in _helpers.EnumerateGCFreeRegions())
+            foreach (ClrNativeHeapInfo gcFreeRegion in DacLibrary.EnumerateGCFreeRegions())
             {
                 yield return gcFreeRegion;
             }
 
-            foreach (ClrNativeHeapInfo handleHeap in _helpers.EnumerateHandleTableRegions())
+            foreach (ClrNativeHeapInfo handleHeap in DacLibrary.EnumerateHandleTableRegions())
             {
                 yield return handleHeap;
             }
 
-            foreach (ClrNativeHeapInfo bkRegions in _helpers.EnumerateGCBookkeepingRegions())
+            foreach (ClrNativeHeapInfo bkRegions in DacLibrary.EnumerateGCBookkeepingRegions())
             {
                 yield return bkRegions;
             }
         }
 
-        public IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData() => _helpers.EnumerateSyncBlockCleanupData();
-        public IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData() => _helpers.EnumerateRcwCleanupData();
+        public IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData() => DacLibrary.EnumerateSyncBlockCleanupData();
+        public IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData() => DacLibrary.EnumerateRcwCleanupData();
 
         internal RuntimeCallableWrapper? CreateRCWForObject(ulong obj)
         {
-            if (_helpers.GetRcwInfo(obj, out RcwInfo info))
+            if (DacLibrary.GetRcwInfo(obj, out RcwInfo info))
                 return new(this, info);
 
             return null;
@@ -313,7 +299,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal ComCallableWrapper? CreateCCWForObject(ulong obj)
         {
-            if (_helpers.GetCcwInfo(obj, out CcwInfo info))
+            if (DacLibrary.GetCcwInfo(obj, out CcwInfo info))
                 return new(this, info);
 
             return null;
@@ -325,7 +311,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumeration of heaps.</returns>
         public IEnumerable<ClrJitManager> EnumerateJitManagers()
         {
-            return _helpers.EnumerateClrJitManagers().Select(info => new ClrJitManager(this, info, _helpers.NativeHeapHelpers));
+            return DacLibrary.EnumerateClrJitManagers().Select(info => new ClrJitManager(this, info, DacLibrary.NativeHeapHelpers));
         }
 
         /// <summary>
@@ -341,7 +327,7 @@ namespace Microsoft.Diagnostics.Runtime
             _domainAndModules = null;
             _threads = default;
             _heap = null;
-            _helpers.Flush();
+            DacLibrary.Flush();
         }
 
         /// <summary>
@@ -349,7 +335,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="address">Address of a possible JIT helper function.</param>
         /// <returns>The name of the JIT helper function or <see langword="null"/> if <paramref name="address"/> isn't a JIT helper function.</returns>
-        public string? GetJitHelperFunctionName(ulong address) => _helpers.GetJitHelperFunctionName(address);
+        public string? GetJitHelperFunctionName(ulong address) => DacLibrary.GetJitHelperFunctionName(address);
 
         /// <summary>
         /// Cleans up all resources and releases them.  You may not use this ClrRuntime or any object it transitively
@@ -358,7 +344,7 @@ namespace Microsoft.Diagnostics.Runtime
         public void Dispose()
         {
             FlushCachedData();
-            _helpers.Dispose();
+            DacLibrary.Dispose();
         }
 
         private DomainAndModules GetAppDomainData()
@@ -382,9 +368,9 @@ namespace Microsoft.Diagnostics.Runtime
             ClrModule? bcl = null;
 
             ImmutableArray<ClrAppDomain>.Builder builder = ImmutableArray.CreateBuilder<ClrAppDomain>();
-            foreach (AppDomainInfo domainInfo in _helpers.EnumerateAppDomains())
+            foreach (AppDomainInfo domainInfo in DacLibrary.EnumerateAppDomains())
             {
-                ClrAppDomain domain = new(this, domainInfo, _helpers.NativeHeapHelpers);
+                ClrAppDomain domain = new(this, domainInfo, DacLibrary.NativeHeapHelpers);
 
                 switch (domainInfo.Kind)
                 {
@@ -405,12 +391,12 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 ImmutableArray<ClrModule>.Builder moduleBuilder = ImmutableArray.CreateBuilder<ClrModule>();
-                foreach (ulong moduleAddress in _helpers.GetModuleList(domain.Address))
+                foreach (ulong moduleAddress in DacLibrary.GetModuleList(domain.Address))
                 {
                     if (!modules.TryGetValue(moduleAddress, out ClrModule? module))
                     {
-                        ClrModuleInfo moduleInfo = _helpers.GetModuleInfo(moduleAddress);
-                        module = new(domain, moduleInfo, _helpers.ModuleHelpers, _helpers.NativeHeapHelpers, DataTarget.DataReader);
+                        ClrModuleInfo moduleInfo = DacLibrary.GetModuleInfo(moduleAddress);
+                        module = new(domain, moduleInfo, DacLibrary.ModuleHelpers, DacLibrary.NativeHeapHelpers, DataTarget.DataReader);
                         modules.Add(moduleAddress, module);
                     }
 

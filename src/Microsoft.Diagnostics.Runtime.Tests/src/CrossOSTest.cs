@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class CrossOSTest
     {
-        [WindowsFact] // ModuleInfo.Version only supports native modules at the moment
+        [WindowsFact]
         public void LinuxDebugTest()
         {
             string artifacts = TestTargets.GetTestArtifactFolder();
