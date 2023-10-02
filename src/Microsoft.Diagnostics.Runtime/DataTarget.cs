@@ -189,7 +189,7 @@ namespace Microsoft.Diagnostics.Runtime
                 // to debug .Net Core (assuming the user is just debugging one of them)
 
                 IEnumerable<ClrInfo> clrs = from module in EnumerateModules()
-                                            let clrInfoEnumerable = s_clrInfoProviders.Select(provider => provider.ProvideClrInfoForModule(this, module))
+                                            let clrInfoEnumerable = s_clrInfoProviders.Select(provider => provider.ProvideClrInfoForModule(this, module)).Where(clrInfo => clrInfo != null)
                                             let clrInfo = clrInfoEnumerable.LastOrDefault()
                                             where clrInfo != null
                                             orderby clrInfo.Flavor descending, clrInfo.Version

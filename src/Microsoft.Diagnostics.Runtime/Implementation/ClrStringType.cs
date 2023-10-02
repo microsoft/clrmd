@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ClrStringType : ClrType
     {
-        public ClrStringType(ClrModule module, IClrTypeHelpers helpers, ClrHeap heap, in TypeInfo typeInfo)
+        public ClrStringType(ClrModule module, IAbstractTypeProvider helpers, ClrHeap heap, in TypeInfo typeInfo)
             : base(module, typeInfo, helpers)
         {
             Heap = heap;

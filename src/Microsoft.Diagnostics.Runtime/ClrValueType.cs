@@ -276,7 +276,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         T IClrValue.ReadBoxedValue<T>()
         {
-            IClrTypeHelpers? helpers = Type?.Helpers;
+            IAbstractTypeProvider? helpers = Type?.Helpers;
             if (helpers is null)
                 return default;
 

@@ -30,10 +30,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private const string c_linuxCoreDbiFileName = "libmscordbi.so";
         private const string c_macOSCoreDbiFileName = "libmscordbi.dylib";
 
-        public IClrRuntimeHelpers CreateRuntimeHelpers(ClrInfo clrInfo, string? providedPath, bool ignoreMismatch)
+        public IAbstractDac CreateRuntimeHelpers(ClrInfo clrInfo, string? providedPath, bool ignoreMismatch)
         {
             DacLibrary library = GetDacLibraryFromPath(clrInfo, providedPath, ignoreMismatch);
-            return new ClrRuntimeHelpers(clrInfo, library);
+            return new DacImplementation(clrInfo, library);
         }
 
         private static DacLibrary GetDacLibraryFromPath(ClrInfo clrInfo, string? dacPath, bool ignoreMismatch)

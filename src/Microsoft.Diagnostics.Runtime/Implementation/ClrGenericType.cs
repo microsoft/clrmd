@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         public ClrGenericParameter GenericParameter { get; }
 
-        public ClrGenericType(IClrTypeHelpers helpers, ClrHeap heap, ClrModule module, ClrGenericParameter clrGenericParameter)
+        public ClrGenericType(IAbstractTypeProvider helpers, ClrHeap heap, ClrModule module, ClrGenericParameter clrGenericParameter)
             : base(module, default, helpers)
         {
             Heap = heap ?? throw new ArgumentNullException(nameof(heap));

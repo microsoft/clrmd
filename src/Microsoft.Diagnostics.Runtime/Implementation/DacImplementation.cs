@@ -15,7 +15,7 @@ using GCKind = Microsoft.Diagnostics.Runtime.AbstractDac.GCKind;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal sealed unsafe class ClrRuntimeHelpers : IClrModuleHelpers, IClrRuntimeHelpers, IClrThreadHelpers, IClrThreadPoolHelpers
+    internal sealed unsafe class DacImplementation : IAbstractModuleProvider, IAbstractDac, IAbstractThreadProvider, IAbstractThreadPoolProvider
     {
         private readonly IDataReader _dataReader;
         private readonly ThreadStoreData _threadStore;
@@ -28,14 +28,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly SOSDac8? _sos8;
         private readonly SosDac12? _sos12;
         private readonly ISOSDac13? _sos13;
-        private IClrNativeHeapHelpers? _nativeHeapHelpers;
+        private IAbstractNativeHeapProvider? _nativeHeapHelpers;
 
         // for testing purposes only
         internal DacLibrary Library => _library;
         // for testing purposes only
         internal SOSDac SOSDacInterface => _sos;
 
-        public ClrRuntimeHelpers(ClrInfo clrInfo, DacLibrary library)
+        public DacImplementation(ClrInfo clrInfo, DacLibrary library)
         {
             _clrInfo = clrInfo;
             _dataReader = clrInfo.DataTarget.DataReader;
@@ -90,20 +90,20 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return state.ObjectMethodTable != 0;
         }
 
-        public IClrHeapHelpers GetHeapHelpers()
+        public IAbstractHeapProvider GetHeapHelpers()
         {
             GetGCState(out GCState state);
-            return new ClrHeapHelpers(_sos, _sos8, _sos12, _dataReader, state);
+            return new DacHeapProvider(_sos, _sos8, _sos12, _dataReader, state);
         }
 
-        public IClrTypeHelpers GetClrTypeHelpers() => new ClrTypeHelpers(_dac, _sos, _sos6, _sos8, _dataReader);
+        public IAbstractTypeProvider GetClrTypeHelpers() => new DacTypeProvider(_dac, _sos, _sos6, _sos8, _dataReader);
         #endregion
 
         ////////////////////////////////////////////////////////////////////////////////
         // Threads
         ////////////////////////////////////////////////////////////////////////////////
         #region Threads
-        public IClrThreadHelpers ThreadHelpers => this;
+        public IAbstractThreadProvider ThreadHelpers => this;
 
         public IEnumerable<ClrThreadInfo> EnumerateThreads()
         {
@@ -338,7 +338,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         // Modules
         ////////////////////////////////////////////////////////////////////////////////
         #region Modules
-        public IClrModuleHelpers ModuleHelpers => this;
+        public IAbstractModuleProvider ModuleHelpers => this;
 
         public IEnumerable<ulong> GetModuleList(ulong domain) => _sos.GetAssemblyList(domain).SelectMany(assembly => _sos.GetModuleList(assembly)).Select(module => (ulong)module);
 
@@ -466,7 +466,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         // ThreadPool
         ////////////////////////////////////////////////////////////////////////////////
         #region ThreadPool
-        public IClrThreadPoolHelpers? LegacyThreadPoolHelpers => this;
+        public IAbstractThreadPoolProvider? LegacyThreadPoolHelpers => this;
 
         public bool GetLegacyThreadPoolData(out ThreadPoolData data)
         {
@@ -484,15 +484,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         // Native Heaps
         ////////////////////////////////////////////////////////////////////////////////
         #region Native Heaps
-        public IClrNativeHeapHelpers NativeHeapHelpers
+        public IAbstractNativeHeapProvider NativeHeapHelpers
         {
             get
             {
-                IClrNativeHeapHelpers? helpers = _nativeHeapHelpers;
+                IAbstractNativeHeapProvider? helpers = _nativeHeapHelpers;
                 if (helpers is null)
                 {
                     // We don't care if this races
-                    helpers = new ClrNativeHeapHelpers(_clrInfo, _sos, _sos13, _dataReader);
+                    helpers = new DacNativeHeapProvider(_clrInfo, _sos, _sos13, _dataReader);
                     _nativeHeapHelpers = helpers;
                 }
 

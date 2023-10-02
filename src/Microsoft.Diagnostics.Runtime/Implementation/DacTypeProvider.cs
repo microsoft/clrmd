@@ -1,10 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 using System.Reflection;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
@@ -16,7 +14,7 @@ using TypeInfo = Microsoft.Diagnostics.Runtime.AbstractDac.TypeInfo;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class ClrTypeHelpers : IClrTypeHelpers
+    internal sealed class DacTypeProvider : IAbstractTypeProvider
     {
         private readonly string UnloadedTypeName = "<Unloaded Type>";
 
@@ -27,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IDataReader DataReader { get; }
 
-        public ClrTypeHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, IDataReader dataReader)
+        public DacTypeProvider(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, IDataReader dataReader)
         {
             _clrDataProcess = clrDataProcess;
             _sos = sos;
