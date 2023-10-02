@@ -16,6 +16,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// For .NET Core
         /// </summary>
-        Core = 3
+        Core = 3,
+
+        /// <summary>
+        /// NativeAOT.
+        /// This is not supported by ClrMD, but reserve the enum value here.
+        /// </summary>
+        NativeAOT,
     }
 }
