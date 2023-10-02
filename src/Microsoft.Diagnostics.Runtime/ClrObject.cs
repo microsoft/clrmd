@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private readonly ClrType? _type;
 
-        private IClrTypeHelpers Helpers => GetTypeOrThrow().Helpers;
+        private IAbstractTypeProvider Helpers => GetTypeOrThrow().Helpers;
         private IDataReader DataReader => GetTypeOrThrow().Module.DataReader;
 
         /// <summary>
@@ -104,7 +104,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The value read.</returns>
         public T ReadBoxedValue<T>() where T : unmanaged
         {
-            IClrTypeHelpers? helpers = Helpers;
+            IAbstractTypeProvider? helpers = Helpers;
             if (helpers is null)
                 return default;
 

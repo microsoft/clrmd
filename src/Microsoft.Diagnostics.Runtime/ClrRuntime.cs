@@ -23,14 +23,14 @@ namespace Microsoft.Diagnostics.Runtime
         private ImmutableArray<ClrThread> _threads;
         private volatile DomainAndModules? _domainAndModules;
 
-        internal ClrRuntime(ClrInfo clrInfo, IClrRuntimeHelpers dac)
+        internal ClrRuntime(ClrInfo clrInfo, IAbstractDac dac)
         {
             ClrInfo = clrInfo;
             DataTarget = clrInfo.DataTarget;
             DacLibrary = dac;
         }
 
-        internal IClrRuntimeHelpers DacLibrary { get; }
+        internal IAbstractDac DacLibrary { get; }
 
         /// <summary>
         /// Gets the <see cref="ClrInfo"/> of the current runtime.
@@ -73,7 +73,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                IClrThreadPoolHelpers? helper = DacLibrary.LegacyThreadPoolHelpers;
+                IAbstractThreadPoolProvider? helper = DacLibrary.LegacyThreadPoolHelpers;
                 ClrThreadPool result = new(this, helper);
                 return result.Initialized ? result : null;
             }
@@ -161,8 +161,8 @@ namespace Microsoft.Diagnostics.Runtime
                 ClrHeap? heap = _heap;
                 while (heap is null) // Flush can cause a race.
                 {
-                    IClrHeapHelpers heapHelpers = DacLibrary.GetHeapHelpers();
-                    IClrTypeHelpers typeHelpers = DacLibrary.GetClrTypeHelpers();
+                    IAbstractHeapProvider heapHelpers = DacLibrary.GetHeapHelpers();
+                    IAbstractTypeProvider typeHelpers = DacLibrary.GetClrTypeHelpers();
 
                     // These are defined as non-nullable but just in case, double check we have a non-null instance.
                     if (heapHelpers is null || typeHelpers is null || !DacLibrary.GetGCState(out GCState gcInfo))

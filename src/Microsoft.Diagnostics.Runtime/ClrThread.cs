@@ -17,13 +17,13 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private const int MaxFrameDefault = 8096;
         private readonly IDataReader _dataReader;
-        private readonly IClrThreadHelpers _threadHelpers;
+        private readonly IAbstractThreadProvider _threadHelpers;
         private ulong _exceptionInFlight;
         private ClrException? _lastThrownException;
         private volatile Cache<ClrStackFrame>? _frameCache;
         private volatile Cache<ClrStackRoot>? _rootCache;
 
-        internal ClrThread(IDataReader dataReader, ClrRuntime runtime, IClrThreadHelpers helpers, in ClrThreadInfo threadInfo)
+        internal ClrThread(IDataReader dataReader, ClrRuntime runtime, IAbstractThreadProvider helpers, in ClrThreadInfo threadInfo)
         {
             _dataReader = dataReader;
             _threadHelpers = helpers;

@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
-    internal interface IClrHeapHelpers
+    internal interface IAbstractHeapProvider
     {
         IEnumerable<MemoryRange> EnumerateThreadAllocationContexts();
         IEnumerable<(ulong Source, ulong Target)> EnumerateDependentHandles();

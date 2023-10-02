@@ -11,7 +11,7 @@ using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal sealed class ClrNativeHeapHelpers : IClrNativeHeapHelpers
+    internal sealed class DacNativeHeapProvider : IAbstractNativeHeapProvider
     {
         private NativeHeapKind[]? _heapNativeTypes;
         private readonly ClrInfo _clrInfo;
@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly ISOSDac13? _sos13;
         private readonly IDataReader _dataReader;
 
-        public ClrNativeHeapHelpers(ClrInfo clrInfo, SOSDac sos, ISOSDac13? sos13, IDataReader dataReader)
+        public DacNativeHeapProvider(ClrInfo clrInfo, SOSDac sos, ISOSDac13? sos13, IDataReader dataReader)
         {
             _clrInfo = clrInfo;
             _sos = sos;

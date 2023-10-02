@@ -6,7 +6,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
-    internal interface IClrModuleHelpers
+    internal interface IAbstractModuleProvider
     {
         MetadataImport? GetMetadataImport(ulong module);
         IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefMap(ulong module);

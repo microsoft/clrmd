@@ -19,8 +19,8 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrModule : IClrModule
     {
-        private readonly IClrModuleHelpers? _helpers;
-        private readonly IClrNativeHeapHelpers? _nativeHeapHelpers;
+        private readonly IAbstractModuleProvider? _helpers;
+        private readonly IAbstractNativeHeapProvider? _nativeHeapHelpers;
         private int _debugMode = int.MaxValue;
         private MetadataImport? _metadata;
         private PdbInfo? _pdb;
@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime
         internal ClrHeap Heap => _heap ??= AppDomain.Runtime.Heap;
         internal IDataReader DataReader { get; }
 
-        internal ClrModule(ClrAppDomain domain, in ClrModuleInfo data, IClrModuleHelpers? moduleHelpers, IClrNativeHeapHelpers? nativeHeapHelpers, IDataReader dataReader)
+        internal ClrModule(ClrAppDomain domain, in ClrModuleInfo data, IAbstractModuleProvider? moduleHelpers, IAbstractNativeHeapProvider? nativeHeapHelpers, IDataReader dataReader)
         {
             _helpers = moduleHelpers;
             _nativeHeapHelpers = nativeHeapHelpers;

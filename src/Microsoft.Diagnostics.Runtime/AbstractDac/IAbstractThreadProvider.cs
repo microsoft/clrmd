@@ -8,7 +8,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// <summary>
     /// Helpers for ClrThreads.
     /// </summary>
-    internal interface IClrThreadHelpers
+    internal interface IAbstractThreadProvider
     {
         /// <summary>
         /// Enumerates the roots of this thread.

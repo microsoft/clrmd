@@ -16,13 +16,13 @@ namespace Microsoft.Diagnostics.Runtime
         ClrInfo? ProvideClrInfoForModule(DataTarget dataTarget, ModuleInfo module);
 
         /// <summary>
-        /// Creates an instance of <see cref="IClrRuntimeHelpers"/> for the given <see cref="ClrInfo"/>.
+        /// Creates an instance of <see cref="IAbstractDac"/> for the given <see cref="ClrInfo"/>.
         /// Note that this will only be called on the interface which previously provided the given ClrInfo.
         /// </summary>
         /// <param name="clrInfo">A ClrInfo previously returned by this same instance.</param>
         /// <param name="providedPath">The path provided to DataTarget.CreateRuntime.</param>
         /// <param name="ignorePathMismatch">The ignore mismatch parameter provided to DataTarget.CreateRuntime.</param>
-        /// <returns>An <see cref="IClrRuntimeHelpers"/> interface to use with the specified clr runtime.</returns>
-        IClrRuntimeHelpers CreateRuntimeHelpers(ClrInfo clrInfo, string? providedPath, bool ignorePathMismatch);
+        /// <returns>An <see cref="IAbstractDac"/> interface to use with the specified clr runtime.</returns>
+        IAbstractDac CreateRuntimeHelpers(ClrInfo clrInfo, string? providedPath, bool ignorePathMismatch);
     }
 }

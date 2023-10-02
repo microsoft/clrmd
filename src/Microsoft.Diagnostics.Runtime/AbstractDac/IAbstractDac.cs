@@ -6,22 +6,25 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
-    internal interface IClrRuntimeHelpers : IDisposable
+    /// <summary>
+    /// The base interface for building an abstract ClrRuntime.
+    /// </summary>
+    internal interface IAbstractDac : IDisposable
     {
         // Heap
         bool GetGCState(out GCState state);
-        IClrHeapHelpers GetHeapHelpers();
-        IClrTypeHelpers GetClrTypeHelpers();
+        IAbstractHeapProvider GetHeapHelpers();
+        IAbstractTypeProvider GetClrTypeHelpers();
 
         // Threads
-        IClrThreadHelpers ThreadHelpers { get; }
+        IAbstractThreadProvider ThreadHelpers { get; }
         IEnumerable<ClrThreadInfo> EnumerateThreads();
 
         // AppDomains
         IEnumerable<AppDomainInfo> EnumerateAppDomains();
 
         // Modules
-        IClrModuleHelpers? ModuleHelpers { get; }
+        IAbstractModuleProvider? ModuleHelpers { get; }
         IEnumerable<ulong> GetModuleList(ulong appDomain);
         ClrModuleInfo GetModuleInfo(ulong module);
 
@@ -37,10 +40,10 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         string? GetJitHelperFunctionName(ulong address);
 
         // ThreadPool
-        IClrThreadPoolHelpers? LegacyThreadPoolHelpers { get; }
+        IAbstractThreadPoolProvider? LegacyThreadPoolHelpers { get; }
 
         // Native Heaps
-        IClrNativeHeapHelpers? NativeHeapHelpers { get; }
+        IAbstractNativeHeapProvider? NativeHeapHelpers { get; }
         IEnumerable<ClrNativeHeapInfo> EnumerateGCFreeRegions();
         IEnumerable<ClrNativeHeapInfo> EnumerateHandleTableRegions();
         IEnumerable<ClrNativeHeapInfo> EnumerateGCBookkeepingRegions();

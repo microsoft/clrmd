@@ -20,11 +20,11 @@ namespace Microsoft.Diagnostics.Runtime
         IEquatable<ClrMethod>, IClrMethod
 #nullable restore
     {
-        private readonly IClrTypeHelpers _helpers;
+        private readonly IAbstractTypeProvider _helpers;
         private string? _signature;
         private MethodAttributes? _attributes;
 
-        internal ClrMethod(IClrTypeHelpers helpers, ClrType type, in MethodInfo info)
+        internal ClrMethod(IAbstractTypeProvider helpers, ClrType type, in MethodInfo info)
         {
             _helpers = helpers;
             Type = type;

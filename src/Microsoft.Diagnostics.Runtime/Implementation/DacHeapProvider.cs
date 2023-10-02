@@ -12,7 +12,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
-    internal sealed class ClrHeapHelpers : IClrHeapHelpers
+    internal sealed class DacHeapProvider : IAbstractHeapProvider
     {
         private readonly SOSDac _sos;
         private readonly SOSDac8? _sos8;
@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private const uint SyncBlockSpinLock = 0x10000000;
         private const uint SyncBlockHashOrSyncBlockIndex = 0x08000000;
 
-        public ClrHeapHelpers(SOSDac sos, SOSDac8? sos8, SosDac12? sos12, IMemoryReader reader, in GCState gcState)
+        public DacHeapProvider(SOSDac sos, SOSDac8? sos8, SosDac12? sos12, IMemoryReader reader, in GCState gcState)
         {
             _sos = sos;
             _sos8 = sos8;
@@ -143,8 +143,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             if (_sos8 is not null)
             {
-                genData = (address != 0 ? _sos8.GetGenerationTable(address) : _sos8.GetGenerationTable()) ?? genData;
-                finalization = (address != 0 ? _sos8.GetFinalizationFillPointers(address) : _sos8.GetFinalizationFillPointers()) ?? finalization;
+                genData = _sos8.GetGenerationTable(address) ?? genData;
+                finalization = _sos8.GetFinalizationFillPointers(address) ?? finalization;
             }
 
             SubHeapInfo subHeapInfo = new()

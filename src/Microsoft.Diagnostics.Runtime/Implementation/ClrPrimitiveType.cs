@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class ClrPrimitiveType : ClrType
     {
-        public ClrPrimitiveType(IClrTypeHelpers helpers, ClrModule module, ClrHeap heap, ClrElementType type)
+        public ClrPrimitiveType(IAbstractTypeProvider helpers, ClrModule module, ClrHeap heap, ClrElementType type)
             : base(module, new() { StaticSize = ClrField.GetSize(null, type) }, helpers)
         {
             if (helpers is null)

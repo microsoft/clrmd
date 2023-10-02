@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrStaticField : ClrField, IClrStaticField
     {
-        internal ClrStaticField(ClrType containingType, ClrType? type, IClrTypeHelpers helpers, in FieldInfo data)
+        internal ClrStaticField(ClrType containingType, ClrType? type, IAbstractTypeProvider helpers, in FieldInfo data)
             : base(containingType, type, helpers, data)
         {
         }

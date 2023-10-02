@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             using (ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime())
             {
-                ClrRuntimeHelpers runtimeHelpers = (ClrRuntimeHelpers)runtime.DacLibrary;
+                DacImplementation runtimeHelpers = (DacImplementation)runtime.DacLibrary;
 
                 library = runtimeHelpers.Library.OwningLibrary;
                 sosDac = runtimeHelpers.SOSDacInterface;

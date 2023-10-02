@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime
 {
     public sealed class ClrJitManager : IClrJitManager
     {
-        private readonly IClrNativeHeapHelpers? _helpers;
+        private readonly IAbstractNativeHeapProvider? _helpers;
 
         public ClrRuntime Runtime { get; }
         IClrRuntime IClrJitManager.Runtime => Runtime;
@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public CodeHeapKind Kind { get; }
 
-        internal ClrJitManager(ClrRuntime runtime, in JitManagerInfo info, IClrNativeHeapHelpers? helpers)
+        internal ClrJitManager(ClrRuntime runtime, in JitManagerInfo info, IAbstractNativeHeapProvider? helpers)
         {
             Runtime = runtime;
             Address = info.Address;

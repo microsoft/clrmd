@@ -9,7 +9,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
-    internal interface IClrThreadPoolHelpers
+    internal interface IAbstractThreadPoolProvider
     {
         bool GetLegacyThreadPoolData(out ThreadPoolData data);
         bool GetLegacyWorkRequestData(ulong workRequest, out WorkRequestData workRequestData);

@@ -8,7 +8,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
-    internal interface IClrTypeHelpers
+    internal interface IAbstractTypeProvider
     {
         bool GetTypeInfo(ulong methodTable, out TypeInfo info);
         string? GetTypeName(ulong methodTable);
