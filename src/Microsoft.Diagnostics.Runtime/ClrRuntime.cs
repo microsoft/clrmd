@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Used for internal purposes.
         /// </summary>
-        public DacLibrary DacLibrary { get; }
+        internal DacLibrary DacLibrary { get; }
 
         /// <summary>
         /// Gets the <see cref="ClrInfo"/> of the current runtime.

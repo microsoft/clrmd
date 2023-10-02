@@ -415,7 +415,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="dacLibrary">A fully constructed DacLibrary to use.</param>
         /// <returns>The runtime associated with this CLR.</returns>
-        public ClrRuntime CreateRuntime(DacLibrary dacLibrary)
+        internal ClrRuntime CreateRuntime(DacLibrary dacLibrary)
         {
             if (IntPtr.Size != DataTarget.DataReader.PointerSize)
                 throw new InvalidOperationException("Mismatched pointer size between this process and the dac.");

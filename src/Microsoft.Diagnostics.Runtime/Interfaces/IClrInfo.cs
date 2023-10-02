@@ -19,7 +19,6 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         Version Version { get; }
 
         IClrRuntime CreateRuntime();
-        IClrRuntime CreateRuntime(DacLibrary dacLibrary);
         IClrRuntime CreateRuntime(string dacPath);
         IClrRuntime CreateRuntime(string dacPath, bool ignoreMismatch);
     }

@@ -2,12 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    public sealed class DacLibrary : IDisposable
+    internal sealed class DacLibrary : IDisposable
     {
         private bool _disposed;
         private SOSDac? _sos;
