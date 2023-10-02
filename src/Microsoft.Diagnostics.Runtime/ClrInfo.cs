@@ -130,7 +130,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ClrRuntime CreateRuntimeWorker(string? dacPath, bool ignoreMismatch)
         {
-            IAbstractDac helpers = ClrInfoProvider.CreateRuntimeHelpers(this, dacPath, ignoreMismatch);
+            IAbstractDac helpers = ClrInfoProvider.CreateAbstractDac(this, dacPath, ignoreMismatch);
             return new ClrRuntime(this, helpers);
         }
 

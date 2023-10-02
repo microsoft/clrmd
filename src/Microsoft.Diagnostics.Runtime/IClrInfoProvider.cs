@@ -23,6 +23,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="providedPath">The path provided to DataTarget.CreateRuntime.</param>
         /// <param name="ignorePathMismatch">The ignore mismatch parameter provided to DataTarget.CreateRuntime.</param>
         /// <returns>An <see cref="IAbstractDac"/> interface to use with the specified clr runtime.</returns>
-        IAbstractDac CreateRuntimeHelpers(ClrInfo clrInfo, string? providedPath, bool ignorePathMismatch);
+        IAbstractDac CreateAbstractDac(ClrInfo clrInfo, string? providedPath, bool ignorePathMismatch);
     }
 }
