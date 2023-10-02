@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
@@ -85,7 +84,8 @@ namespace Microsoft.Diagnostics.Runtime
             _runtime = runtime;
             _legacyData = helpers;
 
-            ThreadPoolData tpData = default;
+
+            LegacyThreadPoolInfo tpData = default;
             HasLegacyData = _legacyData is not null && _legacyData.GetLegacyThreadPoolData(out tpData);
 
             ClrAppDomain domain = GetDomain();
@@ -159,7 +159,7 @@ namespace Microsoft.Diagnostics.Runtime
                 yield break;
 
             ulong curr = _firstLegacyWorkRequest;
-            while (curr != 0 && _legacyData.GetLegacyWorkRequestData(curr, out WorkRequestData workRequestData))
+            while (curr != 0 && _legacyData.GetLegacyWorkRequestData(curr, out LegacyWorkRequestInfo workRequestData))
             {
                 yield return new LegacyThreadPoolWorkRequest()
                 {
