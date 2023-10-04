@@ -143,8 +143,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             if (_sos8 is not null)
             {
-                genData = _sos8.GetGenerationTable(address) ?? genData;
-                finalization = _sos8.GetFinalizationFillPointers(address) ?? finalization;
+                genData = (address != 0 ? _sos8.GetGenerationTable(address) : _sos8.GetGenerationTable()) ?? genData;
+                finalization = (address != 0 ? _sos8.GetFinalizationFillPointers(address) : _sos8.GetFinalizationFillPointers()) ?? finalization;
             }
 
             SubHeapInfo subHeapInfo = new()
