@@ -82,6 +82,24 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
+        /// <summary>
+        /// Attempts to create a root resource node for the PE module.
+        /// </summary>
+        /// <param name="reader">The data reader to create this module from.</param>
+        /// <param name="imageBase">The base address of this module.</param>
+        /// <param name="imageSize">The module image size.</param>
+        /// <param name="isFileLayout">if true, the PE has file layout, false loaded layout</param>
+        /// <returns>IResourceNode instance</returns>
+        public static IResourceNode? TryCreateResourceRoot(IDataReader reader, ulong imageBase, ulong imageSize, bool isFileLayout)
+        {
+            PEImage image = new(new ReadVirtualStream(reader, (long)imageBase, unchecked((int)imageSize)), leaveOpen: false, isVirtual: !isFileLayout);
+            if (image.IsValid)
+            {
+                return image.Resources;
+            }
+            return null;
+        }
+
         protected virtual void TrySetProperties(int indexFileSize, int indexTimeStamp, Version? version) { }
 
         /// <summary>
