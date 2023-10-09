@@ -39,7 +39,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             BloomSize = reader.Read<int>(ref address);
             BloomShift = reader.Read<int>(ref address);
 
-            if (BucketCount <= 0 || SymbolOffset == 0)
+
+            if (BucketCount <= 0 || BucketCount >= 0x10000000 || SymbolOffset == 0)
                 throw new InvalidDataException("ELF file has a hash bucket count or symbol offset invalid");
 
             if (BloomSize < 0)
