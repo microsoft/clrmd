@@ -17,15 +17,15 @@ We also used this required breaking change as an opportunity to refactor and fix
 
 ### Removed or Rewritten
 
-**ClrFinalizerRoot** - removed - Use ClrRoot.Kind == FinalizerQueue
-**ClrStackInteriorRoot** - removed - Use ClrRoot properties
-**GCRoot** - rewrote - Write code using it from scratch using the new version of the class
-**ObjectSet** - removed - Use either HashSet<ulong> or re-implement ObjectSet based on the old ClrMD mechanism
-**DacLibrary/MetadataImport/SOSDac interfaces** - removed - If there's functionality there it needs to be exposed through the public ClrMD interfaces
+1.  **ClrFinalizerRoot** - removed - Use ClrRoot.Kind == FinalizerQueue
+2. **ClrStackInteriorRoot** - removed - Use ClrRoot properties
+3. **GCRoot** - rewrote - Write code using it from scratch using the new version of the class
+4. **ObjectSet** - removed - Use either HashSet<ulong> or re-implement ObjectSet based on the old ClrMD mechanism
+5. **DacLibrary/MetadataImport/SOSDac interfaces** - removed - If there's functionality there it needs to be exposed through the public ClrMD interfaces
 
 ### Modified
 
-**ClrField/ClrMethod/ClrType** - IsPublic/IsPrivate/etc were removed, use .Attributes and check the attributes for the correct protection on the field/method/type
-**ClrThread.Is___** - Check the appropriate flags on ClrThread.State
-**ClrHeap.LogicalHeapCount/ClrSegment.LogicalHeap** - "LogicalHeaps" are now ClrSubHeaps.  They can be accessed via ClrHeap.SubHeaps and ClrSegment.SubHeap
-**ClrSegment Is___Segment** - ClrSegment.Kind
+1. **ClrField/ClrMethod/ClrType** - IsPublic/IsPrivate/etc were removed, use .Attributes and check the attributes for the correct protection on the field/method/type
+2. **ClrThread.Is___** - Check the appropriate flags on ClrThread.State
+3. **ClrHeap.LogicalHeapCount/ClrSegment.LogicalHeap** - "LogicalHeaps" are now ClrSubHeaps.  They can be accessed via ClrHeap.SubHeaps and ClrSegment.SubHeap
+4. **ClrSegment Is___Segment** - ClrSegment.Kind
