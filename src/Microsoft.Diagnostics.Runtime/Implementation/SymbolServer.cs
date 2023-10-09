@@ -113,9 +113,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (key == null)
                 return null;
 
-            Stream? stream = FindFileOnServer(key).Result;
-            if (stream != null)
-                return _cache.Store(stream, key);
+            Task<Stream?> findFileTask = FindFileOnServer(key);
+            try
+            {
+                Stream? stream = findFileTask.Result;
+                if (stream != null)
+                    return _cache.Store(stream, key);
+            }
+            catch (AggregateException)
+            {
+            }
 
             return null;
         }

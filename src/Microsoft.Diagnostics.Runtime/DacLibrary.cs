@@ -116,8 +116,13 @@ namespace Microsoft.Diagnostics.Runtime
             GC.KeepAlive(wrapper);
 #endif
 
-            if (res != 0)
-                throw new ClrDiagnosticsException($"Failure loading DAC: CreateDacInstance failed 0x{res:x}", res);
+            unchecked
+            {
+                if ((uint)res == 0x80131c4f)
+                    throw new ClrDiagnosticsException($"Failure loading DAC: CreateDacInstance failed 0x{res:x}, which usually indicates the dump file was taken incorrectly.", res);
+                else if (res != 0)
+                    throw new ClrDiagnosticsException($"Failure loading DAC: CreateDacInstance failed 0x{res:x}", res);
+            }
 
             InternalDacPrivateInterface = new ClrDataProcess(this, iUnk);
         }
