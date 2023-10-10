@@ -62,6 +62,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public ulong Address { get; }
 
+        /// <summary>
+        /// The state of this thread.  These flags correspond to the runtime's internal flags on a thread.
+        /// </summary>
         public ClrThreadState State { get; }
 
         /// <summary>
