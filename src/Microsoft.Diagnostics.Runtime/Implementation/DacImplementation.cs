@@ -227,6 +227,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 spOffset = 256;
                 contextSize = 912;
             }
+            else if (_dataReader.Architecture == (Architecture)9 /* Architecture.RiscV64 */)
+            {
+                ipOffset = 264;
+                spOffset = 24;
+                contextSize = 532;
+            }
             else if (_dataReader.Architecture == Architecture.X86)
             {
                 ipOffset = 184;

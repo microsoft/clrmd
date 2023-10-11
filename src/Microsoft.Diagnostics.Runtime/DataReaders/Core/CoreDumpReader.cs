@@ -32,6 +32,9 @@ namespace Microsoft.Diagnostics.Runtime
                 ElfMachine.EM_386 => (4, Architecture.X86),
                 ElfMachine.EM_AARCH64 => (8, Architecture.Arm64),
                 ElfMachine.EM_ARM => (4, Architecture.Arm),
+                ElfMachine.EM_RISCV => _core.ElfFile.Header is ElfHeader64 ?
+                                            (8, (Architecture)9 /* Architecture.RiscV64 */) :
+                                            throw new NotImplementedException($"Support for RISC-V 32bit not yet implemented."),
                 _ => throw new NotImplementedException($"Support for {architecture} not yet implemented."),
             };
         }

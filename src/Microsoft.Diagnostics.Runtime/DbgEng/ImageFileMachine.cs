@@ -34,6 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
         AMD64 = 0x8664, // AMD64 (K8)
         M32R = 0x9041, // M32R little-endian
         ARM64 = 0xAA64, // ARM64 Little-endian
+        RISCV64 = 0x5064, // RISCV64
         CEE = 0xC0EE
     }
 }

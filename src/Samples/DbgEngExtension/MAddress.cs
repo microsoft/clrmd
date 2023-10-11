@@ -350,6 +350,7 @@ namespace DbgEngExtension
             {
                 Architecture.Arm => ArmContext.Size,
                 Architecture.Arm64 => Arm64Context.Size,
+                (Architecture)9 /* Architecture.RiscV64 */ => RiscV64Context.Size,
                 Architecture.X86 => X86Context.Size,
                 Architecture.X64 => AMD64Context.Size,
                 _ => 0
@@ -415,6 +416,14 @@ namespace DbgEngExtension
                         fixed (byte* ptrCtx = buffer)
                         {
                             ArmContext* ctx = (ArmContext*)ptrCtx;
+                            sp = ctx->Sp;
+                        }
+                        break;
+
+                    case (Architecture)9 /* Architecture.RiscV64 */:
+                        fixed (byte* ptrCtx = buffer)
+                        {
+                            RiscV64Context* ctx = (RiscV64Context*)ptrCtx;
                             sp = ctx->Sp;
                         }
                         break;
