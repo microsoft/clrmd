@@ -105,8 +105,10 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 ClrStaticField threadCountField = windowsThreadPoolType!.GetStaticFieldByName("s_threadCount")!;
                 WindowsThreadPoolThreadCount = threadCountField.Read<int>(domain);
+                return;
             }
-            else if (UsingPortableThreadPool)
+
+            if (UsingPortableThreadPool)
             {
                 CpuUtilization = portableThreadPool.ReadField<int>("_cpuUtilization");
                 MinThreads = portableThreadPool.ReadField<ushort>("_minThreads");
@@ -132,19 +134,23 @@ namespace Microsoft.Diagnostics.Runtime
                 ActiveWorkerThreads = tpData.NumWorkingWorkerThreads;
                 RetiredWorkerThreads = tpData.NumRetiredWorkerThreads;
 
-                TotalCompletionPorts = tpData.NumCPThreads;
-                FreeCompletionPorts = tpData.NumFreeCPThreads;
-                MaxFreeCompletionPorts = tpData.MaxFreeCPThreads;
-                CompletionPortCurrentLimit = tpData.CurrentLimitTotalCPThreads;
-                MaxCompletionPorts = tpData.MaxLimitTotalCPThreads;
-                MinCompletionPorts = tpData.MinLimitTotalCPThreads;
-
                 _nativeLogAddress = tpData.HillClimbingLog;
                 _nativeLogStart = tpData.HillClimbingLogFirstIndex;
                 _nativeLogSize = tpData.HillClimbingLogSize;
 
                 _firstLegacyWorkRequest = tpData.FirstUnmanagedWorkRequest;
                 _asyncTimerFunction = tpData.AsyncTimerCallbackCompletionFPtr;
+            }
+
+            // The legacy IO completion thread pool may also be used while the portable thread pool is being used for worker threads
+            if (HasLegacyData)
+            {
+                TotalCompletionPorts = tpData.NumCPThreads;
+                FreeCompletionPorts = tpData.NumFreeCPThreads;
+                MaxFreeCompletionPorts = tpData.MaxFreeCPThreads;
+                CompletionPortCurrentLimit = tpData.CurrentLimitTotalCPThreads;
+                MaxCompletionPorts = tpData.MaxLimitTotalCPThreads;
+                MinCompletionPorts = tpData.MinLimitTotalCPThreads;
             }
         }
 
