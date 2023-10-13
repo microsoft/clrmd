@@ -187,6 +187,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             (ImageFileMachine)0x01c2 or                     // THUMB
             (ImageFileMachine)0x01c4 => Architecture.Arm,   // THUMB2
             (ImageFileMachine)0xAA64 => Architecture.Arm64, // ARM64
+            (ImageFileMachine)0x5064 => (Architecture)9 /* Architecture.RiscV64 */, // RISCV64
             _ => (Architecture)(-1)
         };
 

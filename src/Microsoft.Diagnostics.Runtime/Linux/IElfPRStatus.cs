@@ -25,6 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// architecture.
         ///
         /// <see cref="Arm64Context"/>
+        /// <see cref="RiscV64Context"/>
         /// <see cref="AMD64Context"/>
         /// <see cref="ArmContext"/>
         /// <see cref="X86Context"/>

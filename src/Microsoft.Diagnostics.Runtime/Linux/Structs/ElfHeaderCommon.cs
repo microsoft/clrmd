@@ -54,6 +54,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     case ElfMachine.EM_AARCH64:
                         return reader.Read<ElfHeader64>(position);
 
+                    case ElfMachine.EM_RISCV:
+                        if (Class == ElfClass.Class64)
+                            return reader.Read<ElfHeader64>(position);
+                        else
+                            break;
+
                     case ElfMachine.EM_386:
                     case ElfMachine.EM_ARM:
                         return reader.Read<ElfHeader32>(position);
