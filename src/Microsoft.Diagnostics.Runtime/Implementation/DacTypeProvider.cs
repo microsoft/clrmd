@@ -143,14 +143,15 @@ namespace Microsoft.Diagnostics.Runtime
             for (uint i = 0; i < data.NumMethods; i++)
             {
                 ulong slot = _sos.GetMethodTableSlot(methodTable, i);
-                if (_sos.GetCodeHeaderData(slot, out CodeHeaderData chd) && _sos.GetMethodDescData(chd.MethodDesc, 0, out MethodDescData mdd))
+                if (_sos.GetCodeHeaderData(slot, out CodeHeaderData chd) && _sos.GetMethodDescData(chd.MethodDesc, 0, out MethodDescData mdd)
+                    && mdd.HasNativeCode == 1 && _sos.GetCodeHeaderData(mdd.NativeCodeAddr, out CodeHeaderData chdBasedOnNative))
                 {
-                    HotColdRegions regions = new(mdd.NativeCodeAddr, chd.HotRegionSize, chd.ColdRegionStart, chd.ColdRegionSize);
+                    HotColdRegions regions = new(mdd.NativeCodeAddr, chdBasedOnNative.HotRegionSize, chdBasedOnNative.ColdRegionStart, chdBasedOnNative.ColdRegionSize);
                     yield return new()
                     {
-                        MethodDesc = chd.MethodDesc,
+                        MethodDesc = chdBasedOnNative.MethodDesc,
                         Token = (int)mdd.MDToken,
-                        CompilationType = (MethodCompilationType)chd.JITType,
+                        CompilationType = (MethodCompilationType)chdBasedOnNative.JITType,
                         HotCold = regions,
                     };
                 }
