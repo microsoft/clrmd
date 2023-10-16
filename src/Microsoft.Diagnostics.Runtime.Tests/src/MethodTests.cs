@@ -113,7 +113,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrMethod[] methods = type.Methods.ToArray();
             ClrMethod genericMethod = type.GetMethod("GenericBar");
 
-            Assert.NotEqual<uint>(0, Math.Max(genericMethod.HotColdInfo.ColdSize, genericMethod.HotColdInfo.HotSize));
+            Assert.NotEqual<uint>(0, genericMethod.HotColdInfo.ColdSize + genericMethod.HotColdInfo.HotSize);
         }
     }
 }
