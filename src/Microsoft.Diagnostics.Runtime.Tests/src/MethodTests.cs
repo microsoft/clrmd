@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.Linq;
 using Xunit;
 
@@ -98,6 +99,21 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             string methodName = genericMethod.Signature;
 
             Assert.Equal(')', methodName.Last());
+        }
+
+        [Fact]
+        public void AssemblySize()
+        {
+            using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule module = runtime.GetModule("sharedlibrary.dll");
+            ClrType type = module.GetTypeByName("Foo");
+
+            ClrMethod[] methods = type.Methods.ToArray();
+            ClrMethod genericMethod = type.GetMethod("GenericBar");
+
+            Assert.NotEqual<uint>(0, genericMethod.HotColdInfo.ColdSize + genericMethod.HotColdInfo.HotSize);
         }
     }
 }
