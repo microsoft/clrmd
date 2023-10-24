@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     ElfMachine.EM_ARM => r.ReadContents<ElfPRStatusArm>(0),
                     ElfMachine.EM_AARCH64 => r.ReadContents<ElfPRStatusArm64>(0),
                     ElfMachine.EM_386 => r.ReadContents<ElfPRStatusX86>(0),
-                    ElfMachine.EM_RISCV => ElfFile.Header is ElfHeader64 ?
+                    ElfMachine.EM_RISCV => ElfFile.Header.Is64Bit ?
                                                 r.ReadContents<ElfPRStatusRiscV64>(0) :
                                                 throw new NotSupportedException($"Invalid architecture RISC-V 32bit"),
                     _ => throw new NotSupportedException($"Invalid architecture {architecture}"),

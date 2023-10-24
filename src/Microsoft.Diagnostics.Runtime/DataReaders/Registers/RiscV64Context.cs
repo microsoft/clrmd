@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime
         [FieldOffset(0x0)]
         public uint ContextFlags;
 
-        #region General registers
+        #region General and control registers
 
         [Register(RegisterType.General)]
         [FieldOffset(0x8)]
@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime
         [FieldOffset(0x10)]
         public ulong Ra;
 
-        [Register(RegisterType.General)]
+        [Register(RegisterType.Control | RegisterType.StackPointer)]
         [FieldOffset(0x18)]
         public ulong Sp;
 
@@ -58,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime
         [FieldOffset(0x40)]
         public ulong T2;
 
-        [Register(RegisterType.General)]
+        [Register(RegisterType.Control | RegisterType.FramePointer)]
         [FieldOffset(0x48)]
         public ulong Fp;
 
@@ -154,7 +154,7 @@ namespace Microsoft.Diagnostics.Runtime
         [FieldOffset(0x100)]
         public ulong T6;
 
-        [Register(RegisterType.General)]
+        [Register(RegisterType.Control | RegisterType.ProgramCounter)]
         [FieldOffset(0x108)]
         public ulong Pc;
 
