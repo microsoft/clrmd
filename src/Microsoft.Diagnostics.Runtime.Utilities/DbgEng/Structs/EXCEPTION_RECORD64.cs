@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         public ulong ExceptionRecord;
         public ulong ExceptionAddress;
         public uint NumberParameters;
-        public uint __unusedAlignment;
+        private readonly uint __unusedAlignment;
         public fixed ulong ExceptionInformation[15]; //EXCEPTION_MAXIMUM_PARAMETERS
     }
 }

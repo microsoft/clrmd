@@ -100,7 +100,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint FindSourceFileWide;
         private readonly nint GetSourceFileLineOffsetsWide;
         private readonly nint GetModuleVersionInformationWide;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, DEBUG_MODNAME, int, ulong, char*, int, out int, int> GetModuleNameStringWide;
+        public readonly delegate* unmanaged[Stdcall]<nint, DEBUG_MODNAME, int, ulong, char*, int, out int, int> GetModuleNameStringWide;
         private readonly nint GetConstantNameWide;
         private readonly nint GetFieldNameWide;
         private readonly nint IsManagedModule;
@@ -137,5 +137,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint GetSourceEntryStringWide;
         private readonly nint GetSourceEntryOffsetRegions;
         private readonly nint GetSourceEntryBySourceEntry;
+
+        // IDebugSymbols4
+        private readonly nint GetScopeEx;
+        private readonly nint SetScopeEx;
+        private readonly nint GetNameByInlineContext;
+        public readonly delegate* unmanaged[Stdcall]<nint, ulong, uint, char*, int, out int, out ulong, int> GetNameByInlineContextWide;
+        private readonly nint GetLineByInlineContext;
+        private readonly nint GetLineByInlineContextWide;
+        private readonly nint OutputSymbolByInlineContext;
     }
 }

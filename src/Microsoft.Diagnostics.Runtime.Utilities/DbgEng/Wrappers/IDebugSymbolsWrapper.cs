@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -186,6 +187,44 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             {
                 fixed (char* ptr = buffer)
                     hr = vtable->GetNameByOffsetWide(self, address, ptr, size, out size, out displacement);
+
+                if (hr == 0)
+                    name = new(buffer, 0, size - 1);
+                else
+                    name = null;
+
+                return hr == 0;
+            }
+            finally
+            {
+                ArrayPool<char>.Shared.Return(buffer);
+            }
+        }
+
+
+        bool IDebugSymbols.GetNameByInlineContext(ulong offset, uint inlineContext, [NotNullWhen(true)] out string? name, out ulong displacement)
+        {
+            displacement = 0;
+
+            GetVTable(this, out nint self, out IDebugSymbolsVtable* vtable);
+            int hr = vtable->GetNameByInlineContextWide(self, offset, inlineContext, null, 0, out int size, out _);
+            if (hr < 0)
+            {
+                name = null;
+                return false;
+            }
+
+            if (size is 0 or 1)
+            {
+                name = string.Empty;
+                return true;
+            }
+
+            char[] buffer = ArrayPool<char>.Shared.Rent(size);
+            try
+            {
+                fixed (char* ptr = buffer)
+                    hr = vtable->GetNameByInlineContextWide(self, offset, inlineContext, ptr, size, out size, out displacement);
 
                 if (hr == 0)
                     name = new(buffer, 0, size - 1);

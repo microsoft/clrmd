@@ -1,8 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
+using System.Drawing;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Xml.Linq;
 
 #pragma warning disable CS0169 // field is never used
 #pragma warning disable CS0649 // field is never assigned
@@ -82,6 +87,27 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                 vtable->ControlledOutputWide(self, outCtl, dbgOutput, textPtr);
         }
 
+        IEnumerable<DEBUG_STACK_FRAME_EX> IDebugControl.EnumerateStackTrace(int maxFrames)
+        {
+            DEBUG_STACK_FRAME_EX[] frames = ArrayPool<DEBUG_STACK_FRAME_EX>.Shared.Rent(maxFrames);
+            int filled = GetFrames(this, frames);
+
+            for (int i = 0; i < Math.Min(filled, maxFrames); i++)
+                yield return frames[i];
+
+            ArrayPool<DEBUG_STACK_FRAME_EX>.Shared.Return(frames);
+        }
+
+        private static int GetFrames(object thisPtr, DEBUG_STACK_FRAME_EX[] frames)
+        {
+            GetVTable(thisPtr, out nint self, out IDebugControlVtable* vtable);
+            fixed (DEBUG_STACK_FRAME_EX* ptr = frames)
+            {
+                HResult hr = vtable->GetStackTraceEx(self, 0, 0, 0, ptr, frames.Length, out int filled);
+                return hr ? filled : 0;
+            }
+        }
+
         int IDebugControl.GetExecutionStatus(out DEBUG_STATUS status)
         {
             GetVTable(this, out nint self, out IDebugControlVtable* vtable);
@@ -93,6 +119,39 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             GetVTable(this, out nint self, out IDebugControlVtable* vtable);
             fixed (char* commandPtr = command)
                 return vtable->ExecuteWide(self, outputControl, commandPtr, flags);
+        }
+
+        bool IDebugControl.GetLastEvent(out DEBUG_LAST_EVENT_INFO_EXCEPTION ex, out uint tid, [NotNullWhen(true)] out string? description)
+        {
+            GetVTable(this, out nint self, out IDebugControlVtable* vtable);
+            HResult hr = vtable->GetLastEventInformationWide(self, out DEBUG_EVENT evt, out uint pid, out tid, null, 0, out int infoSize, null, 0, out int descLen);
+            if (!hr || evt != DEBUG_EVENT.EXCEPTION || infoSize != Unsafe.SizeOf<DEBUG_LAST_EVENT_INFO_EXCEPTION>())
+            {
+                ex = default;
+                description = null;
+                return false;
+            }
+
+
+            char[] buffer = ArrayPool<char>.Shared.Rent(descLen);
+            try
+            {
+                ex = default;
+                fixed (DEBUG_LAST_EVENT_INFO_EXCEPTION* exPtr = &ex)
+                fixed (char* ptr = buffer)
+                    hr = vtable->GetLastEventInformationWide(self, out _, out _, out _, (byte*)exPtr, Unsafe.SizeOf<DEBUG_LAST_EVENT_INFO_EXCEPTION>(), out infoSize, ptr, descLen, out _);
+
+                if (hr == 0)
+                    description = new(buffer, 0, descLen - 1);
+                else
+                    description = "";
+
+                return hr == 0;
+            }
+            finally
+            {
+                ArrayPool<char>.Shared.Return(buffer);
+            }
         }
 
         private static void GetVTable(object ths, out nint self, out IDebugControlVtable* vtable)

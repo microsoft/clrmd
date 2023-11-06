@@ -170,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint SetSpecificEventFilterArgumentWide;
         private readonly nint GetExceptionFilterSecondCommandWide;
         private readonly nint SetExceptionFilterSecondCommandWide;
-        private readonly nint GetLastEventInformationWide;
+        public readonly delegate* unmanaged[Stdcall]<nint, out DEBUG_EVENT, out uint, out uint, byte *, int, out int, char*, int, out int, int> GetLastEventInformationWide;
         private readonly nint GetTextReplacementWide;
         private readonly nint SetTextReplacementWide;
         private readonly nint SetExpressionSyntaxByNameWide;
@@ -191,7 +191,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint ResetManagedStatus;
 
         /* IDebugControl5 */
-        private readonly nint GetStackTraceEx;
+        public readonly delegate* unmanaged[Stdcall]<nint, ulong, ulong, ulong, DEBUG_STACK_FRAME_EX*, int, out int, int> GetStackTraceEx;
         private readonly nint OutputStackTraceEx;
         private readonly nint GetContextStackTraceEx;
         private readonly nint OutputContextStackTraceEx;
