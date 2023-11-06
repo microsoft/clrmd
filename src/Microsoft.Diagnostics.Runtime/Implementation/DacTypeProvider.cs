@@ -137,26 +137,73 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IEnumerable<MethodInfo> EnumerateMethodsForType(ulong methodTable)
         {
-            if (!_sos.GetMethodTableData(methodTable, out MethodTableData data) || data.NumMethods == 0)
+            if (!_sos.GetMethodTableData(methodTable, out MethodTableData data))
                 yield break;
 
             for (uint i = 0; i < data.NumMethods; i++)
             {
                 ulong slot = _sos.GetMethodTableSlot(methodTable, i);
-                if (_sos.GetCodeHeaderData(slot, out CodeHeaderData chd) && _sos.GetMethodDescData(chd.MethodDesc, 0, out MethodDescData mdd)
-                    && mdd.HasNativeCode == 1 && _sos.GetCodeHeaderData(mdd.NativeCodeAddr, out CodeHeaderData chdBasedOnNative))
+                if (_sos.GetCodeHeaderData(slot, out CodeHeaderData chd))
                 {
-                    HotColdRegions regions = new(mdd.NativeCodeAddr, chdBasedOnNative.HotRegionSize, chdBasedOnNative.ColdRegionStart, chdBasedOnNative.ColdRegionSize);
-                    yield return new()
+                    if (_sos.GetMethodDescData(chd.MethodDesc, 0, out MethodDescData mdd))
                     {
-                        MethodDesc = chdBasedOnNative.MethodDesc,
-                        Token = (int)mdd.MDToken,
-                        CompilationType = (MethodCompilationType)chdBasedOnNative.JITType,
-                        HotCold = regions,
-                    };
+                        ulong md = chd.MethodDesc;
+                        uint compilation = chd.JITType;
+
+                        HotColdRegions regions;
+                        if (mdd.HasNativeCode != 0 && _sos.GetCodeHeaderData(mdd.NativeCodeAddr, out CodeHeaderData chdBasedOnNative))
+                        {
+                            regions = new(mdd.NativeCodeAddr, chdBasedOnNative.HotRegionSize, chdBasedOnNative.ColdRegionStart, chdBasedOnNative.ColdRegionSize);
+                            md = chdBasedOnNative.MethodDesc;
+                            compilation = chdBasedOnNative.JITType;
+                        }
+                        else
+                        {
+                            regions = new(mdd.NativeCodeAddr, chd.HotRegionSize, chd.ColdRegionStart, chd.ColdRegionSize);
+                        }
+
+                        yield return new()
+                        {
+                            MethodDesc = md,
+                            Token = (int)mdd.MDToken,
+                            CompilationType = (MethodCompilationType)compilation,
+                            HotCold = regions,
+                        };
+                    }
                 }
             }
         }
+
+        //private bool TryGetNumberMethods(ulong methodTable, out int count)
+        //{
+        //    count = 0;
+        //    while (methodTable != 0)
+        //    {
+        //        if (methodTable == _objectMt)
+        //        {
+        //            if (_systemObjectMethodCount < 0)
+        //            {
+        //                if (!_sos.GetMethodTableData(methodTable, out MethodTableData objData))
+        //                    return false;
+
+        //                _systemObjectMethodCount = objData.NumMethods;
+        //                count += objData.NumMethods;
+        //            }
+        //            else
+        //            {
+        //                count += _systemObjectMethodCount;
+        //            }
+
+        //            break;
+        //        }
+
+
+        //        count += data.NumMethods;
+        //        methodTable = data.ParentMethodTable;
+        //    }
+
+        //    return true;
+        //}
 
         public IEnumerable<FieldInfo> EnumerateFields(TypeInfo type, int baseFieldCount)
         {
