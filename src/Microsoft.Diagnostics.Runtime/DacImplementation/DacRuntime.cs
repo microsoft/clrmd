@@ -65,42 +65,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         }
 
         ////////////////////////////////////////////////////////////////////////////////
-        // Heaps
-        ////////////////////////////////////////////////////////////////////////////////
-        #region Heaps
-        public bool GetGCState(out GCState state)
-        {
-            if (!_sos.GetGCHeapData(out GCInfo gcInfo) || !_sos.GetCommonMethodTables(out CommonMethodTables commonMethodTables))
-            {
-                state = default;
-                return false;
-            }
-
-            state = new()
-            {
-                Kind = gcInfo.ServerMode != 0 ? GCKind.Server : GCKind.Workstation,
-                AreGCStructuresValid = gcInfo.GCStructuresValid != 0,
-                HeapCount = gcInfo.HeapCount,
-                MaxGeneration = gcInfo.MaxGeneration,
-                ExceptionMethodTable = commonMethodTables.ExceptionMethodTable,
-                FreeMethodTable = commonMethodTables.FreeMethodTable,
-                ObjectMethodTable = commonMethodTables.ObjectMethodTable,
-                StringMethodTable = commonMethodTables.StringMethodTable,
-            };
-
-            return state.ObjectMethodTable != 0;
-        }
-
-        public IAbstractHeapProvider GetHeapHelpers()
-        {
-            GetGCState(out GCState state);
-            return new DacHeapProvider(_sos, _sos8, _sos12, _dataReader, state);
-        }
-
-        public IAbstractTypeProvider GetClrTypeHelpers() => new DacTypeProvider(_dac, _sos, _sos6, _sos8, _dataReader);
-        #endregion
-
-        ////////////////////////////////////////////////////////////////////////////////
         // Threads
         ////////////////////////////////////////////////////////////////////////////////
         #region Threads
@@ -663,17 +627,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         // Helpers
         ////////////////////////////////////////////////////////////////////////////////
         #region Helpers
-        public void Dispose()
-        {
-            Flush();
-            _dac.Dispose();
-            _sos.Dispose();
-            _sos6?.Dispose();
-            _sos8?.Dispose();
-            _sos12?.Dispose();
-            _sos13?.Dispose();
-            _library.Dispose();
-        }
 
         public void Flush()
         {

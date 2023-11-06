@@ -28,10 +28,13 @@ namespace Microsoft.Diagnostics.Runtime
             ClrInfo = clrInfo;
             DataTarget = clrInfo.DataTarget;
 
-            DacLibrary = (IAbstractRuntime?)services.GetService(typeof(IAbstractRuntime)) ?? throw new NotSupportedException("Could not construct an IAbstractRuntime for this runtime.");
+            DacLibrary = (IAbstractRuntime?)services.GetService(typeof(IAbstractRuntime)) ?? throw new NotSupportedException($"Could not construct an {nameof(IAbstractRuntime)} for this runtime.");
+            ServiceProvider = services;
         }
 
         internal IAbstractRuntime DacLibrary { get; }
+
+        internal IServiceProvider ServiceProvider { get; }
 
         /// <summary>
         /// Gets the <see cref="ClrInfo"/> of the current runtime.
@@ -162,14 +165,14 @@ namespace Microsoft.Diagnostics.Runtime
                 ClrHeap? heap = _heap;
                 while (heap is null) // Flush can cause a race.
                 {
-                    IAbstractHeapProvider heapHelpers = DacLibrary.GetHeapHelpers();
-                    IAbstractTypeProvider typeHelpers = DacLibrary.GetClrTypeHelpers();
+                    IAbstractHeapProvider? heapHelpers = (IAbstractHeapProvider?)ServiceProvider.GetService(typeof(IAbstractHeapProvider));
+                    IAbstractTypeProvider? typeHelpers = (IAbstractTypeProvider?)ServiceProvider.GetService(typeof(IAbstractTypeProvider));
 
                     // These are defined as non-nullable but just in case, double check we have a non-null instance.
-                    if (heapHelpers is null || typeHelpers is null || !DacLibrary.GetGCState(out GCState gcInfo))
+                    if (heapHelpers is null || typeHelpers is null)
                         throw new NotSupportedException("Unable to create a ClrHeap for this runtime.");
 
-                    heap = new(this, DataTarget.DataReader, heapHelpers, typeHelpers, gcInfo);
+                    heap = new(this, DataTarget.DataReader, heapHelpers, typeHelpers);
                     Interlocked.CompareExchange(ref _heap, heap, null);
                     heap = _heap;
                 }
@@ -345,7 +348,8 @@ namespace Microsoft.Diagnostics.Runtime
         public void Dispose()
         {
             FlushCachedData();
-            DacLibrary.Dispose();
+            if (ServiceProvider is IDisposable disposable)
+                disposable.Dispose();
         }
 
         private DomainAndModules GetAppDomainData()

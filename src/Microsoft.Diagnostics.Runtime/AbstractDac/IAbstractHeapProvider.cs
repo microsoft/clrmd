@@ -8,6 +8,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IAbstractHeapProvider
     {
+        ref readonly GCState State { get; }
         IEnumerable<MemoryRange> EnumerateThreadAllocationContexts();
         IEnumerable<(ulong Source, ulong Target)> EnumerateDependentHandles();
         IEnumerable<SyncBlockInfo> EnumerateSyncBlocks();

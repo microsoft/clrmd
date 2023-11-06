@@ -12,9 +12,9 @@ using FieldInfo = Microsoft.Diagnostics.Runtime.AbstractDac.FieldInfo;
 using MethodInfo = Microsoft.Diagnostics.Runtime.AbstractDac.MethodInfo;
 using TypeInfo = Microsoft.Diagnostics.Runtime.AbstractDac.TypeInfo;
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.DacImplementation
 {
-    internal sealed class DacTypeProvider : IAbstractTypeProvider
+    internal sealed class DacTypeHelpers : IAbstractTypeProvider
     {
         private readonly string UnloadedTypeName = "<Unloaded Type>";
 
@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IDataReader DataReader { get; }
 
-        public DacTypeProvider(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, IDataReader dataReader)
+        public DacTypeHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, IDataReader dataReader)
         {
             _clrDataProcess = clrDataProcess;
             _sos = sos;
@@ -173,37 +173,6 @@ namespace Microsoft.Diagnostics.Runtime
                 }
             }
         }
-
-        //private bool TryGetNumberMethods(ulong methodTable, out int count)
-        //{
-        //    count = 0;
-        //    while (methodTable != 0)
-        //    {
-        //        if (methodTable == _objectMt)
-        //        {
-        //            if (_systemObjectMethodCount < 0)
-        //            {
-        //                if (!_sos.GetMethodTableData(methodTable, out MethodTableData objData))
-        //                    return false;
-
-        //                _systemObjectMethodCount = objData.NumMethods;
-        //                count += objData.NumMethods;
-        //            }
-        //            else
-        //            {
-        //                count += _systemObjectMethodCount;
-        //            }
-
-        //            break;
-        //        }
-
-
-        //        count += data.NumMethods;
-        //        methodTable = data.ParentMethodTable;
-        //    }
-
-        //    return true;
-        //}
 
         public IEnumerable<FieldInfo> EnumerateFields(TypeInfo type, int baseFieldCount)
         {

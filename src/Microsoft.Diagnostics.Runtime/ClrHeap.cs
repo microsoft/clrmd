@@ -44,12 +44,13 @@ namespace Microsoft.Diagnostics.Runtime
         private volatile ArrayPool<ObjectCorruption>? _objectCorruptionPool;
         private ulong _lastComFlags;
 
-        internal ClrHeap(ClrRuntime runtime, IMemoryReader memoryReader, IAbstractHeapProvider helpers, IAbstractTypeProvider typeHelpers, in GCState gcInfo)
+        internal ClrHeap(ClrRuntime runtime, IMemoryReader memoryReader, IAbstractHeapProvider helpers, IAbstractTypeProvider typeHelpers)
         {
             Runtime = runtime;
             _memoryReader = memoryReader;
             Helpers = helpers;
 
+            GCState gcInfo = helpers.State;
             _typeFactory = new(this, typeHelpers, gcInfo);
             FreeType = _typeFactory.CreateFreeType();
             ObjectType = _typeFactory.ObjectType;

@@ -9,10 +9,11 @@ using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Extensions;
 using Microsoft.Diagnostics.Runtime.Utilities;
+using GCKind = Microsoft.Diagnostics.Runtime.AbstractDac.GCKind;
 
-namespace Microsoft.Diagnostics.Runtime.Implementation
+namespace Microsoft.Diagnostics.Runtime.DacImplementation
 {
-    internal sealed class DacHeapProvider : IAbstractHeapProvider
+    internal sealed class DacHeap : IAbstractHeapProvider
     {
         private readonly SOSDac _sos;
         private readonly SOSDac8? _sos8;
@@ -27,14 +28,26 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private const uint SyncBlockSpinLock = 0x10000000;
         private const uint SyncBlockHashOrSyncBlockIndex = 0x08000000;
 
-        public DacHeapProvider(SOSDac sos, SOSDac8? sos8, SosDac12? sos12, IMemoryReader reader, in GCState gcState)
+        public DacHeap(SOSDac sos, SOSDac8? sos8, SosDac12? sos12, IMemoryReader reader, in GCInfo gcInfo, in CommonMethodTables commonMethodTables)
         {
             _sos = sos;
             _sos8 = sos8;
             _sos12 = sos12;
             _memoryReader = reader;
-            _gcState = gcState;
+            _gcState = new()
+            {
+                Kind = gcInfo.ServerMode != 0 ? GCKind.Server : GCKind.Workstation,
+                AreGCStructuresValid = gcInfo.GCStructuresValid != 0,
+                HeapCount = gcInfo.HeapCount,
+                MaxGeneration = gcInfo.MaxGeneration,
+                ExceptionMethodTable = commonMethodTables.ExceptionMethodTable,
+                FreeMethodTable = commonMethodTables.FreeMethodTable,
+                ObjectMethodTable = commonMethodTables.ObjectMethodTable,
+                StringMethodTable = commonMethodTables.StringMethodTable,
+            };
         }
+
+        public ref readonly GCState State { get => ref _gcState; }
 
         public IEnumerable<MemoryRange> EnumerateThreadAllocationContexts()
         {
@@ -176,7 +189,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private static GenerationInfo[] ConvertGenerations(GenerationData[] genData)
         {
-            GenerationInfo[] result = new GenerationInfo[genData.Length];
+            var result = new GenerationInfo[genData.Length];
             for (int i = 0; i < result.Length; i++)
                 result[i] = new()
                 {
@@ -228,7 +241,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return false;
             }
 
-            ClrSegmentFlags flags = (ClrSegmentFlags)data.Flags;
+            var flags = (ClrSegmentFlags)data.Flags;
             GCSegmentKind kind = GCSegmentKind.Generation2;
             if ((flags & ClrSegmentFlags.ReadOnly) == ClrSegmentFlags.ReadOnly)
             {
@@ -408,7 +421,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             DacOOMData oomData;
             if (subHeapAddress != 0)
             {
-                if (!_sos.GetOOMData(subHeapAddress, out oomData) || (oomData.Reason == OutOfMemoryReason.None && oomData.GetMemoryFailure == GetMemoryFailureReason.None))
+                if (!_sos.GetOOMData(subHeapAddress, out oomData) || oomData.Reason == OutOfMemoryReason.None && oomData.GetMemoryFailure == GetMemoryFailureReason.None)
                 {
                     oomInfo = default;
                     return false;
@@ -416,7 +429,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
             else
             {
-                if (!_sos.GetOOMData(out oomData) || (oomData.Reason == OutOfMemoryReason.None && oomData.GetMemoryFailure == GetMemoryFailureReason.None))
+                if (!_sos.GetOOMData(out oomData) || oomData.Reason == OutOfMemoryReason.None && oomData.GetMemoryFailure == GetMemoryFailureReason.None)
                 {
                     oomInfo = default;
                     return false;
