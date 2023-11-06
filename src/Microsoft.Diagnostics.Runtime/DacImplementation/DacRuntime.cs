@@ -10,12 +10,13 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using GCKind = Microsoft.Diagnostics.Runtime.AbstractDac.GCKind;
 
-namespace Microsoft.Diagnostics.Runtime.Implementation
+namespace Microsoft.Diagnostics.Runtime.DacImplementation
 {
-    internal sealed unsafe class DacImplementation : IAbstractModuleProvider, IAbstractDac, IAbstractThreadProvider, IAbstractThreadPoolProvider
+    internal sealed unsafe class DacRuntime : IAbstractModuleProvider, IAbstractRuntime, IAbstractThreadProvider, IAbstractThreadPoolProvider
     {
         private readonly IDataReader _dataReader;
         private readonly ThreadStoreData _threadStore;
@@ -35,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         // for testing purposes only
         internal SOSDac SOSDacInterface => _sos;
 
-        public DacImplementation(ClrInfo clrInfo, DacLibrary library)
+        public DacRuntime(ClrInfo clrInfo, DacLibrary library)
         {
             _clrInfo = clrInfo;
             _dataReader = clrInfo.DataTarget.DataReader;
@@ -368,7 +369,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             };
 
             using ClrDataModule? dataModule = _sos.GetClrDataModule(moduleAddress);
-            if (dataModule is not null && dataModule.GetModuleData(out DacInterface.ExtendedModuleData extended))
+            if (dataModule is not null && dataModule.GetModuleData(out ExtendedModuleData extended))
             {
                 result.Layout = extended.IsFlatLayout != 0 ? ModuleLayout.Flat : ModuleLayout.Mapped;
                 result.IsDynamic |= extended.IsDynamic != 0;

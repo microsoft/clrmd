@@ -1,9 +1,9 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Diagnostics.Runtime.DacImplementation;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
-using Microsoft.Diagnostics.Runtime.Implementation;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.AppDomains.LoadFullDumpWithDbgEng();
             IThreadReader threadReader = (IThreadReader)dt.DataReader;
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-            using SOSDac dac = ((DacImplementation)runtime.DacLibrary).SOSDacInterface;
+            using SOSDac dac = ((DacRuntime)runtime.DacLibrary).SOSDacInterface;
 
             foreach (ClrThread thread in runtime.Threads)
             {

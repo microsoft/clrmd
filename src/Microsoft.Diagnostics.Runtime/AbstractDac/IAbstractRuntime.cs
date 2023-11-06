@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// <summary>
     /// The base interface for building an abstract ClrRuntime.
     /// </summary>
-    internal interface IAbstractDac : IDisposable
+    internal interface IAbstractRuntime : IDisposable
     {
         // Heap
         bool GetGCState(out GCState state);

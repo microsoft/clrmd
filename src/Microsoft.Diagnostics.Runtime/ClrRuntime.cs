@@ -23,14 +23,15 @@ namespace Microsoft.Diagnostics.Runtime
         private ImmutableArray<ClrThread> _threads;
         private volatile DomainAndModules? _domainAndModules;
 
-        internal ClrRuntime(ClrInfo clrInfo, IAbstractDac dac)
+        internal ClrRuntime(ClrInfo clrInfo, IServiceProvider services)
         {
             ClrInfo = clrInfo;
             DataTarget = clrInfo.DataTarget;
-            DacLibrary = dac;
+
+            DacLibrary = (IAbstractRuntime?)services.GetService(typeof(IAbstractRuntime)) ?? throw new NotSupportedException("Could not construct an IAbstractRuntime for this runtime.");
         }
 
-        internal IAbstractDac DacLibrary { get; }
+        internal IAbstractRuntime DacLibrary { get; }
 
         /// <summary>
         /// Gets the <see cref="ClrInfo"/> of the current runtime.
