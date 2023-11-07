@@ -14,7 +14,7 @@ using TypeInfo = Microsoft.Diagnostics.Runtime.AbstractDac.TypeInfo;
 
 namespace Microsoft.Diagnostics.Runtime.DacImplementation
 {
-    internal sealed class DacTypeHelpers : IAbstractTypeProvider
+    internal sealed class DacTypeHelpers : IAbstractTypeHelpers
     {
         private readonly string UnloadedTypeName = "<Unloaded Type>";
 

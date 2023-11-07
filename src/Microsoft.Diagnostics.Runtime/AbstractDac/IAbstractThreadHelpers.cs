@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// This interface is not "stable" and may change even in minor or patch
     /// versions of ClrMD.
     /// </summary>
-    internal interface IAbstractThreadProvider
+    internal interface IAbstractThreadHelpers
     {
         /// <summary>
         /// Enumerates the roots of this thread.

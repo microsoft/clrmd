@@ -128,7 +128,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!_threads.IsDefault)
                     return _threads;
 
-                IAbstractThreadProvider? threadHelpers = GetService<IAbstractThreadProvider>();
+                IAbstractThreadHelpers? threadHelpers = GetService<IAbstractThreadHelpers>();
                 ImmutableArray<ClrThread>.Builder builder = ImmutableArray.CreateBuilder<ClrThread>();
 
                 int max = 20000;
@@ -205,7 +205,7 @@ namespace Microsoft.Diagnostics.Runtime
                 while (heap is null) // Flush can cause a race.
                 {
                     IAbstractHeapProvider? heapHelpers = GetService<IAbstractHeapProvider>();
-                    IAbstractTypeProvider? typeHelpers = GetService<IAbstractTypeProvider>();
+                    IAbstractTypeHelpers? typeHelpers = GetService<IAbstractTypeHelpers>();
 
                     // These are defined as non-nullable but just in case, double check we have a non-null instance.
                     if (heapHelpers is null || typeHelpers is null)
@@ -443,7 +443,7 @@ namespace Microsoft.Diagnostics.Runtime
                         throw new InvalidDataException($"Unknown domain kind: {domainInfo.Kind}");
                 }
 
-                IAbstractModuleProvider moduleHelpers = GetServiceOrThrow<IAbstractModuleProvider>();
+                IAbstractModuleHelpers moduleHelpers = GetServiceOrThrow<IAbstractModuleHelpers>();
                 ImmutableArray<ClrModule>.Builder moduleBuilder = ImmutableArray.CreateBuilder<ClrModule>();
                 foreach (ulong moduleAddress in GetDacRuntime().GetModuleList(domain.Address))
                 {

@@ -29,10 +29,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Used to provide functionality to ClrObject.
         /// </summary>
-        internal IAbstractTypeProvider Helpers { get; }
+        internal IAbstractTypeHelpers Helpers { get; }
         internal TypeInfo TypeInfo { get; }
 
-        internal ClrType(ClrModule module, in TypeInfo info, IAbstractTypeProvider helpers)
+        internal ClrType(ClrModule module, in TypeInfo info, IAbstractTypeHelpers helpers)
         {
             Module = module;
             Helpers = helpers ?? throw new ArgumentNullException(nameof(helpers));

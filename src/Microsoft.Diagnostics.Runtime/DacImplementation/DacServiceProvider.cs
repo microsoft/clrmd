@@ -25,10 +25,10 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private IAbstractHeapProvider? _heapHelper;
         private IAbstractLegacyThreadPool? _threadPool;
         private IAbstractMethodLocator? _methodLocator;
-        private IAbstractModuleProvider? _moduleHelper;
+        private IAbstractModuleHelpers? _moduleHelper;
         private IAbstractRuntime? _runtime;
-        private IAbstractThreadProvider? _threadHelper;
-        private IAbstractTypeProvider? _typeHelper;
+        private IAbstractThreadHelpers? _threadHelper;
+        private IAbstractTypeHelpers? _typeHelper;
 
         private IDataReader DataReader => _clrInfo.DataTarget.DataReader;
 
@@ -77,13 +77,13 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 return null;
             }
 
-            if (serviceType == typeof(IAbstractTypeProvider))
+            if (serviceType == typeof(IAbstractTypeHelpers))
                 return _typeHelper ??= new DacTypeHelpers(_process, _sos, _sos6, _sos8, DataReader);
 
             if (serviceType == typeof(IAbstractClrNativeHeaps))
                 return _nativeHeaps ??= new DacNativeHeaps(_clrInfo, _sos, _sos13, DataReader);
 
-            if (serviceType == typeof(IAbstractModuleProvider))
+            if (serviceType == typeof(IAbstractModuleHelpers))
                 return _moduleHelper ??= new DacModuleHelpers(_sos);
 
             if (serviceType == typeof(IAbstractComHelpers))
@@ -95,7 +95,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             if (serviceType == typeof(IAbstractMethodLocator))
                 return _methodLocator ??= new DacMethodLocator(_sos);
 
-            if (serviceType == typeof(IAbstractThreadProvider))
+            if (serviceType == typeof(IAbstractThreadHelpers))
                 return _threadHelper ??= new DacThreadHelpers(_process, _sos, DataReader);
 
             if (serviceType == typeof(IAbstractDacController))

@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// This interface is not "stable" and may change even in minor or patch
     /// versions of ClrMD.
     /// </summary>
-    internal interface IAbstractTypeProvider
+    internal interface IAbstractTypeHelpers
     {
         bool GetTypeInfo(ulong methodTable, out TypeInfo info);
         string? GetTypeName(ulong methodTable);

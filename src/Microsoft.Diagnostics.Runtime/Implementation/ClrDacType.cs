@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ClrType? BaseType { get; }
 
 
-        public ClrDacType(IAbstractTypeProvider helpers, ClrHeap heap, ClrType? baseType, ClrType? componentType, ClrModule module, in TypeInfo data, string? name = null)
+        public ClrDacType(IAbstractTypeHelpers helpers, ClrHeap heap, ClrType? baseType, ClrType? componentType, ClrModule module, in TypeInfo data, string? name = null)
             : base(module, data, helpers)
         {
             Heap = heap;
