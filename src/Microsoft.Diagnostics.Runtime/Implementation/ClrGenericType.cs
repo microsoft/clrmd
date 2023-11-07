@@ -49,8 +49,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ClrEnum AsEnum() => throw new InvalidOperationException();
 
-        public override IEnumerable<ClrInterface> EnumerateInterfaces() { yield break; }
-
         public override ulong GetArrayElementAddress(ulong objRef, int index) => throw new InvalidOperationException();
 
         public override ClrInstanceField? GetFieldByName(string name) => null;

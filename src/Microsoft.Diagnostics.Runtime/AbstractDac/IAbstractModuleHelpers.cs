@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     internal interface IAbstractModuleHelpers
     {
         ClrModuleInfo GetModuleInfo(ulong module);
-        MetadataImport? GetMetadataImport(ulong module);
+        IAbstractMetadataReader? GetMetadataReader(ulong module);
         IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefMap(ulong module);
         IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeRefMap(ulong module);
     }

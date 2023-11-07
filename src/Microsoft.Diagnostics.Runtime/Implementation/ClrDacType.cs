@@ -35,13 +35,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             // We'll return default if we can't get MetdataImport.  This effectively means we'll try again
             // to get MetadataImport later.
-            MetadataImport? import = module.MetadataImport;
+            IAbstractMetadataReader? import = module.MetadataReader;
             if (import == null)
                 yield break;
 
-            foreach (int token in import.EnumerateGenericParams(MetadataToken))
-                if (import.GetGenericParamProps(token, out int index, out GenericParameterAttributes attributes, out string? name))
-                    yield return new ClrGenericParameter(token, index, attributes, name);
+            foreach (GenericParameterInfo info in import.EnumerateGenericParameters(MetadataToken))
+                yield return new ClrGenericParameter(info.Token, info.Index, info.Attributes, info.Name ?? "");
         }
 
         public override string? Name
@@ -53,14 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 // over.
                 if (_name == null)
                 {
-                    string? name = Helpers.GetTypeName(MethodTable);
-                    if (name is null && MetadataToken != 0)
-                    {
-                        MetadataImport? import = Module.MetadataImport;
-                        if (import is not null)
-                            name = Helpers.GetTypeName(import, MetadataToken);
-                    }
-
+                    string? name = Helpers.GetTypeName(Module.Address, MethodTable, MetadataToken);
                     name ??= string.Empty;
 
                     StringCaching caching = GetCacheOptions().CacheTypeNames;
@@ -142,44 +134,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             // Construct the gc desc
             return _gcDesc = new GCDesc(buffer);
-        }
-
-        public override IEnumerable<ClrInterface> EnumerateInterfaces()
-        {
-            MetadataImport? import = Module.MetadataImport;
-            if (import is null)
-                yield break;
-
-            foreach (int token in import.EnumerateInterfaceImpls(MetadataToken))
-            {
-                if (import.GetInterfaceImplProps(token, out _, out int mdIFace))
-                {
-                    ClrInterface? result = GetInterface(import, mdIFace);
-                    if (result != null)
-                        yield return result;
-                }
-            }
-        }
-
-        private ClrInterface? GetInterface(MetadataImport import, int mdIFace)
-        {
-            ClrInterface? result = null;
-            if (!import.GetTypeDefProperties(mdIFace, out string? name, out _, out int extends).IsOK)
-            {
-                name = import.GetTypeRefName(mdIFace);
-            }
-
-            // TODO:  Handle typespec case.
-            if (name != null)
-            {
-                ClrInterface? type = null;
-                if (extends is not 0 and not 0x01000000)
-                    type = GetInterface(import, extends);
-
-                result = new ClrInterface(name, type);
-            }
-
-            return result;
         }
 
         private ClrElementType GetElementType()
@@ -392,14 +346,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (_attributes != 0 || Module is null)
                 return;
 
-            MetadataImport? import = Module.MetadataImport;
-            if (import is null)
-            {
-                _attributes = (TypeAttributes)0x70000000;
-                return;
-            }
-
-            if (!import.GetTypeDefAttributes(MetadataToken, out _attributes) || _attributes == 0)
+            IAbstractMetadataReader? import = Module.MetadataReader;
+            if (import is not null && import.GetTypeDefInfo(MetadataToken, out TypeDefInfo info) && info.Attributes != 0)
+                _attributes = info.Attributes;
+            else
                 _attributes = (TypeAttributes)0x70000000;
         }
 

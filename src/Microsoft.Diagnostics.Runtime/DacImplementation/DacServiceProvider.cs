@@ -11,6 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
     internal class DacServiceProvider : IServiceProvider, IDisposable, IAbstractDacController
     {
         private readonly ClrInfo _clrInfo;
+        private readonly IDataReader _dataReader;
 
         private readonly DacLibrary _dac;
         private readonly ClrDataProcess _process;
@@ -19,6 +20,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly SOSDac8? _sos8;
         private readonly SosDac12? _sos12;
         private readonly ISOSDac13? _sos13;
+
+        private DacMetadataReaderCache? _metadata;
 
         private IAbstractClrNativeHeaps? _nativeHeaps;
         private IAbstractComHelpers? _com;
@@ -30,13 +33,12 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private IAbstractThreadHelpers? _threadHelper;
         private IAbstractTypeHelpers? _typeHelper;
 
-        private IDataReader DataReader => _clrInfo.DataTarget.DataReader;
-
         public DacServiceProvider(ClrInfo clrInfo, DacLibrary library)
         {
             _clrInfo = clrInfo;
-            _dac = library;
+            _dataReader = _clrInfo.DataTarget.DataReader;
 
+            _dac = library;
             _process = library.DacPrivateInterface;
             _sos = library.SOSDacInterface;
             _sos6 = library.SOSDacInterface6;
@@ -72,16 +74,19 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     return heap;
 
                 if (_sos.GetGCHeapData(out GCInfo data) && _sos.GetCommonMethodTables(out CommonMethodTables mts) && mts.ObjectMethodTable != 0)
-                    return _heapHelper = new DacHeap(_sos, _sos8, _sos12, DataReader, data, mts);
+                    return _heapHelper = new DacHeap(_sos, _sos8, _sos12, _dataReader, data, mts);
 
                 return null;
             }
 
             if (serviceType == typeof(IAbstractTypeHelpers))
-                return _typeHelper ??= new DacTypeHelpers(_process, _sos, _sos6, _sos8, DataReader);
+            {
+                _metadata ??= new(_sos);
+                return _typeHelper ??= new DacTypeHelpers(_process, _sos, _sos6, _sos8, _dataReader, _metadata);
+            }
 
             if (serviceType == typeof(IAbstractClrNativeHeaps))
-                return _nativeHeaps ??= new DacNativeHeaps(_clrInfo, _sos, _sos13, DataReader);
+                return _nativeHeaps ??= new DacNativeHeaps(_clrInfo, _sos, _sos13, _dataReader);
 
             if (serviceType == typeof(IAbstractModuleHelpers))
                 return _moduleHelper ??= new DacModuleHelpers(_sos);
@@ -96,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 return _methodLocator ??= new DacMethodLocator(_sos);
 
             if (serviceType == typeof(IAbstractThreadHelpers))
-                return _threadHelper ??= new DacThreadHelpers(_process, _sos, DataReader);
+                return _threadHelper ??= new DacThreadHelpers(_process, _sos, _dataReader);
 
             if (serviceType == typeof(IAbstractDacController))
                 return this;

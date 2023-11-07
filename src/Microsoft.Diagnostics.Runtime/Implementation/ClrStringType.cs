@@ -43,44 +43,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ClrEnum AsEnum() => throw new InvalidOperationException($"{Name ?? nameof(ClrType)} is not an enum.  You must call {nameof(ClrType.IsEnum)} before using {nameof(AsEnum)}.");
 
-        public override IEnumerable<ClrInterface> EnumerateInterfaces()
-        {
-            MetadataImport? import = Module.MetadataImport;
-            if (import is null)
-                yield break;
-
-            foreach (int token in import.EnumerateInterfaceImpls(MetadataToken))
-            {
-                if (import.GetInterfaceImplProps(token, out _, out int mdIFace))
-                {
-                    ClrInterface? result = GetInterface(import, mdIFace);
-                    if (result != null)
-                        yield return result;
-                }
-            }
-        }
-
-        private ClrInterface? GetInterface(MetadataImport import, int mdIFace)
-        {
-            ClrInterface? result = null;
-            if (!import.GetTypeDefProperties(mdIFace, out string? name, out _, out int extends).IsOK)
-            {
-                name = import.GetTypeRefName(mdIFace);
-            }
-
-            // TODO:  Handle typespec case.
-            if (name != null)
-            {
-                ClrInterface? type = null;
-                if (extends is not 0 and not 0x01000000)
-                    type = GetInterface(import, extends);
-
-                result = new ClrInterface(name, type);
-            }
-
-            return result;
-        }
-
         public override ulong GetArrayElementAddress(ulong objRef, int index)
         {
             throw new NotImplementedException();

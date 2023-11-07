@@ -121,7 +121,41 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Returns the list of interfaces this type implements.
         /// </summary>
-        public abstract IEnumerable<ClrInterface> EnumerateInterfaces();
+        public IEnumerable<ClrInterface> EnumerateInterfaces()
+        {
+            IAbstractMetadataReader? import = Module.MetadataReader;
+            if (import is null)
+                yield break;
+
+            foreach (InterfaceInfo info in import.EnumerateInterfaces(MetadataToken))
+            {
+                ClrInterface? result = GetInterface(import, info.InterfaceToken);
+                if (result != null)
+                    yield return result;
+            }
+        }
+
+        private ClrInterface? GetInterface(IAbstractMetadataReader import, int mdIFace)
+        {
+            ClrInterface? result = null;
+            string? name;
+            if (import.GetTypeDefInfo(mdIFace, out TypeDefInfo info))
+                name = info.Name;
+            else
+                name = import.GetTypeRefName(mdIFace);
+
+            // TODO:  Handle typespec case.
+            if (name != null)
+            {
+                ClrInterface? type = null;
+                if (info.Parent is not 0 and not 0x01000000)
+                    type = GetInterface(import, info.Parent);
+
+                result = new ClrInterface(name, type);
+            }
+
+            return result;
+        }
 
         /// <summary>
         /// Returns true if the finalization is suppressed for an object (the user program called

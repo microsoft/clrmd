@@ -8,6 +8,7 @@ using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
+using Microsoft.Diagnostics.Runtime.Utilities;
 using MethodInfo = Microsoft.Diagnostics.Runtime.AbstractDac.MethodInfo;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -133,7 +134,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (module is null)
                 return null;
 
-            MetadataImport? mdImport = module.MetadataImport;
+            IAbstractMetadataReader? mdImport = module.MetadataReader;
             if (mdImport is null)
                 return null;
 
@@ -199,7 +200,13 @@ namespace Microsoft.Diagnostics.Runtime
             get
             {
                 if (!_attributes.HasValue)
-                    _attributes = Type.Module.MetadataImport?.GetMethodAttributes(MetadataToken) ?? default;
+                {
+                    IAbstractMetadataReader? reader = Type.Module.MetadataReader;
+                    if (reader is not null && reader.GetMethodAttributes(MetadataToken, out MethodAttributes attributes))
+                        _attributes = attributes;
+                    else
+                        _attributes = default(MethodAttributes);
+                }
 
                 return _attributes.Value;
             }

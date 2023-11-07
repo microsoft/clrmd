@@ -65,6 +65,13 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             return result;
         }
 
-        public MetadataImport? GetMetadataImport(ulong module) => _sos.GetMetadataImport(module);
+        public IAbstractMetadataReader? GetMetadataReader(ulong module)
+        {
+            MetadataImport? import = _sos.GetMetadataImport(module);
+            if (import is null)
+                return null;
+
+            return new DacMetadataReader(import);
+        }
     }
 }

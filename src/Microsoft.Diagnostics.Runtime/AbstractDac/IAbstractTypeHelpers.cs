@@ -19,8 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     internal interface IAbstractTypeHelpers
     {
         bool GetTypeInfo(ulong methodTable, out TypeInfo info);
-        string? GetTypeName(ulong methodTable);
-        string? GetTypeName(MetadataImport metadata, int token);
+        string? GetTypeName(ulong module, ulong methodTable, int token);
         ulong GetLoaderAllocatorHandle(ulong mt);
         ulong GetAssemblyLoadContextAddress(ulong mt);
 
@@ -34,7 +33,6 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         ulong GetILForModule(ulong address, uint rva);
 
         // Field helpers
-        bool GetFieldMetadataInfo(MetadataImport import, int token, out FieldMetadataInfo info);
         ulong GetStaticFieldAddress(in AppDomainInfo appDomain, in ClrModuleInfo module, in TypeInfo typeInfo, in FieldInfo field);
     }
 
@@ -87,13 +85,5 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         Instance,
         Static,
         ThreadStatic
-    }
-
-    internal struct FieldMetadataInfo
-    {
-        public string? Name { get; set; }
-        public FieldAttributes Attributes { get; set; }
-        public nint Signature { get; set; }
-        public int SignatureSize { get; set; }
     }
 }

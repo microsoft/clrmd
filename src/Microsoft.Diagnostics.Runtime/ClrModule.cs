@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -21,8 +22,9 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private readonly IAbstractModuleHelpers? _helpers;
         private readonly IAbstractClrNativeHeaps? _nativeHeapHelpers;
+        private IAbstractMetadataReader? _metadata;
+
         private int _debugMode = int.MaxValue;
-        private MetadataImport? _metadata;
         private PdbInfo? _pdb;
         private (ulong MethodTable, int Token)[]? _typeDefMap;
         private (ulong MethodTable, int Token)[]? _typeRefMap;
@@ -117,7 +119,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the <c>IMetaDataImport</c> interface for this module.  Note that this API does not provide a
         /// wrapper for <c>IMetaDataImport</c>.  You will need to wrap the API yourself if you need to use this.
         /// </summary>
-        internal MetadataImport? MetadataImport => _metadata ??= _helpers?.GetMetadataImport(Address);
+        internal IAbstractMetadataReader? MetadataReader => _metadata ??= _helpers?.GetMetadataReader(Address);
 
         /// <summary>
         /// The ThunkHeap associated with this Module.  This is only available when debugging a .Net 8 or
@@ -163,23 +165,21 @@ namespace Microsoft.Diagnostics.Runtime
 
         private unsafe int GetDebugAttribute()
         {
-            MetadataImport? metadata = MetadataImport;
+            IAbstractMetadataReader? metadata = MetadataReader;
             if (metadata != null)
             {
-                try
-                {
-                    if (metadata.GetCustomAttributeByName(0x20000001, "System.Diagnostics.DebuggableAttribute", out IntPtr data, out uint cbData) && cbData >= 4)
-                    {
-                        byte* b = (byte*)data.ToPointer();
-                        ushort opt = b[2];
-                        ushort dbg = b[3];
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(4);
 
-                        return (dbg << 8) | opt;
-                    }
-                }
-                catch (SEHException)
+                int len = metadata.GetCustomAttributeData(0x20000001, "System.Diagnostics.DebuggableAttribute", buffer);
+                if (len >= 4)
                 {
+                    ushort opt = buffer[2];
+                    ushort dbg = buffer[3];
+
+                    return (dbg << 8) | opt;
                 }
+
+                ArrayPool<byte>.Shared.Return(buffer);
             }
 
             return (int)DebuggableAttribute.DebuggingModes.None;

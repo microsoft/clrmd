@@ -66,8 +66,8 @@ namespace Microsoft.Diagnostics.Runtime
                 StringCaching options = ContainingType.Heap.Runtime.DataTarget.CacheOptions.CacheFieldNames;
                 if (options == StringCaching.None)
                 {
-                    MetadataImport? import = ContainingType.Module.MetadataImport;
-                    if (import is null || !_helpers.GetFieldMetadataInfo(import, Token, out FieldMetadataInfo info))
+                    IAbstractMetadataReader? import = ContainingType.Module.MetadataReader;
+                    if (import is null || !import.GetFieldDefInfo(Token, out FieldDefInfo info))
                         return null;
 
                     return info.Name;
@@ -104,8 +104,8 @@ namespace Microsoft.Diagnostics.Runtime
             if (!forName && _attributes != (int)FieldAttributes.ReservedMask)
                 return;
 
-            MetadataImport? import = ContainingType.Module.MetadataImport;
-            if (import is null || !_helpers.GetFieldMetadataInfo(import, Token, out FieldMetadataInfo info))
+            IAbstractMetadataReader? import = ContainingType.Module.MetadataReader;
+            if (import is null || !import.GetFieldDefInfo(Token, out FieldDefInfo info))
             {
                 _attributes = 0;
                 return;
