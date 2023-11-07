@@ -15,7 +15,6 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// </summary>
     internal interface IAbstractComHelpers
     {
-        // COM
         IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData();
         bool GetCcwInfo(ulong obj, out CcwInfo info);
         bool GetRcwInfo(ulong obj, out RcwInfo info);
