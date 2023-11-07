@@ -32,9 +32,6 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         IEnumerable<JitManagerInfo> EnumerateClrJitManagers();
         string? GetJitHelperFunctionName(ulong address);
 
-        // ThreadPool
-        IAbstractThreadPoolProvider? LegacyThreadPoolHelpers { get; }
-
         // COM
         IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData();
         bool GetCcwInfo(ulong obj, out CcwInfo info);

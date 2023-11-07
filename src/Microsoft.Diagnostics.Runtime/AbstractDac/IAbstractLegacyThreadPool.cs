@@ -9,7 +9,14 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
-    internal interface IAbstractThreadPoolProvider
+    /// <summary>
+    /// Gives information about the native ThreadPool in the .Net Runtime.
+    /// Modern runtimes use the C# based ThreadPool, or the Windows OS
+    /// ThreadPool and not the old CLR native one.
+    ///
+    /// This interface is optional.
+    /// </summary>
+    internal interface IAbstractLegacyThreadPool
     {
         bool GetLegacyThreadPoolData(out LegacyThreadPoolInfo data);
         bool GetLegacyWorkRequestData(ulong workRequest, out LegacyWorkRequestInfo workRequestData);

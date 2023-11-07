@@ -79,8 +79,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                IAbstractThreadPoolProvider? helper = DacLibrary.LegacyThreadPoolHelpers;
-                ClrThreadPool result = new(this, helper);
+                ClrThreadPool result = new(this, GetService<IAbstractLegacyThreadPool>());
                 return result.Initialized ? result : null;
             }
         }
