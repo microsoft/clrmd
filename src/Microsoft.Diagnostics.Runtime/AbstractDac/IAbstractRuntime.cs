@@ -19,9 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         IEnumerable<AppDomainInfo> EnumerateAppDomains();
 
         // Modules
-        IAbstractModuleProvider? ModuleHelpers { get; }
         IEnumerable<ulong> GetModuleList(ulong appDomain);
-        ClrModuleInfo GetModuleInfo(ulong module);
 
         // Methods
         ulong GetMethodHandleContainingType(ulong methodDesc);

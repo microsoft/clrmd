@@ -25,6 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private IAbstractHeapProvider? _heap;
         private IAbstractTypeProvider? _types;
         private IAbstractClrNativeHeaps? _nativeHeaps;
+        private IAbstractModuleProvider? _modules;
 
         private IDataReader DataReader => _clrInfo.DataTarget.DataReader;
 
@@ -77,6 +78,9 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
             if (serviceType == typeof(IAbstractClrNativeHeaps))
                 return _nativeHeaps ??= new DacNativeHeaps(_clrInfo, _sos, _sos13, DataReader);
+
+            if (serviceType == typeof(IAbstractModuleProvider))
+                return _modules ??= new DacModuleHelpers(_sos);
 
             return null;
         }

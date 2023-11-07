@@ -19,6 +19,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrRuntime : IClrRuntime
     {
+        private readonly IServiceProvider _services;
         private volatile ClrHeap? _heap;
         private ImmutableArray<ClrThread> _threads;
         private volatile DomainAndModules? _domainAndModules;
@@ -29,12 +30,13 @@ namespace Microsoft.Diagnostics.Runtime
             DataTarget = clrInfo.DataTarget;
 
             DacLibrary = (IAbstractRuntime?)services.GetService(typeof(IAbstractRuntime)) ?? throw new NotSupportedException($"Could not construct an {nameof(IAbstractRuntime)} for this runtime.");
-            ServiceProvider = services;
+            _services = services;
         }
 
         internal IAbstractRuntime DacLibrary { get; }
 
-        internal IServiceProvider ServiceProvider { get; }
+        internal T? GetService<T>() where T: class => (T?)_services.GetService(typeof(T));
+        internal T GetServiceOrThrow<T>() where T : class => (T?)_services.GetService(typeof(T)) ?? throw new NotSupportedException($"This version of ClrMD does not support {typeof(T).FullName}");
 
         /// <summary>
         /// Gets the <see cref="ClrInfo"/> of the current runtime.
@@ -165,8 +167,8 @@ namespace Microsoft.Diagnostics.Runtime
                 ClrHeap? heap = _heap;
                 while (heap is null) // Flush can cause a race.
                 {
-                    IAbstractHeapProvider? heapHelpers = (IAbstractHeapProvider?)ServiceProvider.GetService(typeof(IAbstractHeapProvider));
-                    IAbstractTypeProvider? typeHelpers = (IAbstractTypeProvider?)ServiceProvider.GetService(typeof(IAbstractTypeProvider));
+                    IAbstractHeapProvider? heapHelpers = GetService<IAbstractHeapProvider>();
+                    IAbstractTypeProvider? typeHelpers = GetService<IAbstractTypeProvider>();
 
                     // These are defined as non-nullable but just in case, double check we have a non-null instance.
                     if (heapHelpers is null || typeHelpers is null)
@@ -274,7 +276,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
             }
 
-            IAbstractClrNativeHeaps? nativeHeaps = GetNativeHeapHelpers();
+            IAbstractClrNativeHeaps? nativeHeaps = GetService<IAbstractClrNativeHeaps>();
             if (nativeHeaps is not null)
             {
                 foreach (ClrNativeHeapInfo gcFreeRegion in nativeHeaps.EnumerateGCFreeRegions())
@@ -296,14 +298,13 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData()
         {
-            IAbstractClrNativeHeaps? nativeHeaps = GetNativeHeapHelpers();
+            IAbstractClrNativeHeaps? nativeHeaps = GetService<IAbstractClrNativeHeaps>();
             if (nativeHeaps is not null)
                 return nativeHeaps.EnumerateSyncBlockCleanupData();
 
             return Enumerable.Empty<ClrSyncBlockCleanupData>();
         }
 
-        private IAbstractClrNativeHeaps? GetNativeHeapHelpers() => (IAbstractClrNativeHeaps?)ServiceProvider.GetService(typeof(IAbstractClrNativeHeaps));
         public IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData() => DacLibrary.EnumerateRcwCleanupData();
 
         internal RuntimeCallableWrapper? CreateRCWForObject(ulong obj)
@@ -328,7 +329,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumeration of heaps.</returns>
         public IEnumerable<ClrJitManager> EnumerateJitManagers()
         {
-            return DacLibrary.EnumerateClrJitManagers().Select(info => new ClrJitManager(this, info, GetNativeHeapHelpers()));
+            return DacLibrary.EnumerateClrJitManagers().Select(info => new ClrJitManager(this, info, GetService<IAbstractClrNativeHeaps>()));
         }
 
         /// <summary>
@@ -361,7 +362,7 @@ namespace Microsoft.Diagnostics.Runtime
         public void Dispose()
         {
             FlushCachedData();
-            if (ServiceProvider is IDisposable disposable)
+            if (_services is IDisposable disposable)
                 disposable.Dispose();
         }
 
@@ -388,7 +389,7 @@ namespace Microsoft.Diagnostics.Runtime
             ImmutableArray<ClrAppDomain>.Builder builder = ImmutableArray.CreateBuilder<ClrAppDomain>();
             foreach (AppDomainInfo domainInfo in DacLibrary.EnumerateAppDomains())
             {
-                ClrAppDomain domain = new(this, domainInfo, GetNativeHeapHelpers());
+                ClrAppDomain domain = new(this, domainInfo, GetService<IAbstractClrNativeHeaps>());
 
                 switch (domainInfo.Kind)
                 {
@@ -408,13 +409,14 @@ namespace Microsoft.Diagnostics.Runtime
                         throw new InvalidDataException($"Unknown domain kind: {domainInfo.Kind}");
                 }
 
+                IAbstractModuleProvider moduleHelpers = GetServiceOrThrow<IAbstractModuleProvider>();
                 ImmutableArray<ClrModule>.Builder moduleBuilder = ImmutableArray.CreateBuilder<ClrModule>();
                 foreach (ulong moduleAddress in DacLibrary.GetModuleList(domain.Address))
                 {
                     if (!modules.TryGetValue(moduleAddress, out ClrModule? module))
                     {
-                        ClrModuleInfo moduleInfo = DacLibrary.GetModuleInfo(moduleAddress);
-                        module = new(domain, moduleInfo, DacLibrary.ModuleHelpers, GetNativeHeapHelpers(), DataTarget.DataReader);
+                        ClrModuleInfo moduleInfo = moduleHelpers.GetModuleInfo(moduleAddress);
+                        module = new(domain, moduleInfo, moduleHelpers, GetService<IAbstractClrNativeHeaps>(), DataTarget.DataReader);
                         modules.Add(moduleAddress, module);
                     }
 

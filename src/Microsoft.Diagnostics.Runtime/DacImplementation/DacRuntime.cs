@@ -15,7 +15,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacImplementation
 {
-    internal sealed unsafe class DacRuntime : IAbstractModuleProvider, IAbstractRuntime, IAbstractThreadProvider, IAbstractThreadPoolProvider
+    internal sealed unsafe class DacRuntime : IAbstractRuntime, IAbstractThreadProvider, IAbstractThreadPoolProvider
     {
         private readonly IDataReader _dataReader;
         private readonly ThreadStoreData _threadStore;
@@ -57,7 +57,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         ////////////////////////////////////////////////////////////////////////////////
         // Threads
         ////////////////////////////////////////////////////////////////////////////////
-        #region Threads
         public IAbstractThreadProvider ThreadHelpers => this;
 
         public IEnumerable<ClrThreadInfo> EnumerateThreads()
@@ -252,12 +251,10 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
             ArrayPool<byte>.Shared.Return(context);
         }
-        #endregion
 
         ////////////////////////////////////////////////////////////////////////////////
         // AppDomains
         ////////////////////////////////////////////////////////////////////////////////
-        #region AppDomains
         public IEnumerable<AppDomainInfo> EnumerateAppDomains()
         {
             if (_domainStore.SharedDomain != 0)
@@ -293,72 +290,12 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
             return result;
         }
-        #endregion
-
-        ////////////////////////////////////////////////////////////////////////////////
-        // Modules
-        ////////////////////////////////////////////////////////////////////////////////
-        #region Modules
-        public IAbstractModuleProvider ModuleHelpers => this;
 
         public IEnumerable<ulong> GetModuleList(ulong domain) => _sos.GetAssemblyList(domain).SelectMany(assembly => _sos.GetModuleList(assembly)).Select(module => (ulong)module);
-
-        public ClrModuleInfo GetModuleInfo(ulong moduleAddress)
-        {
-            _sos.GetModuleData(moduleAddress, out ModuleData data);
-
-            ClrModuleInfo result = new()
-            {
-                Address = moduleAddress,
-                Assembly = data.Assembly,
-                AssemblyName = _sos.GetAssemblyName(data.Assembly),
-                Id = data.ModuleID,
-                IsPEFile = data.IsPEFile != 0,
-                ImageBase = data.ILBase,
-                MetadataAddress = data.MetadataStart,
-                MetadataSize = data.MetadataSize,
-                IsDynamic = data.IsReflection != 0,
-                ThunkHeap = data.ThunkHeap,
-                LoaderAllocator = data.LoaderAllocator,
-            };
-
-            using ClrDataModule? dataModule = _sos.GetClrDataModule(moduleAddress);
-            if (dataModule is not null && dataModule.GetModuleData(out ExtendedModuleData extended))
-            {
-                result.Layout = extended.IsFlatLayout != 0 ? ModuleLayout.Flat : ModuleLayout.Mapped;
-                result.IsDynamic |= extended.IsDynamic != 0;
-                result.Size = extended.LoadedPESize;
-                result.FileName = dataModule.GetFileName();
-            }
-
-            return result;
-        }
-
-        // IClrModuleHelpers
-        private const int mdtTypeDef = 0x02000000;
-        private const int mdtTypeRef = 0x01000000;
-        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefMap(ulong module) => GetModuleMap(module, SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable);
-
-        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeRefMap(ulong module) => GetModuleMap(module, SOSDac.ModuleMapTraverseKind.TypeRefToMethodTable);
-
-        private List<(ulong MethodTable, int Token)> GetModuleMap(ulong module, SOSDac.ModuleMapTraverseKind kind)
-        {
-            int tokenType = kind == SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable ? mdtTypeDef : mdtTypeRef;
-            List<(ulong MethodTable, int Token)> result = new();
-            _sos.TraverseModuleMap(kind, module, (token, mt, _) => {
-                result.Add((mt, token | tokenType));
-            });
-
-            return result;
-        }
-
-        public MetadataImport? GetMetadataImport(ulong module) => _sos.GetMetadataImport(module);
-        #endregion
 
         ////////////////////////////////////////////////////////////////////////////////
         // Methods
         ////////////////////////////////////////////////////////////////////////////////
-        #region Methods
         public ulong GetMethodHandleContainingType(ulong methodDesc)
         {
             if (!_sos.GetMethodDescData(methodDesc, 0, out MethodDescData mdData))
@@ -378,12 +315,10 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
             return md;
         }
-        #endregion
 
         ////////////////////////////////////////////////////////////////////////////////
         // HandleTable
         ////////////////////////////////////////////////////////////////////////////////
-        #region HandleTable
         public IEnumerable<ClrHandleInfo> EnumerateHandles()
         {
             using SOSHandleEnum? handleEnum = _sos.EnumerateHandles();
@@ -403,12 +338,10 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 };
             }
         }
-        #endregion
 
         ////////////////////////////////////////////////////////////////////////////////
         // JIT
         ////////////////////////////////////////////////////////////////////////////////
-        #region JIT
         public IEnumerable<JitManagerInfo> EnumerateClrJitManagers()
         {
             foreach (JitManagerData jitMgr in _sos.GetJitManagers())
@@ -421,12 +354,10 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         }
 
         public string? GetJitHelperFunctionName(ulong address) => _sos.GetJitHelperFunctionName(address);
-        #endregion
 
         ////////////////////////////////////////////////////////////////////////////////
         // ThreadPool
         ////////////////////////////////////////////////////////////////////////////////
-        #region ThreadPool
         public IAbstractThreadPoolProvider? LegacyThreadPoolHelpers => this;
 
         public bool GetLegacyThreadPoolData(out LegacyThreadPoolInfo result)
@@ -470,13 +401,10 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
             return res;
         }
-        #endregion
-
 
         ////////////////////////////////////////////////////////////////////////////////
         // COM
         ////////////////////////////////////////////////////////////////////////////////
-        #region COM
         public IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData()
         {
             return _sos.EnumerateRCWCleanup(0).Select(r => new ClrRcwCleanupData(r.Rcw, r.Context, r.Thread, r.IsFreeThreaded));
@@ -529,13 +457,9 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             return false;
         }
 
-        #endregion
-
         ////////////////////////////////////////////////////////////////////////////////
         // Helpers
         ////////////////////////////////////////////////////////////////////////////////
-        #region Helpers
-
         public void Flush()
         {
             FlushDac();
@@ -580,6 +504,5 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 _dac.Flush();
             }
         }
-        #endregion
     }
 }
