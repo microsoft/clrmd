@@ -274,23 +274,36 @@ namespace Microsoft.Diagnostics.Runtime
                 }
             }
 
-            foreach (ClrNativeHeapInfo gcFreeRegion in DacLibrary.EnumerateGCFreeRegions())
+            IAbstractClrNativeHeaps? nativeHeaps = GetNativeHeapHelpers();
+            if (nativeHeaps is not null)
             {
-                yield return gcFreeRegion;
-            }
+                foreach (ClrNativeHeapInfo gcFreeRegion in nativeHeaps.EnumerateGCFreeRegions())
+                {
+                    yield return gcFreeRegion;
+                }
 
-            foreach (ClrNativeHeapInfo handleHeap in DacLibrary.EnumerateHandleTableRegions())
-            {
-                yield return handleHeap;
-            }
+                foreach (ClrNativeHeapInfo handleHeap in nativeHeaps.EnumerateHandleTableRegions())
+                {
+                    yield return handleHeap;
+                }
 
-            foreach (ClrNativeHeapInfo bkRegions in DacLibrary.EnumerateGCBookkeepingRegions())
-            {
-                yield return bkRegions;
+                foreach (ClrNativeHeapInfo bkRegions in nativeHeaps.EnumerateGCBookkeepingRegions())
+                {
+                    yield return bkRegions;
+                }
             }
         }
 
-        public IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData() => DacLibrary.EnumerateSyncBlockCleanupData();
+        public IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData()
+        {
+            IAbstractClrNativeHeaps? nativeHeaps = GetNativeHeapHelpers();
+            if (nativeHeaps is not null)
+                return nativeHeaps.EnumerateSyncBlockCleanupData();
+
+            return Enumerable.Empty<ClrSyncBlockCleanupData>();
+        }
+
+        private IAbstractClrNativeHeaps? GetNativeHeapHelpers() => (IAbstractClrNativeHeaps?)ServiceProvider.GetService(typeof(IAbstractClrNativeHeaps));
         public IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData() => DacLibrary.EnumerateRcwCleanupData();
 
         internal RuntimeCallableWrapper? CreateRCWForObject(ulong obj)
@@ -315,7 +328,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumeration of heaps.</returns>
         public IEnumerable<ClrJitManager> EnumerateJitManagers()
         {
-            return DacLibrary.EnumerateClrJitManagers().Select(info => new ClrJitManager(this, info, DacLibrary.NativeHeapHelpers));
+            return DacLibrary.EnumerateClrJitManagers().Select(info => new ClrJitManager(this, info, GetNativeHeapHelpers()));
         }
 
         /// <summary>
@@ -375,7 +388,7 @@ namespace Microsoft.Diagnostics.Runtime
             ImmutableArray<ClrAppDomain>.Builder builder = ImmutableArray.CreateBuilder<ClrAppDomain>();
             foreach (AppDomainInfo domainInfo in DacLibrary.EnumerateAppDomains())
             {
-                ClrAppDomain domain = new(this, domainInfo, DacLibrary.NativeHeapHelpers);
+                ClrAppDomain domain = new(this, domainInfo, GetNativeHeapHelpers());
 
                 switch (domainInfo.Kind)
                 {
@@ -401,7 +414,7 @@ namespace Microsoft.Diagnostics.Runtime
                     if (!modules.TryGetValue(moduleAddress, out ClrModule? module))
                     {
                         ClrModuleInfo moduleInfo = DacLibrary.GetModuleInfo(moduleAddress);
-                        module = new(domain, moduleInfo, DacLibrary.ModuleHelpers, DacLibrary.NativeHeapHelpers, DataTarget.DataReader);
+                        module = new(domain, moduleInfo, DacLibrary.ModuleHelpers, GetNativeHeapHelpers(), DataTarget.DataReader);
                         modules.Add(moduleAddress, module);
                     }
 

@@ -5,8 +5,13 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
-    internal interface IAbstractNativeHeapProvider
+    internal interface IAbstractClrNativeHeaps
     {
+        IEnumerable<ClrNativeHeapInfo> EnumerateGCFreeRegions();
+        IEnumerable<ClrNativeHeapInfo> EnumerateHandleTableRegions();
+        IEnumerable<ClrNativeHeapInfo> EnumerateGCBookkeepingRegions();
+        IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData();
+
         IEnumerable<ClrNativeHeapInfo> EnumerateDomainHeaps(ulong domain);
         IEnumerable<ClrNativeHeapInfo> EnumerateJitManagerHeaps(ulong jitManager);
         IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorNativeHeaps(ulong loaderAllocator);

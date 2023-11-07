@@ -37,13 +37,6 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         // ThreadPool
         IAbstractThreadPoolProvider? LegacyThreadPoolHelpers { get; }
 
-        // Native Heaps
-        IAbstractNativeHeapProvider? NativeHeapHelpers { get; }
-        IEnumerable<ClrNativeHeapInfo> EnumerateGCFreeRegions();
-        IEnumerable<ClrNativeHeapInfo> EnumerateHandleTableRegions();
-        IEnumerable<ClrNativeHeapInfo> EnumerateGCBookkeepingRegions();
-        IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData();
-
         // COM
         IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData();
         bool GetCcwInfo(ulong obj, out CcwInfo info);

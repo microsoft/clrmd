@@ -9,9 +9,9 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
 using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac13;
 
-namespace Microsoft.Diagnostics.Runtime.Implementation
+namespace Microsoft.Diagnostics.Runtime.DacImplementation
 {
-    internal sealed class DacNativeHeapProvider : IAbstractNativeHeapProvider
+    internal sealed class DacNativeHeaps : IAbstractClrNativeHeaps
     {
         private NativeHeapKind[]? _heapNativeTypes;
         private readonly ClrInfo _clrInfo;
@@ -19,12 +19,73 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly ISOSDac13? _sos13;
         private readonly IDataReader _dataReader;
 
-        public DacNativeHeapProvider(ClrInfo clrInfo, SOSDac sos, ISOSDac13? sos13, IDataReader dataReader)
+        public DacNativeHeaps(ClrInfo clrInfo, SOSDac sos, ISOSDac13? sos13, IDataReader dataReader)
         {
             _clrInfo = clrInfo;
             _sos = sos;
             _sos13 = sos13;
             _dataReader = dataReader;
+        }
+
+        public IEnumerable<ClrNativeHeapInfo> EnumerateGCFreeRegions()
+        {
+            using (SosMemoryEnum? memoryEnum = _sos13?.GetGCFreeRegions())
+            {
+                if (memoryEnum is not null)
+                    foreach (SosMemoryRegion mem in memoryEnum)
+                    {
+                        NativeHeapKind kind = (ulong)mem.ExtraData switch
+                        {
+                            1 => NativeHeapKind.GCFreeGlobalHugeRegion,
+                            2 => NativeHeapKind.GCFreeGlobalRegion,
+                            3 => NativeHeapKind.GCFreeRegion,
+                            4 => NativeHeapKind.GCFreeSohSegment,
+                            5 => NativeHeapKind.GCFreeUohSegment,
+                            _ => NativeHeapKind.GCFreeRegion
+                        };
+
+                        ulong raw = (ulong)mem.Start;
+                        ulong start = raw & ~0xfful;
+                        ulong diff = raw - start;
+                        ulong len = mem.Length + diff;
+
+                        yield return new ClrNativeHeapInfo(MemoryRange.CreateFromLength(start, len), kind, ClrNativeHeapState.Inactive, mem.Heap);
+                    }
+            }
+        }
+
+        public IEnumerable<ClrNativeHeapInfo> EnumerateHandleTableRegions()
+        {
+            using (SosMemoryEnum? memoryEnum = _sos13?.GetHandleTableRegions())
+            {
+                if (memoryEnum is not null)
+                    foreach (SosMemoryRegion mem in memoryEnum)
+                        yield return new ClrNativeHeapInfo(MemoryRange.CreateFromLength(mem.Start, mem.Length), NativeHeapKind.HandleTable, ClrNativeHeapState.Active, mem.Heap);
+            }
+        }
+
+        public IEnumerable<ClrNativeHeapInfo> EnumerateGCBookkeepingRegions()
+        {
+            using (SosMemoryEnum? memoryEnum = _sos13?.GetGCBookkeepingMemoryRegions())
+            {
+                if (memoryEnum is not null)
+                    foreach (SosMemoryRegion mem in memoryEnum)
+                        yield return new ClrNativeHeapInfo(MemoryRange.CreateFromLength(mem.Start, mem.Length), NativeHeapKind.GCBookkeeping, ClrNativeHeapState.RegionOfRegions);
+            }
+        }
+
+        public IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData()
+        {
+            ulong loopCheck = 0;
+            while (_sos.GetSyncBlockCleanupData(0, out SyncBlockCleanupData data))
+            {
+                if (loopCheck == 0)
+                    loopCheck = data.NextSyncBlock;
+                else if (loopCheck == data.NextSyncBlock)
+                    break;
+
+                yield return new(data.SyncBlockPointer, data.BlockRCW, data.BlockCCW, data.BlockClassFactory);
+            }
         }
 
         private NativeHeapKind[] GetNativeHeaps()
@@ -191,7 +252,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (_clrInfo.Flavor == ClrFlavor.Core)
                 {
                     int versionMajor = _clrInfo.Version.Major;
-                    normalNeedsAdjustment = versionMajor == 7 || (versionMajor == 8 && _sos13 is null) || versionMajor == 0;
+                    normalNeedsAdjustment = versionMajor == 7 || versionMajor == 8 && _sos13 is null || versionMajor == 0;
                 }
 
                 ulong fixedHeapAddress = FixupHeapAddress(loaderHeap, loaderHeapKind, normalNeedsAdjustment);

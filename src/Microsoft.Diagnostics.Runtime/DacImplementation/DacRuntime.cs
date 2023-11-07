@@ -12,7 +12,6 @@ using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
-using GCKind = Microsoft.Diagnostics.Runtime.AbstractDac.GCKind;
 
 namespace Microsoft.Diagnostics.Runtime.DacImplementation
 {
@@ -21,15 +20,10 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly IDataReader _dataReader;
         private readonly ThreadStoreData _threadStore;
         private readonly AppDomainStoreData _domainStore;
-        private readonly ClrInfo _clrInfo;
         private readonly DacLibrary _library;
         private readonly ClrDataProcess _dac;
         private readonly SOSDac _sos;
-        private readonly SOSDac6? _sos6;
-        private readonly SOSDac8? _sos8;
-        private readonly SosDac12? _sos12;
         private readonly ISOSDac13? _sos13;
-        private IAbstractNativeHeapProvider? _nativeHeapHelpers;
 
         // for testing purposes only
         internal DacLibrary Library => _library;
@@ -38,14 +32,10 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public DacRuntime(ClrInfo clrInfo, DacLibrary library)
         {
-            _clrInfo = clrInfo;
             _dataReader = clrInfo.DataTarget.DataReader;
             _library = library;
             _dac = library.DacPrivateInterface;
             _sos = library.SOSDacInterface;
-            _sos6 = library.SOSDacInterface6;
-            _sos8 = library.SOSDacInterface8;
-            _sos12 = library.SOSDacInterface12;
             _sos13 = library.SOSDacInterface13;
 
             int version = 0;
@@ -482,88 +472,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         }
         #endregion
 
-        ////////////////////////////////////////////////////////////////////////////////
-        // Native Heaps
-        ////////////////////////////////////////////////////////////////////////////////
-        #region Native Heaps
-        public IAbstractNativeHeapProvider NativeHeapHelpers
-        {
-            get
-            {
-                IAbstractNativeHeapProvider? helpers = _nativeHeapHelpers;
-                if (helpers is null)
-                {
-                    // We don't care if this races
-                    helpers = new DacNativeHeapProvider(_clrInfo, _sos, _sos13, _dataReader);
-                    _nativeHeapHelpers = helpers;
-                }
-
-                return helpers;
-            }
-        }
-
-        public IEnumerable<ClrNativeHeapInfo> EnumerateGCFreeRegions()
-        {
-            using (SosMemoryEnum? memoryEnum = _sos13?.GetGCFreeRegions())
-            {
-                if (memoryEnum is not null)
-                    foreach (SosMemoryRegion mem in memoryEnum)
-                    {
-                        NativeHeapKind kind = (ulong)mem.ExtraData switch
-                        {
-                            1 => NativeHeapKind.GCFreeGlobalHugeRegion,
-                            2 => NativeHeapKind.GCFreeGlobalRegion,
-                            3 => NativeHeapKind.GCFreeRegion,
-                            4 => NativeHeapKind.GCFreeSohSegment,
-                            5 => NativeHeapKind.GCFreeUohSegment,
-                            _ => NativeHeapKind.GCFreeRegion
-                        };
-
-                        ulong raw = (ulong)mem.Start;
-                        ulong start = raw & ~0xfful;
-                        ulong diff = raw - start;
-                        ulong len = mem.Length + diff;
-
-                        yield return new ClrNativeHeapInfo(MemoryRange.CreateFromLength(start, len), kind, ClrNativeHeapState.Inactive, mem.Heap);
-                    }
-            }
-        }
-
-        public IEnumerable<ClrNativeHeapInfo> EnumerateHandleTableRegions()
-        {
-            using (SosMemoryEnum? memoryEnum = _sos13?.GetHandleTableRegions())
-            {
-                if (memoryEnum is not null)
-                    foreach (SosMemoryRegion mem in memoryEnum)
-                        yield return new ClrNativeHeapInfo(MemoryRange.CreateFromLength(mem.Start, mem.Length), NativeHeapKind.HandleTable, ClrNativeHeapState.Active, mem.Heap);
-            }
-        }
-
-        public IEnumerable<ClrNativeHeapInfo> EnumerateGCBookkeepingRegions()
-        {
-            using (SosMemoryEnum? memoryEnum = _sos13?.GetGCBookkeepingMemoryRegions())
-            {
-                if (memoryEnum is not null)
-                    foreach (SosMemoryRegion mem in memoryEnum)
-                        yield return new ClrNativeHeapInfo(MemoryRange.CreateFromLength(mem.Start, mem.Length), NativeHeapKind.GCBookkeeping, ClrNativeHeapState.RegionOfRegions);
-            }
-        }
-
-        public IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData()
-        {
-            ulong loopCheck = 0;
-            while (_sos.GetSyncBlockCleanupData(0, out SyncBlockCleanupData data))
-            {
-                if (loopCheck == 0)
-                    loopCheck = data.NextSyncBlock;
-                else if (loopCheck == data.NextSyncBlock)
-                    break;
-
-                yield return new(data.SyncBlockPointer, data.BlockRCW, data.BlockCCW, data.BlockClassFactory);
-            }
-        }
-
-        #endregion
 
         ////////////////////////////////////////////////////////////////////////////////
         // COM
@@ -630,7 +538,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public void Flush()
         {
-            _nativeHeapHelpers = null;
             FlushDac();
         }
 
