@@ -17,26 +17,16 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// </summary>
     internal interface IAbstractRuntime
     {
-        // Threads
-        IAbstractThreadProvider ThreadHelpers { get; }
         IEnumerable<ClrThreadInfo> EnumerateThreads();
-
-        // AppDomains
         IEnumerable<AppDomainInfo> EnumerateAppDomains();
-
-        // Modules
         IEnumerable<ulong> GetModuleList(ulong appDomain);
+        IEnumerable<ClrHandleInfo> EnumerateHandles();
+        IEnumerable<JitManagerInfo> EnumerateClrJitManagers();
+        string? GetJitHelperFunctionName(ulong address);
 
         // Methods
         ulong GetMethodHandleContainingType(ulong methodDesc);
         ulong GetMethodHandleByInstructionPointer(ulong ip);
-
-        // HandleTable
-        IEnumerable<ClrHandleInfo> EnumerateHandles();
-
-        // JIT
-        IEnumerable<JitManagerInfo> EnumerateClrJitManagers();
-        string? GetJitHelperFunctionName(ulong address);
 
         // Helpers
         void Flush();

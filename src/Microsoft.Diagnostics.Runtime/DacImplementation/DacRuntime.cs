@@ -2,24 +2,19 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Buffers;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacImplementation
 {
-    internal sealed unsafe class DacRuntime : IAbstractRuntime, IAbstractThreadProvider
+    internal sealed unsafe class DacRuntime : IAbstractRuntime
     {
         private readonly IDataReader _dataReader;
-        private readonly ThreadStoreData _threadStore;
-        private readonly AppDomainStoreData _domainStore;
         private readonly DacLibrary _library;
         private readonly ClrDataProcess _dac;
         private readonly SOSDac _sos;
@@ -45,28 +40,23 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             if (version != 9)
                 throw new NotSupportedException($"The CLR debugging layer reported a version of {version} which this build of ClrMD does not support.");
 
-            if (!_sos.GetThreadStoreData(out _threadStore))
-                throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data.    Failed to request ThreadStoreData.");
-
-            if (!_sos.GetAppDomainStoreData(out _domainStore))
-                throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data.    Failed to request AppDomainStoreData.");
-
             library.DacDataTarget.SetMagicCallback(_dac.Flush);
         }
 
         ////////////////////////////////////////////////////////////////////////////////
         // Threads
         ////////////////////////////////////////////////////////////////////////////////
-        public IAbstractThreadProvider ThreadHelpers => this;
-
         public IEnumerable<ClrThreadInfo> EnumerateThreads()
         {
+            if (!_sos.GetThreadStoreData(out ThreadStoreData threadStore))
+                yield break;
+
             HashSet<ulong> seen = new() { 0 };
-            ulong threadAddress = _threadStore.FirstThread;
+            ulong threadAddress = threadStore.FirstThread;
 
             uint pointerSize = (uint)_dataReader.PointerSize;
 
-            for (int i = 0; i < _threadStore.ThreadCount && seen.Add(threadAddress); i++)
+            for (int i = 0; i < threadStore.ThreadCount && seen.Add(threadAddress); i++)
             {
                 if (!_sos.GetThreadData(threadAddress, out ThreadData threadData))
                     break;
@@ -89,8 +79,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     AppDomain = threadData.Domain,
                     ExceptionInFlight = ex,
                     GCMode = threadData.PreemptiveGCDisabled == 0 ? GCMode.Preemptive : GCMode.Cooperative,
-                    IsFinalizer = _threadStore.FinalizerThread == threadAddress,
-                    IsGC = _threadStore.GCThread == threadAddress,
+                    IsFinalizer = threadStore.FinalizerThread == threadAddress,
+                    IsGC = threadStore.GCThread == threadAddress,
                     LockCount = threadData.LockCount,
                     ManagedThreadId = threadData.ManagedThreadId < int.MaxValue ? (int)threadData.ManagedThreadId : int.MaxValue,
                     OSThreadId = threadData.OSThreadId,
@@ -104,164 +94,19 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             }
         }
 
-        // IClrThreadHelpers
-        public IEnumerable<StackRootInfo> EnumerateStackRoots(uint osThreadId)
-        {
-            using SOSStackRefEnum? stackRefEnum = _sos.EnumerateStackRefs(osThreadId);
-            if (stackRefEnum is null)
-                yield break;
-
-            const int GCInteriorFlag = 1;
-            const int GCPinnedFlag = 2;
-            const int SOS_StackSourceIP = 0;
-            const int SOS_StackSourceFrame = 1;
-            foreach (StackRefData stackRef in stackRefEnum.ReadStackRefs())
-            {
-                if (stackRef.Object == 0)
-                {
-                    Trace.TraceInformation($"EnumerateStackRoots found an entry with Object == 0, addr:{(ulong)stackRef.Address:x} srcType:{stackRef.SourceType:x}");
-                    continue;
-                }
-
-                bool interior = (stackRef.Flags & GCInteriorFlag) == GCInteriorFlag;
-                bool isPinned = (stackRef.Flags & GCPinnedFlag) == GCPinnedFlag;
-                int regOffset = 0;
-                string? regName = null;
-                if (stackRef.HasRegisterInformation != 0)
-                {
-                    regOffset = stackRef.Offset;
-                    regName = _sos.GetRegisterName(stackRef.Register);
-                }
-
-                ulong ip = 0;
-                ulong frame = 0;
-                if (stackRef.SourceType == SOS_StackSourceIP)
-                    ip = stackRef.Source;
-                else if (stackRef.SourceType == SOS_StackSourceFrame)
-                    frame = stackRef.Source;
-
-                yield return new StackRootInfo()
-                {
-                    InstructionPointer = ip,
-                    StackPointer = stackRef.StackPointer,
-                    InternalFrame = frame,
-
-                    IsInterior = interior,
-                    IsPinned = isPinned,
-
-                    Address = stackRef.Address,
-                    Object = stackRef.Object,
-
-                    IsEnregistered = stackRef.HasRegisterInformation != 0,
-                    RegisterName = regName,
-                    RegisterOffset = regOffset,
-                };
-            }
-        }
-
-        public IEnumerable<StackFrameInfo> EnumerateStackTrace(uint osThreadId, bool includeContext)
-        {
-            using ClrStackWalk? stackwalk = _dac.CreateStackWalk(osThreadId, 0xf);
-            if (stackwalk is null)
-                yield break;
-
-            int ipOffset;
-            int spOffset;
-            int contextSize;
-            uint contextFlags = 0;
-            if (_dataReader.Architecture == Architecture.Arm)
-            {
-                ipOffset = 64;
-                spOffset = 56;
-                contextSize = 416;
-            }
-            else if (_dataReader.Architecture == Architecture.Arm64)
-            {
-                ipOffset = 264;
-                spOffset = 256;
-                contextSize = 912;
-            }
-            else if (_dataReader.Architecture == (Architecture)9 /* Architecture.RiscV64 */)
-            {
-                ipOffset = 264;
-                spOffset = 24;
-                contextSize = 532;
-            }
-            else if (_dataReader.Architecture == Architecture.X86)
-            {
-                ipOffset = 184;
-                spOffset = 196;
-                contextSize = 716;
-                contextFlags = 0x1003f;
-            }
-            else // Architecture.X64
-            {
-                ipOffset = 248;
-                spOffset = 152;
-                contextSize = 1232;
-                contextFlags = 0x10003f;
-            }
-
-            HResult hr = HResult.S_OK;
-            byte[] context = ArrayPool<byte>.Shared.Rent(contextSize);
-            while (hr.IsOK)
-            {
-                hr = stackwalk.GetContext(contextFlags, contextSize, out _, context);
-                if (!hr)
-                {
-                    Trace.TraceInformation($"GetContext failed, flags:{contextFlags:x} size: {contextSize:x} hr={hr}");
-                    break;
-                }
-
-                ulong ip = context.AsSpan().AsPointer(ipOffset);
-                ulong sp = context.AsSpan().AsPointer(spOffset);
-
-                ulong frameVtbl = stackwalk.GetFrameVtable();
-                string? frameName = null;
-                ulong frameMethod = 0;
-                if (frameVtbl != 0)
-                {
-                    sp = frameVtbl;
-                    frameVtbl = _dataReader.ReadPointer(sp);
-                    frameName = _sos.GetFrameName(frameVtbl);
-                    frameMethod = _sos.GetMethodDescPtrFromFrame(sp);
-                }
-
-                byte[]? contextCopy = null;
-                if (includeContext)
-                {
-                    contextCopy = new byte[contextSize];
-                    context.AsSpan(0, contextSize).CopyTo(contextCopy);
-                }
-
-                yield return new StackFrameInfo()
-                {
-                    InstructionPointer = ip,
-                    StackPointer = sp,
-                    Context = contextCopy,
-                    InternalFrameVTable = frameVtbl,
-                    InternalFrameName = frameName,
-                    InnerMethodMethodHandle = frameMethod,
-                };
-
-                hr = stackwalk.Next();
-                if (!hr)
-                    Trace.TraceInformation($"STACKWALK FAILED - hr:{hr}");
-            }
-
-            ArrayPool<byte>.Shared.Return(context);
-        }
-
         ////////////////////////////////////////////////////////////////////////////////
         // AppDomains
         ////////////////////////////////////////////////////////////////////////////////
         public IEnumerable<AppDomainInfo> EnumerateAppDomains()
         {
-            if (_domainStore.SharedDomain != 0)
-                yield return CreateAppDomainInfo(_domainStore.SharedDomain, AppDomainKind.Shared, "Shared Domain");
+            if (!_sos.GetAppDomainStoreData(out AppDomainStoreData domainStore))
+                throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data. Failed to request AppDomainStoreData.");
 
-            if (_domainStore.SystemDomain != 0)
-                yield return CreateAppDomainInfo(_domainStore.SystemDomain, AppDomainKind.System, "System Domain");
+            if (domainStore.SharedDomain != 0)
+                yield return CreateAppDomainInfo(domainStore.SharedDomain, AppDomainKind.Shared, "Shared Domain");
+
+            if (domainStore.SystemDomain != 0)
+                yield return CreateAppDomainInfo(domainStore.SystemDomain, AppDomainKind.System, "System Domain");
 
             foreach (ulong domain in _sos.GetAppDomainList())
             {
