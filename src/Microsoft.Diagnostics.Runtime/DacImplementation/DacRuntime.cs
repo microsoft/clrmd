@@ -15,20 +15,13 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
     internal sealed unsafe class DacRuntime : IAbstractRuntime
     {
         private readonly IDataReader _dataReader;
-        private readonly DacLibrary _library;
         private readonly ClrDataProcess _dac;
         private readonly SOSDac _sos;
         private readonly ISOSDac13? _sos13;
 
-        // for testing purposes only
-        internal DacLibrary Library => _library;
-        // for testing purposes only
-        internal SOSDac SOSDacInterface => _sos;
-
         public DacRuntime(ClrInfo clrInfo, DacLibrary library)
         {
             _dataReader = clrInfo.DataTarget.DataReader;
-            _library = library;
             _dac = library.DacPrivateInterface;
             _sos = library.SOSDacInterface;
             _sos13 = library.SOSDacInterface13;
@@ -39,8 +32,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
             if (version != 9)
                 throw new NotSupportedException($"The CLR debugging layer reported a version of {version} which this build of ClrMD does not support.");
-
-            library.DacDataTarget.SetMagicCallback(_dac.Flush);
         }
 
         ////////////////////////////////////////////////////////////////////////////////
@@ -139,29 +130,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         public IEnumerable<ulong> GetModuleList(ulong domain) => _sos.GetAssemblyList(domain).SelectMany(assembly => _sos.GetModuleList(assembly)).Select(module => (ulong)module);
 
         ////////////////////////////////////////////////////////////////////////////////
-        // Methods
-        ////////////////////////////////////////////////////////////////////////////////
-        public ulong GetMethodHandleContainingType(ulong methodDesc)
-        {
-            if (!_sos.GetMethodDescData(methodDesc, 0, out MethodDescData mdData))
-                return 0;
-
-            return mdData.MethodTable;
-        }
-
-        public ulong GetMethodHandleByInstructionPointer(ulong ip)
-        {
-            ulong md = _sos.GetMethodDescPtrFromIP(ip);
-            if (md == 0)
-            {
-                if (_sos.GetCodeHeaderData(ip, out CodeHeaderData codeHeaderData))
-                    md = codeHeaderData.MethodDesc;
-            }
-
-            return md;
-        }
-
-        ////////////////////////////////////////////////////////////////////////////////
         // HandleTable
         ////////////////////////////////////////////////////////////////////////////////
         public IEnumerable<ClrHandleInfo> EnumerateHandles()
@@ -199,54 +167,5 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         }
 
         public string? GetJitHelperFunctionName(ulong address) => _sos.GetJitHelperFunctionName(address);
-
-
-        ////////////////////////////////////////////////////////////////////////////////
-        // Helpers
-        ////////////////////////////////////////////////////////////////////////////////
-        public void Flush()
-        {
-            FlushDac();
-        }
-
-        private void FlushDac()
-        {
-            if (_sos13 is not null && _sos13.LockedFlush())
-                return;
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                // IXClrDataProcess::Flush is unfortunately not wrapped with DAC_ENTER.  This means that
-                // when it starts deleting memory, it's completely unsynchronized with parallel reads
-                // and writes, leading to heap corruption and other issues.  This means that in order to
-                // properly clear dac data structures, we need to trick the dac into entering the critical
-                // section for us so we can call Flush safely then.
-
-                // To accomplish this, we set a hook in our implementation of IDacDataTarget::ReadVirtual
-                // which will call IXClrDataProcess::Flush if the dac tries to read the address set by
-                // MagicCallbackConstant.  Additionally we make sure this doesn't interfere with other
-                // reads by 1) Ensuring that the address is in kernel space, 2) only calling when we've
-                // entered a special context.
-
-                _library.DacDataTarget.EnterMagicCallbackContext();
-                try
-                {
-                    _sos.GetWorkRequestData(DacDataTarget.MagicCallbackConstant, out _);
-                }
-                finally
-                {
-                    _library.DacDataTarget.ExitMagicCallbackContext();
-                }
-            }
-            else
-            {
-                // On Linux/MacOS, skip the above workaround because calling Flush() in the DAC data target's
-                // ReadVirtual function can cause a SEGSIGV because of an access of freed memory causing the
-                // tool/app running CLRMD to crash. On Windows, it would be caught by the SEH try/catch handler
-                // in DAC enter/leave code.
-
-                _dac.Flush();
-            }
-        }
     }
 }

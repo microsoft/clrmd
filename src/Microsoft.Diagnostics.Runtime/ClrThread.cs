@@ -17,13 +17,13 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private const int MaxFrameDefault = 8096;
         private readonly IDataReader _dataReader;
-        private readonly IAbstractThreadProvider _threadHelpers;
+        private readonly IAbstractThreadProvider? _threadHelpers;
         private ulong _exceptionInFlight;
         private ClrException? _lastThrownException;
         private volatile Cache<ClrStackFrame>? _frameCache;
         private volatile Cache<ClrStackRoot>? _rootCache;
 
-        internal ClrThread(IDataReader dataReader, ClrRuntime runtime, IAbstractThreadProvider helpers, in ClrThreadInfo threadInfo)
+        internal ClrThread(IDataReader dataReader, ClrRuntime runtime, IAbstractThreadProvider? helpers, in ClrThreadInfo threadInfo)
         {
             _dataReader = dataReader;
             _threadHelpers = helpers;
@@ -120,13 +120,17 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumeration of GC references on the stack as the GC sees them.</returns>
         public IEnumerable<ClrStackRoot> EnumerateStackRoots()
         {
+            IAbstractThreadProvider? threadHelpers = _threadHelpers;
+            if (threadHelpers is null)
+                return Enumerable.Empty<ClrStackRoot>();
+
             Cache<ClrStackRoot>? cache = _rootCache;
             if (cache is not null)
                 return Array.AsReadOnly(cache.Elements);
 
             ClrHeap heap = Runtime.Heap;
             ClrStackFrame[] frames = GetFramesForRoots();
-            IEnumerable<ClrStackRoot> roots = _threadHelpers.EnumerateStackRoots(OSThreadId).Select(r => CreateClrStackRoot(heap, frames, r)).Where(r => r is not null)!;
+            IEnumerable<ClrStackRoot> roots = threadHelpers.EnumerateStackRoots(OSThreadId).Select(r => CreateClrStackRoot(heap, frames, r)).Where(r => r is not null)!;
             if (!Runtime.DataTarget.CacheOptions.CacheStackRoots)
                 return roots;
 
@@ -148,6 +152,10 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ClrStackFrame[] GetFramesForRoots()
         {
+            IAbstractThreadProvider? threadHelpers = _threadHelpers;
+            if (threadHelpers is null)
+                return Array.Empty<ClrStackFrame>();
+
             Cache<ClrStackFrame>? cache = _frameCache;
             if (cache is not null)
                 return cache.Elements;
@@ -155,7 +163,7 @@ namespace Microsoft.Diagnostics.Runtime
             // We need to make sure we don't loop forever when enumerating the stack trace.
             // We will only cache the stack if we completed enumeratione (i.e. got less
             // than MaxFrameDefault frames)
-            ClrStackFrame[] stack = _threadHelpers.EnumerateStackTrace(OSThreadId, includeContext: false).Select(r => CreateClrStackFrame(r)).Take(MaxFrameDefault).ToArray();
+            ClrStackFrame[] stack = threadHelpers.EnumerateStackTrace(OSThreadId, includeContext: false).Select(r => CreateClrStackFrame(r)).Take(MaxFrameDefault).ToArray();
             if (Runtime.DataTarget.CacheOptions.CacheStackTraces && stack.Length < MaxFrameDefault)
                 _frameCache = new(stack, includedContext: false);
 
@@ -232,11 +240,15 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumeration of stack frames.</returns>
         public IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext, int maxFrames)
         {
+            IAbstractThreadProvider? threadHelpers = _threadHelpers;
+            if (threadHelpers is null)
+                return Array.Empty<ClrStackFrame>();
+
             Cache<ClrStackFrame>? cache = _frameCache;
             if (cache is not null && (!includeContext || cache.IncludedContext))
                 return Array.AsReadOnly(cache.Elements);
 
-            IEnumerable<ClrStackFrame> frames = _threadHelpers.EnumerateStackTrace(OSThreadId, includeContext).Select(r => CreateClrStackFrame(r));
+            IEnumerable<ClrStackFrame> frames = threadHelpers.EnumerateStackTrace(OSThreadId, includeContext).Select(r => CreateClrStackFrame(r));
             if (!Runtime.DataTarget.CacheOptions.CacheStackTraces)
                 return frames;
 

@@ -21,10 +21,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             using (ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime())
             {
-                DacRuntime runtimeHelpers = (DacRuntime)runtime.DacLibrary;
+                DacLibrary dac = runtime.GetService<DacLibrary>();
 
-                library = runtimeHelpers.Library.OwningLibrary;
-                sosDac = runtimeHelpers.SOSDacInterface;
+                library = dac.OwningLibrary;
+                sosDac = dac.SOSDacInterface;
 
                 // Keep library alive
                 library.AddRef();

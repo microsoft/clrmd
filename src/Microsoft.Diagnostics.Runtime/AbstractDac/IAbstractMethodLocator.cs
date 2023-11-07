@@ -1,23 +1,24 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     /// <summary>
-    /// Helpers for COM information.
+    /// This interface is used to link methods to their parent types
+    /// and instruction pointers to methods.
     ///
     /// This interface is optional.
     ///
     /// This interface is not "stable" and may change even in minor or patch
     /// versions of ClrMD.
     /// </summary>
-    internal interface IAbstractComHelpers
+    internal interface IAbstractMethodLocator
     {
-        // COM
-        IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData();
-        bool GetCcwInfo(ulong obj, out CcwInfo info);
-        bool GetRcwInfo(ulong obj, out RcwInfo info);
+        ulong GetMethodHandleContainingType(ulong methodDesc);
+        ulong GetMethodHandleByInstructionPointer(ulong ip);
     }
 }

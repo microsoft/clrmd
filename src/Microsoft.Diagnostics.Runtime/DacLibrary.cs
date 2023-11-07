@@ -127,8 +127,6 @@ namespace Microsoft.Diagnostics.Runtime
             InternalDacPrivateInterface = new ClrDataProcess(this, iUnk);
         }
 
-        internal void Flush() => DacDataTarget.Flush();
-
         public void Dispose()
         {
             Dispose(true);

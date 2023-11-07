@@ -12,6 +12,9 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// Provides information about types, fields, and methods.
     ///
     /// This interface is required.
+    ///
+    /// This interface is not "stable" and may change even in minor or patch
+    /// versions of ClrMD.
     /// </summary>
     internal interface IAbstractTypeProvider
     {

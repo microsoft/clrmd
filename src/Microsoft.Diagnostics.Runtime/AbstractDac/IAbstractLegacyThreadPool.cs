@@ -15,6 +15,9 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// ThreadPool and not the old CLR native one.
     ///
     /// This interface is optional.
+    ///
+    /// This interface is not "stable" and may change even in minor or patch
+    /// versions of ClrMD.
     /// </summary>
     internal interface IAbstractLegacyThreadPool
     {

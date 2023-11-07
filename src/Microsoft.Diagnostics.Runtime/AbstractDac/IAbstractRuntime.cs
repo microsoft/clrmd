@@ -14,6 +14,9 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// If the target version of CLR does not support AppDomains,
     /// this API needs to produce a single "AppDomainInfo" to use
     /// as a pseudo-AppDomain.
+    ///
+    /// This interface is not "stable" and may change even in minor or patch
+    /// versions of ClrMD.
     /// </summary>
     internal interface IAbstractRuntime
     {
@@ -23,13 +26,6 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         IEnumerable<ClrHandleInfo> EnumerateHandles();
         IEnumerable<JitManagerInfo> EnumerateClrJitManagers();
         string? GetJitHelperFunctionName(ulong address);
-
-        // Methods
-        ulong GetMethodHandleContainingType(ulong methodDesc);
-        ulong GetMethodHandleByInstructionPointer(ulong ip);
-
-        // Helpers
-        void Flush();
     }
 
     internal struct GCState

@@ -10,6 +10,9 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// Used to construct ClrModules.
     ///
     /// This interface is required.
+    ///
+    /// This interface is not "stable" and may change even in minor or patch
+    /// versions of ClrMD.
     /// </summary>
     internal interface IAbstractModuleProvider
     {

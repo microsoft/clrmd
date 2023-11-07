@@ -9,6 +9,9 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// Enumerates tracked native memory that the CLR has allocated.
     ///
     /// This interface is optional.
+    ///
+    /// This interface is not "stable" and may change even in minor or patch
+    /// versions of ClrMD.
     /// </summary>
     internal interface IAbstractClrNativeHeaps
     {

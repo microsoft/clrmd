@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacImplementation;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
@@ -18,7 +19,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.AppDomains.LoadFullDumpWithDbgEng();
             IThreadReader threadReader = (IThreadReader)dt.DataReader;
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-            using SOSDac dac = ((DacRuntime)runtime.DacLibrary).SOSDacInterface;
+            IAbstractRuntime runtimeService = runtime.GetService<IAbstractRuntime>();
+            Assert.NotNull(runtimeService);
+
+            ClrThreadInfo[] threads = runtimeService.EnumerateThreads().ToArray();
 
             foreach (ClrThread thread in runtime.Threads)
             {
@@ -30,8 +34,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ulong teb = threadReader.GetThreadTeb(thread.OSThreadId);
                 Assert.NotEqual(0ul, teb);
 
-                if (dac.GetThreadData(thread.Address, out ThreadData threadData))
-                    Assert.Equal((ulong)threadData.Teb, teb);
+                ClrThreadInfo curr = Assert.Single(threads, r => r.OSThreadId == thread.OSThreadId);
+                Assert.Equal(curr.Teb, teb);
             }
         }
 
