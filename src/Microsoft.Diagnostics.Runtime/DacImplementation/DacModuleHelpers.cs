@@ -9,7 +9,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.DacImplementation
 {
-    internal class DacModuleHelpers : IAbstractModuleProvider
+    internal class DacModuleHelpers : IAbstractModuleHelpers
     {
         private const int mdtTypeDef = 0x02000000;
         private const int mdtTypeRef = 0x01000000;

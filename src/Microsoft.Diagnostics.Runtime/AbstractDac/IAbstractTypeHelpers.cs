@@ -11,7 +11,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// <summary>
     /// Provides information about types, fields, and methods.
     ///
-    /// This interface is required.
+    /// This interface is required, but some methods can return default values.
     ///
     /// This interface is not "stable" and may change even in minor or patch
     /// versions of ClrMD.

@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private const int mdtTypeRef = 0x01000000;
 
         private readonly ClrHeap _heap;
-        private readonly IAbstractTypeProvider _typeHelpers;
+        private readonly IAbstractTypeHelpers _typeHelpers;
         private readonly CacheOptions _options;
         private readonly GCState _gcInfo;
         private volatile ClrType?[]? _basicTypes;
@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private ClrModule? _errorModule;
         private ClrType? _errorType;
 
-        public ClrTypeFactory(ClrHeap heap, IAbstractTypeProvider typeHelpers, in GCState gcInfo)
+        public ClrTypeFactory(ClrHeap heap, IAbstractTypeHelpers typeHelpers, in GCState gcInfo)
         {
             _heap = heap;
             _typeHelpers = typeHelpers;

@@ -13,7 +13,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacImplementation
 {
-    internal class DacThreadHelpers : IAbstractThreadProvider
+    internal class DacThreadHelpers : IAbstractThreadHelpers
     {
         private readonly ClrDataProcess _dac;
         private readonly SOSDac _sos;

@@ -17,13 +17,13 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private const int MaxFrameDefault = 8096;
         private readonly IDataReader _dataReader;
-        private readonly IAbstractThreadProvider? _threadHelpers;
+        private readonly IAbstractThreadHelpers? _threadHelpers;
         private ulong _exceptionInFlight;
         private ClrException? _lastThrownException;
         private volatile Cache<ClrStackFrame>? _frameCache;
         private volatile Cache<ClrStackRoot>? _rootCache;
 
-        internal ClrThread(IDataReader dataReader, ClrRuntime runtime, IAbstractThreadProvider? helpers, in ClrThreadInfo threadInfo)
+        internal ClrThread(IDataReader dataReader, ClrRuntime runtime, IAbstractThreadHelpers? helpers, in ClrThreadInfo threadInfo)
         {
             _dataReader = dataReader;
             _threadHelpers = helpers;
@@ -120,7 +120,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumeration of GC references on the stack as the GC sees them.</returns>
         public IEnumerable<ClrStackRoot> EnumerateStackRoots()
         {
-            IAbstractThreadProvider? threadHelpers = _threadHelpers;
+            IAbstractThreadHelpers? threadHelpers = _threadHelpers;
             if (threadHelpers is null)
                 return Enumerable.Empty<ClrStackRoot>();
 
@@ -152,7 +152,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ClrStackFrame[] GetFramesForRoots()
         {
-            IAbstractThreadProvider? threadHelpers = _threadHelpers;
+            IAbstractThreadHelpers? threadHelpers = _threadHelpers;
             if (threadHelpers is null)
                 return Array.Empty<ClrStackFrame>();
 
@@ -240,7 +240,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumeration of stack frames.</returns>
         public IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext, int maxFrames)
         {
-            IAbstractThreadProvider? threadHelpers = _threadHelpers;
+            IAbstractThreadHelpers? threadHelpers = _threadHelpers;
             if (threadHelpers is null)
                 return Array.Empty<ClrStackFrame>();
 

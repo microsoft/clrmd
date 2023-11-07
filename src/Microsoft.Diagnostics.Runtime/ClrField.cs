@@ -19,13 +19,13 @@ namespace Microsoft.Diagnostics.Runtime
     public abstract class ClrField : IClrField
     {
         private string? _name;
-        internal readonly IAbstractTypeProvider _helpers;
+        internal readonly IAbstractTypeHelpers _helpers;
         private ClrType? _type;
         private int _attributes = (int)FieldAttributes.ReservedMask;
 
         internal FieldInfo FieldInfo { get; }
 
-        internal ClrField(ClrType containingType, ClrType? type, IAbstractTypeProvider helpers, FieldInfo data)
+        internal ClrField(ClrType containingType, ClrType? type, IAbstractTypeHelpers helpers, FieldInfo data)
         {
             _helpers = helpers;
             ContainingType = containingType;
