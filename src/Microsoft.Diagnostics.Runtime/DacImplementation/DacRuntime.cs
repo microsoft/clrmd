@@ -34,9 +34,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 throw new NotSupportedException($"The CLR debugging layer reported a version of {version} which this build of ClrMD does not support.");
         }
 
-        ////////////////////////////////////////////////////////////////////////////////
-        // Threads
-        ////////////////////////////////////////////////////////////////////////////////
         public IEnumerable<ClrThreadInfo> EnumerateThreads()
         {
             if (!_sos.GetThreadStoreData(out ThreadStoreData threadStore))
@@ -85,9 +82,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             }
         }
 
-        ////////////////////////////////////////////////////////////////////////////////
-        // AppDomains
-        ////////////////////////////////////////////////////////////////////////////////
         public IEnumerable<AppDomainInfo> EnumerateAppDomains()
         {
             if (!_sos.GetAppDomainStoreData(out AppDomainStoreData domainStore))
@@ -129,9 +123,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public IEnumerable<ulong> GetModuleList(ulong domain) => _sos.GetAssemblyList(domain).SelectMany(assembly => _sos.GetModuleList(assembly)).Select(module => (ulong)module);
 
-        ////////////////////////////////////////////////////////////////////////////////
-        // HandleTable
-        ////////////////////////////////////////////////////////////////////////////////
         public IEnumerable<ClrHandleInfo> EnumerateHandles()
         {
             using SOSHandleEnum? handleEnum = _sos.EnumerateHandles();
@@ -152,9 +143,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             }
         }
 
-        ////////////////////////////////////////////////////////////////////////////////
-        // JIT
-        ////////////////////////////////////////////////////////////////////////////////
         public IEnumerable<JitManagerInfo> EnumerateClrJitManagers()
         {
             foreach (JitManagerData jitMgr in _sos.GetJitManagers())
