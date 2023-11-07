@@ -9,22 +9,35 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     internal interface IAbstractMetadataReader
     {
+        // Used to get field names, and occasionally to try to create a ClrType for
+        // a field if the dac doesn't give us that.
         bool GetFieldDefInfo(int token, out FieldDefInfo info);
+
+        // Used for type names, ClrType.Attribues, and ClrType.EnumerateInterfaces
         bool GetTypeDefInfo(int typeDef, out TypeDefInfo info);
+
+        // Used to resolve type names for unloaded modules
         string? GetTypeRefName(int typeRef);
+
+        // Used to resolve type names for unloaded modules
         bool GetNestedClassToken(int typeDef, out int parent);
 
+        // Used for ClrMethod.Attributes
         bool GetMethodAttributes(int methodDef, out MethodAttributes attributes);
+
+        // Used to get DebuggableAttribute data, to see if this is a debug module or not
         int GetCustomAttributeData(int token, string name, Span<byte> buffer);
+
+        // Used for ClrMethod.GetILInfo
         uint GetRva(int metadataToken);
 
-        // Only used for ClrType.EnumerateGenericParameters
+        // Used for ClrType.EnumerateGenericParameters
         IEnumerable<GenericParameterInfo> EnumerateGenericParameters(int typeDef);
 
-        // Only used for ClrType.EnumerateInterfaces
+        // Used for ClrType.EnumerateInterfaces
         IEnumerable<InterfaceInfo> EnumerateInterfaces(int typeDef);
 
-        // Only used for ClrEnum
+        // Used for ClrEnum
         IEnumerable<FieldDefInfo> EnumerateFields(int typeDef);
     }
 
