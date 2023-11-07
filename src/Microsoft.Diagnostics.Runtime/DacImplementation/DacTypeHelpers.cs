@@ -12,9 +12,9 @@ using FieldInfo = Microsoft.Diagnostics.Runtime.AbstractDac.FieldInfo;
 using MethodInfo = Microsoft.Diagnostics.Runtime.AbstractDac.MethodInfo;
 using TypeInfo = Microsoft.Diagnostics.Runtime.AbstractDac.TypeInfo;
 
-namespace Microsoft.Diagnostics.Runtime
+namespace Microsoft.Diagnostics.Runtime.DacImplementation
 {
-    internal sealed class DacTypeProvider : IAbstractTypeProvider
+    internal sealed class DacTypeHelpers : IAbstractTypeHelpers
     {
         private readonly string UnloadedTypeName = "<Unloaded Type>";
 
@@ -22,16 +22,17 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly SOSDac _sos;
         private readonly SOSDac6? _sos6;
         private readonly SOSDac8? _sos8;
+        private readonly IDataReader _dataReader;
+        private readonly DacMetadataReaderCache _metadata;
 
-        public IDataReader DataReader { get; }
-
-        public DacTypeProvider(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, IDataReader dataReader)
+        public DacTypeHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, IDataReader dataReader, DacMetadataReaderCache metadata)
         {
             _clrDataProcess = clrDataProcess;
             _sos = sos;
             _sos6 = sos6;
             _sos8 = sos8;
-            DataReader = dataReader;
+            _dataReader = dataReader;
+            _metadata = metadata;
         }
 
         public bool GetTypeInfo(ulong methodTable, out TypeInfo info)
@@ -57,21 +58,28 @@ namespace Microsoft.Diagnostics.Runtime
             return true;
         }
 
-        public string? GetTypeName(ulong methodTable)
+        public string? GetTypeName(ulong module, ulong methodTable, int token)
         {
             string? name = _sos.GetMethodTableName(methodTable);
             if (string.IsNullOrWhiteSpace(name) || name == UnloadedTypeName)
-                return null;
+                return GetTypeByToken(module, token);
 
             if (name == UnloadedTypeName)
-                return null;
+                return GetTypeByToken(module, token);
 
             name = DacNameParser.Parse(name);
             return name;
         }
 
-        public string? GetTypeName(MetadataImport import, int token)
+        public string? GetTypeByToken(ulong module, int token)
         {
+            if (module == 0)
+                return null;
+
+            IAbstractMetadataReader? import = _metadata.GetMetadataForModule(module);
+            if (import is null)
+                return null;
+
             string? name = GetNameFromToken(import, token);
             if (string.IsNullOrWhiteSpace(name))
                 return null;
@@ -80,22 +88,29 @@ namespace Microsoft.Diagnostics.Runtime
             return name;
         }
 
-        private static string? GetNameFromToken(MetadataImport? import, int token)
+        private static string? GetNameFromToken(IAbstractMetadataReader import, int token)
         {
-            if (import is not null)
+            string? name = null;
+            if (import.GetTypeDefInfo(token, out TypeDefInfo info))
+                name = info.Name;
+
+            if (name is not null)
             {
-                HResult hr = import.GetTypeDefProperties(token, out string? name, out _, out _);
-                if (hr && name is not null)
+                for (int i = 0; i < 8; i++)
                 {
-                    hr = import.GetNestedClassProperties(token, out int enclosingToken);
-                    if (hr && enclosingToken != 0 && enclosingToken != token)
+                    if (import.GetNestedClassToken(token, out int enclosingToken) && enclosingToken != 0 && enclosingToken != token)
                     {
                         string? inner = GetNameFromToken(import, enclosingToken) ?? "<UNKNOWN>";
                         name += $"+{inner}";
+
+                        token = enclosingToken;
+                        continue;
                     }
 
-                    return name;
+                    break;
                 }
+
+                return name;
             }
 
             return null;
@@ -174,37 +189,6 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        //private bool TryGetNumberMethods(ulong methodTable, out int count)
-        //{
-        //    count = 0;
-        //    while (methodTable != 0)
-        //    {
-        //        if (methodTable == _objectMt)
-        //        {
-        //            if (_systemObjectMethodCount < 0)
-        //            {
-        //                if (!_sos.GetMethodTableData(methodTable, out MethodTableData objData))
-        //                    return false;
-
-        //                _systemObjectMethodCount = objData.NumMethods;
-        //                count += objData.NumMethods;
-        //            }
-        //            else
-        //            {
-        //                count += _systemObjectMethodCount;
-        //            }
-
-        //            break;
-        //        }
-
-
-        //        count += data.NumMethods;
-        //        methodTable = data.ParentMethodTable;
-        //    }
-
-        //    return true;
-        //}
-
         public IEnumerable<FieldInfo> EnumerateFields(TypeInfo type, int baseFieldCount)
         {
             if (!_sos.GetFieldInfo(type.MethodTable, out MethodTableFieldInfo fieldInfo) || fieldInfo.FirstFieldAddress == 0)
@@ -243,25 +227,6 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public bool GetFieldMetadataInfo(MetadataImport import, int token, out FieldMetadataInfo info)
-        {
-            if (!import.GetFieldProps(token, out string? name, out FieldAttributes attributes, out nint fieldSig, out int sigLen, out _, out _))
-            {
-                info = default;
-                return false;
-            }
-
-            info = new()
-            {
-                Name = name,
-                Attributes = attributes,
-                Signature = fieldSig,
-                SignatureSize = sigLen,
-            };
-
-            return true;
-        }
-
         public ulong GetStaticFieldAddress(in AppDomainInfo appDomain, in ClrModuleInfo module, in TypeInfo type, in FieldInfo field)
         {
             if (appDomain.Address == 0)
@@ -295,7 +260,7 @@ namespace Microsoft.Diagnostics.Runtime
         private bool IsInitialized(in DomainLocalModuleData data, int token)
         {
             ulong flagsAddr = data.ClassData + (uint)(token & ~0x02000000u) - 1;
-            if (!DataReader.Read(flagsAddr, out byte flags))
+            if (!_dataReader.Read(flagsAddr, out byte flags))
                 return false;
 
             return (flags & 1) != 0;

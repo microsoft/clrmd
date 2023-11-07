@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrInstanceField : ClrField, IClrInstanceField
     {
-        internal ClrInstanceField(ClrType containingType, ClrType? type, IAbstractTypeProvider helpers, in FieldInfo data)
+        internal ClrInstanceField(ClrType containingType, ClrType? type, IAbstractTypeHelpers helpers, in FieldInfo data)
             : base(containingType, type, helpers, data)
         {
         }

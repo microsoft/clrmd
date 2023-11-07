@@ -44,12 +44,13 @@ namespace Microsoft.Diagnostics.Runtime
         private volatile ArrayPool<ObjectCorruption>? _objectCorruptionPool;
         private ulong _lastComFlags;
 
-        internal ClrHeap(ClrRuntime runtime, IMemoryReader memoryReader, IAbstractHeapProvider helpers, IAbstractTypeProvider typeHelpers, in GCState gcInfo)
+        internal ClrHeap(ClrRuntime runtime, IMemoryReader memoryReader, IAbstractHeapProvider helpers, IAbstractTypeHelpers typeHelpers)
         {
             Runtime = runtime;
             _memoryReader = memoryReader;
             Helpers = helpers;
 
+            GCState gcInfo = helpers.State;
             _typeFactory = new(this, typeHelpers, gcInfo);
             FreeType = _typeFactory.CreateFreeType();
             ObjectType = _typeFactory.ObjectType;
@@ -1151,27 +1152,27 @@ namespace Microsoft.Diagnostics.Runtime
             if (name.Length == 0)
                 throw new ArgumentException($"{nameof(name)} cannot be empty");
 
-            return FindTypeName(module.EnumerateTypeDefToMethodTableMap(), name);
+            return FindTypeName(module.Address, module.EnumerateTypeDefToMethodTableMap(), name);
         }
 
-        private ClrType? FindTypeName(IEnumerable<(ulong MethodTable, int Token)> map, string name)
+        private ClrType? FindTypeName(ulong moduleAddress, IEnumerable<(ulong MethodTable, int Token)> map, string name)
         {
             // First, look for already constructed types and see if their name matches.
-            List<ulong> lookup = new(256);
-            foreach ((ulong mt, _) in map)
+            List<(ulong MethodTable, int Token)> lookup = new(256);
+            foreach ((ulong mt, int token) in map)
             {
                 ClrType? type = _typeFactory.TryGetType(mt);
                 if (type is null)
-                    lookup.Add(mt);
+                    lookup.Add((mt, token));
                 else if (type.Name == name)
                     return type;
             }
 
             // Since we didn't find pre-constructed types matching, look up the names for all
             // remaining types without constructing them until we find the right one.
-            foreach (ulong mt in lookup)
+            foreach ((ulong mt, int token) in lookup)
             {
-                string? typeName = _typeFactory.GetTypeName(mt);
+                string? typeName = _typeFactory.GetTypeName(moduleAddress, mt, token);
                 if (typeName == name)
                     return _typeFactory.GetOrCreateType(mt, 0);
             }
@@ -1220,7 +1221,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (name.Length == 0)
                 throw new ArgumentException($"{nameof(name)} cannot be empty");
 
-            return FindTypeName(module.EnumerateTypeDefToMethodTableMap(), name);
+            return FindTypeName(module.Address, module.EnumerateTypeDefToMethodTableMap(), name);
         }
 
         internal string? ReadString(ulong stringPtr, int maxLength)

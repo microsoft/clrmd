@@ -6,8 +6,18 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
+    /// <summary>
+    /// This interface is used to construct the ClrHeap object and is required
+    /// because ClrHeap is the parent of all ClrTypes.
+    ///
+    /// This interface is required.
+    ///
+    /// This interface is not "stable" and may change even in minor or patch
+    /// versions of ClrMD.
+    /// </summary>
     internal interface IAbstractHeapProvider
     {
+        ref readonly GCState State { get; }
         IEnumerable<MemoryRange> EnumerateThreadAllocationContexts();
         IEnumerable<(ulong Source, ulong Target)> EnumerateDependentHandles();
         IEnumerable<SyncBlockInfo> EnumerateSyncBlocks();

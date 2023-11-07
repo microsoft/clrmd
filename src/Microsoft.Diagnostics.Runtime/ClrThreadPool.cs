@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime
     public sealed class ClrThreadPool : IClrThreadPool
     {
         private readonly ClrRuntime _runtime;
-        private readonly IAbstractThreadPoolProvider? _legacyData;
+        private readonly IAbstractLegacyThreadPool? _legacyData;
         private readonly ulong _nativeLogAddress;
         private readonly uint _nativeLogStart;
         private readonly uint _nativeLogSize;
@@ -79,7 +79,7 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly ClrDataAddress _firstLegacyWorkRequest;
         private readonly ClrDataAddress _asyncTimerFunction;
 
-        internal ClrThreadPool(ClrRuntime runtime, IAbstractThreadPoolProvider? helpers)
+        internal ClrThreadPool(ClrRuntime runtime, IAbstractLegacyThreadPool? helpers)
         {
             _runtime = runtime;
             _legacyData = helpers;

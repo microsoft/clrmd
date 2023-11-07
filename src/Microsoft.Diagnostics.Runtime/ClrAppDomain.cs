@@ -14,11 +14,11 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrAppDomain : IClrAppDomain
     {
-        private readonly IAbstractNativeHeapProvider? _nativeHeapHelpers;
+        private readonly IAbstractClrNativeHeaps? _nativeHeapHelpers;
 
         internal AppDomainInfo AppDomainInfo { get; }
 
-        internal ClrAppDomain(ClrRuntime runtime, AppDomainInfo info, IAbstractNativeHeapProvider? nativeHeapHelpers)
+        internal ClrAppDomain(ClrRuntime runtime, AppDomainInfo info, IAbstractClrNativeHeaps? nativeHeapHelpers)
         {
             _nativeHeapHelpers = nativeHeapHelpers;
             AppDomainInfo = info;

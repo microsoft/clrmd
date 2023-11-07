@@ -61,7 +61,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ClrElementType ElementType { get; }
         public override bool IsFinalizeSuppressed(ulong obj) => false;
         public override bool IsPointer => ElementType is not ClrElementType.SZArray and not ClrElementType.Array;
-        public override IEnumerable<ClrInterface> EnumerateInterfaces() => Enumerable.Empty<ClrInterface>();
         public override bool IsFinalizable => false;
         public override ClrInstanceField? GetFieldByName(string name) => null;
         public override ClrStaticField? GetStaticFieldByName(string name) => null;

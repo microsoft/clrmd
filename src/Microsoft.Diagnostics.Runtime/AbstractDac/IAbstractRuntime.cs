@@ -8,54 +8,24 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     /// <summary>
     /// The base interface for building an abstract ClrRuntime.
+    ///
+    /// This interface is required.  We need to be able to at least
+    /// enumerate AppDomains and modules to construct a ClrRuntime.
+    /// If the target version of CLR does not support AppDomains,
+    /// this API needs to produce a single "AppDomainInfo" to use
+    /// as a pseudo-AppDomain.
+    ///
+    /// This interface is not "stable" and may change even in minor or patch
+    /// versions of ClrMD.
     /// </summary>
-    internal interface IAbstractDac : IDisposable
+    internal interface IAbstractRuntime
     {
-        // Heap
-        bool GetGCState(out GCState state);
-        IAbstractHeapProvider GetHeapHelpers();
-        IAbstractTypeProvider GetClrTypeHelpers();
-
-        // Threads
-        IAbstractThreadProvider ThreadHelpers { get; }
         IEnumerable<ClrThreadInfo> EnumerateThreads();
-
-        // AppDomains
         IEnumerable<AppDomainInfo> EnumerateAppDomains();
-
-        // Modules
-        IAbstractModuleProvider? ModuleHelpers { get; }
         IEnumerable<ulong> GetModuleList(ulong appDomain);
-        ClrModuleInfo GetModuleInfo(ulong module);
-
-        // Methods
-        ulong GetMethodHandleContainingType(ulong methodDesc);
-        ulong GetMethodHandleByInstructionPointer(ulong ip);
-
-        // HandleTable
         IEnumerable<ClrHandleInfo> EnumerateHandles();
-
-        // JIT
         IEnumerable<JitManagerInfo> EnumerateClrJitManagers();
         string? GetJitHelperFunctionName(ulong address);
-
-        // ThreadPool
-        IAbstractThreadPoolProvider? LegacyThreadPoolHelpers { get; }
-
-        // Native Heaps
-        IAbstractNativeHeapProvider? NativeHeapHelpers { get; }
-        IEnumerable<ClrNativeHeapInfo> EnumerateGCFreeRegions();
-        IEnumerable<ClrNativeHeapInfo> EnumerateHandleTableRegions();
-        IEnumerable<ClrNativeHeapInfo> EnumerateGCBookkeepingRegions();
-        IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData();
-
-        // COM
-        IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData();
-        bool GetCcwInfo(ulong obj, out CcwInfo info);
-        bool GetRcwInfo(ulong obj, out RcwInfo info);
-
-        // Helpers
-        void Flush();
     }
 
     internal struct GCState

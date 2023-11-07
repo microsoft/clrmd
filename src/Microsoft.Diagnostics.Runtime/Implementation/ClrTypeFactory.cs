@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private const int mdtTypeRef = 0x01000000;
 
         private readonly ClrHeap _heap;
-        private readonly IAbstractTypeProvider _typeHelpers;
+        private readonly IAbstractTypeHelpers _typeHelpers;
         private readonly CacheOptions _options;
         private readonly GCState _gcInfo;
         private volatile ClrType?[]? _basicTypes;
@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private ClrModule? _errorModule;
         private ClrType? _errorType;
 
-        public ClrTypeFactory(ClrHeap heap, IAbstractTypeProvider typeHelpers, in GCState gcInfo)
+        public ClrTypeFactory(ClrHeap heap, IAbstractTypeHelpers typeHelpers, in GCState gcInfo)
         {
             _heap = heap;
             _typeHelpers = typeHelpers;
@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return stringType;
         }
 
-        public string? GetTypeName(ulong mt) => DacNameParser.Parse(_typeHelpers.GetTypeName(mt));
+        public string? GetTypeName(ulong module, ulong mt, int token) => DacNameParser.Parse(_typeHelpers.GetTypeName(module, mt, token));
 
         public ClrType ObjectType => _objectType;
 
@@ -316,11 +316,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 basicTypes = new ClrType[(int)ClrElementType.SZArray];
                 int count = 0;
-                if (bcl.MetadataImport != null)
+                if (bcl.MetadataReader != null)
                 {
                     foreach ((ulong mt, int _) in bcl.EnumerateTypeDefToMethodTableMap())
                     {
-                        string? name = _typeHelpers.GetTypeName(mt);
+                        string? name = _typeHelpers.GetTypeName(0, mt, 0);
                         ClrElementType type = name switch
                         {
                             "System.Void" => ClrElementType.Void,

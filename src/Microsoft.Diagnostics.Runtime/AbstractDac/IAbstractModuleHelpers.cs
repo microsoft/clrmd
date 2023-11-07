@@ -6,9 +6,18 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
-    internal interface IAbstractModuleProvider
+    /// <summary>
+    /// Used to construct ClrModules.
+    ///
+    /// This interface is required.
+    ///
+    /// This interface is not "stable" and may change even in minor or patch
+    /// versions of ClrMD.
+    /// </summary>
+    internal interface IAbstractModuleHelpers
     {
-        MetadataImport? GetMetadataImport(ulong module);
+        ClrModuleInfo GetModuleInfo(ulong module);
+        IAbstractMetadataReader? GetMetadataReader(ulong module);
         IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefMap(ulong module);
         IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeRefMap(ulong module);
     }

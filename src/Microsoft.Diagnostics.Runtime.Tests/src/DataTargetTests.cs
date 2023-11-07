@@ -3,8 +3,8 @@
 
 using System.IO;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.DacImplementation;
 using Microsoft.Diagnostics.Runtime.DacInterface;
-using Microsoft.Diagnostics.Runtime.Implementation;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -21,10 +21,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             using (ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime())
             {
-                DacImplementation runtimeHelpers = (DacImplementation)runtime.DacLibrary;
+                DacLibrary dac = runtime.GetService<DacLibrary>();
 
-                library = runtimeHelpers.Library.OwningLibrary;
-                sosDac = runtimeHelpers.SOSDacInterface;
+                library = dac.OwningLibrary;
+                sosDac = dac.SOSDacInterface;
 
                 // Keep library alive
                 library.AddRef();

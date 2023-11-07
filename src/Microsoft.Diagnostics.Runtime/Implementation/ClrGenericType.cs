@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         public ClrGenericParameter GenericParameter { get; }
 
-        public ClrGenericType(IAbstractTypeProvider helpers, ClrHeap heap, ClrModule module, ClrGenericParameter clrGenericParameter)
+        public ClrGenericType(IAbstractTypeHelpers helpers, ClrHeap heap, ClrModule module, ClrGenericParameter clrGenericParameter)
             : base(module, default, helpers)
         {
             Heap = heap ?? throw new ArgumentNullException(nameof(heap));
@@ -48,8 +48,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override bool IsEnum => false;
 
         public override ClrEnum AsEnum() => throw new InvalidOperationException();
-
-        public override IEnumerable<ClrInterface> EnumerateInterfaces() { yield break; }
 
         public override ulong GetArrayElementAddress(ulong objRef, int index) => throw new InvalidOperationException();
 
