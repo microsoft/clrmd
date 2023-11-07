@@ -5,6 +5,11 @@ using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
+    /// <summary>
+    /// Enumerates tracked native memory that the CLR has allocated.
+    ///
+    /// This interface is optional.
+    /// </summary>
     internal interface IAbstractClrNativeHeaps
     {
         IEnumerable<ClrNativeHeapInfo> EnumerateGCFreeRegions();

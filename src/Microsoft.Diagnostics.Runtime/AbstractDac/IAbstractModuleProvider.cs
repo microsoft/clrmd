@@ -6,6 +6,11 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
+    /// <summary>
+    /// Used to construct ClrModules.
+    ///
+    /// This interface is required.
+    /// </summary>
     internal interface IAbstractModuleProvider
     {
         ClrModuleInfo GetModuleInfo(ulong module);

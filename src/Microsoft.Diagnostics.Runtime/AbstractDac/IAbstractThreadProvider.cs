@@ -7,6 +7,9 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     /// <summary>
     /// Helpers for ClrThreads.
+    ///
+    /// This interface is optional, but without it we cannot enumerate
+    /// stack traces or roots.
     /// </summary>
     internal interface IAbstractThreadProvider
     {
