@@ -21,11 +21,13 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly SosDac12? _sos12;
         private readonly ISOSDac13? _sos13;
 
-        private IAbstractRuntime? _runtime;
-        private IAbstractHeapProvider? _heap;
-        private IAbstractTypeProvider? _types;
         private IAbstractClrNativeHeaps? _nativeHeaps;
+        private IAbstractComHelpers? _com;
+        private IAbstractHeapProvider? _heap;
+        private IAbstractLegacyThreadPool? _threadPool;
         private IAbstractModuleProvider? _modules;
+        private IAbstractRuntime? _runtime;
+        private IAbstractTypeProvider? _types;
 
         private IDataReader DataReader => _clrInfo.DataTarget.DataReader;
 
@@ -81,6 +83,12 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
             if (serviceType == typeof(IAbstractModuleProvider))
                 return _modules ??= new DacModuleHelpers(_sos);
+
+            if (serviceType == typeof(IAbstractComHelpers))
+                return _com ??= new DacComHelpers(_sos);
+
+            if (serviceType == typeof(IAbstractLegacyThreadPool))
+                return _threadPool ??= new DacLegacyThreadPool(_sos);
 
             return null;
         }

@@ -24,6 +24,8 @@ namespace Microsoft.Diagnostics.Runtime
         private ImmutableArray<ClrThread> _threads;
         private volatile DomainAndModules? _domainAndModules;
 
+        private volatile IAbstractComHelpers? _comHelpers;
+
         internal ClrRuntime(ClrInfo clrInfo, IServiceProvider services)
         {
             ClrInfo = clrInfo;
@@ -304,11 +306,19 @@ namespace Microsoft.Diagnostics.Runtime
             return Enumerable.Empty<ClrSyncBlockCleanupData>();
         }
 
-        public IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData() => DacLibrary.EnumerateRcwCleanupData();
+        public IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData()
+        {
+            IAbstractComHelpers? helpers = GetComHelpers();
+            if (helpers is not null)
+                return helpers.EnumerateRcwCleanupData();
+
+            return Enumerable.Empty<ClrRcwCleanupData>();
+        }
 
         internal RuntimeCallableWrapper? CreateRCWForObject(ulong obj)
         {
-            if (DacLibrary.GetRcwInfo(obj, out RcwInfo info))
+            IAbstractComHelpers? helpers = GetComHelpers();
+            if (helpers is not null && helpers.GetRcwInfo(obj, out RcwInfo info))
                 return new(this, info);
 
             return null;
@@ -316,10 +326,20 @@ namespace Microsoft.Diagnostics.Runtime
 
         internal ComCallableWrapper? CreateCCWForObject(ulong obj)
         {
-            if (DacLibrary.GetCcwInfo(obj, out CcwInfo info))
+            IAbstractComHelpers? helpers = GetComHelpers();
+            if (helpers is not null && helpers.GetCcwInfo(obj, out CcwInfo info))
                 return new(this, info);
 
             return null;
+        }
+
+        private IAbstractComHelpers? GetComHelpers()
+        {
+            IAbstractComHelpers? helpers = _comHelpers;
+            if (helpers is not null)
+                return helpers;
+
+            return GetService<IAbstractComHelpers>();
         }
 
         /// <summary>
@@ -344,6 +364,7 @@ namespace Microsoft.Diagnostics.Runtime
             _domainAndModules = null;
             _threads = default;
             _heap = null;
+            _comHelpers = null;
             DacLibrary.Flush();
         }
 

@@ -8,6 +8,12 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     /// <summary>
     /// The base interface for building an abstract ClrRuntime.
+    ///
+    /// This interface is required.  We need to be able to at least
+    /// enumerate AppDomains and modules to construct a ClrRuntime.
+    /// If the target version of CLR does not support AppDomains,
+    /// this API needs to produce a single "AppDomainInfo" to use
+    /// as a pseudo-AppDomain.
     /// </summary>
     internal interface IAbstractRuntime
     {
@@ -31,11 +37,6 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         // JIT
         IEnumerable<JitManagerInfo> EnumerateClrJitManagers();
         string? GetJitHelperFunctionName(ulong address);
-
-        // COM
-        IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData();
-        bool GetCcwInfo(ulong obj, out CcwInfo info);
-        bool GetRcwInfo(ulong obj, out RcwInfo info);
 
         // Helpers
         void Flush();
