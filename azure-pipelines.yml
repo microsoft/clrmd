@@ -20,10 +20,8 @@ variables:
   - name: _SignType
     value: real
   - ${{ if and(ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest')) }}:
-    # DotNet-Blob-Feed provides: dotnetfeed-storage-access-key-1
     # DotNet-Symbol-Server-Pats provides: provides microsoft-symbol-server-pat and symweb-symbol-server-pat
     # Publish-Build-Assets provides: MaestroAccessToken, BotAccount-dotnet-maestro-bot-PAT
-    - group: DotNet-Blob-Feed
     - group: DotNet-Symbol-Server-Pats
     - group: Publish-Build-Assets
   
