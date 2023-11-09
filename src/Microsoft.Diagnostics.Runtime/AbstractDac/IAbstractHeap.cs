@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// This interface is not "stable" and may change even in minor or patch
     /// versions of ClrMD.
     /// </summary>
-    internal interface IAbstractHeapProvider
+    internal interface IAbstractHeap
     {
         ref readonly GCState State { get; }
         IEnumerable<MemoryRange> EnumerateThreadAllocationContexts();
@@ -27,6 +27,26 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         MemoryRange GetInternalRootArray(ulong subHeapAddress);
         bool GetOOMInfo(ulong subHeapAddress, out OomInfo oomInfo);
     }
+
+    internal struct GCState
+    {
+        public GCKind Kind { get; set; }
+        public bool AreGCStructuresValid { get; set; }
+        public int HeapCount { get; set; }
+        public int MaxGeneration { get; set; }
+        public ulong StringMethodTable { get; set; }
+        public ulong ObjectMethodTable { get; set; }
+        public ulong ExceptionMethodTable { get; set; }
+        public ulong FreeMethodTable { get; set; }
+    }
+
+    internal enum GCKind
+    {
+        Unknown,
+        Workstation,
+        Server,
+    }
+
 
     internal struct SubHeapInfo
     {

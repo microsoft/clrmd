@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime
         private volatile ArrayPool<ObjectCorruption>? _objectCorruptionPool;
         private ulong _lastComFlags;
 
-        internal ClrHeap(ClrRuntime runtime, IMemoryReader memoryReader, IAbstractHeapProvider helpers, IAbstractTypeHelpers typeHelpers)
+        internal ClrHeap(ClrRuntime runtime, IMemoryReader memoryReader, IAbstractHeap helpers, IAbstractTypeHelpers typeHelpers)
         {
             Runtime = runtime;
             _memoryReader = memoryReader;
@@ -69,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         internal ClrType ErrorType => _typeFactory.ErrorType;
 
-        internal IAbstractHeapProvider Helpers { get; }
+        internal IAbstractHeap Helpers { get; }
 
         /// <summary>
         /// Gets the runtime associated with this heap.

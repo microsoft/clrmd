@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         private IAbstractClrNativeHeaps? _nativeHeaps;
         private IAbstractComHelpers? _com;
-        private IAbstractHeapProvider? _heapHelper;
+        private IAbstractHeap? _heapHelper;
         private IAbstractLegacyThreadPool? _threadPool;
         private IAbstractMethodLocator? _methodLocator;
         private IAbstractModuleHelpers? _moduleHelper;
@@ -67,9 +67,9 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             if (serviceType == typeof(IAbstractRuntime))
                 return _runtime ??= new DacRuntime(_clrInfo, _dac);
 
-            if (serviceType == typeof(IAbstractHeapProvider))
+            if (serviceType == typeof(IAbstractHeap))
             {
-                IAbstractHeapProvider? heap = _heapHelper;
+                IAbstractHeap? heap = _heapHelper;
                 if (heap is not null)
                     return heap;
 
