@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.Collections.Generic;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
@@ -18,5 +19,42 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData();
         bool GetCcwInfo(ulong obj, out CcwInfo info);
         bool GetRcwInfo(ulong obj, out RcwInfo info);
+    }
+
+    internal struct RcwInfo
+    {
+        public RcwInfo()
+        {
+        }
+
+        public ulong Object { get; set; }
+        public ulong Address { get; set; }
+        public ulong IUnknown { get; set; }
+        public ulong VTablePointer { get; set; }
+        public int RefCount { get; set; }
+        public ulong CreatorThread { get; set; }
+        public bool IsDisconnected { get; set; }
+        public ComInterfaceEntry[] Interfaces { get; set; } = Array.Empty<ComInterfaceEntry>();
+    }
+
+    internal struct CcwInfo
+    {
+        public CcwInfo()
+        {
+        }
+
+        public ulong Object { get; set; }
+        public ulong Address { get; set; }
+        public ulong IUnknown { get; set; }
+        public ulong Handle { get; set; }
+        public int RefCount { get; set; }
+        public int JupiterRefCount { get; set; }
+        public ComInterfaceEntry[] Interfaces { get; set; } = Array.Empty<ComInterfaceEntry>();
+    }
+
+    internal struct ComInterfaceEntry
+    {
+        public ulong MethodTable { get; set; }
+        public ulong InterfacePointer { get; set; }
     }
 }

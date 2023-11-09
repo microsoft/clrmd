@@ -204,7 +204,7 @@ namespace Microsoft.Diagnostics.Runtime
                 ClrHeap? heap = _heap;
                 while (heap is null) // Flush can cause a race.
                 {
-                    IAbstractHeapProvider? heapHelpers = GetService<IAbstractHeapProvider>();
+                    IAbstractHeap? heapHelpers = GetService<IAbstractHeap>();
                     IAbstractTypeHelpers? typeHelpers = GetService<IAbstractTypeHelpers>();
 
                     // These are defined as non-nullable but just in case, double check we have a non-null instance.

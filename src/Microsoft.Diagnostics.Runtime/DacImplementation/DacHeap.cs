@@ -13,7 +13,7 @@ using GCKind = Microsoft.Diagnostics.Runtime.AbstractDac.GCKind;
 
 namespace Microsoft.Diagnostics.Runtime.DacImplementation
 {
-    internal sealed class DacHeap : IAbstractHeapProvider
+    internal sealed class DacHeap : IAbstractHeap
     {
         private readonly SOSDac _sos;
         private readonly SOSDac8? _sos8;
