@@ -27,6 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public ulong Address { get; set; }
         public ulong ImageBase { get; set; }
         public ulong Id { get; set; }
+        public ulong Index { get; set; }
         public ulong Assembly { get; set; }
 
         public bool IsPEFile { get; set; }

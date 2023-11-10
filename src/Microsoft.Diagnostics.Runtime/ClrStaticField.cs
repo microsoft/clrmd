@@ -102,7 +102,11 @@ namespace Microsoft.Diagnostics.Runtime
             if (address == 0)
                 return default;
 
-            return new ClrValueType(address, Type, interior: true);
+            IDataReader dataReader = ContainingType.Module.DataReader;
+            if (address == 0 || !dataReader.ReadPointer(address, out ulong obj) || obj == 0)
+                return default;
+
+            return new ClrValueType(obj + (uint)dataReader.PointerSize, Type, interior: true);
         }
 
         IClrValue IClrStaticField.ReadStruct(IClrAppDomain appDomain)

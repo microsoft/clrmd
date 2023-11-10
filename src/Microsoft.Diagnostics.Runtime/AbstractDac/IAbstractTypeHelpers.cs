@@ -34,6 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 
         // Field helpers
         ulong GetStaticFieldAddress(in AppDomainInfo appDomain, in ClrModuleInfo module, in TypeInfo typeInfo, in FieldInfo field);
+        ulong GetThreadStaticFieldAddress(ulong threadAddress, in ClrModuleInfo module, in TypeInfo typeInfo, in FieldInfo field);
     }
 
     internal struct TypeInfo
