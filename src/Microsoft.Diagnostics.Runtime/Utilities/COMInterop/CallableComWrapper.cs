@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Diagnostics;
 
 #pragma warning disable CA1816 // Dispose methods should call SuppressFinalize
 namespace Microsoft.Diagnostics.Runtime.Utilities
@@ -12,7 +13,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         protected IntPtr Self { get; }
         private readonly IUnknownVTable* _unknownVTable;
-        private readonly RefCountedFreeLibrary? _library;
+
+        public RefCountedFreeLibrary? Library { get; }
 
         protected void* _vtable => _unknownVTable + 1;
 
@@ -26,10 +28,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             Self = toClone.Self;
             _unknownVTable = toClone._unknownVTable;
-            _library = toClone._library;
+            Library = toClone.Library;
 
             AddRef();
-            _library?.AddRef();
+            Library?.AddRef();
         }
 
         public int AddRef()
@@ -46,8 +48,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         protected CallableCOMWrapper(RefCountedFreeLibrary? library, in Guid desiredInterface, IntPtr pUnknown)
         {
-            _library = library;
-            _library?.AddRef();
+            Library = library;
+            Library?.AddRef();
 
             IUnknownVTable* tbl = *(IUnknownVTable**)pUnknown;
 
@@ -80,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!_disposed)
             {
                 Release();
-                _library?.Release();
+                Library?.Release();
                 _disposed = true;
             }
         }

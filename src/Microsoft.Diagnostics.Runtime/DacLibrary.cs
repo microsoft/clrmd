@@ -10,58 +10,13 @@ namespace Microsoft.Diagnostics.Runtime
     internal sealed class DacLibrary : IDisposable
     {
         private bool _disposed;
-        private SOSDac? _sos;
+        private readonly ClrDataProcess _clrDataProcess;
 
-        internal DacDataTarget DacDataTarget { get; }
+        public DacDataTarget DacDataTarget { get; }
 
         public RefCountedFreeLibrary? OwningLibrary { get; }
 
-        internal ClrDataProcess InternalDacPrivateInterface { get; }
-
-        internal ClrDataProcess DacPrivateInterface => new(this, InternalDacPrivateInterface);
-
-        private SOSDac GetSOSInterfaceNoAddRef()
-        {
-            if (_sos is null)
-            {
-                _sos = InternalDacPrivateInterface.GetSOSDacInterface();
-                if (_sos is null)
-                    throw new InvalidOperationException("This runtime does not support ISOSDac.");
-            }
-
-            return _sos;
-        }
-
-        internal SOSDac SOSDacInterface
-        {
-            get
-            {
-                SOSDac sos = GetSOSInterfaceNoAddRef();
-                return new SOSDac(this, sos);
-            }
-        }
-
-        internal SOSDac6? SOSDacInterface6 => InternalDacPrivateInterface.GetSOSDacInterface6();
-        internal SOSDac8? SOSDacInterface8 => InternalDacPrivateInterface.GetSOSDacInterface8();
-        internal SosDac12? SOSDacInterface12 => InternalDacPrivateInterface.GetSOSDacInterface12();
-        internal ISOSDac13? SOSDacInterface13 => InternalDacPrivateInterface.GetSOSDacInterface13();
-
-        public DacLibrary(DataTarget dataTarget, IntPtr pClrDataProcess)
-        {
-            if (dataTarget is null)
-                throw new ArgumentNullException(nameof(dataTarget));
-
-            if (pClrDataProcess == IntPtr.Zero)
-                throw new ArgumentNullException(nameof(pClrDataProcess));
-
-            InternalDacPrivateInterface = new ClrDataProcess(this, pClrDataProcess);
-            DacDataTarget = new DacDataTarget(dataTarget);
-        }
-
-        public DacLibrary(DataTarget dataTarget, string dacPath)
-            : this(dataTarget, dacPath, runtimeBaseAddress: 0)
-        {
-        }
+        public ClrDataProcess CreateClrDataProcess() => new(this, _clrDataProcess);
 
         public unsafe DacLibrary(DataTarget dataTarget, string dacPath, ulong runtimeBaseAddress)
         {
@@ -124,7 +79,7 @@ namespace Microsoft.Diagnostics.Runtime
                     throw new ClrDiagnosticsException($"Failure loading DAC: CreateDacInstance failed 0x{res:x}", res);
             }
 
-            InternalDacPrivateInterface = new ClrDataProcess(this, iUnk);
+            _clrDataProcess = new ClrDataProcess(this, iUnk);
         }
 
         public void Dispose()
@@ -142,8 +97,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (!_disposed)
             {
-                InternalDacPrivateInterface?.Dispose();
-                _sos?.Dispose();
+                _clrDataProcess?.Dispose();
                 OwningLibrary?.Release();
 
                 _disposed = true;

@@ -23,16 +23,16 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly SOSDac6? _sos6;
         private readonly SOSDac8? _sos8;
         private readonly IDataReader _dataReader;
-        private readonly DacMetadataReaderCache _metadata;
+        private readonly DacModuleHelpers _moduleHelpers;
 
-        public DacTypeHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, IDataReader dataReader, DacMetadataReaderCache metadata)
+        public DacTypeHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, IDataReader dataReader, DacModuleHelpers moduleHelpers)
         {
             _clrDataProcess = clrDataProcess;
             _sos = sos;
             _sos6 = sos6;
             _sos8 = sos8;
             _dataReader = dataReader;
-            _metadata = metadata;
+            _moduleHelpers = moduleHelpers;
         }
 
         public bool GetTypeInfo(ulong methodTable, out TypeInfo info)
@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             if (module == 0)
                 return null;
 
-            IAbstractMetadataReader? import = _metadata.GetMetadataForModule(module);
+            IAbstractMetadataReader? import = _moduleHelpers.GetMetadataReader(module);
             if (import is null)
                 return null;
 
@@ -265,7 +265,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             if (!_sos.GetThreadLocalModuleData(threadAddress, (uint)module.Index, out ThreadLocalModuleData threadData))
                 return 0;
 
-            System.Diagnostics.Trace.WriteLine(type.ContainsPointers);
             if (field.ElementType.IsPrimitive())
                 return threadData.NonGCStaticDataStart + (uint)field.Offset;
 
