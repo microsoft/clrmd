@@ -15,10 +15,12 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private const int mdtTypeRef = 0x01000000;
 
         private readonly SOSDac _sos;
+        private readonly DacMetadataReaderCache _metadataCache;
 
-        public DacModuleHelpers(SOSDac sos)
+        public DacModuleHelpers(SOSDac sos, DacMetadataReaderCache metadataCache)
         {
             _sos = sos;
+            _metadataCache = metadataCache;
         }
 
         public ClrModuleInfo GetModuleInfo(ulong moduleAddress)
@@ -66,13 +68,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             return result;
         }
 
-        public IAbstractMetadataReader? GetMetadataReader(ulong module)
-        {
-            MetadataImport? import = _sos.GetMetadataImport(module);
-            if (import is null)
-                return null;
-
-            return new DacMetadataReader(import);
-        }
+        public IAbstractMetadataReader? GetMetadataReader(ulong module) => _metadataCache.GetMetadataForModule(module);
     }
 }

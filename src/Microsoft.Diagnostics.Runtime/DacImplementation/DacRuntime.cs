@@ -19,12 +19,12 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly SOSDac _sos;
         private readonly ISOSDac13? _sos13;
 
-        public DacRuntime(ClrInfo clrInfo, DacLibrary library)
+        public DacRuntime(ClrInfo clrInfo, ClrDataProcess dac, SOSDac sos, ISOSDac13? sos13)
         {
             _dataReader = clrInfo.DataTarget.DataReader;
-            _dac = library.DacPrivateInterface;
-            _sos = library.SOSDacInterface;
-            _sos13 = library.SOSDacInterface13;
+            _dac = dac;
+            _sos = sos;
+            _sos13 = sos13;
 
             int version = 0;
             if (!_dac.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))))

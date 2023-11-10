@@ -3,8 +3,6 @@
 
 using System.IO;
 using System.Linq;
-using Microsoft.Diagnostics.Runtime.DacImplementation;
-using Microsoft.Diagnostics.Runtime.DacInterface;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -14,23 +12,21 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void EnsureFinalReleaseOfInterfaces()
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
-
             RefCountedFreeLibrary library;
-            SOSDac sosDac;
 
-            using (ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime())
+            using (DataTarget dt = TestTargets.Types.LoadFullDump())
             {
+                using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+                ClrHeap heap = runtime.Heap;
+                _ = heap.EnumerateObjects().Count(); // ensure we warm up and use a bunch of SOSDac interfaces
                 DacLibrary dac = runtime.GetService<DacLibrary>();
 
                 library = dac.OwningLibrary;
-                sosDac = dac.SOSDacInterface;
 
                 // Keep library alive
                 library.AddRef();
             }
 
-            sosDac.Dispose();
             Assert.Equal(0, library.Release());
         }
 

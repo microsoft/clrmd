@@ -265,7 +265,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             if (!_sos.GetThreadLocalModuleData(threadAddress, (uint)module.Index, out ThreadLocalModuleData threadData))
                 return 0;
 
-            System.Diagnostics.Trace.WriteLine(type.ContainsPointers);
             if (field.ElementType.IsPrimitive())
                 return threadData.NonGCStaticDataStart + (uint)field.Offset;
 

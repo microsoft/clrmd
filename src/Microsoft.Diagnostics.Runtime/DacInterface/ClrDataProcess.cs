@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _library = library;
         }
 
-        public SOSDac? GetSOSDacInterface()
+        public SOSDac? CreateSOSDacInterface()
         {
             IntPtr result = QueryInterface(SOSDac.IID_ISOSDac);
             if (result == IntPtr.Zero)
@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        public SOSDac6? GetSOSDacInterface6()
+        public SOSDac6? CreateSOSDacInterface6()
         {
             IntPtr result = QueryInterface(SOSDac6.IID_ISOSDac6);
             if (result == IntPtr.Zero)
@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        public SOSDac8? GetSOSDacInterface8()
+        public SOSDac8? CreateSOSDacInterface8()
         {
             IntPtr result = QueryInterface(SOSDac8.IID_ISOSDac8);
             if (result == IntPtr.Zero)
@@ -82,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        public SosDac12? GetSOSDacInterface12()
+        public SosDac12? CreateSOSDacInterface12()
         {
             IntPtr result = QueryInterface(SosDac12.IID_ISOSDac12);
             if (result == IntPtr.Zero)
@@ -98,7 +98,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        public ISOSDac13? GetSOSDacInterface13()
+        public ISOSDac13? CreateSOSDacInterface13()
         {
             IntPtr result = QueryInterface(SOSDac13.IID_ISOSDac13);
             if (result != IntPtr.Zero)

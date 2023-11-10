@@ -33,18 +33,20 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private IAbstractThreadHelpers? _threadHelper;
         private IAbstractTypeHelpers? _typeHelper;
 
+        private bool _disposed;
+
         public DacServiceProvider(ClrInfo clrInfo, DacLibrary library)
         {
             _clrInfo = clrInfo;
             _dataReader = _clrInfo.DataTarget.DataReader;
 
             _dac = library;
-            _process = library.DacPrivateInterface;
-            _sos = library.SOSDacInterface;
-            _sos6 = library.SOSDacInterface6;
-            _sos8 = library.SOSDacInterface8;
-            _sos12 = library.SOSDacInterface12;
-            _sos13 = library.SOSDacInterface13;
+            _process = library.CreateClrDataProcess();
+            _sos = _process.CreateSOSDacInterface() ?? throw new InvalidOperationException($"Could not create ISOSDacInterface.");
+            _sos6 = _process.CreateSOSDacInterface6();
+            _sos8 = _process.CreateSOSDacInterface8();
+            _sos12 = _process.CreateSOSDacInterface12();
+            _sos13 = _process.CreateSOSDacInterface13();
 
             library.DacDataTarget.SetMagicCallback(_process.Flush);
             IsThreadSafe = _sos13 is not null || RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
@@ -52,6 +54,10 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public void Dispose()
         {
+            if (_disposed)
+                throw new ObjectDisposedException(GetType().FullName);
+
+            _disposed = true;
             _sos13?.LockedFlush();
             _process.Dispose();
             _sos.Dispose();
@@ -60,12 +66,13 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             _sos12?.Dispose();
             _sos13?.Dispose();
             _dac.Dispose();
+            _metadata?.Dispose();
         }
 
         public object? GetService(Type serviceType)
         {
             if (serviceType == typeof(IAbstractRuntime))
-                return _runtime ??= new DacRuntime(_clrInfo, _dac);
+                return _runtime ??= new DacRuntime(_clrInfo, _process, _sos, _sos13);
 
             if (serviceType == typeof(IAbstractHeap))
             {
@@ -89,7 +96,10 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 return _nativeHeaps ??= new DacNativeHeaps(_clrInfo, _sos, _sos13, _dataReader);
 
             if (serviceType == typeof(IAbstractModuleHelpers))
-                return _moduleHelper ??= new DacModuleHelpers(_sos);
+            {
+                _metadata ??= new(_sos);
+                return _moduleHelper ??= new DacModuleHelpers(_sos, _metadata);
+            }
 
             if (serviceType == typeof(IAbstractComHelpers))
                 return _com ??= new DacComHelpers(_sos);
