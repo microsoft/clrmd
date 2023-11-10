@@ -43,7 +43,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             };
 
             ClrDataModule? dataModule = GetClrDataModule(moduleAddress);
-            dataModule?.AddRef();
             if (dataModule is not null && dataModule.GetModuleData(out ExtendedModuleData extended))
             {
                 result.Layout = extended.IsFlatLayout != 0 ? ModuleLayout.Flat : ModuleLayout.Mapped;
