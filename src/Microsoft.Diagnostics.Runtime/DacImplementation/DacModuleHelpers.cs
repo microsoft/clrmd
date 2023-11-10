@@ -31,6 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 Assembly = data.Assembly,
                 AssemblyName = _sos.GetAssemblyName(data.Assembly),
                 Id = data.ModuleID,
+                Index = data.ModuleIndex,
                 IsPEFile = data.IsPEFile != 0,
                 ImageBase = data.ILBase,
                 MetadataAddress = data.MetadataStart,

@@ -195,7 +195,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 yield break;
 
             ulong nextField = fieldInfo.FirstFieldAddress;
-            for (int i = baseFieldCount; i < fieldInfo.NumInstanceFields + fieldInfo.NumStaticFields; i++)
+            for (int i = baseFieldCount; i < fieldInfo.NumInstanceFields + fieldInfo.NumStaticFields + fieldInfo.NumThreadStaticFields; i++)
             {
                 if (!_sos.GetFieldData(nextField, out FieldData dacFieldData))
                     break;
@@ -255,6 +255,21 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 else
                     return dlmd.GCStaticDataStart + (uint)field.Offset;
             }
+        }
+
+        public ulong GetThreadStaticFieldAddress(ulong threadAddress, in ClrModuleInfo module, in TypeInfo type, in FieldInfo field)
+        {
+            if (threadAddress == 0)
+                return 0;
+
+            if (!_sos.GetThreadLocalModuleData(threadAddress, (uint)module.Index, out ThreadLocalModuleData threadData))
+                return 0;
+
+            System.Diagnostics.Trace.WriteLine(type.ContainsPointers);
+            if (field.ElementType.IsPrimitive())
+                return threadData.NonGCStaticDataStart + (uint)field.Offset;
+
+            return threadData.GCStaticDataStart + (uint)field.Offset;
         }
 
         private bool IsInitialized(in DomainLocalModuleData data, int token)

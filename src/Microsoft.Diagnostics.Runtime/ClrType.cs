@@ -24,6 +24,7 @@ namespace Microsoft.Diagnostics.Runtime
     {
         protected ImmutableArray<ClrInstanceField> _fields;
         protected ImmutableArray<ClrStaticField> _staticFields;
+        protected ImmutableArray<ClrThreadStaticField> _threadStaticFields;
         protected ImmutableArray<ClrMethod> _methods;
 
         /// <summary>
@@ -185,7 +186,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!_fields.IsDefault)
                     return _fields;
 
-                CacheFields(out ImmutableArray<ClrInstanceField> fields, out _);
+                CacheFields(out ImmutableArray<ClrInstanceField> fields, out _, out _);
                 return fields;
             }
         }
@@ -202,16 +203,33 @@ namespace Microsoft.Diagnostics.Runtime
                 if (!_staticFields.IsDefault)
                     return _staticFields;
 
-                CacheFields(out _, out ImmutableArray<ClrStaticField> staticFields);
+                CacheFields(out _, out ImmutableArray<ClrStaticField> staticFields, out _);
                 return staticFields;
 
             }
         }
 
-        private void CacheFields(out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> staticFields)
+        /// <summary>
+        /// Gets a list of thread static fields on this type.  Returns an empty list if there are no fields.
+        /// </summary>
+        public virtual ImmutableArray<ClrThreadStaticField> ThreadStaticFields
+        {
+            get
+            {
+                if (!_threadStaticFields.IsDefault)
+                    return _threadStaticFields;
+
+                CacheFields(out _, out _, out ImmutableArray<ClrThreadStaticField> staticFields);
+                return staticFields;
+
+            }
+        }
+
+        private void CacheFields(out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> staticFields, out ImmutableArray<ClrThreadStaticField> threadStaticFields)
         {
             ImmutableArray<ClrInstanceField>.Builder instanceFieldsBuilder = ImmutableArray.CreateBuilder<ClrInstanceField>();
             ImmutableArray<ClrStaticField>.Builder staticFieldsBuilder = ImmutableArray.CreateBuilder<ClrStaticField>();
+            ImmutableArray<ClrThreadStaticField>.Builder threadFieldsBuilder = ImmutableArray.CreateBuilder<ClrThreadStaticField>();
 
             ImmutableArray<ClrInstanceField>? baseFields = BaseType?.Fields;
             if (baseFields.HasValue)
@@ -222,7 +240,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrHeap heap = Module.Heap;
             foreach (FieldInfo field in Helpers.EnumerateFields(TypeInfo, baseFields.HasValue ? baseFields.Value.Length : 0))
             {
-                if (field.Kind is not FieldKind.Instance and not FieldKind.Static)
+                if (field.Kind is not FieldKind.Instance and not FieldKind.Static and not FieldKind.ThreadStatic)
                     continue;
 
                 ClrType? type = heap.GetTypeByMethodTable(field.MethodTable);
@@ -230,16 +248,19 @@ namespace Microsoft.Diagnostics.Runtime
                     staticFieldsBuilder.Add(new ClrStaticField(this, type, Helpers, field));
                 else if (field.Kind == FieldKind.Instance)
                     instanceFieldsBuilder.Add(new ClrInstanceField(this, type, Helpers, field));
+                else if (field.Kind == FieldKind.ThreadStatic)
+                    threadFieldsBuilder.Add(new ClrThreadStaticField(this, type, Helpers, field));
             }
-
 
             fields = instanceFieldsBuilder.MoveOrCopyToImmutable();
             staticFields = staticFieldsBuilder.MoveOrCopyToImmutable();
+            threadStaticFields = threadFieldsBuilder.MoveOrCopyToImmutable();
 
             if (GetCacheOptions().CacheFields)
             {
                 _fields = fields;
                 _staticFields = staticFields;
+                _threadStaticFields = threadStaticFields;
             }
         }
 
