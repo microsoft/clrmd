@@ -17,6 +17,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         public static readonly Guid IID_IMetaDataImport = new("7DAC8207-D3AE-4c75-9B67-92801A497D44");
 
+        public MetadataImport(RefCountedFreeLibrary? library, IntPtr pUnknown)
+            : base(library, IID_IMetaDataImport, pUnknown)
+        {
+        }
+
         public MetadataImport(DacLibrary library, IntPtr pUnknown)
             : base(library?.OwningLibrary, IID_IMetaDataImport, pUnknown)
         {

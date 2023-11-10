@@ -21,14 +21,12 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly SosDac12? _sos12;
         private readonly ISOSDac13? _sos13;
 
-        private DacMetadataReaderCache? _metadata;
-
         private IAbstractClrNativeHeaps? _nativeHeaps;
         private IAbstractComHelpers? _com;
         private IAbstractHeap? _heapHelper;
         private IAbstractLegacyThreadPool? _threadPool;
         private IAbstractMethodLocator? _methodLocator;
-        private IAbstractModuleHelpers? _moduleHelper;
+        private DacModuleHelpers? _moduleHelper;
         private IAbstractRuntime? _runtime;
         private IAbstractThreadHelpers? _threadHelper;
         private IAbstractTypeHelpers? _typeHelper;
@@ -66,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             _sos12?.Dispose();
             _sos13?.Dispose();
             _dac.Dispose();
-            _metadata?.Dispose();
+            _moduleHelper?.Dispose();
         }
 
         public object? GetService(Type serviceType)
@@ -88,18 +86,15 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
             if (serviceType == typeof(IAbstractTypeHelpers))
             {
-                _metadata ??= new(_sos);
-                return _typeHelper ??= new DacTypeHelpers(_process, _sos, _sos6, _sos8, _dataReader, _metadata);
+                _moduleHelper ??= new(_sos);
+                return _typeHelper ??= new DacTypeHelpers(_process, _sos, _sos6, _sos8, _dataReader, _moduleHelper);
             }
 
             if (serviceType == typeof(IAbstractClrNativeHeaps))
                 return _nativeHeaps ??= new DacNativeHeaps(_clrInfo, _sos, _sos13, _dataReader);
 
             if (serviceType == typeof(IAbstractModuleHelpers))
-            {
-                _metadata ??= new(_sos);
-                return _moduleHelper ??= new DacModuleHelpers(_sos, _metadata);
-            }
+                return _moduleHelper ??= new DacModuleHelpers(_sos);
 
             if (serviceType == typeof(IAbstractComHelpers))
                 return _com ??= new DacComHelpers(_sos);
@@ -131,6 +126,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             if (!CanFlush)
                 throw new InvalidOperationException($"This version of CLR does not support the Flush operation.");
 
+            _moduleHelper?.Flush();
             if (_sos13 is not null)
             {
                 _sos13.LockedFlush();
