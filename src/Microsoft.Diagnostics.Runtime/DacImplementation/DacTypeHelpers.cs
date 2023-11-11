@@ -195,7 +195,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 yield break;
 
             ulong nextField = fieldInfo.FirstFieldAddress;
-            for (int i = baseFieldCount; i < fieldInfo.NumInstanceFields + fieldInfo.NumStaticFields + fieldInfo.NumThreadStaticFields; i++)
+            for (int i = baseFieldCount; i < fieldInfo.NumInstanceFields + fieldInfo.NumStaticFields; i++)
             {
                 if (!_sos.GetFieldData(nextField, out FieldData dacFieldData))
                     break;
