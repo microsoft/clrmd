@@ -14,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// This interface is not "stable" and may change even in minor or patch
     /// versions of ClrMD.
     /// </summary>
-    internal interface IAbstractThreadHelpers
+    public interface IAbstractThreadHelpers
     {
         /// <summary>
         /// Enumerates the roots of this thread.
@@ -36,83 +36,10 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     }
 
     /// <summary>
-    /// Information about a single coreclr!Thread.
-    /// </summary>
-    internal struct ClrThreadInfo
-    {
-        /// <summary>
-        /// The address of the underlying coreclr!Thread.
-        /// </summary>
-        public ulong Address { get; set; }
-
-        /// <summary>
-        /// The AppDomain that this thread is currently running in.
-        /// </summary>
-        public ulong AppDomain { get; set; }
-
-        /// <summary>
-        /// The thread ID as the Operating System sees it.
-        /// </summary>
-        public uint OSThreadId { get; set; }
-
-        /// <summary>
-        /// The managed thread id.
-        /// </summary>
-        public int ManagedThreadId { get; set; }
-
-        /// <summary>
-        /// The lock count of the Thread, if available.
-        /// </summary>
-        public uint LockCount { get; set; }
-
-        /// <summary>
-        /// The Windows TEB, if available, 0 otherwise.
-        /// </summary>
-        public ulong Teb { get; set; }
-
-        /// <summary>
-        /// The base address range of the stack space for this thread.
-        /// </summary>
-        public ulong StackBase { get; set; }
-
-        /// <summary>
-        /// The limit of the stack space for this thread.
-        /// </summary>
-        public ulong StackLimit { get; set; }
-
-        /// <summary>
-        /// If an exception is in flight on this thread, a pointer directly to
-        /// the exception object itself.
-        /// </summary>
-        public ulong ExceptionInFlight { get; set; }
-
-        /// <summary>
-        /// Whether this thread is a finalizer thread or not.
-        /// </summary>
-        public bool IsFinalizer { get; set; }
-
-        /// <summary>
-        /// Whether this thread is a GC thread or not.
-        /// </summary>
-        public bool IsGC { get; set; }
-
-        /// <summary>
-        /// The GCMode of this thread (cooperative, preemptive).
-        /// </summary>
-        public GCMode GCMode { get; set; }
-
-        /// <summary>
-        /// The state of this thread.
-        /// </summary>
-        public ClrThreadState State { get; set; }
-    }
-
-
-    /// <summary>
     /// Information about a single stack frame in a stack trace.  This can be a real stack frame as the OS sees
     /// it, or a clr!Frame marker on the stack (internal frame).
     /// </summary>
-    internal struct StackFrameInfo
+    public struct StackFrameInfo
     {
         /// <summary>
         /// The IP of this frame.
@@ -159,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     ///     coreclr!Frames  - The StackPointer or the InternalFrame must match the direct
     ///                       pointer to the clr!Frame object
     /// </summary>
-    internal struct StackRootInfo
+    public struct StackRootInfo
     {
         /// <summary>
         /// The IP associated with this root.  This may be 0 if the root comes from a

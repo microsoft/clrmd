@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Generic;
-using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
@@ -14,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// This interface is not "stable" and may change even in minor or patch
     /// versions of ClrMD.
     /// </summary>
-    internal interface IAbstractModuleHelpers
+    public interface IAbstractModuleHelpers
     {
         ClrModuleInfo GetModuleInfo(ulong module);
         IAbstractMetadataReader? GetMetadataReader(ulong module);
@@ -22,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeRefMap(ulong module);
     }
 
-    internal struct ClrModuleInfo
+    public struct ClrModuleInfo
     {
         public ulong Address { get; set; }
         public ulong ImageBase { get; set; }

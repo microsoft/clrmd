@@ -30,6 +30,15 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly Dictionary<string, PEImage?> _pefileCache = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
+        /// Adds an IClrInfoProvider to DataTarget.  There are no guarantees on order in which they are called.
+        /// </summary>
+        /// <param name="clrInfoProvider">The provider to add.</param>
+        public static void AddClrInfoProvider(IClrInfoProvider clrInfoProvider)
+        {
+            s_clrInfoProviders.Add(clrInfoProvider);
+        }
+
+        /// <summary>
         /// Gets the data reader for this instance.
         /// </summary>
         public IDataReader DataReader { get; }

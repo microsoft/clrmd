@@ -1,10 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System;
-using System.Collections.Generic;
-using System.Text;
-
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     /// <summary>
@@ -16,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// This interface is not "stable" and may change even in minor or patch
     /// versions of ClrMD.
     /// </summary>
-    internal interface IAbstractMethodLocator
+    public interface IAbstractMethodLocator
     {
         ulong GetMethodHandleContainingType(ulong methodDesc);
         ulong GetMethodHandleByInstructionPointer(ulong ip);

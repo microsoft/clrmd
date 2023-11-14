@@ -3,8 +3,6 @@
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Reflection;
-using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
@@ -16,7 +14,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// This interface is not "stable" and may change even in minor or patch
     /// versions of ClrMD.
     /// </summary>
-    internal interface IAbstractTypeHelpers
+    public interface IAbstractTypeHelpers
     {
         bool GetTypeInfo(ulong methodTable, out TypeInfo info);
         string? GetTypeName(ulong module, ulong methodTable, int token);
@@ -37,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         ulong GetThreadStaticFieldAddress(ulong threadAddress, in ClrModuleInfo module, in TypeInfo typeInfo, in FieldInfo field);
     }
 
-    internal struct TypeInfo
+    public struct TypeInfo
     {
         public ulong MethodTable { get; set; }
         public ulong ModuleAddress { get; set; }
@@ -50,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public bool ContainsPointers { get; set; }
     }
 
-    internal struct ObjectArrayInformation
+    public struct ObjectArrayInformation
     {
         public ulong ComponentType { get; set; }
 
@@ -62,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public int DataPointer { get; set; }
     }
 
-    internal struct MethodInfo
+    public struct MethodInfo
     {
         public ulong MethodDesc { get; set; }
         public int Token { get; set; }
@@ -70,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public HotColdRegions HotCold { get; set; }
     }
 
-    internal struct FieldInfo
+    public struct FieldInfo
     {
         public ulong FieldDesc { get; set; }
         public int Token { get; set; }
@@ -80,7 +78,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public FieldKind Kind { get; set; }
     }
 
-    internal enum FieldKind
+    public enum FieldKind
     {
         Unsupported,
         Instance,

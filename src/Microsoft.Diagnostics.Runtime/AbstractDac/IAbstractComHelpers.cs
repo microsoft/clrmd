@@ -14,14 +14,14 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// This interface is not "stable" and may change even in minor or patch
     /// versions of ClrMD.
     /// </summary>
-    internal interface IAbstractComHelpers
+    public interface IAbstractComHelpers
     {
         IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData();
         bool GetCcwInfo(ulong obj, out CcwInfo info);
         bool GetRcwInfo(ulong obj, out RcwInfo info);
     }
 
-    internal struct RcwInfo
+    public struct RcwInfo
     {
         public RcwInfo()
         {
@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public ComInterfaceEntry[] Interfaces { get; set; } = Array.Empty<ComInterfaceEntry>();
     }
 
-    internal struct CcwInfo
+    public struct CcwInfo
     {
         public CcwInfo()
         {
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public ComInterfaceEntry[] Interfaces { get; set; } = Array.Empty<ComInterfaceEntry>();
     }
 
-    internal struct ComInterfaceEntry
+    public struct ComInterfaceEntry
     {
         public ulong MethodTable { get; set; }
         public ulong InterfacePointer { get; set; }
