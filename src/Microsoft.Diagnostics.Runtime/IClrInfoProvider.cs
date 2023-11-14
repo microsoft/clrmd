@@ -6,7 +6,7 @@ using Microsoft.Diagnostics.Runtime.AbstractDac;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal interface IClrInfoProvider
+    public interface IClrInfoProvider
     {
         /// <summary>
         /// Inspect the given module and if it's a CLR runtime module, provide a ClrInfo for it.

@@ -5,8 +5,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Diagnostics.Runtime.DacInterface;
-
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     /// <summary>
@@ -19,13 +17,13 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// This interface is not "stable" and may change even in minor or patch
     /// versions of ClrMD.
     /// </summary>
-    internal interface IAbstractLegacyThreadPool
+    public interface IAbstractLegacyThreadPool
     {
         bool GetLegacyThreadPoolData(out LegacyThreadPoolInfo data);
         bool GetLegacyWorkRequestData(ulong workRequest, out LegacyWorkRequestInfo workRequestData);
     }
 
-    internal struct LegacyThreadPoolInfo
+    public struct LegacyThreadPoolInfo
     {
         public int CpuUtilization { get; set; }
         public int NumIdleWorkerThreads { get; set; }
@@ -53,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public ulong AsyncTimerCallbackCompletionFPtr { get; set; }
     }
 
-    internal struct LegacyWorkRequestInfo
+    public struct LegacyWorkRequestInfo
     {
         public ulong Function { get; set; }
         public ulong Context { get; set; }

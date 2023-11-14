@@ -7,7 +7,7 @@ using System.Reflection;
 
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
-    internal interface IAbstractMetadataReader
+    public interface IAbstractMetadataReader
     {
         // Used to get field names, and occasionally to try to create a ClrType for
         // a field if the dac doesn't give us that.
@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         IEnumerable<FieldDefInfo> EnumerateFields(int typeDef);
     }
 
-    internal struct FieldDefInfo
+    public struct FieldDefInfo
     {
         public int Token { get; set; }
         public string? Name { get; set; }
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public nint ValuePointer { get; set; }
     }
 
-    internal struct TypeDefInfo
+    public struct TypeDefInfo
     {
         public int Token { get; set; }
         public string? Name { get; set; }
@@ -60,7 +60,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public int Parent { get; set; }
     }
 
-    internal struct GenericParameterInfo
+    public struct GenericParameterInfo
     {
         public int Token { get; set; }
         public int Index { get; set; }
@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public string? Name { get; set; }
     }
 
-    internal struct InterfaceInfo
+    public struct InterfaceInfo
     {
         public int Token { get; set; }
         public int InterfaceToken { get; set; }

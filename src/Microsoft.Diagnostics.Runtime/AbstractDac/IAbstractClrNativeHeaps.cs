@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// This interface is not "stable" and may change even in minor or patch
     /// versions of ClrMD.
     /// </summary>
-    internal interface IAbstractClrNativeHeaps
+    public interface IAbstractClrNativeHeaps
     {
         IEnumerable<ClrNativeHeapInfo> EnumerateGCFreeRegions();
         IEnumerable<ClrNativeHeapInfo> EnumerateHandleTableRegions();

@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// This interface is not "stable" and may change even in minor or patch
     /// versions of ClrMD.
     /// </summary>
-    internal interface IAbstractHeap
+    public interface IAbstractHeap
     {
         ref readonly GCState State { get; }
         IEnumerable<MemoryRange> EnumerateThreadAllocationContexts();
@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         bool GetOOMInfo(ulong subHeapAddress, out OomInfo oomInfo);
     }
 
-    internal struct GCState
+    public struct GCState
     {
         public GCKind Kind { get; set; }
         public bool AreGCStructuresValid { get; set; }
@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public ulong FreeMethodTable { get; set; }
     }
 
-    internal enum GCKind
+    public enum GCKind
     {
         Unknown,
         Workstation,
@@ -48,7 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     }
 
 
-    internal struct SubHeapInfo
+    public struct SubHeapInfo
     {
         public SubHeapInfo() { }
 
@@ -77,14 +77,14 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public readonly bool HasRegions => Generations.Length >= 2 && Generations[0].StartSegment != Generations[1].StartSegment;
     }
 
-    internal enum HeapMarkState
+    public enum HeapMarkState
     {
         Marking,
         Planning,
         Free
     }
 
-    internal struct GenerationInfo
+    public struct GenerationInfo
     {
         public ulong StartSegment { get; set; }
         public ulong AllocationStart { get; set; }
@@ -92,7 +92,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public ulong AllocationContextLimit { get; set; }
     }
 
-    internal struct SegmentInfo
+    public struct SegmentInfo
     {
         public ulong Address { get; set; }
         public GCSegmentKind Kind { get; set; }
@@ -107,7 +107,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public ulong Next { get; set; }
     }
 
-    internal struct SyncBlockInfo
+    public struct SyncBlockInfo
     {
         public int Index { get; set; }
         public ulong Address { get; set; }
@@ -120,7 +120,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public ulong AppDomain { get; set; }
     }
 
-    internal struct OomInfo
+    public struct OomInfo
     {
         public OutOfMemoryReason Reason { get; set; }
         public ulong AllocSize { get; set; }

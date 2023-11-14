@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// This interface is not "stable" and may change even in minor or patch
     /// versions of ClrMD.
     /// </summary>
-    internal interface IAbstractRuntime
+    public interface IAbstractRuntime
     {
         IEnumerable<ClrThreadInfo> EnumerateThreads();
         IEnumerable<AppDomainInfo> EnumerateAppDomains();
@@ -28,9 +28,82 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     }
 
     /// <summary>
+    /// Information about a single coreclr!Thread.
+    /// </summary>
+    public struct ClrThreadInfo
+    {
+        /// <summary>
+        /// The address of the underlying coreclr!Thread.
+        /// </summary>
+        public ulong Address { get; set; }
+
+        /// <summary>
+        /// The AppDomain that this thread is currently running in.
+        /// </summary>
+        public ulong AppDomain { get; set; }
+
+        /// <summary>
+        /// The thread ID as the Operating System sees it.
+        /// </summary>
+        public uint OSThreadId { get; set; }
+
+        /// <summary>
+        /// The managed thread id.
+        /// </summary>
+        public int ManagedThreadId { get; set; }
+
+        /// <summary>
+        /// The lock count of the Thread, if available.
+        /// </summary>
+        public uint LockCount { get; set; }
+
+        /// <summary>
+        /// The Windows TEB, if available, 0 otherwise.
+        /// </summary>
+        public ulong Teb { get; set; }
+
+        /// <summary>
+        /// The base address range of the stack space for this thread.
+        /// </summary>
+        public ulong StackBase { get; set; }
+
+        /// <summary>
+        /// The limit of the stack space for this thread.
+        /// </summary>
+        public ulong StackLimit { get; set; }
+
+        /// <summary>
+        /// If an exception is in flight on this thread, a pointer directly to
+        /// the exception object itself.
+        /// </summary>
+        public ulong ExceptionInFlight { get; set; }
+
+        /// <summary>
+        /// Whether this thread is a finalizer thread or not.
+        /// </summary>
+        public bool IsFinalizer { get; set; }
+
+        /// <summary>
+        /// Whether this thread is a GC thread or not.
+        /// </summary>
+        public bool IsGC { get; set; }
+
+        /// <summary>
+        /// The GCMode of this thread (cooperative, preemptive).
+        /// </summary>
+        public GCMode GCMode { get; set; }
+
+        /// <summary>
+        /// The state of this thread.
+        /// </summary>
+        public ClrThreadState State { get; set; }
+    }
+
+
+    /// <summary>
     /// Information about a single app domain.
     /// </summary>
-    internal struct AppDomainInfo
+    public struct AppDomainInfo
     {
         /// <summary>
         /// The address of coreclr!AppDomain
@@ -68,7 +141,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public ulong LoaderAllocator { get; set; }
     }
 
-    internal enum AppDomainKind
+    public enum AppDomainKind
     {
         Normal,
         System,
@@ -78,7 +151,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// <summary>
     /// Information about a ClrHandle
     /// </summary>
-    internal struct ClrHandleInfo
+    public struct ClrHandleInfo
     {
         /// <summary>
         /// The address of the handle.  AKA the handle itself.
@@ -114,7 +187,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// <summary>
     /// Information about a single JitManager.
     /// </summary>
-    internal struct JitManagerInfo
+    public struct JitManagerInfo
     {
         /// <summary>
         /// The address of the JitManager.
