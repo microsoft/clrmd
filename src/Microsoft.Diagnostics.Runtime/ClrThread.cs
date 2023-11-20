@@ -130,7 +130,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             ClrHeap heap = Runtime.Heap;
             ClrStackFrame[] frames = GetFramesForRoots();
-            IEnumerable<ClrStackRoot> roots = threadHelpers.EnumerateStackRoots(OSThreadId).Select(r => CreateClrStackRoot(heap, frames, r)).Where(r => r is not null)!;
+            IEnumerable<ClrStackRoot> roots = threadHelpers.EnumerateStackRoots(OSThreadId, traceErrors: IsAlive).Select(r => CreateClrStackRoot(heap, frames, r)).Where(r => r is not null)!;
             if (!Runtime.DataTarget.CacheOptions.CacheStackRoots)
                 return roots;
 
@@ -163,7 +163,7 @@ namespace Microsoft.Diagnostics.Runtime
             // We need to make sure we don't loop forever when enumerating the stack trace.
             // We will only cache the stack if we completed enumeratione (i.e. got less
             // than MaxFrameDefault frames)
-            ClrStackFrame[] stack = threadHelpers.EnumerateStackTrace(OSThreadId, includeContext: false).Select(r => CreateClrStackFrame(r)).Take(MaxFrameDefault).ToArray();
+            ClrStackFrame[] stack = threadHelpers.EnumerateStackTrace(OSThreadId, includeContext: false, traceErrors: IsAlive).Select(r => CreateClrStackFrame(r)).Take(MaxFrameDefault).ToArray();
             if (Runtime.DataTarget.CacheOptions.CacheStackTraces && stack.Length < MaxFrameDefault)
                 _frameCache = new(stack, includedContext: false);
 
@@ -248,7 +248,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (cache is not null && (!includeContext || cache.IncludedContext))
                 return Array.AsReadOnly(cache.Elements);
 
-            IEnumerable<ClrStackFrame> frames = threadHelpers.EnumerateStackTrace(OSThreadId, includeContext).Select(r => CreateClrStackFrame(r));
+            IEnumerable<ClrStackFrame> frames = threadHelpers.EnumerateStackTrace(OSThreadId, includeContext, traceErrors: IsAlive).Select(r => CreateClrStackFrame(r));
             if (!Runtime.DataTarget.CacheOptions.CacheStackTraces)
                 return frames;
 

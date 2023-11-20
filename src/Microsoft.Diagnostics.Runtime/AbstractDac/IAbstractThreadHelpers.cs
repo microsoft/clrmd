@@ -20,8 +20,9 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         /// Enumerates the roots of this thread.
         /// </summary>
         /// <param name="osThreadId">The thread to enumerate.</param>
+        /// <param name="traceErrors">Whether or not to Trace any errors encountered.</param>
         /// <returns>An enumeration of stack roots.</returns>
-        IEnumerable<StackRootInfo> EnumerateStackRoots(uint osThreadId);
+        IEnumerable<StackRootInfo> EnumerateStackRoots(uint osThreadId, bool traceErrors);
 
         /// <summary>
         /// Enumerates the stack trace of this method.  Note that in the event of bugs or corrupted
@@ -31,8 +32,9 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         /// <param name="osThreadId">The thread to enumerate.</param>
         /// <param name="includeContext">Whether to calculate and include the thread's CONTEXT record or not.
         /// Registers are always in the Windows CONTEXT format, as that's what the OS uses.</param>
+        /// <param name="traceErrors">Whether or not to Trace any errors encountered.</param>
         /// <returns>An enumeration of stack frames.</returns>
-        IEnumerable<StackFrameInfo> EnumerateStackTrace(uint osThreadId, bool includeContext);
+        IEnumerable<StackFrameInfo> EnumerateStackTrace(uint osThreadId, bool includeContext, bool traceErrors);
     }
 
     /// <summary>

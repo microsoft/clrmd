@@ -143,10 +143,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.GetTaskByOSThreadID(Self, id, out IntPtr pUnkTask);
             if (!hr)
-            {
-                Trace.TraceInformation($"GetTaskByOSThreadID failed - id:{id:x} flags:{flags:x} hr:{hr}");
                 return null;
-            }
 
             using ClrDataTask dataTask = new(_library, pUnkTask);
             // There's a bug in certain runtimes where we will fail to release data deep in the runtime

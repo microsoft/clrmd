@@ -162,7 +162,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (_dataReader.GetThreadContext(threadID, contextFlags, span))
                 return true;
 
-            Trace.TraceInformation($"Failed to read thread context: tid:{threadID:x} flags:{contextFlags:x} size:{contextSize:x}{(context == IntPtr.Zero ? " null context!" : "")}");
             return false;
         }
 
