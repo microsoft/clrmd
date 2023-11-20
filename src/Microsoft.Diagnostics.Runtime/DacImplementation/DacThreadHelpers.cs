@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         }
 
         // IClrThreadHelpers
-        public IEnumerable<StackRootInfo> EnumerateStackRoots(uint osThreadId)
+        public IEnumerable<StackRootInfo> EnumerateStackRoots(uint osThreadId, bool traceErrors)
         {
             using SOSStackRefEnum? stackRefEnum = _sos.EnumerateStackRefs(osThreadId);
             if (stackRefEnum is null)
@@ -41,7 +41,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             {
                 if (stackRef.Object == 0)
                 {
-                    Trace.TraceInformation($"EnumerateStackRoots found an entry with Object == 0, addr:{(ulong)stackRef.Address:x} srcType:{stackRef.SourceType:x}");
+                    if (traceErrors)
+                        Trace.TraceWarning($"EnumerateStackRoots found an unexpected entry with Object == 0, addr:{(ulong)stackRef.Address:x} srcType:{stackRef.SourceType:x}");
                     continue;
                 }
 
@@ -81,7 +82,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             }
         }
 
-        public IEnumerable<StackFrameInfo> EnumerateStackTrace(uint osThreadId, bool includeContext)
+        public IEnumerable<StackFrameInfo> EnumerateStackTrace(uint osThreadId, bool includeContext, bool traceErrors)
         {
             using ClrStackWalk? stackwalk = _dac.CreateStackWalk(osThreadId, 0xf);
             if (stackwalk is null)
@@ -131,7 +132,9 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 hr = stackwalk.GetContext(contextFlags, contextSize, out _, context);
                 if (!hr)
                 {
-                    Trace.TraceInformation($"GetContext failed, flags:{contextFlags:x} size: {contextSize:x} hr={hr}");
+                    if (traceErrors)
+                        Trace.TraceError($"GetContext failed, flags:{contextFlags:x} size: {contextSize:x} hr={hr}");
+
                     break;
                 }
 
@@ -167,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 };
 
                 hr = stackwalk.Next();
-                if (!hr)
+                if (traceErrors && !hr)
                     Trace.TraceInformation($"STACKWALK FAILED - hr:{hr}");
             }
 
