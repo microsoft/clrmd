@@ -136,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        private ClrInterface? GetInterface(IAbstractMetadataReader import, int mdIFace)
+        private static ClrInterface? GetInterface(IAbstractMetadataReader import, int mdIFace)
         {
             ClrInterface? result = null;
             string? name;

@@ -85,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime
 #if !NETCOREAPP3_1
         public static bool Contains(this string source, string value, StringComparison comparisonType)
         {
-            return source.IndexOf(value, comparisonType) != -1;
+            return source.Contains(value, comparisonType);
         }
 #endif
     }
