@@ -11,9 +11,4 @@
     <PackageReference Include="Microsoft.Diagnostics.Runtime" Version="2.3.405304" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Update="Microsoft.CodeAnalysis.CSharp.CodeStyle" Version="4.8.0" />
-    <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0" />
-  </ItemGroup>
-
 </Project>

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>net6.0</TargetFrameworks>
@@ -32,11 +32,6 @@
     <PackageReference Include="AutoFixture" Version="4.18.1" />
     <PackageReference Include="AutoFixture.Xunit2" Version="4.18.1" />
     <PackageReference Include="NETStandard.Library" Version="2.0.3" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Update="Microsoft.CodeAnalysis.CSharp.CodeStyle" Version="4.8.0" />
-    <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0" />
   </ItemGroup>
 
 </Project>

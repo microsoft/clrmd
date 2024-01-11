@@ -34,9 +34,4 @@
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Update="Microsoft.CodeAnalysis.CSharp.CodeStyle" Version="4.8.0" />
-    <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0" />
-  </ItemGroup>
-
 </Project>

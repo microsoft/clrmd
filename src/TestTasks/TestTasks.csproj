@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>net6.0</TargetFrameworks>
@@ -10,11 +10,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Microsoft.Diagnostics.Runtime.Utilities\Microsoft.Diagnostics.Runtime.Utilities.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Update="Microsoft.CodeAnalysis.CSharp.CodeStyle" Version="4.8.0" />
-    <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0" />
   </ItemGroup>
 
 </Project>
