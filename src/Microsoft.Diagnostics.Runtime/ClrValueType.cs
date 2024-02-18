@@ -99,8 +99,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ClrType type = GetTypeOrThrow();
             ClrInstanceField field = type.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
-            object value = field.Read<T>(Address, _interior);
-            return (T)value;
+            return field.Read<T>(Address, _interior);
         }
 
         /// <summary>
