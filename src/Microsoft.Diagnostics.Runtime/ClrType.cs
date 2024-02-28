@@ -27,6 +27,8 @@ namespace Microsoft.Diagnostics.Runtime
         protected ImmutableArray<ClrThreadStaticField> _threadStaticFields;
         protected ImmutableArray<ClrMethod> _methods;
 
+        private readonly Dictionary<ulong, ClrMethod> _constructedMethods = new();
+
         /// <summary>
         /// Used to provide functionality to ClrObject.
         /// </summary>
@@ -223,6 +225,19 @@ namespace Microsoft.Diagnostics.Runtime
                 return staticFields;
 
             }
+        }
+
+        public ClrMethod GetOrCreateMethod(MethodInfo methodInfo)
+        {
+            ClrMethod clrMethod;
+
+            lock (_constructedMethods)
+            {
+                if (!_constructedMethods.TryGetValue(methodInfo.MethodDesc, out clrMethod))
+                    clrMethod = _constructedMethods[methodInfo.MethodDesc] = new(Helpers, this, methodInfo);
+            }
+
+            return clrMethod;
         }
 
         private void CacheFields(out ImmutableArray<ClrInstanceField> fields, out ImmutableArray<ClrStaticField> staticFields, out ImmutableArray<ClrThreadStaticField> threadStaticFields)

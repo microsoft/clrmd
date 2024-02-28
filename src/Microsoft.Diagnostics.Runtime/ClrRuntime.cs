@@ -169,6 +169,9 @@ namespace Microsoft.Diagnostics.Runtime
             if (locator is null)
                 return null;
 
+            if (!locator.GetMethodInfo(methodHandle, out MethodInfo mi))
+                return null;
+
             ulong mt = locator.GetMethodHandleContainingType(methodHandle);
             if (mt == 0)
                 return null;
@@ -177,7 +180,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (type is null)
                 return null;
 
-            return type.Methods.FirstOrDefault(m => m.MethodDesc == methodHandle);
+            return type.GetOrCreateMethod(mi);
         }
 
         /// <summary>
@@ -249,7 +252,19 @@ namespace Microsoft.Diagnostics.Runtime
                 return null;
 
             ulong md = locator.GetMethodHandleByInstructionPointer(ip);
-            return GetMethodByHandle(md);
+
+            if (!locator.GetMethodInfo(md, out MethodInfo mi))
+                return null;
+
+            ulong mt = locator.GetMethodHandleContainingType(md);
+            if (mt == 0)
+                return null;
+
+            ClrType? type = Heap.GetTypeByMethodTable(mt);
+            if (type is null)
+                return null;
+
+            return type.GetOrCreateMethod(mi);
         }
 
         /// <summary>

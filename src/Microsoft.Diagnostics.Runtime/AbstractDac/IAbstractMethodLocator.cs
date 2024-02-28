@@ -16,5 +16,6 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     {
         ulong GetMethodHandleContainingType(ulong methodDesc);
         ulong GetMethodHandleByInstructionPointer(ulong ip);
+        bool GetMethodInfo(ulong methodDesc, out MethodInfo methodInfo);
     }
 }

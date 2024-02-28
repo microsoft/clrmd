@@ -3,6 +3,7 @@
 
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using System.Security.Cryptography;
 
 namespace Microsoft.Diagnostics.Runtime.DacImplementation
 {
@@ -33,6 +34,39 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             }
 
             return md;
+        }
+
+        public bool GetMethodInfo(ulong methodDesc, out MethodInfo methodInfo)
+        {
+            if (!_sos.GetMethodDescData(methodDesc, 0, out MethodDescData mdd) || !_sos.GetCodeHeaderData(mdd.NativeCodeAddr, out CodeHeaderData chd))
+            {
+                methodInfo = default;
+                return false;
+            }
+            
+            uint compilation = chd.JITType;
+            ulong md = chd.MethodDesc;
+
+            HotColdRegions regions;
+            if (mdd.HasNativeCode != 0)
+            {
+                regions = new(mdd.NativeCodeAddr, chd.HotRegionSize, chd.ColdRegionStart, chd.ColdRegionSize);
+                md = chd.MethodDesc;
+                compilation = chd.JITType;
+            }
+            else
+            {
+                regions = new(mdd.NativeCodeAddr, chd.HotRegionSize, chd.ColdRegionStart, chd.ColdRegionSize);
+            }
+
+            methodInfo = new()
+            {
+                CompilationType = (MethodCompilationType)compilation,
+                HotCold = regions,
+                MethodDesc = md,
+                Token = (int)mdd.MDToken
+            };
+            return true;
         }
     }
 }
