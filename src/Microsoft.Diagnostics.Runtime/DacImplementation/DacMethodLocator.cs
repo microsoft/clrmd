@@ -3,7 +3,6 @@
 
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
-using System.Security.Cryptography;
 
 namespace Microsoft.Diagnostics.Runtime.DacImplementation
 {
