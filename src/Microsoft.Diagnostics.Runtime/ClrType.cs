@@ -229,7 +229,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ClrMethod GetOrCreateMethod(MethodInfo methodInfo)
         {
-            ClrMethod clrMethod;
+            ClrMethod? clrMethod;
 
             lock (_constructedMethods)
             {

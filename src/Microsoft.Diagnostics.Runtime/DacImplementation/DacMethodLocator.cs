@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 methodInfo = default;
                 return false;
             }
-            
+
             uint compilation = chd.JITType;
             ulong md = chd.MethodDesc;
 
