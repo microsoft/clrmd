@@ -3,11 +3,9 @@
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Reflection;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
-using Microsoft.Diagnostics.Runtime.Utilities;
 using FieldInfo = Microsoft.Diagnostics.Runtime.AbstractDac.FieldInfo;
 using MethodInfo = Microsoft.Diagnostics.Runtime.AbstractDac.MethodInfo;
 using TypeInfo = Microsoft.Diagnostics.Runtime.AbstractDac.TypeInfo;
@@ -159,33 +157,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             {
                 ulong slot = _sos.GetMethodTableSlot(methodTable, i);
                 if (_sos.GetCodeHeaderData(slot, out CodeHeaderData chd))
-                {
                     if (_sos.GetMethodDescData(chd.MethodDesc, 0, out MethodDescData mdd))
-                    {
-                        ulong md = chd.MethodDesc;
-                        uint compilation = chd.JITType;
-
-                        HotColdRegions regions;
-                        if (mdd.HasNativeCode != 0 && _sos.GetCodeHeaderData(mdd.NativeCodeAddr, out CodeHeaderData chdBasedOnNative))
-                        {
-                            regions = new(mdd.NativeCodeAddr, chdBasedOnNative.HotRegionSize, chdBasedOnNative.ColdRegionStart, chdBasedOnNative.ColdRegionSize);
-                            md = chdBasedOnNative.MethodDesc;
-                            compilation = chdBasedOnNative.JITType;
-                        }
-                        else
-                        {
-                            regions = new(mdd.NativeCodeAddr, chd.HotRegionSize, chd.ColdRegionStart, chd.ColdRegionSize);
-                        }
-
-                        yield return new()
-                        {
-                            MethodDesc = md,
-                            Token = (int)mdd.MDToken,
-                            CompilationType = (MethodCompilationType)compilation,
-                            HotCold = regions,
-                        };
-                    }
-                }
+                        yield return GetMethodInfo(chd.MethodDesc, mdd, chd);
             }
         }
 
@@ -194,33 +167,37 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             if (_sos.GetMethodDescData(md, 0, out MethodDescData mdd))
             {
                 _sos.GetCodeHeaderData(mdd.NativeCodeAddr, out CodeHeaderData chd);
-
-                uint compilation = chd.JITType;
-
-                HotColdRegions regions;
-                if (mdd.HasNativeCode != 0 && _sos.GetCodeHeaderData(mdd.NativeCodeAddr, out CodeHeaderData chdBasedOnNative))
-                {
-                    regions = new(mdd.NativeCodeAddr, chdBasedOnNative.HotRegionSize, chdBasedOnNative.ColdRegionStart, chdBasedOnNative.ColdRegionSize);
-                    md = chdBasedOnNative.MethodDesc;
-                    compilation = chdBasedOnNative.JITType;
-                }
-                else
-                {
-                    regions = new(mdd.NativeCodeAddr, chd.HotRegionSize, chd.ColdRegionStart, chd.ColdRegionSize);
-                }
-
-                methodInfo = new()
-                {
-                    MethodDesc = md,
-                    Token = (int)mdd.MDToken,
-                    CompilationType = (MethodCompilationType)compilation,
-                    HotCold = regions,
-                };
+                methodInfo = GetMethodInfo(md, mdd, chd);
                 return true;
             }
 
             methodInfo = default;
             return false;
+        }
+
+        private MethodInfo GetMethodInfo(ulong md, MethodDescData mdd, CodeHeaderData chd)
+        {
+            uint compilation = chd.JITType;
+
+            HotColdRegions regions;
+            if (mdd.HasNativeCode != 0 && _sos.GetCodeHeaderData(mdd.NativeCodeAddr, out CodeHeaderData chdBasedOnNative))
+            {
+                regions = new(mdd.NativeCodeAddr, chdBasedOnNative.HotRegionSize, chdBasedOnNative.ColdRegionStart, chdBasedOnNative.ColdRegionSize);
+                md = chdBasedOnNative.MethodDesc;
+                compilation = chdBasedOnNative.JITType;
+            }
+            else
+            {
+                regions = new(mdd.NativeCodeAddr, chd.HotRegionSize, chd.ColdRegionStart, chd.ColdRegionSize);
+            }
+
+            return new()
+            {
+                MethodDesc = md,
+                Token = (int)mdd.MDToken,
+                CompilationType = (MethodCompilationType)compilation,
+                HotCold = regions
+            };
         }
 
         public IEnumerable<FieldInfo> EnumerateFields(TypeInfo type, int baseFieldCount)
