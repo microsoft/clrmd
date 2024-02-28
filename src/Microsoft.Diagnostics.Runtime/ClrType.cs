@@ -227,7 +227,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public ClrMethod GetOrCreateMethod(MethodInfo methodInfo)
+        internal ClrMethod GetOrCreateMethod(MethodInfo methodInfo)
         {
             ClrMethod? clrMethod;
 
