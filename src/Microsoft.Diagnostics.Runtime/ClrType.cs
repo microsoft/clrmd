@@ -287,6 +287,15 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
+        internal ClrMethod? GetMethodForMethodDesc(ulong md)
+        {
+            ClrMethod? result = Methods.FirstOrDefault(m => m.MethodDesc == md);
+            if (result is null && Helpers.GetMethodInfoForMethodDesc(md, out MethodInfo mi))
+                return new(Helpers, this, mi);
+
+            return result;
+        }
+
         /// <summary>
         /// Returns the field given by <paramref name="name"/>, case sensitive. Returns <see langword="null" /> if no such field name exists (or on error).
         /// </summary>

@@ -189,6 +189,40 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             }
         }
 
+        public bool GetMethodInfoForMethodDesc(ulong md, out MethodInfo methodInfo)
+        {
+            if (_sos.GetMethodDescData(md, 0, out MethodDescData mdd))
+            {
+                _sos.GetCodeHeaderData(mdd.NativeCodeAddr, out CodeHeaderData chd);
+
+                uint compilation = chd.JITType;
+
+                HotColdRegions regions;
+                if (mdd.HasNativeCode != 0 && _sos.GetCodeHeaderData(mdd.NativeCodeAddr, out CodeHeaderData chdBasedOnNative))
+                {
+                    regions = new(mdd.NativeCodeAddr, chdBasedOnNative.HotRegionSize, chdBasedOnNative.ColdRegionStart, chdBasedOnNative.ColdRegionSize);
+                    md = chdBasedOnNative.MethodDesc;
+                    compilation = chdBasedOnNative.JITType;
+                }
+                else
+                {
+                    regions = new(mdd.NativeCodeAddr, chd.HotRegionSize, chd.ColdRegionStart, chd.ColdRegionSize);
+                }
+
+                methodInfo = new()
+                {
+                    MethodDesc = md,
+                    Token = (int)mdd.MDToken,
+                    CompilationType = (MethodCompilationType)compilation,
+                    HotCold = regions,
+                };
+                return true;
+            }
+
+            methodInfo = default;
+            return false;
+        }
+
         public IEnumerable<FieldInfo> EnumerateFields(TypeInfo type, int baseFieldCount)
         {
             if (!_sos.GetFieldInfo(type.MethodTable, out MethodTableFieldInfo fieldInfo) || fieldInfo.FirstFieldAddress == 0)

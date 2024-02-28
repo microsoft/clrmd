@@ -22,6 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         ulong GetAssemblyLoadContextAddress(ulong mt);
 
         bool GetObjectArrayInformation(ulong objRef, out ObjectArrayInformation data);
+        bool GetMethodInfoForMethodDesc(ulong methodDesc, out MethodInfo methodInfo);
         IEnumerable<MethodInfo> EnumerateMethodsForType(ulong methodTable);
         IEnumerable<FieldInfo> EnumerateFields(TypeInfo type, int baseFieldCount);
 

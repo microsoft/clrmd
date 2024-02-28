@@ -174,10 +174,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return null;
 
             ClrType? type = Heap.GetTypeByMethodTable(mt);
-            if (type is null)
-                return null;
-
-            return type.Methods.FirstOrDefault(m => m.MethodDesc == methodHandle);
+            return type?.GetMethodForMethodDesc(methodHandle);
         }
 
         /// <summary>
