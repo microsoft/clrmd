@@ -1,0 +1,88 @@
+trigger:
+- main
+
+pr:
+  autoCancel: true
+  branches:
+    include:
+    - main
+    - release/*
+  paths:
+    exclude:
+    - doc/*
+    - LICENSE
+
+stages:
+  - stage: build
+    displayName: Build and Test
+
+    # Three jobs for each of the three OSes we want to run on
+    jobs:
+    - template: /eng/common/templates/jobs/jobs.yml
+      parameters:
+        enableTelemetry: true
+        enablePublishBuildArtifacts: true
+        helixRepo: Microsoft/clrmd
+
+        jobs:
+        - job: Windows_NT
+          pool:
+            name: NetCore-Public
+            demands: ImageOverride -equals windows.vs2019.amd64.open
+
+          variables:
+          - DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX: 2
+
+          strategy:
+            matrix:
+              build_debug:
+                _BuildConfig: Debug
+              build_release:
+                _BuildConfig: Release
+
+          steps:
+          - script: eng\common\cibuild.cmd
+              -configuration $(_BuildConfig)
+              -prepareMachine
+              -verbosity normal
+            name: Build
+            displayName: Build
+            condition: succeeded()
+
+        - job: Linux
+          pool:
+            vmImage: ubuntu-22.04
+
+          strategy:
+            matrix:
+              debug:
+                _BuildConfig: Debug
+              release:
+                _BuildConfig: Release
+
+          steps:
+          - script: eng/common/cibuild.sh
+              --configuration $(_BuildConfig)
+              --prepareMachine
+            name: Build
+            displayName: Build
+            condition: succeeded()
+
+        - job: MacOS
+          pool:
+            vmImage: macos-11
+
+          strategy:
+            matrix:
+              debug:
+                _BuildConfig: Debug
+              release:
+                _BuildConfig: Release
+
+          steps:
+          - script: eng/common/cibuild.sh
+              --configuration $(_BuildConfig)
+              --prepareMachine
+            name: Build
+            displayName: Build
+            condition: succeeded()

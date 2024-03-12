@@ -1,0 +1,140 @@
+trigger:
+- main
+
+variables:
+  - name: Codeql.Enabled
+    value: true
+  - name: TeamName
+    value: DotNetCore
+  - name: _SignType
+    value: real
+  - group: DotNet-Symbol-Server-Pats
+  - group: Publish-Build-Assets
+
+resources:
+  repositories:
+  - repository: CustomPipelineTemplates
+    type: git
+    name: 1ESPipelineTemplates/MicroBuildTemplate
+    ref: refs/tags/release
+
+extends:
+  template: azure-pipelines/MicroBuild.1ES.Official.yml@CustomPipelineTemplates
+  parameters:
+    featureFlags:
+      autoBaseline: false
+    sdl:
+      sourceAnalysisPool:
+        name: NetCore1ESPool-Internal
+        image: windows.vs2022.amd64
+        os: windows
+
+    stages:
+    - stage: build
+      displayName: Build and Test
+
+      # Three jobs for each of the three OSes we want to run on
+      jobs:
+      - template: /eng/common/templates-official/jobs/jobs.yml@self
+        parameters:
+          enableMicrobuild: true
+          enableTelemetry: true
+          enablePublishBuildArtifacts: true
+          helixRepo: Microsoft/clrmd
+
+          jobs:
+          - job: Windows_NT
+            pool:
+              name: NetCore1ESPool-Internal
+              demands: ImageOverride -equals windows.vs2022.amd64
+              os: windows
+
+            variables:
+            - DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX: 2
+            - _ReleaseBuildArgs: ''
+
+            strategy:
+              matrix:
+                build_debug:
+                  _BuildConfig: Debug
+                  _ReleaseBuildArgs: ''
+                build_release:
+                  _BuildConfig: Release
+                  _ReleaseBuildArgs: /p:DotNetSignType=$(_SignType)
+                                      /p:TeamName=$(TeamName)
+                                      /p:DotNetPublishUsingPipelines=true
+                                      /p:OfficialBuildId=$(BUILD.BUILDNUMBER)
+
+            steps:
+            - script: eng\common\cibuild.cmd
+                -configuration $(_BuildConfig)
+                -prepareMachine
+                -verbosity normal
+                $(_ReleaseBuildArgs)
+              name: Build
+              displayName: Build
+              condition: succeeded()
+
+          - job: Linux
+            pool:
+              name: NetCore1ESPool-Internal
+              demands: ImageOverride -equals 1es-ubuntu-2204-pt
+              os: linux
+
+            strategy:
+              matrix:
+                debug:
+                  _BuildConfig: Debug
+                release:
+                  _BuildConfig: Release
+
+            steps:
+            - script: eng/common/cibuild.sh
+                --configuration $(_BuildConfig)
+                --prepareMachine
+              name: Build
+              displayName: Build
+              condition: succeeded()
+
+          - job: MacOS
+            pool:
+              name: Azure Pipelines
+              image: macOS-latest
+              os: macOS
+
+            strategy:
+              matrix:
+                debug:
+                  _BuildConfig: Debug
+                release:
+                  _BuildConfig: Release
+
+            steps:
+            - script: eng/common/cibuild.sh
+                --configuration $(_BuildConfig)
+                --prepareMachine
+              name: Build
+              displayName: Build
+              condition: succeeded()
+
+      - template: /eng/common/templates-official/job/publish-build-assets.yml@self
+        parameters:
+          configuration: Release
+          dependsOn: Windows_NT
+          publishUsingPipelines: true
+          pool:
+            name: NetCore1ESPool-Internal
+            demands: ImageOverride -equals windows.vs2022.amd64
+            os: windows
+
+    - template: /eng/common/templates-official/post-build/post-build.yml@self
+      parameters:
+        # This is to enable SDL runs part of Post-Build Validation Stage.
+        # as well as NuGet, SourceLink, and signing validation.
+        # The variables get imported from group dotnet-diagnostics-sdl-params
+        publishingInfraVersion: 3
+        enableSourceLinkValidation: false
+        enableSigningValidation: true
+        enableSymbolValidation: false
+        enableNugetValidation: true
+        publishInstallersAndChecksums: true
