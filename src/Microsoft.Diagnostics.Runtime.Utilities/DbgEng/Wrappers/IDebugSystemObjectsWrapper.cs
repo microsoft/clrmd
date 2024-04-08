@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             GetVTable(this, out nint self, out IDebugSystemObjectsVtable* vtable);
             return vtable->GetCurrentThreadTeb(self, out teb);
         }
-        public int GetCurrentProcessTeb(out ulong teb)
+        int IDebugSystemObjects.GetCurrentProcessTeb(out ulong teb)
         {
             GetVTable(this, out nint self, out IDebugSystemObjectsVtable* vtable);
             return vtable->GetCurrentProcessPeb(self, out teb);
