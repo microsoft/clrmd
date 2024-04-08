@@ -22,5 +22,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         void ControlledOutput(DEBUG_OUTCTL outCtl, DEBUG_OUTPUT dbgOutput, string message);
         IEnumerable<DEBUG_STACK_FRAME_EX> EnumerateStackTrace(int maxFrames = 4096);
         bool GetLastEvent(out DEBUG_LAST_EVENT_INFO_EXCEPTION ex, out uint tid, [NotNullWhen(true)] out string? description);
+        int GetNumberProcessors(out uint numberProcessors);
+        int GetCurrentTimeDate(out DateTime? timeDate);
+        int GetCurrentSystemUpTime(out TimeSpan upTime);
     }
 }

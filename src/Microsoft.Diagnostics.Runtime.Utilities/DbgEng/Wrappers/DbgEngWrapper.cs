@@ -14,8 +14,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private static Guid IID_IDebugControl5 = new("b2ffe162-2412-429f-8d1d-5bf6dd824696");
         private static Guid IID_IDebugDataSpaces2 = new("7a5e852f-96e9-468f-ac1b-0b3addc4a049");
         private static Guid IID_IDebugSymbols3 = new("f02fbecc-50ac-4f36-9ad9-c975e8f32ff8");
-        private static Guid IID_IDebugSystemObjects3 = new("e9676e2f-e286-4ea3-b0f9-dfe5d9fc330e");
-        private static Guid IID_IDebugAdvanced = new("f2df5f53-071f-47bd-9de6-5734c3fed689");
+        private static Guid IID_IDebugSystemObjects4 = new("489468e6-7d0f-4af5-87ab-25207454d553");
+        private static Guid IID_IDebugAdvanced2 = new("716d14c9-119b-4ba5-af1f-0890e672416a");
 
         private readonly nint _client;
         private readonly nint _control;
@@ -55,11 +55,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             if (hr != 0)
                 _symbols = 0;
 
-            hr = Marshal.QueryInterface(pUnknown, ref IID_IDebugSystemObjects3, out _systemObjects);
+            hr = Marshal.QueryInterface(pUnknown, ref IID_IDebugSystemObjects4, out _systemObjects);
             if (hr != 0)
                 _systemObjects = 0;
 
-            hr = Marshal.QueryInterface(pUnknown, ref IID_IDebugAdvanced, out _advanced);
+            hr = Marshal.QueryInterface(pUnknown, ref IID_IDebugAdvanced2, out _advanced);
             if (hr != 0)
                 _advanced = 0;
         }

@@ -153,6 +153,32 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                 ArrayPool<char>.Shared.Return(buffer);
             }
         }
+        int IDebugControl.GetNumberProcessors(out uint numberProcessors)
+        {
+            GetVTable(this, out nint self, out IDebugControlVtable* vtable);
+            return vtable->GetNumberProcessors(self, out numberProcessors);
+        }
+
+        int IDebugControl.GetCurrentTimeDate(out DateTime? timeDate)
+        {
+            timeDate = null;
+            GetVTable(this, out nint self, out IDebugControlVtable* vtable);
+            HResult hr = vtable->GetCurrentTimeDate(self, out uint timeDateAsUnixTime);
+            if (hr == 0)
+            {
+                DateTimeOffset dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds(timeDateAsUnixTime);
+                timeDate = dateTimeOffset.DateTime.ToLocalTime();
+            }
+            return hr;
+        }
+
+        int IDebugControl.GetCurrentSystemUpTime(out TimeSpan upTime)
+        {
+            GetVTable(this, out nint self, out IDebugControlVtable* vtable);
+            HResult hr = vtable->GetCurrentSystemUpTime(self, out uint upTimeInSeconds);
+            upTime = TimeSpan.FromSeconds(upTimeInSeconds);
+            return hr;
+        }
 
         private static void GetVTable(object ths, out nint self, out IDebugControlVtable* vtable)
         {

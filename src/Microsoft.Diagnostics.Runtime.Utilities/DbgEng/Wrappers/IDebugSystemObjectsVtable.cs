@@ -36,14 +36,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint GetProcessIdsByIndex;
         private readonly nint GetCurrentProcessDataOffset;
         private readonly nint GetProcessIdByDataOffset;
-        private readonly nint GetCurrentProcessPeb;
+        public readonly delegate* unmanaged[Stdcall]<nint, out ulong, int> GetCurrentProcessPeb;
         private readonly nint GetProcessIdByPeb;
         public readonly delegate* unmanaged[Stdcall]<nint, out int, int> GetCurrentProcessSystemId;
         private readonly nint GetProcessIdBySystemId;
         private readonly nint GetCurrentProcessHandle;
         private readonly nint GetProcessIdByHandle;
         private readonly nint GetCurrentProcessExecutableName;
-        private readonly nint GetCurrentProcessUpTime;
+        public readonly delegate* unmanaged[Stdcall]<nint, out uint, int> GetCurrentProcessUpTime;
         private readonly nint GetImplicitThreadDataOffset;
         private readonly nint SetImplicitThreadDataOffset;
         private readonly nint GetImplicitProcessDataOffset;
@@ -57,5 +57,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint GetCurrentSystemServer;
         private readonly nint GetSystemByServer;
         private readonly nint GetCurrentSystemServerName;
+        public readonly delegate* unmanaged[Stdcall]<nint, char*, int, out int, int> GetCurrentProcessExecutableNameWide;
+        public readonly nint GetCurrentSystemServerNameWide;
     }
 }

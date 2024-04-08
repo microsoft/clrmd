@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Buffers;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
@@ -45,6 +46,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             GetVTable(this, out nint self, out IDebugSystemObjectsVtable* vtable);
             return vtable->GetCurrentThreadTeb(self, out teb);
         }
+        public int GetCurrentProcessTeb(out ulong teb)
+        {
+            GetVTable(this, out nint self, out IDebugSystemObjectsVtable* vtable);
+            return vtable->GetCurrentProcessPeb(self, out teb);
+        }
 
         int IDebugSystemObjects.GetNumberThreads(out int threadCount)
         {
@@ -64,6 +70,49 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
             fixed (uint* sysPtr = sysIds)
                 return vtable->GetThreadIdsByIndex(self, 0, sysIds.Length, null, sysPtr);
+        }
+
+        int IDebugSystemObjects.GetCurrentProcessUpTime(out TimeSpan upTime)
+        {
+            GetVTable(this, out nint self, out IDebugSystemObjectsVtable* vtable);
+            int hr = vtable->GetCurrentProcessUpTime(self, out uint upTimeInSeconds);
+            upTime = TimeSpan.FromSeconds(upTimeInSeconds);
+            return hr;
+        }
+
+        int IDebugSystemObjects.GetCurrentProcessExecutableNameWide(out string? exeName)
+        {
+            GetVTable(this, out nint self, out IDebugSystemObjectsVtable* vtable);
+            HResult hr = vtable->GetCurrentProcessExecutableNameWide(self, null, 0, out int size);
+
+            if (hr < 0)
+            {
+                exeName = null;
+                return hr;
+            }
+            else if (size is 0 or 1)
+            {
+                exeName = string.Empty;
+                return hr;
+            }
+
+            char[] buffer = ArrayPool<char>.Shared.Rent(size);
+            try
+            {
+                fixed (char* ptr = buffer)
+                    hr = vtable->GetCurrentProcessExecutableNameWide(self, ptr, size, out _);
+
+                if (hr == 0)
+                    exeName = new(buffer, 0, size - 1);
+                else
+                    exeName = null;
+
+                return hr;
+            }
+            finally
+            {
+                ArrayPool<char>.Shared.Return(buffer);
+            }
         }
 
         private static void GetVTable(object ths, out nint self, out IDebugSystemObjectsVtable* vtable)
