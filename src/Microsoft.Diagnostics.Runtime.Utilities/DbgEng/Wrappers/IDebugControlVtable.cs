@@ -53,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint GetExecutingProcessorType;
         private readonly nint GetNumberPossibleExecutingProcessorTypes;
         private readonly nint GetPossibleExecutingProcessorTypes;
-        private readonly nint GetNumberProcessors;
+        public readonly delegate* unmanaged[Stdcall]<nint, out uint, int> GetNumberProcessors;
         public readonly delegate* unmanaged[Stdcall]<nint, uint*, uint*, uint*, char*, int, int*, int*, byte*, int, int*, int> GetSystemVersion;
         private readonly nint GetPageSize;
         public readonly delegate* unmanaged[Stdcall]<nint, int> IsPointer64Bit;
@@ -111,8 +111,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint GetLastEventInformation;
 
         /* IDebugControl2 */
-        private readonly nint GetCurrentTimeDate;
-        private readonly nint GetCurrentSystemUpTime;
+        public readonly delegate* unmanaged[Stdcall]<nint, out uint, int> GetCurrentTimeDate;
+        public readonly delegate* unmanaged[Stdcall]<nint, out uint, int> GetCurrentSystemUpTime;
         private readonly nint GetDumpFormatFlags;
         private readonly nint GetNumberTextReplacements;
         private readonly nint GetTextReplacement;

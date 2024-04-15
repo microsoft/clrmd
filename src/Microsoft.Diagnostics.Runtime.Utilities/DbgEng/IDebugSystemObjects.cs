@@ -12,5 +12,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         public int GetNumberThreads(out int threadCount);
         public int GetThreadIdBySystemId(int systemId, out int threadId);
         public int GetThreadSystemIDs(Span<uint> sysIds);
+        public int GetCurrentProcessUpTime(out TimeSpan upTime);
+        public int GetCurrentProcessExecutableNameWide(out string? exeName);
+        public int GetCurrentProcessTeb(out ulong teb);
     }
 }

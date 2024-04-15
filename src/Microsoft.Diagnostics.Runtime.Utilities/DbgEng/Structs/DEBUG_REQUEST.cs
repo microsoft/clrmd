@@ -1,0 +1,44 @@
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng.Structs
+{
+    public enum DEBUG_REQUEST : uint
+    {
+        SOURCE_PATH_HAS_SOURCE_SERVER,
+        TARGET_EXCEPTION_CONTEXT,
+        TARGET_EXCEPTION_THREAD,
+        TARGET_EXCEPTION_RECORD,
+        GET_ADDITIONAL_CREATE_OPTIONS,
+        SET_ADDITIONAL_CREATE_OPTIONS,
+        GET_WIN32_MAJOR_MINOR_VERSIONS,
+        READ_USER_MINIDUMP_STREAM,
+        TARGET_CAN_DETACH,
+        SET_LOCAL_IMPLICIT_COMMAND_LINE,
+        GET_CAPTURED_EVENT_CODE_OFFSET,
+        READ_CAPTURED_EVENT_CODE_STREAM,
+        EXT_TYPED_DATA_ANSI,
+        GET_EXTENSION_SEARCH_PATH_WIDE,
+        GET_TEXT_COMPLETIONS_WIDE,
+        GET_CACHED_SYMBOL_INFO,
+        ADD_CACHED_SYMBOL_INFO,
+        REMOVE_CACHED_SYMBOL_INFO,
+        GET_TEXT_COMPLETIONS_ANSI,
+        CURRENT_OUTPUT_CALLBACKS_ARE_DML_AWARE,
+        GET_OFFSET_UNWIND_INFORMATION,
+        GET_DUMP_HEADER,
+        SET_DUMP_HEADER,
+        MIDORI,
+        PROCESS_DESCRIPTORS,
+        MISC_INFORMATION,
+        OPEN_PROCESS_TOKEN,
+        OPEN_THREAD_TOKEN,
+        DUPLICATE_TOKEN,
+        QUERY_INFO_TOKEN,
+        CLOSE_TOKEN,
+        WOW_PROCESS,
+        WOW_MODULE,
+        LIVE_USER_NON_INVASIVE,
+        RESUME_THREAD
+    }
+}
