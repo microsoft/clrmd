@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                if (_moduleInfo.Address == _moduleAddress)
+                if (initialized == 1)
                 {
                     return _moduleInfo;
                 }
