@@ -447,13 +447,13 @@ namespace Microsoft.Diagnostics.Runtime
                 }
 
                 IAbstractModuleHelpers moduleHelpers = GetServiceOrThrow<IAbstractModuleHelpers>();
+                IAbstractClrNativeHeaps? nativeHeaps = GetService<IAbstractClrNativeHeaps>();
                 ImmutableArray<ClrModule>.Builder moduleBuilder = ImmutableArray.CreateBuilder<ClrModule>();
                 foreach (ulong moduleAddress in GetDacRuntime().GetModuleList(domain.Address))
                 {
                     if (!modules.TryGetValue(moduleAddress, out ClrModule? module))
                     {
-                        ClrModuleInfo moduleInfo = moduleHelpers.GetModuleInfo(moduleAddress);
-                        module = new(domain, moduleInfo, moduleHelpers, GetService<IAbstractClrNativeHeaps>(), DataTarget.DataReader);
+                        module = new(domain, moduleAddress, moduleHelpers, nativeHeaps, DataTarget.DataReader);
                         modules.Add(moduleAddress, module);
                     }
 
@@ -475,7 +475,7 @@ namespace Microsoft.Diagnostics.Runtime
                 domain.Modules = moduleBuilder.MoveOrCopyToImmutable();
             }
 
-            return new(system, shared, builder.MoveOrCopyToImmutable(), modules.Values.OrderBy(r => (r.ImageBase, r.Name)).ToArray(), bcl);
+            return new(system, shared, builder.MoveOrCopyToImmutable(), modules.Values.ToArray(), bcl);
         }
 
         private sealed class DomainAndModules

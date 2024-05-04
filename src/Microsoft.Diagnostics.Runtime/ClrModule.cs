@@ -6,9 +6,9 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.InteropServices;
+using System.Threading;
+
 using Microsoft.Diagnostics.Runtime.AbstractDac;
-using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrModule : IClrModule
     {
-        private readonly IAbstractModuleHelpers? _helpers;
+        private readonly IAbstractModuleHelpers _helpers;
         private readonly IAbstractClrNativeHeaps? _nativeHeapHelpers;
         private IAbstractMetadataReader? _metadata;
 
@@ -31,26 +31,49 @@ namespace Microsoft.Diagnostics.Runtime
         private ulong? _size;
         private ClrHeap? _heap;
 
-        internal ClrModuleInfo ModuleInfo { get; }
+        private int initialized;
+        private readonly ulong _moduleAddress;
+        private ClrModuleInfo _moduleInfo;
+
+        internal ClrModuleInfo ModuleInfo
+        {
+            get
+            {
+                if (_moduleInfo.Address == _moduleAddress)
+                {
+                    return _moduleInfo;
+                }
+
+                ClrModuleInfo tmp = _helpers.GetModuleInfo(_moduleAddress);
+
+                if (Interlocked.Exchange(ref initialized, 1) == 0)
+                {
+                    _moduleInfo = tmp;
+
+                    if (_moduleInfo.Size != 0)
+                        _size = _moduleInfo.Size;
+                }
+
+                return _moduleInfo;
+            }
+        }
+
         internal ClrHeap Heap => _heap ??= AppDomain.Runtime.Heap;
         internal IDataReader DataReader { get; }
 
-        internal ClrModule(ClrAppDomain domain, in ClrModuleInfo data, IAbstractModuleHelpers? moduleHelpers, IAbstractClrNativeHeaps? nativeHeapHelpers, IDataReader dataReader)
+        internal ClrModule(ClrAppDomain domain, ulong moduleAddress, IAbstractModuleHelpers moduleHelpers, IAbstractClrNativeHeaps? nativeHeapHelpers, IDataReader dataReader)
         {
-            _helpers = moduleHelpers;
-            _nativeHeapHelpers = nativeHeapHelpers;
             DataReader = dataReader;
             AppDomain = domain;
-            ModuleInfo = data;
-
-            if (ModuleInfo.Size != 0)
-                _size = ModuleInfo.Size;
+            _helpers = moduleHelpers;
+            _nativeHeapHelpers = nativeHeapHelpers;
+            _moduleAddress = moduleAddress;
         }
 
         /// <summary>
         /// Gets the address of the clr!Module object.
         /// </summary>
-        public ulong Address => ModuleInfo.Address;
+        public ulong Address => _moduleAddress;
 
         /// <summary>
         /// Gets the AppDomain parent of this module.
