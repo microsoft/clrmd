@@ -28,35 +28,12 @@ namespace Microsoft.Diagnostics.Runtime
         private PdbInfo? _pdb;
         private (ulong MethodTable, int Token)[]? _typeDefMap;
         private (ulong MethodTable, int Token)[]? _typeRefMap;
-        private ulong? _size;
         private ClrHeap? _heap;
 
-        private int initialized;
         private readonly ulong _moduleAddress;
-        private ClrModuleInfo _moduleInfo;
+        private Lazy<ClrModuleInfo> _moduleInfo;
 
-        internal ClrModuleInfo ModuleInfo
-        {
-            get
-            {
-                if (initialized == 1)
-                {
-                    return _moduleInfo;
-                }
-
-                ClrModuleInfo tmp = _helpers.GetModuleInfo(_moduleAddress);
-
-                if (Interlocked.Exchange(ref initialized, 1) == 0)
-                {
-                    _moduleInfo = tmp;
-
-                    if (_moduleInfo.Size != 0)
-                        _size = _moduleInfo.Size;
-                }
-
-                return _moduleInfo;
-            }
-        }
+        internal ClrModuleInfo ModuleInfo => _moduleInfo.Value;
 
         internal ClrHeap Heap => _heap ??= AppDomain.Runtime.Heap;
         internal IDataReader DataReader { get; }
@@ -68,6 +45,7 @@ namespace Microsoft.Diagnostics.Runtime
             _helpers = moduleHelpers;
             _nativeHeapHelpers = nativeHeapHelpers;
             _moduleAddress = moduleAddress;
+            _moduleInfo = new Lazy<ClrModuleInfo>(() => _helpers.GetModuleInfo(_moduleAddress));
         }
 
         /// <summary>
@@ -125,7 +103,19 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the size of the image in memory.
         /// </summary>
-        public ulong Size => _size ??= GetSize();
+        public ulong Size
+        {
+            get
+            {
+                ulong size = ModuleInfo.Size;
+                if (size != 0)
+                {
+                    return size;
+                }
+
+                return GetSize();
+            }
+        }
 
         /// <summary>
         /// Gets the location of metadata for this module in the process's memory.  This is useful if you
