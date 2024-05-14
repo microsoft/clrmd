@@ -6,9 +6,9 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.InteropServices;
+using System.Threading;
+
 using Microsoft.Diagnostics.Runtime.AbstractDac;
-using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrModule : IClrModule
     {
-        private readonly IAbstractModuleHelpers? _helpers;
+        private readonly IAbstractModuleHelpers _helpers;
         private readonly IAbstractClrNativeHeaps? _nativeHeapHelpers;
         private IAbstractMetadataReader? _metadata;
 
@@ -28,29 +28,30 @@ namespace Microsoft.Diagnostics.Runtime
         private PdbInfo? _pdb;
         private (ulong MethodTable, int Token)[]? _typeDefMap;
         private (ulong MethodTable, int Token)[]? _typeRefMap;
-        private ulong? _size;
         private ClrHeap? _heap;
 
-        internal ClrModuleInfo ModuleInfo { get; }
+        private readonly ulong _moduleAddress;
+        private Lazy<ClrModuleInfo> _moduleInfo;
+
+        internal ClrModuleInfo ModuleInfo => _moduleInfo.Value;
+
         internal ClrHeap Heap => _heap ??= AppDomain.Runtime.Heap;
         internal IDataReader DataReader { get; }
 
-        internal ClrModule(ClrAppDomain domain, in ClrModuleInfo data, IAbstractModuleHelpers? moduleHelpers, IAbstractClrNativeHeaps? nativeHeapHelpers, IDataReader dataReader)
+        internal ClrModule(ClrAppDomain domain, ulong moduleAddress, IAbstractModuleHelpers moduleHelpers, IAbstractClrNativeHeaps? nativeHeapHelpers, IDataReader dataReader)
         {
-            _helpers = moduleHelpers;
-            _nativeHeapHelpers = nativeHeapHelpers;
             DataReader = dataReader;
             AppDomain = domain;
-            ModuleInfo = data;
-
-            if (ModuleInfo.Size != 0)
-                _size = ModuleInfo.Size;
+            _helpers = moduleHelpers;
+            _nativeHeapHelpers = nativeHeapHelpers;
+            _moduleAddress = moduleAddress;
+            _moduleInfo = new Lazy<ClrModuleInfo>(() => _helpers.GetModuleInfo(_moduleAddress));
         }
 
         /// <summary>
         /// Gets the address of the clr!Module object.
         /// </summary>
-        public ulong Address => ModuleInfo.Address;
+        public ulong Address => _moduleAddress;
 
         /// <summary>
         /// Gets the AppDomain parent of this module.
@@ -102,7 +103,19 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the size of the image in memory.
         /// </summary>
-        public ulong Size => _size ??= GetSize();
+        public ulong Size
+        {
+            get
+            {
+                ulong size = ModuleInfo.Size;
+                if (size != 0)
+                {
+                    return size;
+                }
+
+                return GetSize();
+            }
+        }
 
         /// <summary>
         /// Gets the location of metadata for this module in the process's memory.  This is useful if you
@@ -266,9 +279,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             // Not correct, but as close as we can get until we add more information to the dac.
             bool virt = Layout != ModuleLayout.Flat;
-            long size = 0;
-            if (_size is ulong sz)
-                size = (long)sz;
+            long size = (long)ModuleInfo.Size;
 
             ReadVirtualStream stream = new(DataReader, (long)ImageBase, size > 0 ? size : int.MaxValue);
             return new(stream, leaveOpen: false, isVirtual: virt);

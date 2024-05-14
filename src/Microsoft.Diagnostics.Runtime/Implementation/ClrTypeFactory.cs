@@ -379,7 +379,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
 
             if (!_modules.TryGetValue(moduleAddress, out ClrModule? module))
-                module = _errorModule ??= new(_heap.Runtime.AppDomains[0], default, null, null, _heap.Runtime.DataTarget.DataReader);
+                module = _errorModule ??= new(_heap.Runtime.AppDomains[0], 0, _heap.Runtime.GetServiceOrThrow<IAbstractModuleHelpers>(), null, _heap.Runtime.DataTarget.DataReader);
 
             return module;
         }
