@@ -9,7 +9,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <StyleCopAnalyzersVersion>1.2.0-beta.406</StyleCopAnalyzersVersion>
-    <MicrosoftDotNetCodeAnalysisVersion>8.0.0-beta.24225.1</MicrosoftDotNetCodeAnalysisVersion>
+    <MicrosoftDotNetCodeAnalysisVersion>8.0.0-beta.24266.3</MicrosoftDotNetCodeAnalysisVersion>
     <!-- Roslyn and analyzers -->
     <!-- Compatibility with VS 16.11/.NET SDK 5.0.4xx -->
     <MicrosoftCodeAnalysisVersion_3_11>3.11.0</MicrosoftCodeAnalysisVersion_3_11>
