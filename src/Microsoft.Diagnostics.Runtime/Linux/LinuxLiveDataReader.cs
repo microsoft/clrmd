@@ -151,8 +151,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 return 0;
             }
 
-            _fileStream!.Seek((long)address, SeekOrigin.Begin);
-            return _fileStream.Read(buffer.Slice(0, readableBytesCount));
+            try
+            {
+                _fileStream!.Seek((long)address, SeekOrigin.Begin);
+                return _fileStream.Read(buffer.Slice(0, readableBytesCount));
+            }
+            catch (IOException)
+            {
+                return 0;
+            }
         }
 
         private unsafe int ReadMemoryReadv(ulong address, Span<byte> buffer)
