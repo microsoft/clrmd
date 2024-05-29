@@ -108,7 +108,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             {
                 ipOffset = 264;
                 spOffset = 24;
-                contextSize = 532;
+                contextSize = 544;
             }
             else if (_dataReader.Architecture == Architecture.X86)
             {
