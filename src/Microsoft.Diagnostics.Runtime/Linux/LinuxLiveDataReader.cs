@@ -25,6 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool _suspended;
         private bool _disposed;
+        private FileStream? _fileStream;
 
         public string DisplayName => $"pid:{ProcessId:x}";
         public OSPlatform TargetPlatform => OSPlatform.Linux;
@@ -63,6 +64,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (_disposed)
                 return;
+
+            _fileStream?.Dispose();
 
             if (_suspended)
             {
@@ -123,7 +126,40 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public override int Read(ulong address, Span<byte> buffer)
         {
             DebugOnly.Assert(!buffer.IsEmpty);
-            return ReadMemoryReadv(address, buffer);
+
+            if (_fileStream == null)
+            {
+                try
+                {
+                    return ReadMemoryReadv(address, buffer);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    // process_vm_readv failed with EPERM, fallback to /proc/pid/mem
+                    _fileStream = new FileStream($"/proc/{ProcessId}/mem", FileMode.Open, FileAccess.Read, FileShare.Read);
+                }
+            }
+
+            return ReadMemoryProc(address, buffer);
+        }
+
+        private unsafe int ReadMemoryProc(ulong address, Span<byte> buffer)
+        {
+            int readableBytesCount = this.GetReadableBytesCount(this._memoryMapEntries, address, buffer.Length);
+            if (readableBytesCount <= 0)
+            {
+                return 0;
+            }
+
+            try
+            {
+                _fileStream!.Seek((long)address, SeekOrigin.Begin);
+                return _fileStream.Read(buffer.Slice(0, readableBytesCount));
+            }
+            catch (IOException)
+            {
+                return 0;
+            }
         }
 
         private unsafe int ReadMemoryReadv(ulong address, Span<byte> buffer)
