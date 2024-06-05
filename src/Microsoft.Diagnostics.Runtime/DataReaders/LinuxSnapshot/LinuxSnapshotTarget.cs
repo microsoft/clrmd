@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using Azure.Core;
 using Microsoft.Diagnostics.NETCore.Client;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -12,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly int _pid;
         private readonly string _filename;
 
-        public LinuxSnapshotTarget(IDataReader reader, int pid, string filename) : base(reader)
+        public LinuxSnapshotTarget(IDataReader reader, int pid, string filename, TokenCredential? credential = null) : base(reader, credential)
         {
             _pid = pid;
             _filename = filename;
