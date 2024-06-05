@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         internal static IFileLocator GetLocator()
         {
-            return SymbolGroup.CreateFromSymbolPath($"srv*{Helpers.TestWorkingDirectory}*http://msdl.microsoft.com/download/symbols");
+            return SymbolGroup.CreateFromSymbolPath($"srv*{Helpers.TestWorkingDirectory}*http://msdl.microsoft.com/download/symbols", null);
         }
 
         [Fact(Skip = "Touches network, don't run regularly.")]
