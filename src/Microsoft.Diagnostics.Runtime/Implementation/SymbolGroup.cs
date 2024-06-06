@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Azure.Core;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -86,7 +87,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return s_cache!;
         }
 
-        public static IFileLocator CreateFromSymbolPath(string symbolPath)
+        public static IFileLocator CreateFromSymbolPath(string symbolPath, TokenCredential? credential)
         {
             FileSymbolCache defaultCache = GetDefaultCache();
             List<IFileLocator> locators = new();
@@ -113,7 +114,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 {
                     if (server.StartsWith("http:", StringComparison.OrdinalIgnoreCase) || server.StartsWith("https:", StringComparison.OrdinalIgnoreCase))
                     {
-                        SymbolServer symSvr = new(cache, server);
+                        SymbolServer symSvr = new(cache, server, credential);
                         locators.Add(symSvr);
 
                         if (first)
@@ -141,7 +142,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return single;
 
             if (locators.Count == 0)
-                return new SymbolServer(defaultCache, SymbolServer.Msdl);
+                return new SymbolServer(defaultCache, SymbolServer.Msdl, null);
 
             return new SymbolGroup(locators);
         }

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using Azure.Core;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -36,11 +37,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public string? DefaultSymbolPath { get; set; }
 
+        public TokenCredential? SymbolTokenCredential { get; set; }
+
         /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="reader">A non-null IDataReader.</param>
-        public CustomDataTarget(IDataReader reader)
+        /// <param name="symbolCredential">The TokenCredential to use for any Azure based symbol servers (set to null if not using one).</param>
+        public CustomDataTarget(IDataReader reader, TokenCredential? symbolCredential)
         {
             DataReader = reader ?? throw new ArgumentNullException(nameof(reader));
         }

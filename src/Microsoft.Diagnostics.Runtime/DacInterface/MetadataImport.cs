@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     for (int i = 0; i < count; i++)
                         yield return tokens[i];
 
-                bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count)
+                unsafe bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count)
                 {
                     fixed (int* ptr = tokens)
                     {
@@ -142,7 +142,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     for (int i = 0; i < count; i++)
                         yield return tokens[i];
 
-                bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count)
+                unsafe bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count)
                 {
                     fixed (int* ptr = tokens)
                     {
@@ -193,7 +193,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     for (int i = 0; i < count; i++)
                         yield return tokens[i];
 
-                bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count)
+                unsafe bool Enum(ref IntPtr handle, int token, int[] tokens, int length, out int count)
                 {
                     fixed (int* ptr = tokens)
                     {

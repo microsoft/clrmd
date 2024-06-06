@@ -109,7 +109,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 DataTarget dataTarget = DataTarget.LoadDump(path);
-                dataTarget.FileLocator = SymbolGroup.CreateFromSymbolPath(string.Empty);
+                dataTarget.FileLocator = SymbolGroup.CreateFromSymbolPath(string.Empty, null);
                 return dataTarget;
             }
             else
@@ -136,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             string dumpPath = BuildDumpName(gc, true);
             Utilities.DbgEng.DbgEngIDataReader dbgengReader = new(dumpPath);
-            return new DataTarget(new CustomDataTarget(dbgengReader));
+            return new DataTarget(new CustomDataTarget(dbgengReader, null));
         }
     }
 }

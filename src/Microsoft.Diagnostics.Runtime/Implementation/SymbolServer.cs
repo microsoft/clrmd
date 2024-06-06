@@ -7,7 +7,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
+using Azure.Core;
+using Azure.Identity;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -15,27 +18,25 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     internal sealed class SymbolServer : FileLocatorBase
     {
         public const string Msdl = "https://msdl.microsoft.com/download/symbols";
-
+        private const string SymwebHost = "symweb.azurefd.net";
+        private readonly TokenCredential? _tokenCredential;
+        private AccessToken _accessToken;
         private readonly FileSymbolCache _cache;
         private readonly HttpClient _http = new();
 
-        public bool SupportsCompression { get; private set; } = true;
-        public bool SupportsRedirection { get; private set; }
-
         public string Server { get; private set; }
 
-        internal SymbolServer(FileSymbolCache cache, string server)
+        internal SymbolServer(FileSymbolCache cache, string server, TokenCredential? credential)
         {
             if (cache is null)
                 throw new ArgumentNullException(nameof(cache));
 
             _cache = cache;
-            Server = server;
+            _accessToken = default;Server = server;
 
             if (IsSymweb(server))
             {
-                SupportsCompression = false;
-                SupportsRedirection = true;
+                _tokenCredential = credential ?? new DefaultAzureCredential();
             }
         }
 
@@ -44,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             try
             {
                 Uri uri = new(server);
-                return uri.Host.Equals("symweb", StringComparison.OrdinalIgnoreCase) || uri.Host.Equals("symweb.corp.microsoft.com", StringComparison.OrdinalIgnoreCase);
+                return uri.Host.Equals(SymwebHost, StringComparison.OrdinalIgnoreCase);
             }
             catch
             {
@@ -131,94 +132,27 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             string fullPath = $"{Server}/{key.Replace('\\', '/')}";
 
-            // If this server supports redirected files (E.G. symweb), then the vast majority of files are
-            // archived via redirection.  Check that first before trying others to reduce requests.
+            string? accessToken = await GetAccessTokenAsync().ConfigureAwait(false);
+            if (accessToken is not null)
+                _http.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
 
-            Task<string?> redirectedFile = Task.FromResult<string?>(null);
-            if (SupportsRedirection)
-            {
-                int last = fullPath.LastIndexOfAny(new char[] { '/', '\\' }) + 1;
+            HttpResponseMessage response = await _http.GetAsync(fullPath).ConfigureAwait(false);
+            if (response.IsSuccessStatusCode)
+                return await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
-#pragma warning disable CA1845 // Use span-based 'string.Concat'. Not in NS2.0
-                string filePtrPath = fullPath.Substring(0, last) + "file.ptr";
-#pragma warning restore CA1845 // Use span-based 'string.Concat'
-                redirectedFile = GetStringOrNull(filePtrPath);
-            }
-
-            string? path = await redirectedFile.ConfigureAwait(false);
-            if (path is not null)
-            {
-                try
-                {
-                    if (path.StartsWith("PATH:", StringComparison.Ordinal))
-                    {
-                        path = path.Substring(5);
-
-                        if (File.Exists(path))
-                            return File.OpenRead(path);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Trace.WriteLine(ex.ToString());
-                }
-            }
-
-            Task<HttpResponseMessage> file = _http.GetAsync(fullPath);
-            Task<HttpResponseMessage?> compressed = Task.FromResult<HttpResponseMessage?>(null);
-
-#pragma warning disable CA1845 // Use span-based 'string.Concat'. Not in NS2.0.
-            string compressedPath = fullPath.Substring(0, fullPath.Length - 1) + '_';
-#pragma warning restore CA1845 // Use span-based 'string.Concat'
-            if (SupportsCompression)
-                compressed = _http.GetAsync(compressedPath)!;
-
-            HttpResponseMessage fileResponse = await file.ConfigureAwait(false);
-            if (fileResponse.IsSuccessStatusCode)
-                return await fileResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
-            else
-                fileResponse.Dispose();
-
-            HttpResponseMessage? compressedResponse = await compressed.ConfigureAwait(false);
-            if (compressedResponse is not null && compressedResponse.IsSuccessStatusCode)
-            {
-                string tmpPath = Path.Combine(Path.GetTempPath(), Path.GetFileNameWithoutExtension(compressedPath));
-                string output = Path.Combine(Path.GetTempPath(), Path.GetFileNameWithoutExtension(fullPath));
-
-                Command.Run("Expand " + Command.Quote(tmpPath) + " " + Command.Quote(output));
-                MemoryStream ms = new();
-                using (FileStream fs = File.OpenRead(output))
-                    await fs.CopyToAsync(ms).ConfigureAwait(false);
-
-                ms.Position = 0;
-                try
-                {
-                    if (File.Exists(output))
-                        File.Delete(output);
-
-                    if (File.Exists(tmpPath))
-                        File.Delete(tmpPath);
-                }
-                catch
-                {
-                }
-
-                return ms;
-            }
-
+            response.Dispose();
             return null;
         }
 
-        private async Task<string?> GetStringOrNull(string filePtrPath)
+        private async Task<string?> GetAccessTokenAsync()
         {
-            try
-            {
-                return await _http.GetStringAsync(filePtrPath).ConfigureAwait(false);
-            }
-            catch
-            {
+            if (_tokenCredential is null)
                 return null;
-            }
+
+            if (_accessToken.ExpiresOn <= DateTimeOffset.UtcNow.AddMinutes(2))
+                _accessToken = await _tokenCredential.GetTokenAsync(new TokenRequestContext(["api://af9e1c69-e5e9-4331-8cc5-cdf93d57bafa/.default"]), default).ConfigureAwait(false);
+
+            return _accessToken.Token;
         }
     }
 }

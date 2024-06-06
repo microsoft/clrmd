@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Azure.Core;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 using Microsoft.Diagnostics.Runtime.MacOS;
@@ -68,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (locator == null)
             {
                 string sympath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH") ?? "";
-                locator = SymbolGroup.CreateFromSymbolPath(sympath);
+                locator = SymbolGroup.CreateFromSymbolPath(sympath, _target.SymbolTokenCredential);
             }
 
             FileLocator = locator;
@@ -79,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (symbolPath is null)
                 throw new ArgumentNullException(nameof(symbolPath));
 
-            FileLocator = SymbolGroup.CreateFromSymbolPath(symbolPath);
+            FileLocator = SymbolGroup.CreateFromSymbolPath(symbolPath, _target.SymbolTokenCredential);
         }
 
         public void Dispose()
@@ -243,8 +244,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="stream">The stream that should be used.</param>
         /// <param name="cacheOptions">The caching options to use. (Only used for FileStreams)</param>
         /// <param name="leaveOpen">True whenever the given stream should be leaved open when the DataTarget is disposed.</param>
+        /// <param name="symbolCredential">A TokenCredential for azure based symbol servers.</param>
         /// <returns>A <see cref="DataTarget"/> for the given dump.</returns>
-        public static DataTarget LoadDump(string displayName, Stream stream, CacheOptions? cacheOptions = null, bool leaveOpen = false)
+        public static DataTarget LoadDump(string displayName, Stream stream, CacheOptions? cacheOptions = null, bool leaveOpen = false, TokenCredential? symbolCredential = null)
         {
             try
             {
@@ -278,7 +280,7 @@ namespace Microsoft.Diagnostics.Runtime
                     _ => throw new InvalidDataException($"Stream '{displayName}' is in an unknown or unsupported file format."),
                 };
 
-                return new DataTarget(new CustomDataTarget(reader) { CacheOptions = cacheOptions });
+                return new DataTarget(new CustomDataTarget(reader, symbolCredential) { CacheOptions = cacheOptions });
             }
             catch
             {
@@ -292,23 +294,25 @@ namespace Microsoft.Diagnostics.Runtime
         /// Loads a dump file. Currently supported formats are Mach-O coredump, ELF coredump, and Windows Minidump formats.
         /// </summary>
         /// <param name="filePath">The path to the dump file.</param>
+        /// <param name="symbolCredential">The TokenCredential to use for any Azure based symbol servers (set to null if not using one).</param>
         /// <returns>A <see cref="DataTarget"/> for the given dump file.</returns>
-        public static DataTarget LoadDump(string filePath) => LoadDump(filePath, null);
+        public static DataTarget LoadDump(string filePath, TokenCredential? symbolCredential = null) => LoadDump(filePath, null, symbolCredential);
 
         /// <summary>
         /// Loads a dump file. Currently supported formats are Mach-O coredump, ELF coredump, and Windows Minidump formats.
         /// </summary>
         /// <param name="filePath">The path to the dump file.</param>
         /// <param name="cacheOptions">The caching options to use.</param>
+        /// <param name="symbolCredential">The TokenCredential to use for any Azure based symbol servers (set to null if not using one).</param>
         /// <returns>A <see cref="DataTarget"/> for the given dump file.</returns>
-        public static DataTarget LoadDump(string filePath, CacheOptions? cacheOptions)
+        public static DataTarget LoadDump(string filePath, CacheOptions? cacheOptions, TokenCredential? symbolCredential = null)
         {
             if (filePath is null)
                 throw new ArgumentNullException(nameof(filePath));
             if (!File.Exists(filePath))
                 throw new FileNotFoundException($"Could not open dump file '{filePath}'.", filePath);
             FileStream stream = File.OpenRead(filePath);
-            return LoadDump(filePath, stream, cacheOptions, leaveOpen: false);
+            return LoadDump(filePath, stream, cacheOptions, leaveOpen: false, symbolCredential: symbolCredential);
         }
 
         private static DumpFileFormat ReadFileFormat(Stream stream)
@@ -352,23 +356,24 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="processId">The ID of the process to attach to.</param>
         /// <param name="suspend">Whether or not to suspend the process.</param>
+        /// <param name="symbolCredential">The TokenCredential to use for any Azure based symbol servers (set to null if not using one).</param>
         /// <returns>A <see cref="DataTarget"/> instance.</returns>
-        public static DataTarget AttachToProcess(int processId, bool suspend)
+        public static DataTarget AttachToProcess(int processId, bool suspend, TokenCredential? symbolCredential = null)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 WindowsProcessDataReaderMode mode = suspend ? WindowsProcessDataReaderMode.Suspend : WindowsProcessDataReaderMode.Passive;
-                return new DataTarget(new CustomDataTarget(new WindowsProcessDataReader(processId, mode)));
+                return new DataTarget(new CustomDataTarget(new WindowsProcessDataReader(processId, mode), symbolCredential));
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                return new DataTarget(new CustomDataTarget(new LinuxLiveDataReader(processId, suspend)));
+                return new DataTarget(new CustomDataTarget(new LinuxLiveDataReader(processId, suspend), symbolCredential));
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                return new DataTarget(new CustomDataTarget(new MacOSProcessDataReader(processId, suspend)));
+                return new DataTarget(new CustomDataTarget(new MacOSProcessDataReader(processId, suspend), symbolCredential));
             }
 
             throw GetPlatformException();
@@ -379,6 +384,7 @@ namespace Microsoft.Diagnostics.Runtime
         ///
         /// </summary>
         /// <param name="processId">The ID of the process to attach to.</param>
+        /// <param name="symbolCredential">The TokenCredential to use for any Azure based symbol servers (set to null if not using one).</param>
         /// <returns>A <see cref="DataTarget"/> instance.</returns>
         /// <exception cref="ArgumentException">
         /// The process specified by <paramref name="processId"/> is not running.
@@ -386,11 +392,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <exception cref="PlatformNotSupportedException">
         /// The current platform is not Windows.
         /// </exception>
-        public static DataTarget CreateSnapshotAndAttach(int processId)
+        public static DataTarget CreateSnapshotAndAttach(int processId, TokenCredential? symbolCredential = null)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                CustomDataTarget customTarget = new(new WindowsProcessDataReader(processId, WindowsProcessDataReaderMode.Snapshot));
+                CustomDataTarget customTarget = new(new WindowsProcessDataReader(processId, WindowsProcessDataReaderMode.Snapshot), symbolCredential);
                 return new DataTarget(customTarget);
             }
 
@@ -414,7 +420,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 throw GetPlatformException();
 
-            CustomDataTarget customTarget = new(new DbgEngDataReader(pDebugClient));
+            CustomDataTarget customTarget = new(new DbgEngDataReader(pDebugClient), null);
             return new DataTarget(customTarget);
         }
 
