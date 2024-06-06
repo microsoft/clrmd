@@ -44,9 +44,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="reader">A non-null IDataReader.</param>
         /// <param name="symbolCredential">The TokenCredential to use for any Azure based symbol servers (set to null if not using one).</param>
-        public CustomDataTarget(IDataReader reader, TokenCredential? symbolCredential)
+        public CustomDataTarget(IDataReader reader, TokenCredential? symbolCredential = null)
         {
             DataReader = reader ?? throw new ArgumentNullException(nameof(reader));
+            SymbolTokenCredential = symbolCredential;
         }
 
         /// <summary>
