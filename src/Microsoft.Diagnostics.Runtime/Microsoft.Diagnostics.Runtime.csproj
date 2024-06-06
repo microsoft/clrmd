@@ -30,11 +30,11 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.Identity" Version="1.11.3" />
-    <PackageReference Include="Microsoft.Diagnostics.NETCore.Client" Version="0.2.410101" />
+    <PackageReference Include="Microsoft.Diagnostics.NETCore.Client" Version="0.2.510501" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
-    <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
+    <PackageReference Include="System.Collections.Immutable" Version="8.0.0" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
   </ItemGroup>
 
