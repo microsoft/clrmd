@@ -15,9 +15,6 @@ using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
-// Disable warning for ClrObject ctor.  TODO:  Remove this in 3.1.
-#pragma warning disable CS0618 // Type or member is obsolete
-
 namespace Microsoft.Diagnostics.Runtime
 {
     /// <summary>
