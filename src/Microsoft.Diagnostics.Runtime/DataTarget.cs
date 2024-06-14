@@ -195,15 +195,40 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (_clrs.IsDefault)
             {
+                IEnumerable<ModuleInfo> modules = EnumerateModules();
+                IEnumerable<ClrInfo>? clrs = null;
+
+                // First try the SpecialDiagInfo block short cut to find a supported runtime
+                if (!_target.ForceCompleteRuntimeEnumeration && DataReader.TargetPlatform != OSPlatform.Windows)
+                {
+                    if (SpecialDiagInfo.TryReadSpecialDiagInfo(DataReader, out SpecialDiagInfo info) && info.RuntimeBaseAddress != 0)
+                    {
+                        Debug.Assert(_modules != null);
+                        
+                        // The above EnumerateModules() call populated (the sorted) _modules array
+                        int found = _modules!.Search(info.RuntimeBaseAddress, (m, k) => m.ImageBase.CompareTo(k));
+                        if (found > 0)
+                        {
+                            // Run the module through the clr info providers to see if it is an app model/runtime supported by CLRMD
+                            clrs = from clrInfo in s_clrInfoProviders.Select(provider => provider.ProvideClrInfoForModule(this, _modules![found])).Where(clrInfo => clrInfo != null)
+                                   where clrInfo != null
+                                   orderby clrInfo.Flavor descending, clrInfo.Version
+                                   select clrInfo;
+                        }
+                    }
+                }
+
+                // If no runtimes where found from the SpecialDiagInfo block, run all the modules through the clr info providers
+
                 // We order this so .Net Core comes first, so if there's multiple CLRs we prefer
                 // to debug .Net Core (assuming the user is just debugging one of them)
 
-                IEnumerable<ClrInfo> clrs = from module in EnumerateModules()
-                                            let clrInfoEnumerable = s_clrInfoProviders.Select(provider => provider.ProvideClrInfoForModule(this, module)).Where(clrInfo => clrInfo != null)
-                                            let clrInfo = clrInfoEnumerable.LastOrDefault()
-                                            where clrInfo != null
-                                            orderby clrInfo.Flavor descending, clrInfo.Version
-                                            select clrInfo;
+                clrs ??= from module in modules
+                       let clrInfos = s_clrInfoProviders.Select(provider => provider.ProvideClrInfoForModule(this, module)).Where(clrInfo => clrInfo != null)
+                       let clrInfo = clrInfos.LastOrDefault()
+                       where clrInfo != null
+                       orderby clrInfo.Flavor descending, clrInfo.Version
+                       select clrInfo;
 
                 _clrs = clrs.ToImmutableArray();
             }
