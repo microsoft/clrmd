@@ -78,7 +78,7 @@ extends:
           - job: Linux
             pool:
               name: NetCore1ESPool-Internal
-              demands: ImageOverride -equals 1es-ubuntu-2204-pt
+              demands: ImageOverride -equals 1es-ubuntu-2204
               os: linux
 
             strategy:
