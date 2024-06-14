@@ -27,8 +27,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="address">The address of the object.</param>
         /// <param name="type">The concrete type of the object.</param>
-        [Obsolete("Use ClrHeap.GetObject instead.")]
-        public ClrObject(ulong address, ClrType? type)
+        internal ClrObject(ulong address, ClrType? type)
         {
             Address = address;
             _type = type;
