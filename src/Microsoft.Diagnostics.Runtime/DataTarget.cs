@@ -196,7 +196,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (_clrs.IsDefault)
             {
                 IEnumerable<ModuleInfo> modules = EnumerateModules();
-                IEnumerable<ClrInfo>? clrs = null;
+                IEnumerable<ClrInfo>? clrs = Array.Empty<ClrInfo>();
 
                 // First try the SpecialDiagInfo block short cut to find a supported runtime
                 if (!_target.ForceCompleteRuntimeEnumeration && DataReader.TargetPlatform != OSPlatform.Windows)
@@ -223,12 +223,15 @@ namespace Microsoft.Diagnostics.Runtime
                 // We order this so .Net Core comes first, so if there's multiple CLRs we prefer
                 // to debug .Net Core (assuming the user is just debugging one of them)
 
-                clrs ??= from module in modules
-                       let clrInfos = s_clrInfoProviders.Select(provider => provider.ProvideClrInfoForModule(this, module)).Where(clrInfo => clrInfo != null)
-                       let clrInfo = clrInfos.LastOrDefault()
-                       where clrInfo != null
-                       orderby clrInfo.Flavor descending, clrInfo.Version
-                       select clrInfo;
+                if (!clrs.Any())
+                {
+                    clrs = from module in modules
+                           let clrInfos = s_clrInfoProviders.Select(provider => provider.ProvideClrInfoForModule(this, module)).Where(clrInfo => clrInfo != null)
+                           let clrInfo = clrInfos.LastOrDefault()
+                           where clrInfo != null
+                           orderby clrInfo.Flavor descending, clrInfo.Version
+                           select clrInfo;
+                }
 
                 _clrs = clrs.ToImmutableArray();
             }
