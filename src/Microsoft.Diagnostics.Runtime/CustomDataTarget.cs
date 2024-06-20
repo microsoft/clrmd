@@ -37,6 +37,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public string? DefaultSymbolPath { get; set; }
 
+        /// <summary>
+        /// If true, all runtimes in the target process will be enumerated.
+        /// </summary>
+        public bool ForceCompleteRuntimeEnumeration { get; set; }
+
         public TokenCredential? SymbolTokenCredential { get; set; }
 
         /// <summary>
