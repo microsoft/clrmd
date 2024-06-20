@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 throw new ArgumentNullException(nameof(cache));
 
             _cache = cache;
-            _accessToken = default;Server = server;
+            Server = server;
 
             if (IsSymweb(server))
             {
