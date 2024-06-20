@@ -22,16 +22,18 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly TokenCredential? _tokenCredential;
         private AccessToken _accessToken;
         private readonly FileSymbolCache _cache;
+        private readonly bool _trace;
         private readonly HttpClient _http = new();
 
         public string Server { get; private set; }
 
-        internal SymbolServer(FileSymbolCache cache, string server, TokenCredential? credential)
+        internal SymbolServer(FileSymbolCache cache, string server, bool trace, TokenCredential? credential)
         {
             if (cache is null)
                 throw new ArgumentNullException(nameof(cache));
 
             _cache = cache;
+            _trace = trace;
             Server = server;
 
             if (IsSymweb(server))
@@ -137,6 +139,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 _http.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
 
             HttpResponseMessage response = await _http.GetAsync(fullPath).ConfigureAwait(false);
+
+            if (_trace)
+                Trace.WriteLine($"ClrMD symbol request: {fullPath} returned {response.StatusCode}");
+
             if (response.IsSuccessStatusCode)
                 return await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 

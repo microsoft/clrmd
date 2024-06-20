@@ -69,7 +69,8 @@ namespace Microsoft.Diagnostics.Runtime
             if (locator == null)
             {
                 string sympath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH") ?? "";
-                locator = SymbolGroup.CreateFromSymbolPath(sympath, _target.SymbolTokenCredential);
+                bool symTrace = CustomDataTarget.GetTraceEnvironmentVariable();
+                locator = SymbolGroup.CreateFromSymbolPath(sympath, trace:symTrace, _target.SymbolTokenCredential);
             }
 
             FileLocator = locator;
@@ -80,7 +81,8 @@ namespace Microsoft.Diagnostics.Runtime
             if (symbolPath is null)
                 throw new ArgumentNullException(nameof(symbolPath));
 
-            FileLocator = SymbolGroup.CreateFromSymbolPath(symbolPath, _target.SymbolTokenCredential);
+            bool symTrace = CustomDataTarget.GetTraceEnvironmentVariable();
+            FileLocator = SymbolGroup.CreateFromSymbolPath(symbolPath, trace:symTrace, _target.SymbolTokenCredential);
         }
 
         public void Dispose()

@@ -109,7 +109,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 DataTarget dataTarget = DataTarget.LoadDump(path);
-                dataTarget.FileLocator = SymbolGroup.CreateFromSymbolPath(string.Empty, null);
+                bool symTrace = CustomDataTarget.GetTraceEnvironmentVariable();
+                dataTarget.FileLocator = SymbolGroup.CreateFromSymbolPath(string.Empty, trace: symTrace, null);
                 return dataTarget;
             }
             else
