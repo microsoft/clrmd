@@ -112,7 +112,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 foreach (string server in Servers)
                 {
-                    if (server.StartsWith("http:", StringComparison.OrdinalIgnoreCase) || server.StartsWith("https:", StringComparison.OrdinalIgnoreCase))
+                    if (IsUrl(server))
                     {
                         SymbolServer symSvr = new(cache, server, credential);
                         locators.Add(symSvr);
@@ -147,49 +147,67 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return new SymbolGroup(locators);
         }
 
-        private static (string? Cache, string[] Servers) EnumerateEntries(string part)
+        internal static (string? Cache, string[] Servers) EnumerateEntries(string part)
         {
-            if (!part.Contains('*'))
-                return (null, new string[] { part });
-
-            string[] split = part.Split('*');
-            DebugOnly.Assert(split.Length > 1);
-
-            if (split[0].Equals("cache"))
-                return (split[1], split.Skip(2).ToArray());
-
-
-            if (split[0].Equals("symsrv", StringComparison.OrdinalIgnoreCase))
+            string? cache = null;
+            List<string> servers = [];
+            foreach (string entry in EnumerateParts(part))
             {
-                // We don't really support this, but we'll make it work...ish.
-                // Convert symsrv*symstore.dll*DownStream*server -> srv*DownStream*server
-
-                if (split.Length < 3)
-                    return (null, new string[] { part });
-
-                split = new string[] { "srv" }.Concat(split.Skip(2)).ToArray();
+                if (cache is null && servers.Count == 0 && !IsUrl(entry))
+                    cache = entry;
+                else
+                    servers.Add(entry);
             }
 
+            return (cache, servers.ToArray());
+        }
 
-            if (split[0].Equals("svr", StringComparison.OrdinalIgnoreCase) || split[0].Equals("srv", StringComparison.OrdinalIgnoreCase))
+        private static unsafe IEnumerable<string> EnumerateParts(string path)
+        {
+            bool possiblySkipNextDll = false;
+            int curr = 0;
+            for (int i = 0; i < path.Length; i++)
             {
-                string? cache = split[1];
-
-                if (string.IsNullOrWhiteSpace(cache))
-                    cache = null;
-
-                // e.g. "svr*http://symbols.com/"
-                if (split.Length == 2)
+                if (path[i] == '*')
                 {
-                    if (cache is null)
-                        return (split[1], split.Skip(2).ToArray());
+                    ReadOnlySpan<char> part = path.AsSpan(curr, i - curr).Trim();
+                    curr = i + 1;
 
-                    return (null, new string[] { cache });
+                    if (part.Equals("cache".AsSpan(), StringComparison.OrdinalIgnoreCase)
+                        || part.Equals("svr".AsSpan(), StringComparison.OrdinalIgnoreCase)
+                        || part.Equals("srv".AsSpan(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Don't yield this.
+                    }
+                    else if (part.Equals("symsrv".AsSpan(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        possiblySkipNextDll = true;
+                    }
+                    else
+                    {
+                        bool skip = possiblySkipNextDll && part.EndsWith(".dll".AsSpan(), StringComparison.OrdinalIgnoreCase);
+                        possiblySkipNextDll = false;
+
+                        if (!skip && part.Length > 0)
+                            yield return part.ToString();
+                    }
                 }
             }
 
-            // Ok, so we have * but it didn't start with srv or svr, so what now?
-            return (null, split.Where(s => !string.IsNullOrWhiteSpace(s)).ToArray());
+            if (curr < path.Length)
+            {
+                ReadOnlySpan<char> part = path.AsSpan(curr).Trim();
+                bool skip = possiblySkipNextDll && part.EndsWith(".dll".AsSpan(), StringComparison.OrdinalIgnoreCase);
+                if (!skip && part.Length > 0)
+                    yield return part.ToString();
+            }
+        }
+
+        private static bool IsUrl(string path)
+        {
+            bool result = Uri.TryCreate(path, UriKind.Absolute, out Uri? uriResult)
+                          && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
+            return result;
         }
     }
 }
