@@ -162,7 +162,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return (cache, servers.ToArray());
         }
 
-        private static unsafe IEnumerable<string> EnumerateParts(string path)
+        private static IEnumerable<string> EnumerateParts(string path)
         {
             bool possiblySkipNextDll = false;
             int curr = 0;
