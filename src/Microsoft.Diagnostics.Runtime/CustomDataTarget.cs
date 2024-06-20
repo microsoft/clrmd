@@ -14,6 +14,11 @@ namespace Microsoft.Diagnostics.Runtime
     public class CustomDataTarget : IDisposable
     {
         /// <summary>
+        /// The environment variable to set to true if.
+        /// </summary>
+        public const string TraceSymbolsEnvVariable = "ClrMD_TraceSymbolRequests";
+
+        /// <summary>
         /// The data reader that ClrMD will use to read data from the target.
         /// </summary>
         public IDataReader DataReader { get; set; }
@@ -78,6 +83,18 @@ namespace Microsoft.Diagnostics.Runtime
                 if (DataReader is IDisposable disposable)
                     disposable.Dispose();
             }
+        }
+
+        internal static bool GetTraceEnvironmentVariable()
+        {
+            string? value = Environment.GetEnvironmentVariable(TraceSymbolsEnvVariable);
+            if (value is null)
+                return false;
+
+            if (bool.TryParse(value, out bool result))
+                return result;
+
+            return value.Equals("1", StringComparison.OrdinalIgnoreCase);
         }
 
         public override string ToString() => DataReader?.DisplayName ?? GetType().Name;
