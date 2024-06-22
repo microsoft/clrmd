@@ -180,6 +180,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             if (_dysymtab.Header.Kind != LoadCommandType.DysymTab || _symtab.Header.Kind != LoadCommandType.SymTab)
                 return null;
 
+			if (_symtab.NSyms == 0)
+				return null;
+
             ulong symbolTableAddress = GetAddressFromFileOffset(_symtab.SymOff);
             NList64[] symTable = new NList64[_symtab.NSyms];
 
