@@ -6,6 +6,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -136,7 +137,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             string? accessToken = await GetAccessTokenAsync().ConfigureAwait(false);
             if (accessToken is not null)
-                _http.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
+                _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
             HttpResponseMessage response = await _http.GetAsync(fullPath).ConfigureAwait(false);
 
