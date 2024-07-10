@@ -437,6 +437,21 @@ namespace Microsoft.Diagnostics.Runtime
             throw GetPlatformException();
         }
 
+        /// <summary>
+        /// Creates a DataTarget from an IDebugClient interface.  This allows callers to interop with the DbgEng debugger
+        /// (cdb.exe, windbg.exe, dbgeng.dll).
+        /// </summary>
+        /// <param name="pDebugClient">An IDebugClient interface.</param>
+        /// <returns>A <see cref="DataTarget"/> instance.</returns>
+        public static DataTarget CreateFromDbgEng(IntPtr pDebugClient)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                throw GetPlatformException();
+
+            CustomDataTarget customTarget = new(new DbgEngDataReader(pDebugClient), null);
+            return new DataTarget(customTarget);
+        }
+
         private static PlatformNotSupportedException GetPlatformException([CallerMemberName] string? method = null) =>
             new($"{method} is not supported on {RuntimeInformation.OSDescription}.");
     }
