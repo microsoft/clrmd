@@ -442,13 +442,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// (cdb.exe, windbg.exe, dbgeng.dll).
         /// </summary>
         /// <param name="pDebugClient">An IDebugClient interface.</param>
+        /// <param name="symbolCredential">A TokenCredential for azure based symbol servers.</param>
         /// <returns>A <see cref="DataTarget"/> instance.</returns>
-        public static DataTarget CreateFromDbgEng(IntPtr pDebugClient)
+        public static DataTarget CreateFromDbgEng(IntPtr pDebugClient, TokenCredential? symbolCredential = null)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 throw GetPlatformException();
 
-            CustomDataTarget customTarget = new(new DbgEngDataReader(pDebugClient), null);
+            CustomDataTarget customTarget = new(new DbgEngDataReader(pDebugClient), symbolCredential);
             return new DataTarget(customTarget);
         }
 

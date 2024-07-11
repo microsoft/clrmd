@@ -181,7 +181,7 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     string? fn = _symbols.GetModuleNameStringWide(DebugModuleName.Image, i, bases[i]) ?? "";
 
-                    ModuleInfo info = new PEModuleInfo(this, bases[i], fn, true, mods[i].Size, mods[i].TimeDateStamp, GetVersionInfo(bases[i]));
+                    ModuleInfo info = new PEModuleInfo(this, bases[i], fn, true, mods[i].TimeDateStamp, mods[i].Size, GetVersionInfo(bases[i]));
                     modules.Add(info);
                 }
             }
