@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return new ElfModuleInfo(this, file, image.BaseAddress, size, path);
             }
 
-            return new PEModuleInfo(this, image.BaseAddress, path, false);
+            return new PEModuleInfo(this, image.BaseAddress, path, true);
         }
 
         public void FlushCachedData()
