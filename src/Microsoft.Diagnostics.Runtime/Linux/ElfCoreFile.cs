@@ -46,6 +46,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     ElfMachine.EM_RISCV => ElfFile.Header.Is64Bit ?
                                                 r.ReadContents<ElfPRStatusRiscV64>(0) :
                                                 throw new NotSupportedException($"Invalid architecture RISC-V 32bit"),
+                    ElfMachine.EM_LOONGARCH => ElfFile.Header.Is64Bit ?
+                                                r.ReadContents<ElfPRStatusLoongArch64>(0) :
+                                                throw new NotSupportedException($"Invalid architecture LoongArch 32bit"),
                     _ => throw new NotSupportedException($"Invalid architecture {architecture}"),
                 };
             });

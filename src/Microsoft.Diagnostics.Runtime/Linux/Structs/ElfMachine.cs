@@ -29,6 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         EM_BLACKFIN = 106,      /* ADI Blackfin Processor */
         EM_AARCH64 = 183,       /* ARM AARCH64 */
         EM_RISCV = 243,         /* RISC-V */
+        EM_LOONGARCH = 258,     /* LOONGARCH */
         EM_FRV = 0x5441,        /* Fujitsu FR-V */
         EM_AVR32 = 0x18ad       /* Atmel AVR32 */
     }

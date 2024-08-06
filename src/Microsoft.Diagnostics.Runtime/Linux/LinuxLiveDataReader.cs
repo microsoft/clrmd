@@ -216,6 +216,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 Architecture.Arm => sizeof(RegSetArm),
                 Architecture.Arm64 => sizeof(RegSetArm64),
                 (Architecture)9 /* Architecture.RiscV64 */ => sizeof(RegSetRiscV64),
+                (Architecture)6 /* Architecture.LoongArch64 */ => sizeof(RegSetLoongArch64),
                 Architecture.X64 => sizeof(RegSetX64),
                 _ => sizeof(RegSetX86),
             };
@@ -238,6 +239,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         break;
                     case (Architecture)9 /* Architecture.RiscV64 */:
                         Unsafe.As<byte, RegSetRiscV64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        break;
+                    case (Architecture)6 /* Architecture.LoongArch64 */:
+                        Unsafe.As<byte, RegSetLoongArch64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
                         break;
                     case Architecture.X64:
                         Unsafe.As<byte, RegSetX64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
