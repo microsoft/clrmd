@@ -110,6 +110,12 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 spOffset = 24;
                 contextSize = 544;
             }
+            else if (_dataReader.Architecture == (Architecture)6 /* Architecture.LoongArch64 */)
+            {
+                ipOffset = 120;
+                spOffset = 112;
+                contextSize = 544;
+            }
             else if (_dataReader.Architecture == Architecture.X86)
             {
                 ipOffset = 184;

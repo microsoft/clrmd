@@ -427,6 +427,15 @@ namespace DbgEngExtension
                             sp = ctx->Sp;
                         }
                         break;
+
+                    case Architecture.LoongArch64:
+                        fixed (byte* ptrCtx = buffer)
+                        {
+                            LoongArch64Context* ctx = (LoongArch64Context*)ptrCtx;
+                            sp = ctx->Sp;
+                        }
+                        break;
+
                 }
             }
 
