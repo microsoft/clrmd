@@ -8,7 +8,7 @@ namespace Microsoft.Diagnostics.Runtime
         public static bool IsPrimitive(this ClrElementType cet)
         {
             return cet is >= ClrElementType.Boolean and <= ClrElementType.Double
-                or ClrElementType.NativeInt or ClrElementType.NativeUInt;
+                or ClrElementType.NativeInt or ClrElementType.NativeUInt or ClrElementType.Pointer;
         }
 
         public static bool IsValueType(this ClrElementType cet)

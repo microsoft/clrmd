@@ -26,15 +26,15 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private ref readonly ISOSDac14VTable VTable => ref Unsafe.AsRef<ISOSDac14VTable>(_vtable);
 
-        public (ulong NonGCStaticsBase, ulong GCStaticsBase) GetStaticBaseAddress(ClrDataAddress module)
+        public (ulong NonGCStaticsBase, ulong GCStaticsBase) GetStaticBaseAddress(ClrDataAddress methodTable)
         {
-            HResult hr = VTable.GetStaticBaseAddress(Self, module, out ClrDataAddress nonGCStaticsBase, out ClrDataAddress gcStaticsBase);
+            HResult hr = VTable.GetStaticBaseAddress(Self, methodTable, out ClrDataAddress nonGCStaticsBase, out ClrDataAddress gcStaticsBase);
             return hr ? (nonGCStaticsBase, gcStaticsBase) : (0, 0);
         }
 
-        public (ulong NonGCThreadStaticsBase, ulong GCThreadStaticsBase) GetThreadStaticBaseAddress(ClrDataAddress module, ClrDataAddress thread)
+        public (ulong NonGCThreadStaticsBase, ulong GCThreadStaticsBase) GetThreadStaticBaseAddress(ClrDataAddress methodTable, ClrDataAddress thread)
         {
-            HResult hr = VTable.GetThreadStaticBaseAddress(Self, module, thread, out ClrDataAddress nonGCThreadStaticsBase, out ClrDataAddress gcThreadStaticsBase);
+            HResult hr = VTable.GetThreadStaticBaseAddress(Self, methodTable, thread, out ClrDataAddress nonGCThreadStaticsBase, out ClrDataAddress gcThreadStaticsBase);
             return hr ? (nonGCThreadStaticsBase, gcThreadStaticsBase) : (0, 0);
         }
 

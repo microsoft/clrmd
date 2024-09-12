@@ -233,7 +233,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         {
             if (_sos14 is not null)
             {
-                (ulong nonGcBase, ulong gcBase) = _sos14.GetStaticBaseAddress(module.Address);
+                (ulong nonGcBase, ulong gcBase) = _sos14.GetStaticBaseAddress(type.MethodTable);
                 if (field.ElementType.IsPrimitive())
                     return nonGcBase + (uint)field.Offset;
 
@@ -275,7 +275,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
             if (_sos14 is not null)
             {
-                (ulong nonGcBase, ulong gcBase) = _sos14.GetThreadStaticBaseAddress(module.Address, threadAddress);
+                (ulong nonGcBase, ulong gcBase) = _sos14.GetThreadStaticBaseAddress(type.MethodTable, threadAddress);
                 if (field.ElementType.IsPrimitive())
                     return nonGcBase + (uint)field.Offset;
 
