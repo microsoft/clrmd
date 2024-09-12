@@ -20,6 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly SOSDac8? _sos8;
         private readonly SosDac12? _sos12;
         private readonly ISOSDac13? _sos13;
+        private readonly SosDac14? _sos14;
 
         private IAbstractClrNativeHeaps? _nativeHeaps;
         private IAbstractComHelpers? _com;
@@ -45,6 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             _sos8 = _process.CreateSOSDacInterface8();
             _sos12 = _process.CreateSOSDacInterface12();
             _sos13 = _process.CreateSOSDacInterface13();
+            _sos14 = _process.CreateSOSDacInterface14();
 
             library.DacDataTarget.SetMagicCallback(_process.Flush);
             IsThreadSafe = _sos13 is not null || RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
@@ -63,6 +65,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             _sos8?.Dispose();
             _sos12?.Dispose();
             _sos13?.Dispose();
+            _sos14?.Dispose();
             _dac.Dispose();
             _moduleHelper?.Dispose();
         }
@@ -87,7 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             if (serviceType == typeof(IAbstractTypeHelpers))
             {
                 _moduleHelper ??= new(_sos);
-                return _typeHelper ??= new DacTypeHelpers(_process, _sos, _sos6, _sos8, _dataReader, _moduleHelper);
+                return _typeHelper ??= new DacTypeHelpers(_process, _sos, _sos6, _sos8, _sos14, _dataReader, _moduleHelper);
             }
 
             if (serviceType == typeof(IAbstractClrNativeHeaps))

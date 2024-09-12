@@ -22,15 +22,17 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly SOSDac _sos;
         private readonly SOSDac6? _sos6;
         private readonly SOSDac8? _sos8;
+        private readonly SosDac14? _sos14;
         private readonly IDataReader _dataReader;
         private readonly DacModuleHelpers _moduleHelpers;
 
-        public DacTypeHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, IDataReader dataReader, DacModuleHelpers moduleHelpers)
+        public DacTypeHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, SosDac14? sos14, IDataReader dataReader, DacModuleHelpers moduleHelpers)
         {
             _clrDataProcess = clrDataProcess;
             _sos = sos;
             _sos6 = sos6;
             _sos8 = sos8;
+            _sos14 = sos14;
             _dataReader = dataReader;
             _moduleHelpers = moduleHelpers;
         }
@@ -229,6 +231,15 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public ulong GetStaticFieldAddress(in AppDomainInfo appDomain, in ClrModuleInfo module, in TypeInfo type, in FieldInfo field)
         {
+            if (_sos14 is not null)
+            {
+                (ulong nonGcBase, ulong gcBase) = _sos14.GetStaticBaseAddress(module.Address);
+                if (field.ElementType.IsPrimitive())
+                    return nonGcBase + (uint)field.Offset;
+
+                return gcBase + (uint)field.Offset;
+            }
+
             if (appDomain.Address == 0)
                 return 0;
 
@@ -261,6 +272,15 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         {
             if (threadAddress == 0)
                 return 0;
+
+            if (_sos14 is not null)
+            {
+                (ulong nonGcBase, ulong gcBase) = _sos14.GetThreadStaticBaseAddress(module.Address, threadAddress);
+                if (field.ElementType.IsPrimitive())
+                    return nonGcBase + (uint)field.Offset;
+
+                return gcBase + (uint)field.Offset;
+            }
 
             if (!_sos.GetThreadLocalModuleData(threadAddress, (uint)module.Index, out ThreadLocalModuleData threadData))
                 return 0;
