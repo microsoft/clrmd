@@ -34,6 +34,21 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public bool IsValid => Type != null;
 
+        /// <summary>
+        /// Creates a ClrValueType from an address and a type.
+        /// </summary>
+        /// <param name="address">The address of the struct.  This should point to the beginning of the data and not
+        /// a MethodTable (if the struct is boxed on the heap).</param>
+        /// <param name="type">The type of this struct.</param>
+        /// <returns>A ClrValueType corresponding to the given type and address.</returns>
+        public static ClrValueType FromAddress(ulong address, ClrType type)
+        {
+            if (type is null)
+                throw new ArgumentNullException(nameof(type));
+
+            return new ClrValueType(address, type, true);
+        }
+
         internal ClrValueType(ulong address, ClrType? type, bool interior)
         {
             Address = address;
