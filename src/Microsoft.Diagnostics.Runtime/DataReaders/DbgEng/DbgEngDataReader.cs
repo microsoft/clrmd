@@ -128,6 +128,7 @@ namespace Microsoft.Diagnostics.Runtime
             IMAGE_FILE_MACHINE.THUMB or
             IMAGE_FILE_MACHINE.THUMB2 => Architecture.Arm,
             IMAGE_FILE_MACHINE.ARM64 => Architecture.Arm64,
+            IMAGE_FILE_MACHINE.LOONGARCH64 => (Architecture)6 /* Architecture.LoongArch64 */,
             IMAGE_FILE_MACHINE.RISCV64 => (Architecture)9 /* Architecture.RiscV64 */,
             _ => (Architecture)(-1)
         };
