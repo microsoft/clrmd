@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime
         public const uint ContextFloatingPoint = Context | 0x4;
         public const uint ContextDebugRegisters = Context | 0x8;
 
-        public static int Size => 0x220;
+        public static int Size => 0x520;
 
         // Control flags
 
@@ -167,11 +167,11 @@ namespace Microsoft.Diagnostics.Runtime
         public unsafe fixed ulong F[4*32];
 
         [Register(RegisterType.FloatingPoint)]
-        [FieldOffset(0x210)]
+        [FieldOffset(0x510)]
         public ulong Fcc;
 
         [Register(RegisterType.FloatingPoint)]
-        [FieldOffset(0x218)]
+        [FieldOffset(0x518)]
         public uint Fcsr;
 
         #endregion
