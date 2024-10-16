@@ -4,6 +4,7 @@
 using System;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -26,6 +27,12 @@ namespace Microsoft.Diagnostics.Runtime
             if (dataTarget.ClrVersions.Length == 0)
                 throw new ClrDiagnosticsException("Process is not a CLR process!");
 
+            if (dataTarget.SecureDacLoading)
+            {
+                if (!AuthenticodeUtil.VerifyDacDll(dacPath))
+                    throw new ClrDiagnosticsException($"Failed to load dac from {dacPath}: not properly signed");
+            }
+
             IntPtr dacLibrary;
             try
             {
@@ -33,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
             catch (Exception e) when (e is DllNotFoundException or BadImageFormatException)
             {
-                throw new ClrDiagnosticsException("Failed to load dac: " + e.Message, e);
+                throw new ClrDiagnosticsException($"Failed to load dac from {dacPath}: {e.Message}", e);
             }
 
             OwningLibrary = new RefCountedFreeLibrary(dacLibrary);
@@ -46,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 IntPtr dllMain = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "DllMain");
                 if (dllMain == IntPtr.Zero)
-                    throw new ClrDiagnosticsException("Failed to obtain Dac DllMain");
+                    throw new ClrDiagnosticsException("Failed to obtain dac DllMain");
 
                 delegate* unmanaged[Stdcall]<IntPtr, int, IntPtr, int> main = (delegate* unmanaged[Stdcall]<IntPtr, int, IntPtr, int>)dllMain;
                 main(dacLibrary, 1, IntPtr.Zero);

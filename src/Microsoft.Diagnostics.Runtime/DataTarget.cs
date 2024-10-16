@@ -51,6 +51,11 @@ namespace Microsoft.Diagnostics.Runtime
         public CacheOptions CacheOptions { get; }
 
         /// <summary>
+        /// If true, enforces the proper DAC certificate signing
+        /// </summary>
+        public bool SecureDacLoading { get; }
+
+        /// <summary>
         /// Gets or sets instance to manage the symbol path(s).
         /// </summary>
         public IFileLocator? FileLocator { get => _target.FileLocator; set => _target.FileLocator = value; }
@@ -64,6 +69,7 @@ namespace Microsoft.Diagnostics.Runtime
             _target = customTarget ?? throw new ArgumentNullException(nameof(customTarget));
             DataReader = _target.DataReader;
             CacheOptions = _target.CacheOptions ?? new CacheOptions();
+            SecureDacLoading = _target.SecureDacLoading;
 
             IFileLocator? locator = _target.FileLocator;
             if (locator == null)
