@@ -24,7 +24,6 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private static readonly List<IClrInfoProvider> s_clrInfoProviders = new() { new DotNetClrInfoProvider(), new SingleFileClrInfoProvider() };
 
-        private readonly CustomDataTarget _target;
         private bool _disposed;
         private ImmutableArray<ClrInfo> _clrs;
         private ModuleInfo[]? _modules;
@@ -40,6 +39,11 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Custom data target for this data target
+        /// </summary>
+        internal CustomDataTarget CustomDataTarget { get; }
+
+        /// <summary>
         /// Gets the data reader for this instance.
         /// </summary>
         public IDataReader DataReader { get; }
@@ -51,14 +55,9 @@ namespace Microsoft.Diagnostics.Runtime
         public CacheOptions CacheOptions { get; }
 
         /// <summary>
-        /// If true, enforces the proper DAC certificate signing
-        /// </summary>
-        public bool SecureDacLoading { get; }
-
-        /// <summary>
         /// Gets or sets instance to manage the symbol path(s).
         /// </summary>
-        public IFileLocator? FileLocator { get => _target.FileLocator; set => _target.FileLocator = value; }
+        public IFileLocator? FileLocator { get => CustomDataTarget.FileLocator; set => CustomDataTarget.FileLocator = value; }
 
         /// <summary>
         /// Creates a DataTarget from the given reader.
@@ -66,17 +65,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="customTarget">The custom data target to use.</param>
         public DataTarget(CustomDataTarget customTarget)
         {
-            _target = customTarget ?? throw new ArgumentNullException(nameof(customTarget));
-            DataReader = _target.DataReader;
-            CacheOptions = _target.CacheOptions ?? new CacheOptions();
-            SecureDacLoading = _target.SecureDacLoading;
+            CustomDataTarget = customTarget ?? throw new ArgumentNullException(nameof(customTarget));
+            DataReader = CustomDataTarget.DataReader;
+            CacheOptions = CustomDataTarget.CacheOptions ?? new CacheOptions();
 
-            IFileLocator? locator = _target.FileLocator;
+            IFileLocator? locator = CustomDataTarget.FileLocator;
             if (locator == null)
             {
                 string sympath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH") ?? "";
                 bool symTrace = CustomDataTarget.GetTraceEnvironmentVariable();
-                locator = SymbolGroup.CreateFromSymbolPath(sympath, trace:symTrace, _target.SymbolTokenCredential);
+                locator = SymbolGroup.CreateFromSymbolPath(sympath, trace:symTrace, CustomDataTarget.SymbolTokenCredential);
             }
 
             FileLocator = locator;
@@ -88,7 +86,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ArgumentNullException(nameof(symbolPath));
 
             bool symTrace = CustomDataTarget.GetTraceEnvironmentVariable();
-            FileLocator = SymbolGroup.CreateFromSymbolPath(symbolPath, trace:symTrace, _target.SymbolTokenCredential);
+            FileLocator = SymbolGroup.CreateFromSymbolPath(symbolPath, trace:symTrace, CustomDataTarget.SymbolTokenCredential);
         }
 
         public void Dispose()
@@ -103,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime
                     _pefileCache.Clear();
                 }
 
-                _target.Dispose();
+                CustomDataTarget.Dispose();
                 _disposed = true;
             }
         }
@@ -207,7 +205,7 @@ namespace Microsoft.Diagnostics.Runtime
                 List<ClrInfo>? clrs = null;
 
                 // First try the SpecialDiagInfo block short cut to find a supported runtime
-                if (!_target.ForceCompleteRuntimeEnumeration && DataReader.TargetPlatform != OSPlatform.Windows)
+                if (!CustomDataTarget.ForceCompleteRuntimeEnumeration && DataReader.TargetPlatform != OSPlatform.Windows)
                 {
                     if (SpecialDiagInfo.TryReadSpecialDiagInfo(DataReader, out SpecialDiagInfo info) && info.RuntimeBaseAddress != 0)
                     {

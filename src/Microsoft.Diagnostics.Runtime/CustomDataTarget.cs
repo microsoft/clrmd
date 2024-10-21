@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// If true, enforces the proper DAC certificate signing
         /// </summary>
-        public bool SecureDacLoading { get; set; }
+        public bool DacSignatureVerificationEnabled { get; set; }
 
         /// <summary>
         /// The TokenCredential to use for any Azure based symbol servers (set to null if not using one).

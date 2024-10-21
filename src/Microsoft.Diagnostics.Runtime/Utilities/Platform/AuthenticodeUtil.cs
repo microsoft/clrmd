@@ -18,8 +18,18 @@ public unsafe static class AuthenticodeUtil
     private const int WTD_STATEACTION_CLOSE = 0x2;
     private const string DOTNET_DAC_CERT_OID = "1.3.6.1.4.1.311.84.4.1";
 
-    public static bool VerifyDacDll(string dacPath)
+    /// <summary>
+    /// Verifies the DAC signing and signature
+    /// </summary>
+    /// <param name="dacPath">file path to DAC file</param>
+    /// <param name="fileLock">file stream keeping the DAC file locked until it is loaded</param>
+    /// <returns>true valid, false not signed or invalid signature</returns>
+    /// <exception cref="FileNotFoundException">DAC file path invalid or not found</exception>
+    /// <exception cref="IOException"></exception>
+    public static bool VerifyDacDll(string dacPath, out IDisposable? fileLock)
     {
+        fileLock = null;
+
         string filePath = Path.GetFullPath(dacPath);
         if (!File.Exists(filePath))
         {
@@ -28,10 +38,12 @@ public unsafe static class AuthenticodeUtil
 
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            return true;
+            Trace.TraceError("VerifyDacDll: not supported on Linux/MacOS");
+            return false;
         }
 
-        using FileStream fs = File.OpenRead(filePath);
+        FileStream fs = File.OpenRead(filePath);
+        fileLock = fs;
 
         WINTRUST_FILE_INFO trustInfo = new()
         {

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -27,20 +28,30 @@ namespace Microsoft.Diagnostics.Runtime
             if (dataTarget.ClrVersions.Length == 0)
                 throw new ClrDiagnosticsException("Process is not a CLR process!");
 
-            if (dataTarget.SecureDacLoading)
-            {
-                if (!AuthenticodeUtil.VerifyDacDll(dacPath))
-                    throw new ClrDiagnosticsException($"Failed to load dac from {dacPath}: not properly signed");
-            }
-
+            IDisposable? fileLock = null;
             IntPtr dacLibrary;
             try
             {
-                dacLibrary = DataTarget.PlatformFunctions.LoadLibrary(dacPath);
+                if (dataTarget.CustomDataTarget.DacSignatureVerificationEnabled)
+                {
+                    if (!AuthenticodeUtil.VerifyDacDll(dacPath, out fileLock))
+                    {
+                        throw new ClrDiagnosticsException($"Failed to load dac from {dacPath}: not properly signed");
+                    }
+                }
+
+                try
+                {
+                    dacLibrary = DataTarget.PlatformFunctions.LoadLibrary(dacPath);
+                }
+                catch (Exception e) when (e is DllNotFoundException or BadImageFormatException)
+                {
+                    throw new ClrDiagnosticsException($"Failed to load dac from {dacPath}: {e.Message}", e);
+                }
             }
-            catch (Exception e) when (e is DllNotFoundException or BadImageFormatException)
+            finally
             {
-                throw new ClrDiagnosticsException($"Failed to load dac from {dacPath}: {e.Message}", e);
+                fileLock?.Dispose();
             }
 
             OwningLibrary = new RefCountedFreeLibrary(dacLibrary);
