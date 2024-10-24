@@ -117,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ClrType? existing = TryGetType(mt);
             if (existing != null)
             {
-                if (obj != 0 && existing.ComponentSize != 0 && existing.ComponentType is null && existing is ClrDacType type)
+                if (obj != 0 && !existing.IsString && existing.ComponentSize != 0 && existing.ComponentType is null && existing is ClrDacType type)
                     type.SetComponentType(TryGetComponentType(obj));
 
                 return existing;
