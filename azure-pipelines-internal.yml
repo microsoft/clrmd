@@ -28,6 +28,17 @@ extends:
         name: NetCore1ESPool-Internal
         image: windows.vs2022.amd64
         os: windows
+      policheck:
+        enabled: true
+      tsa:
+        enabled: true
+        config:
+          codebaseName: $(TSA.CodeBasename)
+          serviceTreeID: $(TSA.ServiceTreeId)
+          instanceUrl: $(TSA.AdoOrg)
+          projectName: $(TSA.AdoProject)
+          areaPath: $(TSA.AreaPath)
+          notificationAliases: $(TSA.NotificationAliases)
 
     stages:
     - stage: build
