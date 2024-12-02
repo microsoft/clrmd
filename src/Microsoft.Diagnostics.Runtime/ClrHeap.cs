@@ -368,7 +368,7 @@ namespace Microsoft.Diagnostics.Runtime
                     if (!carefully)
                         break;
 
-                    obj = FindNextValidObject(segment, pointerSize + objSkip, obj, cache);
+                    obj = FindNextValidObject(segment, pointerSize, obj + objSkip, cache);
                     continue;
                 }
 
@@ -626,11 +626,8 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 nextObj += Align(minObjSize, seg);
 
-                if (address >= nextObj || address >= seg.End)
-                    return 0;
-
                 // Only if there's data corruption:
-                if (address >= nextObj || address >= seg.End)
+                if (address >= nextObj || nextObj >= seg.End)
                     return 0;
 
                 address = nextObj;
