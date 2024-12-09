@@ -3,7 +3,7 @@
 
 using System.ComponentModel;
 
-#if NETSTANDARD2_0
+#if NET47_OR_GREATER
 namespace System.Diagnostics.CodeAnalysis
 {
     /// <summary>Specifies that an output will not be null even if the corresponding type allows it.</summary>
