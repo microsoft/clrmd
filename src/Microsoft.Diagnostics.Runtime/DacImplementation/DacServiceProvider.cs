@@ -21,6 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly SosDac12? _sos12;
         private readonly ISOSDac13? _sos13;
         private readonly SosDac14? _sos14;
+        private readonly ISOSDac16? _sos16;
 
         private IAbstractClrNativeHeaps? _nativeHeaps;
         private IAbstractComHelpers? _com;
@@ -47,6 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             _sos12 = _process.CreateSOSDacInterface12();
             _sos13 = _process.CreateSOSDacInterface13();
             _sos14 = _process.CreateSOSDacInterface14();
+            _sos16 = _process.CreateSOSDacInterface16();
 
             library.DacDataTarget.SetMagicCallback(_process.Flush);
             IsThreadSafe = _sos13 is not null || RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
@@ -66,6 +68,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             _sos12?.Dispose();
             _sos13?.Dispose();
             _sos14?.Dispose();
+            _sos16?.Dispose();
             _dac.Dispose();
             _moduleHelper?.Dispose();
         }
@@ -82,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     return heap;
 
                 if (_sos.GetGCHeapData(out GCInfo data) && _sos.GetCommonMethodTables(out CommonMethodTables mts) && mts.ObjectMethodTable != 0)
-                    return _heapHelper = new DacHeap(_sos, _sos8, _sos12, _dataReader, data, mts);
+                    return _heapHelper = new DacHeap(_sos, _sos8, _sos12, _sos16, _dataReader, data, mts);
 
                 return null;
             }

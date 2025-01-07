@@ -26,6 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         bool IsValidMethodTable(ulong mt);
         MemoryRange GetInternalRootArray(ulong subHeapAddress);
         bool GetOOMInfo(ulong subHeapAddress, out OomInfo oomInfo);
+        int? GetDynamicAdaptationMode();
     }
 
     public struct GCState

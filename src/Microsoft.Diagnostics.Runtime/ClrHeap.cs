@@ -58,6 +58,15 @@ namespace Microsoft.Diagnostics.Runtime
 
             SubHeaps = Helpers.EnumerateSubHeaps().Select(r => new ClrSubHeap(this, r)).ToImmutableArray();
             Segments = SubHeaps.SelectMany(r => r.Segments).OrderBy(r => r.FirstObjectAddress).ToImmutableArray();
+            DynamicAdaptationMode = Helpers.GetDynamicAdaptationMode();
+        }
+
+        /// <summary>
+        /// The DynamicAdaptationMode
+        /// </summary>
+        public int? DynamicAdaptationMode
+        {
+            get;
         }
 
         /// <summary>
