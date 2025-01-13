@@ -18,6 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly SOSDac _sos;
         private readonly SOSDac8? _sos8;
         private readonly SosDac12? _sos12;
+        private readonly ISOSDac16? _sos16;
         private readonly IMemoryReader _memoryReader;
         private readonly GCState _gcState;
         private HashSet<ulong>? _validMethodTables;
@@ -28,11 +29,12 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private const uint SyncBlockSpinLock = 0x10000000;
         private const uint SyncBlockHashOrSyncBlockIndex = 0x08000000;
 
-        public DacHeap(SOSDac sos, SOSDac8? sos8, SosDac12? sos12, IMemoryReader reader, in GCInfo gcInfo, in CommonMethodTables commonMethodTables)
+        public DacHeap(SOSDac sos, SOSDac8? sos8, SosDac12? sos12, ISOSDac16? sos16, IMemoryReader reader, in GCInfo gcInfo, in CommonMethodTables commonMethodTables)
         {
             _sos = sos;
             _sos8 = sos8;
             _sos12 = sos12;
+            _sos16 = sos16;
             _memoryReader = reader;
             _gcState = new()
             {
@@ -447,6 +449,18 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 Size = oomData.Size,
             };
             return true;
+        }
+
+        public int? GetDynamicAdaptationMode()
+        {
+            if (_sos16 != null)
+            {
+                return _sos16.GetDynamicAdaptationMode();
+            }
+            else
+            {
+                return null;
+            }
         }
     }
 }
