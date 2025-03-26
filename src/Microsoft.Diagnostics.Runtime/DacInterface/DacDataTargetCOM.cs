@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             GetIUnknownImpl(out IntPtr qi, out IntPtr addRef, out IntPtr release);
 
-            ComInterfaceEntry* wrappers = (ComInterfaceEntry*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(DacDataTargetCOM), sizeof(ComInterfaceEntry) * 3);
+            ComInterfaceEntry* wrappers = (ComInterfaceEntry*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(DacDataTargetCOM), sizeof(ComInterfaceEntry) * 4);
             wrappers[0].IID = DacDataTarget.IID_IDacDataTarget;
             wrappers[0].Vtable = IDacDataTargetVtbl.Create(qi, addRef, release);
 
@@ -45,6 +45,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             wrappers[2].IID = DacDataTarget.IID_ICLRRuntimeLocator;
             wrappers[2].Vtable = ICLRRuntimeLocatorVtbl.Create(qi, addRef, release);
+
+            wrappers[3].IID = DacDataTarget.IID_ICLRContractLocator;
+            wrappers[3].Vtable = ICLRContractLocatorVtbl.Create(qi, addRef, release);
 
             return wrappers;
         }
@@ -222,9 +225,39 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             [UnmanagedCallersOnly]
             private static int GetRuntimeBase(IntPtr self, ulong* address)
             {
+                if (address is null)
+                {
+                    return HResult.E_INVALIDARG;
+                }
                 DacDataTarget dacDataTarget = ComInterfaceDispatch.GetInstance<DacDataTarget>((ComInterfaceDispatch*)self);
                 *address = dacDataTarget.RuntimeBaseAddress;
-                return dacDataTarget.RuntimeBaseAddress != 0 ? HResult.S_OK : HResult.E_FAIL;
+                return *address != 0 ? HResult.S_OK : HResult.E_FAIL;
+            }
+        }
+
+        private static unsafe class ICLRContractLocatorVtbl
+        {
+            public static IntPtr Create(IntPtr qi, IntPtr addRef, IntPtr release)
+            {
+                IntPtr* vtblRaw = (IntPtr*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(ICLRContractLocatorVtbl), IntPtr.Size * 4);
+                vtblRaw[0] = qi;
+                vtblRaw[1] = addRef;
+                vtblRaw[2] = release;
+                vtblRaw[3] = (IntPtr)(delegate* unmanaged<IntPtr, ulong*, int>)&GetContractDescriptor;
+
+                return (IntPtr)vtblRaw;
+            }
+
+            [UnmanagedCallersOnly]
+            private static int GetContractDescriptor(IntPtr self, ulong* address)
+            {
+                if (address is null)
+                {
+                    return HResult.E_INVALIDARG;
+                }
+                DacDataTarget dacDataTarget = ComInterfaceDispatch.GetInstance<DacDataTarget>((ComInterfaceDispatch*)self);
+                *address = dacDataTarget.ContractDescriptor;
+                return *address != 0 ? HResult.S_OK : HResult.E_FAIL;
             }
         }
     }

@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public IntPtr IDacDataTarget { get; }
 
-        public LegacyDacDataTargetWrapper(DacDataTarget dacDataTarget, bool implementRuntimeLocator)
+        public LegacyDacDataTargetWrapper(DacDataTarget dacDataTarget)
         {
             _dacDataTarget = dacDataTarget;
 
@@ -37,12 +37,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             builder.AddMethod(new GetMetadataDelegate(GetMetadata));
             builder.Complete();
 
-            if (implementRuntimeLocator)
-            {
-                builder = AddInterface(DacDataTarget.IID_ICLRRuntimeLocator, false);
-                builder.AddMethod(new GetRuntimeBaseDelegate(GetRuntimeBase));
-                builder.Complete();
-            }
+            builder = AddInterface(DacDataTarget.IID_ICLRRuntimeLocator, false);
+            builder.AddMethod(new GetRuntimeBaseDelegate(GetRuntimeBase));
+            builder.Complete();
+
+            builder = AddInterface(DacDataTarget.IID_ICLRContractLocator, false);
+            builder.AddMethod(new GetRuntimeBaseDelegate(GetContractDescriptor));
+            builder.Complete();
         }
 
         private int GetMachineType(IntPtr self, out IMAGE_FILE_MACHINE machineType)
@@ -106,8 +107,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return address == 0 ? HResult.E_FAIL : HResult.S_OK;
         }
 
+        private int GetContractDescriptor(IntPtr _, out ulong address)
+        {
+            address = _dacDataTarget.ContractDescriptor;
+            return address == 0 ? HResult.E_FAIL : HResult.S_OK;
+        }
+
         private delegate int GetMetadataDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPWStr)] string fileName, int imageTimestamp, int imageSize,
-                                                     IntPtr mvid, uint mdRva, uint flags, uint bufferSize, IntPtr buffer, int* dataSize);
+                                                 IntPtr mvid, uint mdRva, uint flags, uint bufferSize, IntPtr buffer, int* dataSize);
         private delegate int GetMachineTypeDelegate(IntPtr self, out IMAGE_FILE_MACHINE machineType);
         private delegate int GetPointerSizeDelegate(IntPtr self, out int pointerSize);
         private delegate int GetImageBaseDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPWStr)] string imagePath, out ulong baseAddress);
@@ -121,5 +128,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private delegate int RequestDelegate(IntPtr self, uint reqCode, uint inBufferSize, IntPtr inBuffer, IntPtr outBufferSize, ref IntPtr outBuffer);
 
         private delegate int GetRuntimeBaseDelegate([In] IntPtr self, [Out] out ulong address);
+
+        private delegate int GetContractLocatorDelegate([In] IntPtr self, [Out] out ulong address);
     }
 }

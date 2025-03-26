@@ -48,11 +48,6 @@ namespace Microsoft.Diagnostics.Runtime
         public bool ForceCompleteRuntimeEnumeration { get; set; }
 
         /// <summary>
-        /// If true, enforces the proper DAC certificate signing
-        /// </summary>
-        public bool DacSignatureVerificationEnabled { get; set; }
-
-        /// <summary>
         /// The TokenCredential to use for any Azure based symbol servers (set to null if not using one).
         /// </summary>
         public TokenCredential? SymbolTokenCredential { get; set; }

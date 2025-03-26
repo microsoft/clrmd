@@ -15,6 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         internal static readonly Guid IID_IDacDataTarget = new("3E11CCEE-D08B-43e5-AF01-32717A64DA03");
         internal static readonly Guid IID_IMetadataLocator = new("aa8fa804-bc05-4642-b2c5-c353ed22fc63");
         internal static readonly Guid IID_ICLRRuntimeLocator = new("b760bf44-9377-4597-8be7-58083bdc5146");
+        internal static readonly Guid IID_ICLRContractLocator = new("17d5b8c6-34a9-407f-af4f-a930201d4e02");
 
         public const ulong MagicCallbackConstant = 0x43;
 
@@ -27,11 +28,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ulong RuntimeBaseAddress { get; }
 
-        public DacDataTarget(DataTarget dataTarget, ulong runtimeBaseAddress = 0)
+        public ulong ContractDescriptor { get; }
+
+        public DacDataTarget(DataTarget dataTarget, ulong runtimeBaseAddress = 0, ulong contractDescriptor = 0)
         {
             _dataTarget = dataTarget;
             _dataReader = _dataTarget.DataReader;
             RuntimeBaseAddress = runtimeBaseAddress;
+            ContractDescriptor = contractDescriptor;
         }
 
         public void EnterMagicCallbackContext() => Interlocked.Increment(ref _callbackContext);
@@ -204,21 +208,5 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             return HResult.S_OK;
         }
-
-        private delegate int GetMetadataDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPWStr)] string fileName, int imageTimestamp, int imageSize,
-                                                     IntPtr mvid, uint mdRva, uint flags, uint bufferSize, IntPtr buffer, int* dataSize);
-        private delegate int GetMachineTypeDelegate(IntPtr self, out IMAGE_FILE_MACHINE machineType);
-        private delegate int GetPointerSizeDelegate(IntPtr self, out int pointerSize);
-        private delegate int GetImageBaseDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPWStr)] string imagePath, out ulong baseAddress);
-        private delegate int ReadVirtualDelegate(IntPtr self, ClrDataAddress address, IntPtr buffer, int bytesRequested, out int bytesRead);
-        private delegate int WriteVirtualDelegate(IntPtr self, ClrDataAddress address, IntPtr buffer, uint bytesRequested, out uint bytesWritten);
-        private delegate int GetTLSValueDelegate(IntPtr self, uint threadID, uint index, out ulong value);
-        private delegate int SetTLSValueDelegate(IntPtr self, uint threadID, uint index, ClrDataAddress value);
-        private delegate int GetCurrentThreadIDDelegate(IntPtr self, out uint threadID);
-        private delegate int GetThreadContextDelegate(IntPtr self, uint threadID, uint contextFlags, int contextSize, IntPtr context);
-        private delegate int SetThreadContextDelegate(IntPtr self, uint threadID, uint contextSize, IntPtr context);
-        private delegate int RequestDelegate(IntPtr self, uint reqCode, uint inBufferSize, IntPtr inBuffer, IntPtr outBufferSize, out IntPtr outBuffer);
-
-        private delegate int GetRuntimeBaseDelegate([In] IntPtr self, [Out] out ulong address);
     }
 }
