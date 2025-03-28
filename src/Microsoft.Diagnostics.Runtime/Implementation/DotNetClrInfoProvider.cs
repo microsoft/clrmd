@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacImplementation;
@@ -31,22 +32,29 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private const string c_linuxCoreDbiFileName = "libmscordbi.so";
         private const string c_macOSCoreDbiFileName = "libmscordbi.dylib";
 
-        public IServiceProvider GetDacServices(ClrInfo clrInfo, string? providedPath, bool ignoreMismatch)
+        private const string c_windowsCDacFileName = "cdacreader.dll";
+        private const string c_linuxCDacFileName = "libcdacreader.so";
+        private const string c_macOSCDacFileName = "libcdacreader.dylib";
+
+        private const string c_cdacContractDescriptorExport = "DotNetRuntimeContractDescriptor";
+
+        private static readonly string s_defaultAssembliesPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+
+        public IServiceProvider GetDacServices(ClrInfo clrInfo, string? providedPath, bool ignoreMismatch, bool verifySignature)
         {
-            DacLibrary library = GetDacLibraryFromPath(clrInfo, providedPath, ignoreMismatch);
+            DacLibrary library = GetDacLibraryFromPath(clrInfo, providedPath, ignoreMismatch, verifySignature);
             return new DacServiceProvider(clrInfo, library);
         }
 
-        private static DacLibrary GetDacLibraryFromPath(ClrInfo clrInfo, string? dacPath, bool ignoreMismatch)
+        private static DacLibrary GetDacLibraryFromPath(ClrInfo clrInfo, string? dacPath, bool ignoreMismatch, bool verifySignature)
         {
+            if (dacPath is not null)
+                return CreateDacFromPath(clrInfo, dacPath, ignoreMismatch, verifySignature);
+
             OSPlatform currentPlatform = GetCurrentPlatform();
             Architecture currentArch = RuntimeInformation.ProcessArchitecture;
-
-            if (dacPath is not null)
-                return CreateDacFromPath(clrInfo, dacPath, ignoreMismatch);
-
-            bool foundOne = false;
             Exception? exception = null;
+            bool foundOne = false;
 
             IFileLocator? locator = clrInfo.DataTarget.FileLocator;
 
@@ -88,7 +96,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     {
                         // If we get the file from the symbol server, assume mismatches are expected.  Sometimes we replace dacs on the symbol
                         // server to fix bugs.  If it's archived under the right path, use it.
-                        return CreateDacFromPath(clrInfo, dacPath, ignoreMismatch: true);
+                        return CreateDacFromPath(clrInfo, dacPath, ignoreMismatch: true, verifySignature);
                     }
                     catch (Exception ex)
                     {
@@ -108,7 +116,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             throw new FileNotFoundException("Could not find matching DAC for this runtime.");
         }
 
-        private static DacLibrary CreateDacFromPath(ClrInfo clrInfo, string dacPath, bool ignoreMismatch)
+        private static DacLibrary CreateDacFromPath(ClrInfo clrInfo, string dacPath, bool ignoreMismatch, bool verifySignature)
         {
             if (!File.Exists(dacPath))
                 throw new FileNotFoundException(dacPath);
@@ -120,14 +128,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     throw new ClrDiagnosticsException($"Mismatched dac. Dac version: {major}.{minor}.{revision}.{patch}, expected: {clrInfo.Version}.");
             }
 
-            return new(clrInfo.DataTarget, dacPath, clrInfo.ModuleInfo.ImageBase);
+            return new(clrInfo.DataTarget, dacPath, clrInfo.ModuleInfo.ImageBase, clrInfo.ContractDescriptor, verifySignature);
         }
 
         public virtual ClrInfo? ProvideClrInfoForModule(DataTarget dataTarget, ModuleInfo module)
         {
-            ulong runtimeInfo = 0;
             if (IsSupportedRuntime(module, out ClrFlavor flavor))
-                return CreateClrInfo(dataTarget, module, runtimeInfo, flavor);
+                return CreateClrInfo(dataTarget, module, runtimeInfo: 0, flavor);
 
             return null;
         }
@@ -137,6 +144,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Version version;
             int indexTimeStamp = 0;
             int indexFileSize = 0;
+            ulong contractDescriptor = 0;
             ImmutableArray<byte> buildId = ImmutableArray<byte>.Empty;
             List<DebugLibraryInfo> artifacts = new(8);
 
@@ -319,6 +327,28 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 }
             }
 
+            if (flavor == ClrFlavor.Core)
+            {
+                contractDescriptor = module.GetExportSymbolAddress(c_cdacContractDescriptorExport);
+                if (contractDescriptor != 0)
+                {
+                    string? cdacName = GetCDacFileName(currentPlatform);
+                    if (cdacName is not null)
+                    {
+                        // The CDAC is located in the same directory as CLRMD
+                        cdacName = Path.Combine(s_defaultAssembliesPath, cdacName);
+                        if (currentPlatform == OSPlatform.Windows)
+                        {
+                            artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.CDac, cdacName, targetArch, SymbolProperties.None, indexFileSize, indexTimeStamp));
+                        }
+                        else
+                        {
+                            artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.CDac, cdacName, targetArch, currentPlatform, SymbolProperties.None, buildId));
+                        }
+                    }
+                }
+            }
+
             // Do NOT take a dependency on the order of enumerated libraries.  I reserve the right to change this at any time.
             IOrderedEnumerable<DebugLibraryInfo> orderedDebugLibraries = from artifact in EnumerateUnique(artifacts)
                                                                          orderby artifact.Kind,
@@ -330,6 +360,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 Flavor = flavor,
                 DebuggingLibraries = orderedDebugLibraries.ToImmutableArray(),
+                ContractDescriptor = contractDescriptor,
                 IndexFileSize = indexFileSize,
                 IndexTimeStamp = indexTimeStamp,
                 BuildId = buildId,
@@ -404,6 +435,18 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return null;
         }
 
+        private static string? GetCDacFileName(OSPlatform platform)
+        {
+            if (platform == OSPlatform.Windows)
+                return c_windowsCDacFileName;
+            else if (platform == OSPlatform.Linux)
+                return c_linuxCDacFileName;
+            else if (platform == OSPlatform.OSX)
+                return c_macOSCDacFileName;
+
+            return null;
+        }
+
         private static bool IsSupportedRuntime(ModuleInfo module, out ClrFlavor flavor)
         {
             flavor = default;
@@ -435,6 +478,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             return false;
         }
+
         private static OSPlatform GetCurrentPlatform()
         {
             OSPlatform currentPlatform;

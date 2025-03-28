@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ClrDataProcess CreateClrDataProcess() => new(this, _clrDataProcess);
 
-        public unsafe DacLibrary(DataTarget dataTarget, string dacPath, ulong runtimeBaseAddress)
+        public unsafe DacLibrary(DataTarget dataTarget, string dacPath, ulong runtimeBaseAddress, ulong contractDescriptor, bool verifySignature)
         {
             if (dataTarget is null)
                 throw new ArgumentNullException(nameof(dataTarget));
@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime
             IntPtr dacLibrary;
             try
             {
-                if (dataTarget.CustomDataTarget.DacSignatureVerificationEnabled)
+                if (verifySignature)
                 {
                     if (!AuthenticodeUtil.VerifyDacDll(dacPath, out fileLock))
                     {
@@ -74,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (addr == IntPtr.Zero)
                 throw new ClrDiagnosticsException("Failed to obtain Dac CLRDataCreateInstance");
 
-            DacDataTarget = new DacDataTarget(dataTarget, runtimeBaseAddress);
+            DacDataTarget = new DacDataTarget(dataTarget, runtimeBaseAddress, contractDescriptor);
 
             delegate* unmanaged[Stdcall]<in Guid, IntPtr, out IntPtr, int> func = (delegate* unmanaged[Stdcall]<in Guid, IntPtr, out IntPtr, int>)addr;
             Guid guid = new("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime
             int res = func(guid, iDacDataTarget, out nint iUnk);
             Marshal.Release(iDacDataTarget);
 #else
-            LegacyDacDataTargetWrapper wrapper = new(DacDataTarget, DacDataTarget.RuntimeBaseAddress != 0);
+            LegacyDacDataTargetWrapper wrapper = new(DacDataTarget);
             int res = func(guid, wrapper.IDacDataTarget, out nint iUnk);
             GC.KeepAlive(wrapper);
 #endif

@@ -7,5 +7,6 @@ namespace Microsoft.Diagnostics.Runtime
     {
         Dac,
         Dbi,
+        CDac
     }
 }
