@@ -105,7 +105,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="dacPath">A full path to the matching DAC dll for this process.</param>
         /// <returns>The runtime associated with this CLR.</returns>
-        public ClrRuntime CreateRuntime(string dacPath)=> CreateRuntime(dacPath, ignoreMismatch: false, verifySignature: false);
+        public ClrRuntime CreateRuntime(string dacPath) => CreateRuntime(dacPath, ignoreMismatch: false, verifySignature: false);
 
         /// <summary>
         /// Creates a runtime from the given DAC file on disk.
