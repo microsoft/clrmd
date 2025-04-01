@@ -128,7 +128,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     throw new ClrDiagnosticsException($"Mismatched dac. Dac version: {major}.{minor}.{revision}.{patch}, expected: {clrInfo.Version}.");
             }
 
-            return new(clrInfo.DataTarget, dacPath, clrInfo.ModuleInfo.ImageBase, clrInfo.ContractDescriptor, verifySignature);
+            return new(clrInfo.DataTarget, dacPath, clrInfo.ModuleInfo.ImageBase, clrInfo.ContractDescriptorAddress, verifySignature);
         }
 
         public virtual ClrInfo? ProvideClrInfoForModule(DataTarget dataTarget, ModuleInfo module)
@@ -360,7 +360,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 Flavor = flavor,
                 DebuggingLibraries = orderedDebugLibraries.ToImmutableArray(),
-                ContractDescriptor = contractDescriptor,
+                ContractDescriptorAddress = contractDescriptor,
                 IndexFileSize = indexFileSize,
                 IndexTimeStamp = indexTimeStamp,
                 BuildId = buildId,

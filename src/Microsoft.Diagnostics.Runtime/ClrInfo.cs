@@ -63,7 +63,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The CDAC contract export address
         /// </summary>
-        public ulong ContractDescriptor { get; set; }
+        public ulong ContractDescriptorAddress { get; set; }
 
         /// <summary>
         /// The timestamp under which this CLR is is archived (0 if this module is indexed under

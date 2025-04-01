@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         int IndexTimeStamp { get; }
         bool IsSingleFile { get; }
         ModuleInfo ModuleInfo { get; }
-        ulong ContractDescriptor { get; }
+        ulong ContractDescriptorAddress { get; }
         Version Version { get; }
 
         IClrRuntime CreateRuntime();
