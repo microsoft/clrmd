@@ -16,6 +16,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// The binary is archived under coreclr's properties.
         /// </summary>
-        Coreclr
+        Coreclr,
+
+        /// <summary>
+        /// The binary is NOT archived
+        /// </summary>
+        None
     }
 }
