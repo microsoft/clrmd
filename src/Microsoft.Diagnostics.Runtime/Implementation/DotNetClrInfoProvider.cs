@@ -32,9 +32,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private const string c_linuxCoreDbiFileName = "libmscordbi.so";
         private const string c_macOSCoreDbiFileName = "libmscordbi.dylib";
 
-        private const string c_windowsCDacFileName = "cdacreader.dll";
-        private const string c_linuxCDacFileName = "libcdacreader.so";
-        private const string c_macOSCDacFileName = "libcdacreader.dylib";
+        private const string c_windowsCDacFileName = "mscordaccore_universal.dll";
+        private const string c_linuxCDacFileName = "libmscordaccore_universal.so";
+        private const string c_macOSCDacFileName = "libmscordaccore_universal.dylib";
 
         private const string c_cdacContractDescriptorExport = "DotNetRuntimeContractDescriptor";
 
