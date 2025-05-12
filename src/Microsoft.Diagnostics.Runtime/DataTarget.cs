@@ -317,7 +317,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
             catch
             {
-                if (leaveOpen)
+                if (!leaveOpen)
                     stream?.Dispose();
                 throw;
             }
