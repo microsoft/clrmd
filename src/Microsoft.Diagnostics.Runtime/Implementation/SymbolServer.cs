@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             if (IsSymweb(server))
             {
-                _tokenCredential = credential ?? new DefaultAzureCredential();
+                _tokenCredential = credential ?? new InteractiveBrowserCredential();
             }
         }
 
