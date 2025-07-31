@@ -41,13 +41,5 @@ namespace Microsoft.Diagnostics.Runtime
         {
             HResult = hr;
         }
-
-        public override void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            if (info is null)
-                throw new ArgumentNullException(nameof(info));
-
-            base.GetObjectData(info, context);
-        }
     }
 }
