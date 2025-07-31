@@ -8,52 +8,61 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
-using System.Threading;
 using System.Threading.Tasks;
 using Azure.Core;
 using Azure.Identity;
-using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class SymbolServer : FileLocatorBase
     {
-        public const string Msdl = "https://msdl.microsoft.com/download/symbols";
-        private const string SymwebHost = "symweb.azurefd.net";
+        public static readonly Uri Msdl = new("https://msdl.microsoft.com/download/symbols/");
+        public static readonly Uri SymwebHost = new("https://symweb.azurefd.net/");
         private readonly TokenCredential? _tokenCredential;
         private AccessToken _accessToken;
         private readonly FileSymbolCache _cache;
         private readonly bool _trace;
         private readonly HttpClient _http = new();
 
-        public string Server { get; private set; }
+        public Uri Server { get; private set; }
+        private bool IsSymweb => Server.Host.Equals(SymwebHost.Host, StringComparison.OrdinalIgnoreCase);
 
         internal SymbolServer(FileSymbolCache cache, string server, bool trace, TokenCredential? credential)
+            : this(cache, Sanitize(server), trace, credential)
         {
-            if (cache is null)
-                throw new ArgumentNullException(nameof(cache));
-
-            _cache = cache;
-            _trace = trace;
-            Server = server;
-
-            if (IsSymweb(server))
-            {
-                _tokenCredential = credential ?? new InteractiveBrowserCredential();
-            }
         }
 
-        private static bool IsSymweb(string server)
+        internal SymbolServer(FileSymbolCache cache, Uri server, bool trace, TokenCredential? credential)
         {
-            try
+            _cache = cache ?? throw new ArgumentNullException(nameof(cache));
+            _trace = trace;
+            Server = EnsureTrailingSlash(server);
+            _tokenCredential = credential;
+
+            if (IsSymweb)
+                _tokenCredential ??= new InteractiveBrowserCredential();
+        }
+
+        private static Uri Sanitize(string server)
+        {
+            UriBuilder builder = new(server) { Query = "" };
+            return builder.Uri;
+        }
+
+        private static Uri EnsureTrailingSlash(Uri uri)
+        {
+            // We concatenate the Uri later, and if the last path does not end with a / then
+            // it gets erased when we combine uris.
+            // If the URI's AbsolutePath already ends with '/', return as is.
+            if (uri.AbsolutePath.EndsWith("/"))
+                return uri;
+
+            // Rebuild the URI with a trailing slash in the path.
+            var builder = new UriBuilder(uri)
             {
-                Uri uri = new(server);
-                return uri.Host.Equals(SymwebHost, StringComparison.OrdinalIgnoreCase);
-            }
-            catch
-            {
-                return false;
-            }
+                Path = uri.AbsolutePath + "/"
+            };
+            return builder.Uri;
         }
 
         public override string? FindElfImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildId, bool checkProperties)
@@ -133,7 +142,8 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private async Task<Stream?> FindFileOnServer(string key)
         {
-            string fullPath = $"{Server}/{key.Replace('\\', '/')}";
+            key = key.Replace('\\', '/').TrimStart('/');
+            Uri fullPath = new(Server, key);
 
             string? accessToken = await GetAccessTokenAsync().ConfigureAwait(false);
             if (accessToken is not null)
@@ -150,6 +160,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             response.Dispose();
             return null;
         }
+
 
         private async Task<string?> GetAccessTokenAsync()
         {
