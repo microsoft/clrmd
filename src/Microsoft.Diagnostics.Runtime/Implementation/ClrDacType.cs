@@ -330,7 +330,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return null;
 
             T[] values = new T[count];
-            Span<byte> buffer = MemoryMarshal.Cast<T, byte>(values);
+            Span<byte> buffer = MemoryMarshal.AsBytes(values.AsSpan());
 
             if (Module.DataReader.Read(address, buffer) == buffer.Length)
                 return values;

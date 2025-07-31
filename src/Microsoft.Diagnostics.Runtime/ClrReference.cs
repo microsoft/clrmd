@@ -52,18 +52,18 @@ namespace Microsoft.Diagnostics.Runtime
 
                 int offset = Offset - Field.Offset;
 
-                ClrInstanceField? field = FindField(Field.Type.Fields, offset);
-                if (field is null)
+                ClrInstanceField? f = FindField(Field.Type.Fields, offset);
+                if (f is null)
                     return null;
 
                 // Primitive types intentionally have a recursive definition.  In the case where we incorrectly find
                 // an object's offset as one of these fields we need to break out of the infinite loop.
-                if (field == Field && field.Name == "m_value")
+                if (f == Field && f.Name == "m_value")
                     return null;
 
                 unchecked
                 {
-                    return new ClrReference(Object, field, OffsetFlag | (uint)offset);
+                    return new ClrReference(Object, f, OffsetFlag | (uint)offset);
                 }
             }
         }

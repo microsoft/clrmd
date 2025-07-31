@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net6.0</TargetFrameworks>
+    <TargetFrameworks>net8.0</TargetFrameworks>
     <NoWarn>1701;1702;1705;1591;436</NoWarn>
 
     <!-- This _IS_ a Unit Test Project, but because of build_test_assets.cmd, we don't want to run as part of CI right now -->	
