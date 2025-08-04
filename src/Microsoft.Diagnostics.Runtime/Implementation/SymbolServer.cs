@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Azure.Core;
 using Azure.Identity;
+using Microsoft.Internal.AntiSSRF;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -30,6 +31,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         internal SymbolServer(FileSymbolCache cache, string server, bool trace, TokenCredential? credential)
             : this(cache, Sanitize(server), trace, credential)
         {
+
+            var policy = new AntiSSRFPolicy();
+            policy.SetDefaults();
+            HttpMessageHandler handler = policy.GetHandler();
+            _http = new(handler, false);
         }
 
         internal SymbolServer(FileSymbolCache cache, Uri server, bool trace, TokenCredential? credential)
