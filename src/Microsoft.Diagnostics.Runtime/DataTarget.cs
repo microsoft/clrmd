@@ -315,7 +315,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 return new DataTarget(new CustomDataTarget(reader, symbolCredential) { CacheOptions = cacheOptions });
             }
-            catch
+            catch (Exception)
             {
                 if (!leaveOpen)
                     stream?.Dispose();

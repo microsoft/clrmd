@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
                 image.Dispose();
             }
-            catch
+            catch (Exception ex) when (ex is IOException or ArgumentException or OutOfMemoryException or InvalidDataException or ObjectDisposedException)
             {
             }
 

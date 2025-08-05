@@ -81,7 +81,7 @@ namespace Microsoft.Diagnostics.Runtime
                     queue.Add(root);
                 }
             }
-            catch
+            catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException or ArgumentException)
             {
             }
             finally

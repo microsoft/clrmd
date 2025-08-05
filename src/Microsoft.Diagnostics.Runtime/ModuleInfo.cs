@@ -54,7 +54,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return new MacOS.MachOModuleInfo(module, baseAddress, name, null, module.ImageSize);
                 }
             }
-            catch
+            catch (Exception ex) when (ex is InvalidDataException or IOException or ArgumentException or OverflowException or OutOfMemoryException)
             {
                 // We could encounter any number of errors in the Elf/Mach-O system, we will just ignore them here.
             }
