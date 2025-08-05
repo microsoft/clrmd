@@ -1,5 +1,13 @@
 {
-  "sdk": {
-    "version": "8.0.118"
+  "tools": {
+    "dotnet": "8.0.117",
+    "runtimes": {
+      "dotnet": [
+        "3.1.0"
+      ]
+    }
+  },
+  "msbuild-sdks": {
+    "Microsoft.DotNet.Arcade.Sdk": "8.0.0-beta.25378.1"
   }
 }
