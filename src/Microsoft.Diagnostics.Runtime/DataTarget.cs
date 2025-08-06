@@ -281,6 +281,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A <see cref="DataTarget"/> for the given dump.</returns>
         public static DataTarget LoadDump(string displayName, Stream stream, CacheOptions? cacheOptions = null, bool leaveOpen = false, TokenCredential? symbolCredential = null)
         {
+            bool success = false;
             try
             {
                 if (displayName is null)
@@ -313,13 +314,14 @@ namespace Microsoft.Diagnostics.Runtime
                     _ => throw new InvalidDataException($"Stream '{displayName}' is in an unknown or unsupported file format."),
                 };
 
-                return new DataTarget(new CustomDataTarget(reader, symbolCredential) { CacheOptions = cacheOptions });
+                DataTarget result = new DataTarget(new CustomDataTarget(reader, symbolCredential) { CacheOptions = cacheOptions });
+                success = true;
+                return result;
             }
-            catch
+            finally
             {
-                if (!leaveOpen)
+                if (!success && !leaveOpen)
                     stream?.Dispose();
-                throw;
             }
         }
 

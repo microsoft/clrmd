@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -165,7 +166,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                     return _children = result.MoveOrCopyToImmutable();
                 }
-                catch
+                catch (Exception ex) when (ex is OutOfMemoryException or OverflowException or InvalidDataException or ArgumentException or IOException)
                 {
                     // If there's a bad image we could hit a variety of different failures here, including out of memory or
                     // under/overflow issues.  We'll just not return anything if we hit an error here since a bad image

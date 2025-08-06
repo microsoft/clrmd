@@ -466,7 +466,7 @@ namespace Microsoft.Diagnostics.Runtime
                             if (fileName.Equals(bclName, StringComparison.OrdinalIgnoreCase))
                                 bcl = module;
                         }
-                        catch
+                        catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException)
                         {
                         }
                     }

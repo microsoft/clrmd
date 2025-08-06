@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 
@@ -268,7 +269,7 @@ namespace Microsoft.Diagnostics.Runtime
                     }
                 }
             }
-            catch
+            catch (Exception ex) when (ex is IOException or ArgumentException or OutOfMemoryException or InvalidDataException or ObjectDisposedException)
             {
             }
 

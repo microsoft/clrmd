@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 File.Delete(_filename);
             }
-            catch
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
             {
             }
         }

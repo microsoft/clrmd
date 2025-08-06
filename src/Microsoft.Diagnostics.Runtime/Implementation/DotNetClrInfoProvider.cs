@@ -240,7 +240,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                     }
                                 }
                             }
-                            catch
+                            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
                             {
                             }
                         }
