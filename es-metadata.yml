@@ -1,0 +1,8 @@
+schemaVersion: 0.0.1
+isProduction: true
+accountableOwners:
+  service: 8e41a049-d341-437d-bce1-e86ee031c21d
+routing:
+  defaultAreaPath:
+    org: devdiv
+    path: DevDiv\NET Fundamentals\NET Technical Insights
