@@ -440,6 +440,11 @@ namespace Microsoft.Diagnostics.Runtime
                 return new DataTarget(LinuxSnapshotTarget.CreateSnapshotFromProcess(processId));
             }
 
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                return new DataTarget(MacOSSnapshotTarget.CreateSnapshotFromProcess(processId));
+            }
+
             throw GetPlatformException();
         }
 
