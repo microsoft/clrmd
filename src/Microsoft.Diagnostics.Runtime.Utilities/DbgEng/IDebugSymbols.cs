@@ -24,5 +24,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         bool GetOffsetByName(string name, out ulong offset);
         int GetTypeId(ulong moduleBase, string name, out ulong typeId);
         int GetFieldOffset(ulong moduleBase, ulong typeId, string name, out ulong offset);
+        int GetTypeSize(ulong moduleBase, ulong typeId, out ulong size);
     }
 }
