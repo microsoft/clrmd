@@ -135,6 +135,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                 return vtable->GetTypeIdWide(self, moduleBase, namePtr, out typeId);
         }
 
+        int IDebugSymbols.GetTypeSize(ulong moduleBase, ulong typeId, out ulong size)
+        {
+            GetVTable(this, out nint self, out IDebugSymbolsVtable* vtable);
+            return vtable->GetTypeSize(self, moduleBase, typeId, out size);
+        }
+
         int IDebugSymbols.GetFieldOffset(ulong moduleBase, ulong typeId, string name, out ulong offset)
         {
             GetVTable(this, out nint self, out IDebugSymbolsVtable* vtable);
