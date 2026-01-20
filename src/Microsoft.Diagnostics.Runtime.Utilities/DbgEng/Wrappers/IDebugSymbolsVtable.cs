@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint GetSymbolModule;
         private readonly nint GetTypeName;
         private readonly nint GetTypeId;
-        private readonly nint GetTypeSize;
+        public readonly delegate* unmanaged[Stdcall]<nint, ulong, ulong, out ulong, int> GetTypeSize;
         private readonly nint GetFieldOffset;
         private readonly nint GetSymbolTypeId;
         private readonly nint GetOffsetTypeId;
