@@ -27,6 +27,11 @@ namespace Microsoft.Diagnostics.Runtime
             HandleKind = handle.Kind;
             ReferenceCount = handle.RefCount;
             RootKind = IsStrong ? (ClrRootKind)HandleKind : ClrRootKind.None;
+
+            if (handle.Kind == ClrHandleKind.Dependent && handle.DependentTarget != 0)
+            {
+                Dependent = runtime.Heap.GetObject(handle.DependentTarget);
+            }
         }
 
         /// <summary>
