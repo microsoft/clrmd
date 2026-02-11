@@ -39,7 +39,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>The address of the field's value.</returns>
         public ulong GetAddress(ClrAppDomain appDomain) => _helpers.GetStaticFieldAddress(appDomain.AppDomainInfo, ContainingType.Module.ModuleInfo, ContainingType.TypeInfo, FieldInfo);
 
-        public ulong GetAddress(IClrAppDomain appDomain) => 0;
+        public ulong GetAddress(IClrAppDomain appDomain) => appDomain is ClrAppDomain clrAd ? GetAddress(clrAd) : 0;
 
         /// <summary>
         /// Reads the value of the field as an unmanaged struct or primitive type.
