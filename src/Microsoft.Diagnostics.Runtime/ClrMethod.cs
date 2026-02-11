@@ -169,7 +169,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Gets the regions of memory that
+        /// Gets the hot and cold regions of memory that contain the method's native code.
         /// </summary>
         public HotColdRegions HotColdInfo { get; }
 
