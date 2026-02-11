@@ -5,8 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.Interfaces;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -269,7 +271,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!DataReader.ReadPointer(addr, out ulong obj))
                 return false;
 
-            result = heap.GetObject(obj);
+            result = field.Type != null ? heap.GetObject(obj, field.Type) : heap.GetObject(obj);
             return true;
         }
 
@@ -329,7 +331,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!DataReader.ReadPointer(addr, out ulong obj))
                 return default;
 
-            return heap.GetObject(obj);
+            return field.Type != null ? heap.GetObject(obj, field.Type) : heap.GetObject(obj);
         }
 
         public ClrValueType ReadValueTypeField(string fieldName)
