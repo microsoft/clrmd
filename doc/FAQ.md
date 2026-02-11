@@ -2,11 +2,55 @@
 
 ## What happened to ClrRuntime.EnumerateTypes?
 
-We don't actually have a way to enumerate all "types" in the process.  ClrHeap.EnumerateTypes was an algorithm designed to help you find constructed types.  This was removed in ClrMD 2.0 because it's incredibly slow and is confusing as to what it's actually doing.  The Microsoft.Diagnostics.Runtime.Utilities NuGet package provides an extension method to add it back, but you can simply implement the algorithm yourself to do this.  The source for doing this can be found here:  https://github.com/microsoft/clrmd/blob/master/src/Microsoft.Diagnostics.Runtime.Utilities/EnumerateTypesExtension.cs.
+We don't actually have a way to enumerate all "types" in the process.  ClrHeap.EnumerateTypes was an algorithm designed to help you find constructed types.  This was removed in ClrMD 2.0 because it's incredibly slow and is confusing as to what it's actually doing.  The Microsoft.Diagnostics.Runtime.Utilities NuGet package previously provided an extension method to add it back, but that package was removed in ClrMD 2.1.  You can implement the algorithm yourself:
+
+```csharp
+public static IEnumerable<ClrType> EnumerateTypes(this ClrHeap heap)
+{
+    ClrRuntime runtime = heap.Runtime;
+    foreach (ClrModule module in runtime.EnumerateModules())
+    {
+        foreach ((ulong mt, int _) in module.EnumerateTypeDefToMethodTableMap())
+        {
+            ClrType? type = runtime.GetTypeByMethodTable(mt);
+            if (type != null)
+                yield return type;
+        }
+    }
+}
+```
 
 ## Why are static roots no longer enumerated by `ClrHeap.EnumerateRoots`?
 
-Static variables are not "roots" in the strictest sense.  They are always rooted, but the GC does not consider them to be roots.  ClrMD 1.1 would report these as roots because it's convenient to treat them as roots when reporting to the user why an object is alive.  However, that code takes a very long time, and it wasn't providing an accurate view of the runtime.  If you need those back or to find what object addresses are you can use this method (or reimplement it yourself): https://github.com/microsoft/clrmd/blob/master/src/Microsoft.Diagnostics.Runtime.Utilities/StaticRootsExtension.cs.
+Static variables are not "roots" in the strictest sense.  They are always rooted, but the GC does not consider them to be roots.  ClrMD 1.1 would report these as roots because it's convenient to treat them as roots when reporting to the user why an object is alive.  However, that code takes a very long time, and it wasn't providing an accurate view of the runtime.  The Microsoft.Diagnostics.Runtime.Utilities package that previously provided this functionality was removed in ClrMD 2.1.  You can reimplement it yourself:
+
+```csharp
+public static IEnumerable<(ClrStaticField Field, ClrObject Object)> EnumerateAllStaticVariables(this ClrRuntime runtime)
+{
+    foreach (ClrModule module in runtime.EnumerateModules())
+    {
+        foreach ((ulong mt, int _) in module.EnumerateTypeDefToMethodTableMap())
+        {
+            ClrType? type = runtime.GetTypeByMethodTable(mt);
+            if (type is null)
+                continue;
+
+            foreach (ClrStaticField field in type.StaticFields)
+            {
+                if (field.IsObjectReference)
+                {
+                    foreach (ClrAppDomain domain in runtime.AppDomains)
+                    {
+                        ClrObject obj = field.ReadObject(domain);
+                        if (obj.IsValid && !obj.IsNull)
+                            yield return (field, obj);
+                    }
+                }
+            }
+        }
+    }
+}
+```
 
 ## What platforms are supported?
 
