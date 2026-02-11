@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(OS)' == 'Unix'">
-    <TargetSources Include="*\*.cs" Exclude="Shared\*;AppDomains\*">
+    <TargetSources Include="*\*.cs" Exclude="Shared\*;AppDomains\*;single-file\*">
       <ProjectPath>%(RelativeDir)%(Filename).csproj</ProjectPath>
       <DllPath>$(BinDir64)%(Filename).dll</DllPath>
     </TargetSources>
