@@ -57,9 +57,25 @@ namespace Microsoft.Diagnostics.Runtime
                 int last = signature.LastIndexOf('(');
                 if (last > 0)
                 {
-                    int first = signature.LastIndexOf('.', last - 1);
+                    // Skip over generic parameter brackets (e.g., [[System.Int32, System.Private.CoreLib]])
+                    // to find the dot that separates type name from method name.
+                    int searchPos = last - 1;
+                    int depth = 0;
+                    while (searchPos >= 0)
+                    {
+                        char c = signature[searchPos];
+                        if (c == ']')
+                            depth++;
+                        else if (c == '[')
+                            depth--;
+                        else if (depth == 0)
+                            break;
+                        searchPos--;
+                    }
 
-                    if (first != -1 && signature[first - 1] == '.')
+                    int first = signature.LastIndexOf('.', searchPos);
+
+                    if (first != -1 && first > 0 && signature[first - 1] == '.')
                         first--;
 
                     return signature.Substring(first + 1, last - first - 1);
