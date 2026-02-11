@@ -140,7 +140,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
         }
 
-        public Architecture Architecture => IntPtr.Size == 4 ? Architecture.X86 : Architecture.X64;
+        public Architecture Architecture => RuntimeInformation.ProcessArchitecture;
 
         public IEnumerable<ModuleInfo> EnumerateModules()
         {
