@@ -374,7 +374,7 @@ The above code's results are equivalent to the one above it but it will be slowe
 
 The approach above is a good way to walk every object on the heap. But what if you want to only walk a subset of objects? For example, let's say you have an object and you want to know all of the objects it points to, and all the objects those point to, and so on. This is what we call the `!objsize` algorithm.
 
-If you are not familiar with `!objsize` in SOS, this command takes an object as a parameter and counts the number of objects it keeps alive as well as reports the total size of all objects the given object keeps alive.  Given an object, you can enumerate all objects it points to using `ClrType.Enumerate` object references. Here is an example of implementing this:
+If you are not familiar with `!objsize` in SOS, this command takes an object as a parameter and counts the number of objects it keeps alive as well as reports the total size of all objects the given object keeps alive.  Given an object, you can enumerate all objects it points to using `ClrObject.EnumerateReferences`. Here is an example of implementing this:
 
 ```c#
 private static (int count, ulong size) ObjSize(ClrObject input)
@@ -404,9 +404,9 @@ private static (int count, ulong size) ObjSize(ClrObject input)
 
 Note that `EnumerateReferences` takes two arguments:  `carefully` determines whether we ensure the ClrObjects returned are valid or not if there is heap corruption.  Setting this to true causes us to do a lot more checks which will significantly slow down the algorithm.  `considerDependantHandles` tells ClrMD whether or not to look at the dependant handle table and enumerate references kept alive by `ConditionalWeakTable`.
 
-### Why do we need EnumerateRefsOfObject?
+### Why do we need EnumerateReferences?
 
-You might be wondering why we need `ClrType.EnumerateRefsOfObject` at all. You can attempt to walk each field in the object and get its value to try to implement this algorithm, but `EnumerateRefsOfObject` is much, much faster. It uses the same algorithm the GC does to get object references out of the object, which is far more efficient than walking fields to look for objects.
+You might be wondering why we need `ClrObject.EnumerateReferences` at all. You can attempt to walk each field in the object and get its value to try to implement this algorithm, but `EnumerateReferences` is much, much faster. It uses the same algorithm the GC does to get object references out of the object, which is far more efficient than walking fields to look for objects.
 
 
 # Types and Fields in CLRMD
