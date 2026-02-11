@@ -37,34 +37,34 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public bool GetMethodInfo(ulong methodDesc, out MethodInfo methodInfo)
         {
-            if (!_sos.GetMethodDescData(methodDesc, 0, out MethodDescData mdd) || !_sos.GetCodeHeaderData(mdd.NativeCodeAddr, out CodeHeaderData chd))
+            if (!_sos.GetMethodDescData(methodDesc, 0, out MethodDescData mdd))
             {
                 methodInfo = default;
                 return false;
             }
 
-            uint compilation = chd.JITType;
-            ulong md = chd.MethodDesc;
-
-            HotColdRegions regions;
-            if (mdd.HasNativeCode != 0)
+            if (mdd.HasNativeCode != 0 && _sos.GetCodeHeaderData(mdd.NativeCodeAddr, out CodeHeaderData chd))
             {
-                regions = new(mdd.NativeCodeAddr, chd.HotRegionSize, chd.ColdRegionStart, chd.ColdRegionSize);
-                md = chd.MethodDesc;
-                compilation = chd.JITType;
+                methodInfo = new()
+                {
+                    CompilationType = (MethodCompilationType)chd.JITType,
+                    HotCold = new(mdd.NativeCodeAddr, chd.HotRegionSize, chd.ColdRegionStart, chd.ColdRegionSize),
+                    MethodDesc = chd.MethodDesc,
+                    Token = (int)mdd.MDToken
+                };
             }
             else
             {
-                regions = new(mdd.NativeCodeAddr, chd.HotRegionSize, chd.ColdRegionStart, chd.ColdRegionSize);
+                // Method has not been JIT compiled (e.g. unboxing stubs, un-jitted methods)
+                methodInfo = new()
+                {
+                    CompilationType = MethodCompilationType.None,
+                    HotCold = default,
+                    MethodDesc = methodDesc,
+                    Token = (int)mdd.MDToken
+                };
             }
 
-            methodInfo = new()
-            {
-                CompilationType = (MethodCompilationType)compilation,
-                HotCold = regions,
-                MethodDesc = md,
-                Token = (int)mdd.MDToken
-            };
             return true;
         }
     }
