@@ -143,7 +143,8 @@ namespace Microsoft.Diagnostics.Runtime
         public bool IsFree => Type?.IsFree ?? false;
 
         /// <summary>
-        /// Returns whether this is a valid object.  This will return null
+        /// Returns whether this is a valid object.  This will return false if the address
+        /// did not point to a valid object, or if the object is null (<see cref="IsNull"/>).
         /// </summary>
         public bool IsValid => Address != 0 && Type != null;
 

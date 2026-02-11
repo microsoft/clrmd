@@ -262,7 +262,7 @@ Objects on the target process's GC heap are represented by the `ClrObject` struc
 
 1.  `Address` tells you the address of the object in the target process's address space.
 2.  `IsValid` tells you if the object is valid.  This will return false if the address in the target address space did not point to a valid object.
-3.  `IsNull` tells you if the object address was null (also `Address == 0` in this case).  Note that null objects are considered valid (`IsNull == true` => `IsValid == true`).
+3.  `IsNull` tells you if the object address was null (also `Address == 0` in this case).  Note that null objects are **not** considered valid (`IsNull == true` => `IsValid == false`).
 4.  `Type` tells you the type of the object, but note that this field may be null if `IsNull` is true or `IsValid` is false.
 5.  `Read*Field` methods allow you to read the instance fields of the class.
 6.  `IsArray` and `AsArray` gives you the ability to read from array indicies.
