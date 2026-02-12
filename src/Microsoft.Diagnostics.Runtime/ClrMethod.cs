@@ -54,11 +54,33 @@ namespace Microsoft.Diagnostics.Runtime
                 if (signature is null)
                     return null;
 
-                int last = signature.LastIndexOf('(');
+                // Find the outermost '(' by matching the trailing ')'.
+                // We can't use LastIndexOf('(') because function pointer
+                // types in the signature introduce nested parentheses,
+                // e.g. "Void* (Void*, UInt32)" (issue #842).
+                int last = -1;
+                {
+                    int parenDepth = 0;
+                    for (int i = signature.Length - 1; i >= 0; i--)
+                    {
+                        if (signature[i] == ')')
+                            parenDepth++;
+                        else if (signature[i] == '(')
+                        {
+                            parenDepth--;
+                            if (parenDepth == 0)
+                            {
+                                last = i;
+                                break;
+                            }
+                        }
+                    }
+                }
+
                 if (last > 0)
                 {
                     // Skip over generic parameter brackets (e.g., [[System.Int32, System.Private.CoreLib]])
-                    // to find the dot that separates type name from method name.
+                    // to find the dot that separates type name from method name (issue #935).
                     int searchPos = last - 1;
                     int depth = 0;
                     while (searchPos >= 0)

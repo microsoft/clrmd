@@ -145,6 +145,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         // Name + "(" must appear in the signature
                         if (!signature.Contains(name + "("))
                             failures.Add($"Name '{name}' + '(' not found in: {signature}");
+
+                        // Name must not contain parentheses — that indicates the
+                        // outermost '(' was not correctly identified, e.g. when function
+                        // pointer types introduce nested parens (issue #842).
+                        if (name.Contains('(') || name.Contains(')'))
+                            failures.Add($"Name '{name}' contains parentheses from: {signature}");
                     }
                 }
             }
