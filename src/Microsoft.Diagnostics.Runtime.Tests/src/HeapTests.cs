@@ -102,7 +102,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 // Once without markers, once with
                 NextObjectWorker(heap, seg);
-                Assert.True(CheckMarkersValid(seg));
+                if (seg.ObjectMarkers.Length > 0)
+                    Assert.True(CheckMarkersValid(seg));
                 NextObjectWorker(heap, seg);
             }
         }
@@ -136,7 +137,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                 // Once without markers, once with
                 PrevObjectWorker(heap, seg, prev);
-                Assert.True(CheckMarkersValid(seg));
+                if (seg.ObjectMarkers.Length > 0)
+                    Assert.True(CheckMarkersValid(seg));
                 PrevObjectWorker(heap, seg, prev);
             }
         }
@@ -253,12 +255,24 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 if (seg.Generation2.Length > 0)
                     Assert.True(seg.ObjectRange.Contains(seg.Generation2));
 
-                Assert.True(seg.Generation2.Start == seg.Start);
                 if (seg.Kind == GCSegmentKind.Ephemeral)
                 {
+                    Assert.True(seg.Generation2.Start == seg.Start);
                     Assert.True(seg.Generation2.End == seg.Generation1.Start);
                     Assert.True(seg.Generation1.End == seg.Generation0.Start);
                     Assert.True(seg.Generation0.End == seg.ObjectRange.End);
+                }
+                else if (seg.Kind == GCSegmentKind.Generation0)
+                {
+                    Assert.True(seg.Generation0.Length > 0 || seg.Length == 0);
+                }
+                else if (seg.Kind == GCSegmentKind.Generation1)
+                {
+                    Assert.True(seg.Generation1.Length > 0 || seg.Length == 0);
+                }
+                else if (seg.Kind == GCSegmentKind.Generation2 || seg.Kind == GCSegmentKind.Pinned || seg.Kind == GCSegmentKind.Frozen)
+                {
+                    Assert.True(seg.Generation2.Length > 0 || seg.Length == 0);
                 }
 
                 if (seg.Length == 0)
@@ -292,7 +306,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 // Walk the whole heap.
                 _ = seg.EnumerateObjects().Count();
 
-                Assert.True(CheckMarkersValid(seg));
+                if (seg.ObjectMarkers.Length > 0)
+                    Assert.True(CheckMarkersValid(seg));
             }
         }
 

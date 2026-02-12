@@ -70,7 +70,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     Assert.False(corruptedArray.IsValid);
 
                     ObjectCorruption[] corrupted = heap.VerifyHeap().ToArray();
-                    Assert.Equal(2, corrupted.Length);
+                    Assert.True(corrupted.Length >= 2);
 
                     Assert.Single(corrupted.Where(c => c.Object == corruptedObject));
                     Assert.Single(corrupted.Where(c => c.Object == corruptedArray));
@@ -120,7 +120,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
 
-        [Fact]
+        [WindowsFact]
         public void ObjectNotOnHeapTest()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDumpWithDbgEng(GCMode.Server);

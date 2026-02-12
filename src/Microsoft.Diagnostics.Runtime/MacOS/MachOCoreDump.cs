@@ -64,7 +64,11 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             {
                 long position = stream.Position;
                 LoadCommandHeader loadCommand = default;
+#if NET7_0_OR_GREATER
+                stream.ReadExactly(new Span<byte>(&loadCommand, sizeof(LoadCommandHeader)));
+#else
                 stream.Read(new Span<byte>(&loadCommand, sizeof(LoadCommandHeader)));
+#endif
 
                 long next = position + loadCommand.Size;
 
@@ -72,7 +76,11 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 {
                     case LoadCommandType.Segment64:
                         Segment64LoadCommand seg = default;
+#if NET7_0_OR_GREATER
+                        stream.ReadExactly(new Span<byte>(&seg, sizeof(Segment64LoadCommand)));
+#else
                         stream.Read(new Span<byte>(&seg, sizeof(Segment64LoadCommand)));
+#endif
 
                         if (seg.VMAddr == SpecialThreadInfoHeader.SpecialThreadInfoAddress)
                         {
@@ -158,7 +166,11 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         private static T Read<T>(Stream stream) where T : unmanaged
         {
             T value;
+#if NET7_0_OR_GREATER
+            stream.ReadExactly(new Span<byte>(&value, sizeof(T)));
+#else
             stream.Read(new Span<byte>(&value, sizeof(T)));
+#endif
             return value;
         }
 

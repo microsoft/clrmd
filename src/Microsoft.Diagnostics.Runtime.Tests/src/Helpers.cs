@@ -83,9 +83,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public static ClrModule GetModule(this ClrRuntime runtime, string fileName)
         {
+            string nameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
             return (from module in runtime.AppDomains.SelectMany(ad => ad.Modules)
                     let file = Path.GetFileName(module.Name)
                     where file.Equals(fileName, StringComparison.OrdinalIgnoreCase)
+                       || Path.GetFileNameWithoutExtension(file).Equals(nameWithoutExt, StringComparison.OrdinalIgnoreCase)
                     select module).FirstOrDefault();
         }
 

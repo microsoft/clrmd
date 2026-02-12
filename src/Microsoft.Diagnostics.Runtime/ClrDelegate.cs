@@ -149,16 +149,35 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns></returns>
         public IEnumerable<ClrDelegateTarget> EnumerateDelegateTargets()
         {
-            ClrDelegateTarget? first = GetDelegateTarget();
-            if (first != null)
-                yield return first;
-
             // The call to GetDelegateMethod will validate that we are a valid object and a subclass of System.Delegate
             if (!Object.TryReadField("_invocationCount", out int count)
                 || count == 0
-                || !Object.TryReadObjectField("_invocationList", out ClrObject invocationList)
-                || !invocationList.IsArray)
+                || !Object.TryReadObjectField("_invocationList", out ClrObject invocationList))
             {
+                // Not a multicast delegate, just return the single target
+                ClrDelegateTarget? single = GetDelegateTarget();
+                if (single != null)
+                    yield return single;
+
+                yield break;
+            }
+
+            // In newer runtimes, _invocationList is typed as System.Object but is actually
+            // System.Object[] at runtime. Re-resolve the type if it wasn't detected as an array.
+            if (!invocationList.IsArray)
+            {
+                ClrType? actualType = Object.Type!.Heap.GetObjectType(invocationList.Address);
+                if (actualType is not null && actualType.IsArray)
+                    invocationList = Object.Type!.Heap.GetObject(invocationList.Address, actualType);
+            }
+
+            if (!invocationList.IsArray)
+            {
+                // Fall back to single target if we can't resolve the invocation list
+                ClrDelegateTarget? single = GetDelegateTarget();
+                if (single != null)
+                    yield return single;
+
                 yield break;
             }
 

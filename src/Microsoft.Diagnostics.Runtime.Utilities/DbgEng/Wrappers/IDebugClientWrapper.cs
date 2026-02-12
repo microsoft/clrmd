@@ -103,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             else
             {
                 nint pUnk = DebugOutputCallbacksCOM.Instance.GetOrCreateComInterfaceForObject(callbacks, CreateComInterfaceFlags.None);
-                Marshal.QueryInterface(pUnk, ref DebugOutputCallbacksCOM.IID_IOutputCallbacks2, out nint pOutputCallbacks);
+                Marshal.QueryInterface(pUnk, in DebugOutputCallbacksCOM.IID_IOutputCallbacks2, out nint pOutputCallbacks);
 
                 int hr = vtable->SetOutputCallbacksWide(self, pOutputCallbacks);
 
@@ -141,7 +141,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             else
             {
                 nint pUnk = DebugEventCallbacksCOM.Instance.GetOrCreateComInterfaceForObject(callbacks, CreateComInterfaceFlags.None);
-                Marshal.QueryInterface(pUnk, ref DebugEventCallbacksCOM.IID_IDebugEventCallbacksWide, out nint eventCallbacks);
+                Marshal.QueryInterface(pUnk, in DebugEventCallbacksCOM.IID_IDebugEventCallbacksWide, out nint eventCallbacks);
 
                 int hr = vtable->SetEventCallbacksWide(self, eventCallbacks);
 

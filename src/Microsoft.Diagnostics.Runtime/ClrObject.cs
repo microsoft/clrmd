@@ -271,7 +271,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!DataReader.ReadPointer(addr, out ulong obj))
                 return false;
 
-            result = field.Type != null ? heap.GetObject(obj, field.Type) : heap.GetObject(obj);
+            result = heap.GetObject(obj);
             return true;
         }
 
@@ -331,7 +331,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (!DataReader.ReadPointer(addr, out ulong obj))
                 return default;
 
-            return field.Type != null ? heap.GetObject(obj, field.Type) : heap.GetObject(obj);
+            return heap.GetObject(obj);
         }
 
         public ClrValueType ReadValueTypeField(string fieldName)

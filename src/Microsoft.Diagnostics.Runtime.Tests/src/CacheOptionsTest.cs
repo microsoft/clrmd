@@ -20,12 +20,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             dt.CacheOptions.CacheMethodNames = StringCaching.Cache;
 
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
-            ClrModule module = runtime.GetModule("sharedlibrary.dll");
-            ClrType type = module.GetTypeByName("Foo");
-            ClrMethod method = type.GetMethod("Bar");
+            ClrModule module = runtime.GetModule("types.dll");
+            ClrType type = module.GetTypeByName("Types");
+            ClrMethod method = type.GetMethod("Inner");
             Assert.NotEqual(0ul, method.MethodDesc);  // Sanity test
 
-            ClrMethod method2 = type.GetMethod("Bar");
+            ClrMethod method2 = type.GetMethod("Inner");
             Assert.Equal(method, method2);
             Assert.Same(method, method2);
 
@@ -48,12 +48,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            ClrModule module = runtime.GetModule("sharedlibrary.dll");
-            ClrType type = module.GetTypeByName("Foo");
-            ClrMethod method = type.GetMethod("Bar");
+            ClrModule module = runtime.GetModule("types.dll");
+            ClrType type = module.GetTypeByName("Types");
+            ClrMethod method = type.GetMethod("Inner");
             Assert.NotEqual(0ul, method.MethodDesc);  // Sanity test
 
-            ClrMethod method2 = type.GetMethod("Bar");
+            ClrMethod method2 = type.GetMethod("Inner");
             Assert.Equal(method, method2);
             Assert.NotSame(method, method2);
 

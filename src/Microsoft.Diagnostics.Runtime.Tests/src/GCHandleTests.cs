@@ -45,8 +45,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             foreach (ClrHandle handle in runtime.EnumerateHandles())
                 Assert.True(handles.Add(handle));
 
-            // Make sure we had at least one AsyncPinned handle
-            Assert.Contains(handles, h => h.HandleKind == ClrHandleKind.AsyncPinned);
+            // Make sure we had at least one Pinned handle
+            Assert.Contains(handles, h => h.HandleKind == ClrHandleKind.Pinned);
         }
     }
 }

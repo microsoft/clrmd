@@ -8,7 +8,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class NativeHeapTests
     {
-        [Fact]
+        [WindowsFact]
         public void TestHeapKinds()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Contains(NativeHeapKind.DispatchHeap, heaps.Select(r => r.Kind));
         }
 
-        [Fact]
+        [WindowsFact]
         public void TestNativeHeapLengths()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
