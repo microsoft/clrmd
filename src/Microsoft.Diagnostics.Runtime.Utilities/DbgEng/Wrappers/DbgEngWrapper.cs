@@ -39,27 +39,27 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             if (Interlocked.Exchange(ref _alive, 1) == 1)
                 throw new NotSupportedException($"DbgEng doesn't properly handle multiple instances simultaneously.  This can lead to some undefined behavior.");
 
-            int hr = Marshal.QueryInterface(pUnknown, ref IID_IDebugClient5, out _client);
+            int hr = Marshal.QueryInterface(pUnknown, in IID_IDebugClient5, out _client);
             if (hr != 0)
                 throw new NotSupportedException($"This IUnknown pointer does not implement IDebugClient5.");
 
-            hr = Marshal.QueryInterface(pUnknown, ref IID_IDebugControl5, out _control);
+            hr = Marshal.QueryInterface(pUnknown, in IID_IDebugControl5, out _control);
             if (hr != 0)
                 _control = 0;
 
-            hr = Marshal.QueryInterface(pUnknown, ref IID_IDebugDataSpaces2, out _spaces);
+            hr = Marshal.QueryInterface(pUnknown, in IID_IDebugDataSpaces2, out _spaces);
             if (hr != 0)
                 _spaces = 0;
 
-            hr = Marshal.QueryInterface(pUnknown, ref IID_IDebugSymbols3, out _symbols);
+            hr = Marshal.QueryInterface(pUnknown, in IID_IDebugSymbols3, out _symbols);
             if (hr != 0)
                 _symbols = 0;
 
-            hr = Marshal.QueryInterface(pUnknown, ref IID_IDebugSystemObjects4, out _systemObjects);
+            hr = Marshal.QueryInterface(pUnknown, in IID_IDebugSystemObjects4, out _systemObjects);
             if (hr != 0)
                 _systemObjects = 0;
 
-            hr = Marshal.QueryInterface(pUnknown, ref IID_IDebugAdvanced2, out _advanced);
+            hr = Marshal.QueryInterface(pUnknown, in IID_IDebugAdvanced2, out _advanced);
             if (hr != 0)
                 _advanced = 0;
         }

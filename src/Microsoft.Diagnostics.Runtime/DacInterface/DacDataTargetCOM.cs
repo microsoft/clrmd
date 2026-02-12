@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             Guid dacDataTargetIID = DacDataTarget.IID_IDacDataTarget;
 
             IntPtr iUnk = Instance.GetOrCreateComInterfaceForObject(dacData, System.Runtime.InteropServices.CreateComInterfaceFlags.None);
-            HResult result = Marshal.QueryInterface(iUnk, ref dacDataTargetIID, out IntPtr iDacDataTarget);
+            HResult result = Marshal.QueryInterface(iUnk, in dacDataTargetIID, out IntPtr iDacDataTarget);
             Marshal.Release(iUnk);
 
             if (result)
