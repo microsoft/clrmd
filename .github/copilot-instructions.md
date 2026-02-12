@@ -8,13 +8,16 @@ Microsoft.Diagnostics.Runtime (ClrMD) is a .NET library for inspecting crash dum
 
 ```bash
 # Restore (also installs the local .dotnet SDK):
-./restore.sh
+./restore.sh     # Linux/macOS
+.\Restore.cmd    # Windows
 
 # Build the solution:
-./build.sh
+./build.sh       # Linux/macOS
+.\Build.cmd      # Windows
 
 # Run all tests:
-./test.sh
+./test.sh        # Linux/macOS
+.\Test.cmd       # Windows
 
 # Or use dotnet directly (SDK is in .dotnet/):
 export PATH="$(git rev-parse --show-toplevel)/.dotnet:$PATH"
@@ -25,14 +28,19 @@ dotnet test src/Microsoft.Diagnostics.Runtime.Tests/Microsoft.Diagnostics.Runtim
 dotnet test src/Microsoft.Diagnostics.Runtime.Tests --filter "FullyQualifiedName~TypeTests.GetObjectMethodTableTest"
 
 # Run a test class:
-dotnet test src/Microsoft.Diagnostics.Runtime.Tests --filter ClassName=Microsoft.Diagnostics.Runtime.Tests.TypeTests
+dotnet test src/Microsoft.Diagnostics.Runtime.Tests --filter "FullyQualifiedName~MethodTests"
 ```
 
-**Test prerequisites:** Tests require pre-generated crash dump files. Build test targets first:
+**Test prerequisites:** Tests require pre-generated crash dump files. You must build in this order:
 ```bash
+# 1. Build TestTasks (the MSBuild task that captures crash dumps):
 dotnet build src/TestTasks/TestTasks.csproj
-dotnet msbuild src/TestTargets/TestTargets.proj
+
+# 2. Build TestTargets (compiles test programs and generates crash dumps):
+#    The /p:Configuration must match the TestTasks build configuration.
+dotnet msbuild src/TestTargets/TestTargets.proj /p:Configuration=Debug
 ```
+If PDB-related build errors occur, delete stale files in `src/TestTargets/bin/` and rebuild.
 Some dumps are pre-committed in `test_artifacts/`. Many tests will fail without the full set of generated dumps.
 
 ## Architecture
