@@ -42,3 +42,13 @@ public class GenericClass<T1, T2, T3, T4, T5>
 struct EmptyStruct { }
 struct NestedEmptyStruct { EmptyStruct es; }
 public class StructTestClass { Struct s; NestedEmptyStruct nes; }
+
+public interface IStructTest
+{
+    int TestMethod();
+}
+
+public struct StructWithInterface : IStructTest
+{
+    public int TestMethod() => 123;
+}

@@ -103,9 +103,14 @@ class Types
         ts_threadId = Environment.CurrentManagedThreadId;
         ts_threadName = "MainThread";
 
+        // Exercise struct interface dispatch to create unboxing stub + JIT the implementation
+        IStructTest structTest = new StructWithInterface();
+        int structResult = structTest.TestMethod();
+
         Inner();
 
         GC.KeepAlive(foos);
+        GC.KeepAlive(structResult);
     }
 
     private static void Inner()
