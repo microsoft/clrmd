@@ -6,6 +6,18 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
+interface IExplicitTest
+{
+    void ExplicitMethod();
+}
+
+class ExplicitImpl : IExplicitTest
+{
+    void IExplicitTest.ExplicitMethod() { }
+
+    public void RegularMethod() { }
+}
+
 class Types
 {
     static object s_one = new object();
@@ -61,6 +73,9 @@ class Types
     public static void Main()
     {
         new StructTestClass(); // Ensure type is constructed
+        ExplicitImpl ei = new ExplicitImpl();
+        ((IExplicitTest)ei).ExplicitMethod();
+        ei.RegularMethod();
         Foo f = new Foo();
         Foo[] foos = new Foo[] { f };
         Task task = Async();
