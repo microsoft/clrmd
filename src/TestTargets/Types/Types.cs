@@ -65,6 +65,9 @@ class Types
         Foo[] foos = new Foo[] { f };
         Task task = Async();
 
+        // Ensure InstanceMethod is JIT'd so delegate tests can resolve it
+        try { new Types().InstanceMethod(); } catch { }
+
         Inner();
 
         GC.KeepAlive(foos);

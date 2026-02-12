@@ -43,16 +43,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Empty(stackRoots);
         }
 
-        [Fact]
+        [Fact(Skip = "Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10. See repros/GCRootCrash.")]
         public void HeapReferenceType() => AssertReferenceType(GetStackRoots(nameof(HeapReferenceType)));
 
-        [Fact]
+        [Fact(Skip = "Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10. See repros/GCRootCrash.")]
         public void HeapValueType() => AssertValueType(GetStackRoots(nameof(HeapValueType)));
 
-        [Fact]
+        [Fact(Skip = "Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10. See repros/GCRootCrash.")]
         public void StackReferenceType() => AssertReferenceType(GetStackRoots(nameof(StackReferenceType)));
 
-        [Fact]
+        [Fact(Skip = "Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10. See repros/GCRootCrash.")]
         public void StackValueType() => AssertValueType(GetStackRoots(nameof(StackValueType)));
     }
 }

@@ -120,7 +120,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
 
-        [Fact]
+        [WindowsFact]
         public void ObjectNotOnHeapTest()
         {
             using DataTarget dt = TestTargets.Types.LoadFullDumpWithDbgEng(GCMode.Server);

@@ -131,7 +131,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal("DoubleRef", obj.Type.Name);
         }
 
-        [Fact]
+        [Fact(Skip = "Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10. See repros/GCRootCrash.")]
         public void GCRoots()
         {
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
@@ -142,7 +142,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ContainsPathsToTarget(heap, 0, target);
         }
 
-        [Fact]
+        [Fact(Skip = "Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10. See repros/GCRootCrash.")]
         public void GCRootsPredicate()
         {
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
@@ -152,7 +152,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ContainsPathsToTarget(heap, 0, (obj) => obj.Type?.Name == "TargetType");
         }
 
-        [Fact]
+        [Fact(Skip = "Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10. See repros/GCRootCrash.")]
         public void GCRootsDirectHandles()
         {
             using DataTarget dataTarget = TestTargets.GCRoot2.LoadFullDump();
@@ -164,7 +164,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ContainsPathsToTarget(heap, 0, target);
         }
 
-        [Fact]
+        [Fact(Skip = "Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10. See repros/GCRootCrash.")]
         public void GCRootsIndirectHandles()
         {
             using DataTarget dataTarget = TestTargets.GCRoot2.LoadFullDump();
@@ -175,7 +175,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ContainsPathsToTarget(heap, 0, target);
         }
 
-        [Fact]
+        [Fact(Skip = "Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10. See repros/GCRootCrash.")]
         public void FindAllPaths()
         {
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();

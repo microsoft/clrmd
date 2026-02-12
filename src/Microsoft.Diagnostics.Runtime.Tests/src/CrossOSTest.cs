@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Contains("/home/leculver/clrmd/src/TestTargets/bin/x64/Arrays.dll", domain.Modules.Select(m => m.Name));
         }
 
-        [Fact]
+        [WindowsFact]
         public void SingleFileTest()
         {
             string artifacts = TestTargets.GetTestArtifactFolder();

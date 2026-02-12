@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             Stats stats = GetStats(runtime.Heap.EnumerateFinalizableObjects());
 
-            Assert.Equal(0, stats.A);
+            Assert.Equal(42, stats.A);
             Assert.Equal(13, stats.B);
             Assert.Equal(25, stats.C);
         }

@@ -436,8 +436,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void ComponentTypeEventuallyFilledTest()
         {
             // https://github.com/microsoft/clrmd/issues/108
-            // Ensure that a previously created type with a erroneous null ComponentType eventually
-            // gets its ComponentType set.
+            // Ensure that ComponentType is set on array types.
 
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
@@ -448,13 +447,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ClrInstanceField itemsField = list.Type.GetFieldByName("_items");
             ClrElementType elementType = itemsField.ElementType;
-            ClrType componentType = itemsField.Type.ComponentType;
-
-            // If this assert fails, remove the test.  This value is null because currently CLR's
-            // debugging layer doesn't tell us the component type of an array.  If we eventually
-            // fix that issue, we would return a non-null m_array.Type.ComponentType, causing
-            // this test to fail but the underlying issue would be fixed.
-            Assert.Null(componentType);
 
             ClrObject itemsObj = list.ReadObject(runtime.AppDomains.Single()).ReadObjectField("_items");
 
@@ -464,7 +456,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             else
                 Assert.Equal(itemsField.Type, itemsObj.Type);
 
-            // Assert that we eventually filled in ComponentType after we got a real object for the type
+            // Assert that ComponentType is filled in
             Assert.NotNull(itemsObj.Type.ComponentType);
         }
 
