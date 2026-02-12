@@ -76,12 +76,13 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData()
         {
+            HashSet<ulong> seen = [0];
             ulong syncBlock = 0;
             while (_sos.GetSyncBlockCleanupData(syncBlock, out SyncBlockCleanupData data))
             {
                 yield return new(data.SyncBlockPointer, data.BlockRCW, data.BlockCCW, data.BlockClassFactory);
 
-                if (data.NextSyncBlock == 0 || data.NextSyncBlock == syncBlock)
+                if (!seen.Add(data.NextSyncBlock))
                     break;
 
                 syncBlock = data.NextSyncBlock;
