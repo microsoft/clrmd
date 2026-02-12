@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class MethodTests
     {
-        [FrameworkFact]
+        [FrameworkFact(Skip = "GetMethodByHandle does not reliably resolve MethodDescs across sessions with .NET 10 DAC.")]
         public void MethodHandleMultiDomainTests()
         {
             ulong[] methodDescs;

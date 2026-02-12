@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
-    <TargetSources Include="*\*.cs" Exclude="Shared\*">
+    <TargetSources Include="*\*.cs" Exclude="Shared\*;single-file\*">
       <ExePath32>$(BinDir32)%(Filename).exe</ExePath32>
       <ExePath64>$(BinDir64)%(Filename).exe</ExePath64>
     </TargetSources>
