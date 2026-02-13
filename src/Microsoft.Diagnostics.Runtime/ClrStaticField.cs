@@ -34,9 +34,12 @@ namespace Microsoft.Diagnostics.Runtime
         bool IClrStaticField.IsInitialized(IClrAppDomain appDomain) => GetAddress(appDomain) != 0;
 
         /// <summary>
-        /// Gets the address of the static field's value in memory.
+        /// Gets the address of the memory location where the static field's value is stored (the field slot).
+        /// For reference-type fields, this returns the address of the slot containing the object pointer,
+        /// NOT the address of the object itself. To read the object directly, use
+        /// <see cref="ReadObject(ClrAppDomain)"/> instead.
         /// </summary>
-        /// <returns>The address of the field's value.</returns>
+        /// <returns>The address of the field's storage slot.</returns>
         public ulong GetAddress(ClrAppDomain appDomain) => _helpers.GetStaticFieldAddress(appDomain.AppDomainInfo, ContainingType.Module.ModuleInfo, ContainingType.TypeInfo, FieldInfo);
 
         public ulong GetAddress(IClrAppDomain appDomain) => 0;
