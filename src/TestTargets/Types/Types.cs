@@ -117,6 +117,15 @@ class Types
         RuntimeHelpers.PrepareMethod(echoStr.MethodHandle);
         GenericStaticMethod.EchoStringMethodHandle = echoStr.MethodHandle.Value;
 
+        // Force JIT compilation of generic method with value-type parameter (issue #935
+        // exact scenario: generic method M<T>() called with int). The MethodDesc for
+        // Echo<int> should have HasNativeCode != 0 and correct CompilationType/HotSize.
+        int echoIntResult = GenericStaticMethod.Echo(42);
+        GC.KeepAlive(echoIntResult);
+        MethodInfo echoInt = typeof(GenericStaticMethod).GetMethod("Echo").MakeGenericMethod(typeof(int));
+        RuntimeHelpers.PrepareMethod(echoInt.MethodHandle);
+        GenericStaticMethod.EchoIntMethodHandle = echoInt.MethodHandle.Value;
+
         // Force JIT of GenericClass<...>.Invoke and store the per-instantiation MethodDesc.
         // For ref-type generic types, the per-instantiation MethodDesc may have HasNativeCode=0
         // because the JIT'd code lives on the canonical (__Canon) desc, exercising the
@@ -131,6 +140,24 @@ class Types
                 typeof(float).TypeHandle, typeof(string).TypeHandle, typeof(object).TypeHandle
             });
         GenericStaticMethod.GenericClassInvokeMethodHandle = invokeMethod.MethodHandle.Value;
+
+        // Exercise RefGenericClass with two different reference-type instantiations.
+        // On .NET Core, RefGenericClass<string> and RefGenericClass<object> share JIT'd
+        // code via the canonical __Canon instantiation. JIT the code via <string> first,
+        // then store the <object> MethodDesc. The <object> per-instantiation MethodDesc
+        // may have HasNativeCode=0 because the code lives on the canonical desc.
+        RefGenericClass<string> rgs = new RefGenericClass<string>();
+        string rgsResult = rgs.GetValue("hello");
+        GC.KeepAlive(rgsResult);
+
+        RefGenericClass<object> rgo = new RefGenericClass<object>();
+        object rgoResult = rgo.GetValue(new object());
+        GC.KeepAlive(rgoResult);
+
+        MethodInfo getValueObj = typeof(RefGenericClass<object>).GetMethod("GetValue");
+        RuntimeHelpers.PrepareMethod(getValueObj.MethodHandle,
+            new RuntimeTypeHandle[] { typeof(object).TypeHandle });
+        GenericStaticMethod.RefGenericGetValueMethodHandle = getValueObj.MethodHandle.Value;
 
         Inner();
 

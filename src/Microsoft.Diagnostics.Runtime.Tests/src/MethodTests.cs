@@ -393,9 +393,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// <summary>
         /// Regression test for issue #935 sub-issue 3: GetMethodByHandle must return correct
         /// CompilationType and HotSize for methods on reference-type generic type instantiations.
-        /// These share JIT'd code via canonical (__Canon) method descs. The per-instantiation
-        /// MethodDesc has HasNativeCode=0 but the slot in the MethodTable points to the shared code,
-        /// which the slot-based fallback in DacMethodLocator.GetMethodInfo should find.
+        /// These share JIT'd code via canonical (__Canon) method descs. On .NET Framework the
+        /// per-instantiation MethodDesc may have HasNativeCode=0 even though the method has been
+        /// JIT'd (shared code), which requires the slot-based fallback in DacMethodLocator.
+        /// On .NET Core 10+, the runtime shares the canonical MethodDesc itself across
+        /// ref-type instantiations, so HasNativeCode is already set. This test validates the
+        /// overall behavior on both platforms.
         /// </summary>
         [Fact]
         public void GetMethodByHandle_GenericMethodWithRefType_ReturnsJittedInfo()
@@ -415,12 +418,84 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ulong methodDesc = (ulong)handleField.Read<nint>(runtime.AppDomains[0]);
             Assert.NotEqual(0ul, methodDesc);
 
-            // GetMethodByHandle with a per-instantiation MethodDesc for a method on a
-            // reference-type generic type. Without the slot-based fallback, this reports
-            // CompilationType.None even though the method has been JIT'd (shared code).
             ClrMethod found = runtime.GetMethodByHandle(methodDesc);
             Assert.NotNull(found);
             Assert.Contains("Invoke", found.Signature);
+            Assert.NotEqual(MethodCompilationType.None, found.CompilationType);
+            Assert.NotEqual(0u, found.HotColdInfo.HotSize);
+        }
+
+        /// <summary>
+        /// Validates that GetMethodByHandle correctly resolves all methods on reference-type
+        /// generic instantiations found via ClrType.Methods enumeration. On .NET Core, the
+        /// canonical MethodDesc is shared across all reference-type instantiations, and all
+        /// JIT'd methods should resolve with correct CompilationType and HotSize.
+        /// </summary>
+        [Fact]
+        public void GetMethodByHandle_RefTypeGenericInstantiation_ResolvesAllMethods()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            // Find RefGenericClass<string> or RefGenericClass<object> from the heap
+            ClrType refGenericType = null;
+            foreach (ClrObject obj in runtime.Heap.EnumerateObjects())
+            {
+                if (obj.Type?.Name?.Contains("RefGenericClass") == true)
+                {
+                    refGenericType = obj.Type;
+                    break;
+                }
+            }
+
+            Assert.NotNull(refGenericType);
+            Assert.NotEmpty(refGenericType.Methods);
+
+            bool hasGetValue = false;
+            foreach (ClrMethod method in refGenericType.Methods)
+            {
+                Assert.NotEqual(0ul, method.MethodDesc);
+                ClrMethod found = runtime.GetMethodByHandle(method.MethodDesc);
+                Assert.NotNull(found);
+                Assert.Equal(method.Name, found.Name);
+
+                if (method.Name == "GetValue")
+                {
+                    hasGetValue = true;
+                    Assert.NotEqual(MethodCompilationType.None, found.CompilationType);
+                    Assert.NotEqual(0u, found.HotColdInfo.HotSize);
+                }
+            }
+
+            Assert.True(hasGetValue, "Expected to find GetValue method on RefGenericClass");
+        }
+
+        /// <summary>
+        /// Regression test for the exact scenario in issue #935: a generic method on a
+        /// non-generic class (e.g., C.M&lt;int&gt;()) should report correct CompilationType
+        /// and HotSize when called via GetMethodByHandle with a value-type instantiation.
+        /// The old code used slot-based lookup which returned the generic method definition
+        /// (CompilationType=None, HotSize=0) instead of the JIT'd instantiation.
+        /// </summary>
+        [Fact]
+        public void GetMethodByHandle_ValueTypeGenericMethod_ReturnsJittedInfo()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule module = runtime.GetModule("sharedlibrary.dll");
+            ClrType gsmType = module.GetTypeByName("GenericStaticMethod");
+            Assert.NotNull(gsmType);
+
+            // Echo<int> — value-type generic method instantiation (issue #935 exact scenario)
+            ClrStaticField handleField = gsmType.GetStaticFieldByName("EchoIntMethodHandle");
+            Assert.NotNull(handleField);
+
+            ulong methodDesc = (ulong)handleField.Read<nint>(runtime.AppDomains[0]);
+            Assert.NotEqual(0ul, methodDesc);
+
+            ClrMethod found = runtime.GetMethodByHandle(methodDesc);
+            Assert.NotNull(found);
             Assert.NotEqual(MethodCompilationType.None, found.CompilationType);
             Assert.NotEqual(0u, found.HotColdInfo.HotSize);
         }
