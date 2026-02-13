@@ -35,7 +35,16 @@ namespace Microsoft.Diagnostics.Runtime
 
                 // Throws InvalidOperationException, which is similar to how Process.Start fails if it can't start the process.
                 Process process = Process.GetProcessById(processId);
-                int hr = PssCaptureSnapshot(process.Handle, PSS_CAPTURE_FLAGS.PSS_CAPTURE_VA_CLONE, IntPtr.Size == 8 ? 0x0010001F : 0x0001003F, out _snapshotHandle);
+
+                int hr;
+                try
+                {
+                    hr = PssCaptureSnapshot(process.Handle, PSS_CAPTURE_FLAGS.PSS_CAPTURE_VA_CLONE, IntPtr.Size == 8 ? 0x0010001F : 0x0001003F, out _snapshotHandle);
+                }
+                catch (EntryPointNotFoundException ex)
+                {
+                    throw new PlatformNotSupportedException("CreateSnapshotAndAttach requires Windows 8.1 / Windows Server 2012 R2 or later. The PssCaptureSnapshot API is not available on this version of Windows.", ex);
+                }
                 if (hr != 0)
                     throw new InvalidOperationException($"Could not create snapshot to process. Error {hr}.");
 
