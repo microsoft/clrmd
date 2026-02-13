@@ -9,26 +9,15 @@
 // then delete the coredump when the user calls DataTarget.Dispose.  On Linux this operation
 // takes significantly longer (~2-10 seconds or so).
 
-using System;
 using System.Diagnostics;
-using System.Linq;
 using Microsoft.Diagnostics.Runtime;
 
-namespace DesktopTest
-{
-    class SelfAttach
-    {
-        static void Main()
-        {
-            using DataTarget dt = DataTarget.CreateSnapshotAndAttach(Process.GetCurrentProcess().Id);
-            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+using DataTarget dt = DataTarget.CreateSnapshotAndAttach(Process.GetCurrentProcess().Id);
+using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            foreach (ClrThread thread in runtime.Threads)
-            {
-                Console.WriteLine($"{thread.OSThreadId:x}:");
-                foreach (ClrStackFrame frame in thread.EnumerateStackTrace())
-                    Console.WriteLine($"    {frame}");
-            }
-        }
-    }
+foreach (ClrThread thread in runtime.Threads)
+{
+    Console.WriteLine($"{thread.OSThreadId:x}:");
+    foreach (ClrStackFrame frame in thread.EnumerateStackTrace())
+        Console.WriteLine($"    {frame}");
 }

@@ -6,9 +6,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Diagnostics.Runtime;
-using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
-using static Microsoft.Diagnostics.Runtime.DacInterface.SOSDac;
 
 namespace DbgEngExtension
 {
@@ -470,113 +468,38 @@ namespace DbgEngExtension
         {
             foreach (ClrRuntime runtime in Runtimes)
             {
-                SOSDac sos = runtime.DacLibrary.SOSDacInterface;
-                foreach (JitManagerInfo jitMgr in sos.GetJitManagers())
+                foreach (ClrHandle handle in runtime.EnumerateHandles())
+                    yield return new ClrMemoryPointer() { Kind = ClrMemoryKind.HandleTable, Address = handle.Address };
+
+                foreach (ClrNativeHeapInfo heap in runtime.EnumerateClrNativeHeaps())
                 {
-                    foreach (ClrHandle handle in runtime.EnumerateHandles())
-                        yield return new ClrMemoryPointer() { Kind = ClrMemoryKind.HandleTable, Address = handle.Address };
-
-                    foreach (JitCodeHeapInfo mem in sos.GetCodeHeapList(jitMgr.Address))
-                        yield return new ClrMemoryPointer()
-                        {
-                            Address = mem.Address,
-                            Kind = mem.Kind switch
-                            {
-                                CodeHeapKind.Loader => ClrMemoryKind.LoaderHeap,
-                                CodeHeapKind.Host => ClrMemoryKind.Host,
-                                _ => ClrMemoryKind.UnknownCodeHeap
-                            }
-                        };
-
-                    foreach (ClrSegment seg in runtime.Heap.Segments)
+                    ClrMemoryKind kind = heap.Kind switch
                     {
-                        if (seg.CommittedMemory.Length > 0)
-                            yield return new ClrMemoryPointer() { Address = seg.CommittedMemory.Start, Kind = ClrMemoryKind.GCHeapSegment };
+                        NativeHeapKind.LoaderCodeHeap => ClrMemoryKind.LoaderHeap,
+                        NativeHeapKind.HostCodeHeap => ClrMemoryKind.Host,
+                        NativeHeapKind.StubHeap => ClrMemoryKind.StubHeap,
+                        NativeHeapKind.HighFrequencyHeap => ClrMemoryKind.HighFrequencyHeap,
+                        NativeHeapKind.LowFrequencyHeap => ClrMemoryKind.LowFrequencyHeap,
+                        NativeHeapKind.IndirectionCellHeap => ClrMemoryKind.IndcellHeap,
+                        NativeHeapKind.LookupHeap => ClrMemoryKind.LookupHeap,
+                        NativeHeapKind.ResolveHeap => ClrMemoryKind.ResolveHeap,
+                        NativeHeapKind.DispatchHeap => ClrMemoryKind.DispatchHeap,
+                        NativeHeapKind.CacheEntryHeap => ClrMemoryKind.CacheEntryHeap,
+                        NativeHeapKind.HandleTable => ClrMemoryKind.HandleTable,
+                        _ => ClrMemoryKind.UnknownCodeHeap
+                    };
 
-                        if (seg.ReservedMemory.Length > 0)
-                            yield return new ClrMemoryPointer() { Address = seg.ReservedMemory.Start, Kind = ClrMemoryKind.GCHeapReserve };
-                    }
-
-                    HashSet<ulong> seen = new();
-
-                    List<ClrMemoryPointer> heaps = new();
-                    if (runtime.SystemDomain is not null)
-                        AddAppDomainHeaps(sos, runtime.SystemDomain.Address, heaps);
-
-                    if (runtime.SharedDomain is not null)
-                        AddAppDomainHeaps(sos, runtime.SharedDomain.Address, heaps);
-
-                    foreach (ClrMemoryPointer heap in heaps)
-                        if (seen.Add(heap.Address))
-                            yield return heap;
-
-                    foreach (ClrDataAddress address in sos.GetAppDomainList())
-                    {
-                        heaps.Clear();
-                        AddAppDomainHeaps(sos, address, heaps);
-
-                        foreach (ClrMemoryPointer heap in heaps)
-                            if (seen.Add(heap.Address))
-                                yield return heap;
-                    }
+                    yield return new ClrMemoryPointer() { Address = heap.MemoryRange.Start, Kind = kind };
                 }
-            }
-        }
 
-        private static void AddAppDomainHeaps(SOSDac sos, ClrDataAddress address, List<ClrMemoryPointer> heaps)
-        {
-            if (sos.GetAppDomainData(address, out AppDomainData domain))
-            {
-                sos.TraverseLoaderHeap(domain.StubHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
+                foreach (ClrSegment seg in runtime.Heap.Segments)
                 {
-                    Address = address,
-                    Kind = ClrMemoryKind.StubHeap
-                }));
+                    if (seg.CommittedMemory.Length > 0)
+                        yield return new ClrMemoryPointer() { Address = seg.CommittedMemory.Start, Kind = ClrMemoryKind.GCHeapSegment };
 
-                sos.TraverseLoaderHeap(domain.HighFrequencyHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
-                {
-                    Address = address,
-                    Kind = ClrMemoryKind.HighFrequencyHeap
-                }));
-
-                sos.TraverseLoaderHeap(domain.LowFrequencyHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
-                {
-                    Address = address,
-                    Kind = ClrMemoryKind.LowFrequencyHeap
-                }));
-
-                sos.TraverseStubHeap(address, (int)VCSHeapType.IndcellHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
-                {
-                    Address = address,
-                    Kind = ClrMemoryKind.IndcellHeap
-                }));
-
-
-                sos.TraverseStubHeap(address, VCSHeapType.LookupHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
-                {
-                    Address = address,
-                    Kind = ClrMemoryKind.LookupHeap
-                }));
-
-
-                sos.TraverseStubHeap(address, VCSHeapType.ResolveHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
-                {
-                    Address = address,
-                    Kind = ClrMemoryKind.ResolveHeap
-                }));
-
-
-                sos.TraverseStubHeap(address, VCSHeapType.DispatchHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
-                {
-                    Address = address,
-                    Kind = ClrMemoryKind.DispatchHeap
-                }));
-
-                sos.TraverseStubHeap(address, VCSHeapType.CacheEntryHeap, (address, size, isCurrent) => heaps.Add(new ClrMemoryPointer()
-                {
-                    Address = address,
-                    Kind = ClrMemoryKind.CacheEntryHeap
-                }));
+                    if (seg.ReservedMemory.Length > 0)
+                        yield return new ClrMemoryPointer() { Address = seg.ReservedMemory.Start, Kind = ClrMemoryKind.GCHeapReserve };
+                }
             }
         }
 
