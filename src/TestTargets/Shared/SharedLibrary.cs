@@ -50,5 +50,22 @@ public interface IStructTest
 
 public struct StructWithInterface : IStructTest
 {
-    public int TestMethod() => 123;
+    public int TestMethod() { return 123; }
+}
+
+public static class GenericStaticMethod
+{
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public static T Echo<T>(T value)
+    {
+        return value;
+    }
+
+    // Stores MethodDesc for Echo<string> instantiation (set by test target at runtime)
+    public static System.IntPtr EchoStringMethodHandle;
+
+    // Stores MethodDesc for GenericClass<bool,int,float,string,object>.Invoke (set by test target)
+    // This exercises ref-type generic TYPE methods where the per-instantiation MethodDesc
+    // has HasNativeCode=0 but the slot-based lookup finds the shared JIT'd code.
+    public static System.IntPtr GenericClassInvokeMethodHandle;
 }

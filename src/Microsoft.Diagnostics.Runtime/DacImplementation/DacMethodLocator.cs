@@ -55,14 +55,31 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             }
             else
             {
-                // Unable to obtain native code/header information (method may not be JIT compiled or DAC lookup failed)
-                methodInfo = new()
+                // Fall back to slot-based lookup (issue #935). Reference-type generic
+                // instantiations share code via canonical method descs and may not have
+                // NativeCodeAddr set, but the method table slot points to the shared code.
+                ulong slot = _sos.GetMethodTableSlot(mdd.MethodTable, mdd.SlotNumber);
+                if (slot != 0 && _sos.GetCodeHeaderData(slot, out CodeHeaderData slotChd))
                 {
-                    CompilationType = MethodCompilationType.None,
-                    HotCold = default,
-                    MethodDesc = methodDesc,
-                    Token = (int)mdd.MDToken
-                };
+                    methodInfo = new()
+                    {
+                        CompilationType = (MethodCompilationType)slotChd.JITType,
+                        HotCold = new(slot, slotChd.HotRegionSize, slotChd.ColdRegionStart, slotChd.ColdRegionSize),
+                        MethodDesc = methodDesc,
+                        Token = (int)mdd.MDToken
+                    };
+                }
+                else
+                {
+                    // Method has no native code by either path (not yet JIT compiled)
+                    methodInfo = new()
+                    {
+                        CompilationType = MethodCompilationType.None,
+                        HotCold = default,
+                        MethodDesc = methodDesc,
+                        Token = (int)mdd.MDToken
+                    };
+                }
             }
 
             return true;

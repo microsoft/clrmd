@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -106,6 +108,29 @@ class Types
         // Exercise struct interface dispatch to create unboxing stub + JIT the implementation
         IStructTest structTest = new StructWithInterface();
         int structResult = structTest.TestMethod();
+
+        // Force JIT compilation of generic method with reference-type parameter and
+        // store the instantiation-specific MethodDesc handle for test lookup.
+        string echoResult = GenericStaticMethod.Echo("test");
+        GC.KeepAlive(echoResult);
+        MethodInfo echoStr = typeof(GenericStaticMethod).GetMethod("Echo").MakeGenericMethod(typeof(string));
+        RuntimeHelpers.PrepareMethod(echoStr.MethodHandle);
+        GenericStaticMethod.EchoStringMethodHandle = echoStr.MethodHandle.Value;
+
+        // Force JIT of GenericClass<...>.Invoke and store the per-instantiation MethodDesc.
+        // For ref-type generic types, the per-instantiation MethodDesc may have HasNativeCode=0
+        // because the JIT'd code lives on the canonical (__Canon) desc, exercising the
+        // slot-based fallback path in DacMethodLocator.GetMethodInfo.
+        GenericClass<bool, int, float, string, object> gc = new GenericClass<bool, int, float, string, object>();
+        object invokeResult = gc.Invoke(false, 0, 0f, "test");
+        GC.KeepAlive(invokeResult);
+        MethodInfo invokeMethod = typeof(GenericClass<bool, int, float, string, object>).GetMethod("Invoke");
+        RuntimeHelpers.PrepareMethod(invokeMethod.MethodHandle,
+            new RuntimeTypeHandle[] {
+                typeof(bool).TypeHandle, typeof(int).TypeHandle,
+                typeof(float).TypeHandle, typeof(string).TypeHandle, typeof(object).TypeHandle
+            });
+        GenericStaticMethod.GenericClassInvokeMethodHandle = invokeMethod.MethodHandle.Value;
 
         Inner();
 

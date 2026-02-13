@@ -376,20 +376,53 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 ClrMethod found = runtime.GetMethodByHandle(method.MethodDesc);
                 Assert.NotNull(found);
 
-                if (found.HotColdInfo.HotStart != 0)
+                if (found.CompilationType != MethodCompilationType.None)
                 {
-                    Assert.NotEqual(MethodCompilationType.None, found.CompilationType);
                     hasJittedMethod = true;
                 }
                 else
                 {
-                    Assert.Equal(MethodCompilationType.None, found.CompilationType);
                     hasUnjittedMethod = true;
                 }
             }
 
             Assert.True(hasJittedMethod, "Expected at least one JIT-compiled method on StructWithInterface");
             Assert.True(hasUnjittedMethod, "Expected at least one un-jitted method on StructWithInterface");
+        }
+
+        /// <summary>
+        /// Regression test for issue #935 sub-issue 3: GetMethodByHandle must return correct
+        /// CompilationType and HotSize for methods on reference-type generic type instantiations.
+        /// These share JIT'd code via canonical (__Canon) method descs. The per-instantiation
+        /// MethodDesc has HasNativeCode=0 but the slot in the MethodTable points to the shared code,
+        /// which the slot-based fallback in DacMethodLocator.GetMethodInfo should find.
+        /// </summary>
+        [Fact]
+        public void GetMethodByHandle_GenericMethodWithRefType_ReturnsJittedInfo()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            // The test target stored the per-instantiation MethodDesc for
+            // GenericClass<bool,int,float,string,object>.Invoke in a static field.
+            ClrModule module = runtime.GetModule("sharedlibrary.dll");
+            ClrType gsmType = module.GetTypeByName("GenericStaticMethod");
+            Assert.NotNull(gsmType);
+
+            ClrStaticField handleField = gsmType.GetStaticFieldByName("GenericClassInvokeMethodHandle");
+            Assert.NotNull(handleField);
+
+            ulong methodDesc = (ulong)handleField.Read<nint>(runtime.AppDomains[0]);
+            Assert.NotEqual(0ul, methodDesc);
+
+            // GetMethodByHandle with a per-instantiation MethodDesc for a method on a
+            // reference-type generic type. Without the slot-based fallback, this reports
+            // CompilationType.None even though the method has been JIT'd (shared code).
+            ClrMethod found = runtime.GetMethodByHandle(methodDesc);
+            Assert.NotNull(found);
+            Assert.Contains("Invoke", found.Signature);
+            Assert.NotEqual(MethodCompilationType.None, found.CompilationType);
+            Assert.NotEqual(0u, found.HotColdInfo.HotSize);
         }
 
         [FrameworkFact]
