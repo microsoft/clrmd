@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             }
             else
             {
-                // Method has not been JIT compiled (e.g. unboxing stubs, un-jitted methods)
+                // Unable to obtain native code/header information (method may not be JIT compiled or DAC lookup failed)
                 methodInfo = new()
                 {
                     CompilationType = MethodCompilationType.None,
