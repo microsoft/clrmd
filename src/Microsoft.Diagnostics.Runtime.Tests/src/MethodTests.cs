@@ -97,7 +97,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
+            const int MaxRecordedFailures = 50;
             List<string> failures = new();
+            int failureCount = 0;
             int methodCount = 0;
 
             foreach (ClrModule module in runtime.EnumerateModules())
@@ -119,13 +121,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
                         if (name == null)
                         {
-                            failures.Add($"Name is null for signature: {signature}");
+                            AddFailure($"Name is null for signature: {signature}");
                             continue;
                         }
 
                         if (name.Length == 0)
                         {
-                            failures.Add($"Name is empty for signature: {signature}");
+                            AddFailure($"Name is empty for signature: {signature}");
                             continue;
                         }
 
@@ -133,32 +135,39 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         int opens = name.Count(c => c == '[');
                         int closes = name.Count(c => c == ']');
                         if (opens != closes)
-                            failures.Add($"Unbalanced brackets ({opens} '[' vs {closes} ']') in name '{name}' from: {signature}");
+                            AddFailure($"Unbalanced brackets ({opens} '[' vs {closes} ']') in name '{name}' from: {signature}");
 
                         // The method identifier (before any '[') must not contain dots
                         // (except for .ctor and .cctor which start with a dot)
                         int bracketIdx = name.IndexOf('[');
                         string methodIdent = bracketIdx >= 0 ? name.Substring(0, bracketIdx) : name;
                         if (methodIdent != ".ctor" && methodIdent != ".cctor" && methodIdent.Contains('.'))
-                            failures.Add($"Method identifier '{methodIdent}' contains dots, name '{name}' from: {signature}");
+                            AddFailure($"Method identifier '{methodIdent}' contains dots, name '{name}' from: {signature}");
 
                         // Name + "(" must appear in the signature
                         if (!signature.Contains(name + "("))
-                            failures.Add($"Name '{name}' + '(' not found in: {signature}");
+                            AddFailure($"Name '{name}' + '(' not found in: {signature}");
 
                         // Name must not contain parentheses — that indicates the
                         // outermost '(' was not correctly identified, e.g. when function
                         // pointer types introduce nested parens (issue #842).
                         if (name.Contains('(') || name.Contains(')'))
-                            failures.Add($"Name '{name}' contains parentheses from: {signature}");
+                            AddFailure($"Name '{name}' contains parentheses from: {signature}");
                     }
                 }
             }
 
             Assert.True(methodCount > 100, $"Expected to scan at least 100 methods, found {methodCount}");
-            Assert.True(failures.Count == 0,
-                $"Found {failures.Count} Name parsing failures out of {methodCount} methods:\n" +
-                string.Join("\n", failures.Take(50)));
+            Assert.True(failureCount == 0,
+                $"Found {failureCount} Name parsing failures out of {methodCount} methods:\n" +
+                string.Join("\n", failures));
+
+            void AddFailure(string message)
+            {
+                failureCount++;
+                if (failures.Count < MaxRecordedFailures)
+                    failures.Add(message);
+            }
         }
 
         /// <summary>
@@ -172,7 +181,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
+            const int MaxRecordedFailures = 50;
             List<string> failures = new();
+            int failureCount = 0;
             int bracketMethodCount = 0;
 
             foreach (ClrModule module in runtime.EnumerateModules())
@@ -204,7 +215,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         // Name ending with ]] but not containing [[ means it was
                         // truncated into a bracket expression (the original bug)
                         if (name != null && name.EndsWith("]]") && !name.Contains("[["))
-                            failures.Add($"Name '{name}' appears truncated into generic brackets from: {sig}");
+                            AddFailure($"Name '{name}' appears truncated into generic brackets from: {sig}");
 
                         // Name should not be a namespace fragment from inside brackets
                         if (name != null && !name.Contains("["))
@@ -213,16 +224,23 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                             // signature does, the Name should be the part after the last
                             // dot that's outside all brackets
                             if (name.Contains("CoreLib") || name.Contains("Private") || name.Contains("System."))
-                                failures.Add($"Name '{name}' looks like a namespace fragment from: {sig}");
+                                AddFailure($"Name '{name}' looks like a namespace fragment from: {sig}");
                         }
                     }
                 }
             }
 
             Assert.True(bracketMethodCount > 0, "Expected at least one method with generic brackets in its signature");
-            Assert.True(failures.Count == 0,
-                $"Found {failures.Count} truncated names out of {bracketMethodCount} bracket-containing methods:\n" +
-                string.Join("\n", failures.Take(50)));
+            Assert.True(failureCount == 0,
+                $"Found {failureCount} truncated names out of {bracketMethodCount} bracket-containing methods:\n" +
+                string.Join("\n", failures));
+
+            void AddFailure(string message)
+            {
+                failureCount++;
+                if (failures.Count < MaxRecordedFailures)
+                    failures.Add(message);
+            }
         }
 
         /// <summary>
@@ -235,9 +253,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
+            const int MaxRecordedFailures = 20;
             int ctorCount = 0;
             int cctorCount = 0;
             List<string> failures = new();
+            int failureCount = 0;
 
             foreach (ClrModule module in runtime.EnumerateModules())
             {
@@ -261,19 +281,19 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         {
                             ctorCount++;
                             if (name != ".ctor")
-                                failures.Add($"Expected '.ctor' but got '{name}' for: {sig}");
+                                AddFailure($"Expected '.ctor' but got '{name}' for: {sig}");
 
                             if (!method.IsConstructor)
-                                failures.Add($"IsConstructor is false for: {sig}");
+                                AddFailure($"IsConstructor is false for: {sig}");
                         }
                         else if (sig.Contains("..cctor("))
                         {
                             cctorCount++;
                             if (name != ".cctor")
-                                failures.Add($"Expected '.cctor' but got '{name}' for: {sig}");
+                                AddFailure($"Expected '.cctor' but got '{name}' for: {sig}");
 
                             if (!method.IsClassConstructor)
-                                failures.Add($"IsClassConstructor is false for: {sig}");
+                                AddFailure($"IsClassConstructor is false for: {sig}");
                         }
                     }
                 }
@@ -281,9 +301,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.True(ctorCount > 10, $"Expected to find at least 10 constructors, found {ctorCount}");
             Assert.True(cctorCount > 0, $"Expected to find at least 1 static constructor, found {cctorCount}");
-            Assert.True(failures.Count == 0,
-                $"Found {failures.Count} constructor naming failures:\n" +
-                string.Join("\n", failures.Take(20)));
+            Assert.True(failureCount == 0,
+                $"Found {failureCount} constructor naming failures:\n" +
+                string.Join("\n", failures));
+
+            void AddFailure(string message)
+            {
+                failureCount++;
+                if (failures.Count < MaxRecordedFailures)
+                    failures.Add(message);
+            }
         }
 
         [FrameworkFact]
