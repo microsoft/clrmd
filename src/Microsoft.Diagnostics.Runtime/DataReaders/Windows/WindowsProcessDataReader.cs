@@ -239,13 +239,16 @@ namespace Microsoft.Diagnostics.Runtime
                         ((ArmContext*)ptr)->ContextFlags = contextFlags;
                     break;
 
-                default:
-                    if (context.Length < 4)
+                case Architecture.X86:
+                    if (context.Length < X86Context.Size)
                         return false;
 
                     fixed (byte* ptr = context)
-                        *(uint*)ptr = contextFlags;
+                        ((X86Context*)ptr)->ContextFlags = contextFlags;
                     break;
+
+                default:
+                    return false;
             }
 
             using SafeWin32Handle thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadID);
