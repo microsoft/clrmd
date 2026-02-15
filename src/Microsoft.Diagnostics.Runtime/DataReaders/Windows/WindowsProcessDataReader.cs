@@ -140,7 +140,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
         }
 
-        public Architecture Architecture => IntPtr.Size == 4 ? Architecture.X86 : Architecture.X64;
+        public Architecture Architecture => RuntimeInformation.ProcessArchitecture;
 
         public IEnumerable<ModuleInfo> EnumerateModules()
         {
@@ -210,29 +210,45 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
-            // We need to set the ContextFlags field to be the value of contextFlags.  For AMD64, that field is
-            // at offset 0x30. For all other platforms that field is at offset 0.  We test here whether the context
-            // is large enough to write the flags and then assign the value based on the architecture's offset.
+            // We need to set the ContextFlags field to be the value of contextFlags.  The offset of ContextFlags
+            // varies by architecture: AMD64 has it at 0x30, while ARM64, ARM, and x86 have it at 0x0.
 
-            bool amd64 = Architecture == Architecture.X64;
-            if (context.Length < 4 || (amd64 && context.Length < 0x34))
-                return false;
+            switch (Architecture)
+            {
+                case Architecture.X64:
+                    if (context.Length < sizeof(AMD64Context))
+                        return false;
 
-            if (amd64)
-            {
-                fixed (byte* ptr = context)
-                {
-                    AMD64Context* ctx = (AMD64Context*)ptr;
-                    ctx->ContextFlags = contextFlags;
-                }
-            }
-            else
-            {
-                fixed (byte* ptr = context)
-                {
-                    uint* intPtr = (uint*)ptr;
-                    *intPtr = contextFlags;
-                }
+                    fixed (byte* ptr = context)
+                        ((AMD64Context*)ptr)->ContextFlags = contextFlags;
+                    break;
+
+                case Architecture.Arm64:
+                    if (context.Length < Arm64Context.Size)
+                        return false;
+
+                    fixed (byte* ptr = context)
+                        ((Arm64Context*)ptr)->ContextFlags = contextFlags;
+                    break;
+
+                case Architecture.Arm:
+                    if (context.Length < ArmContext.Size)
+                        return false;
+
+                    fixed (byte* ptr = context)
+                        ((ArmContext*)ptr)->ContextFlags = contextFlags;
+                    break;
+
+                case Architecture.X86:
+                    if (context.Length < X86Context.Size)
+                        return false;
+
+                    fixed (byte* ptr = context)
+                        ((X86Context*)ptr)->ContextFlags = contextFlags;
+                    break;
+
+                default:
+                    return false;
             }
 
             using SafeWin32Handle thread = OpenThread(ThreadAccess.THREAD_ALL_ACCESS, true, threadID);
