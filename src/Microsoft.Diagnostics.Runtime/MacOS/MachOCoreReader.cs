@@ -11,13 +11,25 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
-    internal sealed class MachOCoreReader : CommonMemoryReader, IDataReader, IThreadReader, IDisposable
+    internal sealed class MachOCoreReader : CommonMemoryReader, IDataReader, IThreadReader, IDumpInfoProvider, IDisposable
     {
         private readonly MachOCoreDump _core;
+        private bool? _isCreatedByDotNetRuntime;
 
         public string DisplayName { get; }
 
         public bool IsThreadSafe => true;
+
+        public bool IsMiniOrTriage => false;
+
+        public bool IsCreatedByDotNetRuntime
+        {
+            get
+            {
+                _isCreatedByDotNetRuntime ??= SpecialDiagInfo.TryReadSpecialDiagInfo(this, out _);
+                return _isCreatedByDotNetRuntime.Value;
+            }
+        }
 
         public OSPlatform TargetPlatform => OSPlatform.OSX;
 

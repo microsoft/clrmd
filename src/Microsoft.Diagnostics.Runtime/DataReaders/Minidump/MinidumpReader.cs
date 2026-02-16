@@ -59,6 +59,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool IsMiniOrTriage => _minidump.IsMiniDump;
 
+        public bool IsCreatedByDotNetRuntime => true;
+
         public void Dispose()
         {
             _minidump.Dispose();
