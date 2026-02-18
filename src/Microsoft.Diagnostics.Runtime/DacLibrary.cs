@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
@@ -54,7 +55,20 @@ namespace Microsoft.Diagnostics.Runtime
                 fileLock?.Dispose();
             }
 
-            OwningLibrary = new RefCountedFreeLibrary(dacLibrary);
+            // On non-Windows platforms, calling dlclose on the DAC library can crash the process
+            // when inspecting the current process.  The DAC (libmscordaccore.so) shares internal
+            // state with the running CLR (libcoreclr.so), and unloading it corrupts that state.
+            // Suppress FreeLibrary when the target is the current process to avoid this.
+#if NET6_0_OR_GREATER
+            int currentPid = Environment.ProcessId;
+#else
+            int currentPid;
+            using (Process p = Process.GetCurrentProcess())
+                currentPid = p.Id;
+#endif
+            bool suppressFree = !RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                                && dataTarget.DataReader.ProcessId == currentPid;
+            OwningLibrary = new RefCountedFreeLibrary(dacLibrary, suppressFree);
 
             IntPtr initAddr = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "DAC_PAL_InitializeDLL");
             if (initAddr == IntPtr.Zero)

@@ -9,11 +9,13 @@ namespace Microsoft.Diagnostics.Runtime
     public sealed class RefCountedFreeLibrary
     {
         private readonly IntPtr _library;
+        private readonly bool _suppressFree;
         private int _refCount;
 
-        public RefCountedFreeLibrary(IntPtr library)
+        public RefCountedFreeLibrary(IntPtr library, bool suppressFree = false)
         {
             _library = library;
+            _suppressFree = suppressFree;
             _refCount = 1;
         }
 
@@ -25,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime
         public int Release()
         {
             int count = Interlocked.Decrement(ref _refCount);
-            if (count == 0 && _library != IntPtr.Zero)
+            if (count == 0 && _library != IntPtr.Zero && !_suppressFree)
                 DataTarget.PlatformFunctions.FreeLibrary(_library);
 
             return count;
