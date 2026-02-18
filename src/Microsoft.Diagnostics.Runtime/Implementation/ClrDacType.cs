@@ -266,7 +266,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public override ClrStaticField? GetStaticFieldByName(string name) => StaticFields.FirstOrDefault(f => f.Name == name);
 
         // TODO: remove
-        public override ClrInstanceField? GetFieldByName(string name) => Fields.FirstOrDefault(f => f.Name == name);
+        public override ClrInstanceField? GetFieldByName(string name) => Fields.LastOrDefault(f => f.Name == name);
 
         public override ulong GetArrayElementAddress(ulong objRef, int index)
         {
