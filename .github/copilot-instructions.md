@@ -28,12 +28,9 @@ dotnet test src/Microsoft.Diagnostics.Runtime.Tests --filter "FullyQualifiedName
 dotnet test src/Microsoft.Diagnostics.Runtime.Tests --filter ClassName=Microsoft.Diagnostics.Runtime.Tests.TypeTests
 ```
 
-**Test prerequisites:** Tests require pre-generated crash dump files. Build test targets first:
-```bash
-dotnet build src/TestTasks/TestTasks.csproj
-dotnet msbuild src/TestTargets/TestTargets.proj
-```
-Some dumps are pre-committed in `test_artifacts/`. Many tests will fail without the full set of generated dumps.
+**Test prerequisites:** Tests generate crash dump files on demand when first run. No manual pre-build step is needed — `DumpGenerator.cs` in the test project handles building test targets and capturing dumps lazily.
+
+On Windows, dumps are generated for both .NET Core (via `DOTNET_DbgEnableMiniDump` env vars) and .NET Framework 4.8 (via DbgEng). Test target projects are multi-targeted (`net10.0;net48`).
 
 ## Architecture
 
@@ -73,9 +70,8 @@ Platform-specific code lives in `src/Microsoft.Diagnostics.Runtime/src/{Windows,
 
 - **Microsoft.Diagnostics.Runtime** — Core library. Multi-targets `netstandard2.0` + `net8.0`.
 - **Microsoft.Diagnostics.Runtime.Utilities** — DbgEng COM wrappers. Targets `net8.0`.
-- **Microsoft.Diagnostics.Runtime.Tests** — xUnit tests. Targets `net8.0`.
-- **TestTasks** — Custom MSBuild task that generates crash dumps from test target executables.
-- **TestTargets** — MSBuild project (`.proj`, not `.csproj`) that compiles small test programs and creates dumps from them.
+- **Microsoft.Diagnostics.Runtime.Tests** — xUnit tests. Targets `net10.0`. Includes `DumpGenerator.cs` for lazy dump creation.
+- **TestTargets** — Small test programs (solution folder, not built by default) that crash with unhandled exceptions to produce dumps. Multi-targeted `net10.0;net48`.
 
 ## Conventions
 
