@@ -3,16 +3,19 @@
 
 #pragma warning disable 0162
 using System;
+using System.Collections.Generic;
 
 public class Program
 {
     public static void Main(string[] args)
     {
         var primitiveObj = new PrimitiveTypeCarrier();
+        var genericObj = new GenericTypeCarrier();
 
         throw new Exception();
 
         GC.KeepAlive(primitiveObj);
+        GC.KeepAlive(genericObj);
     }
 }
 
@@ -35,5 +38,20 @@ public class PrimitiveTypeCarrier
 
 public class SamplePointerType
 { }
+
+public class GenericTypeCarrier
+{
+    public Dictionary<string, int> StringIntDictionary = new Dictionary<string, int> { { "hello", 1 }, { "world", 2 } };
+
+    public LinkedList<string> StringLinkedList = CreateLinkedList();
+
+    private static LinkedList<string> CreateLinkedList()
+    {
+        var list = new LinkedList<string>();
+        list.AddLast("alpha");
+        list.AddLast("beta");
+        return list;
+    }
+}
 
 public enum EnumType { Zero, One, Two, PickedValue }
