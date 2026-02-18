@@ -13,11 +13,18 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class PEImageResourceTests
     {
-        [FrameworkFact]
+        [WindowsFact]
         public void FileInfoVersionTest()
         {
-            using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
-            PEModuleInfo clrModule = (PEModuleInfo)dt.EnumerateModules().SingleOrDefault(m => Path.GetFileNameWithoutExtension(m.FileName).Equals("clr", StringComparison.OrdinalIgnoreCase));
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            PEModuleInfo clrModule = (PEModuleInfo)dt.EnumerateModules().SingleOrDefault(m =>
+            {
+                string name = Path.GetFileNameWithoutExtension(m.FileName);
+                return name.Equals("clr", StringComparison.OrdinalIgnoreCase)
+                    || name.Equals("coreclr", StringComparison.OrdinalIgnoreCase);
+            });
+
+            Assert.NotNull(clrModule);
 
             using PEImage img = clrModule.GetPEImage();
             Assert.NotNull(img);
@@ -27,13 +34,18 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotNull(fileVersion.FileVersion);
 
             ClrInfo clrInfo = dt.ClrVersions[0];
-            Assert.Contains(clrInfo.Version.ToString(), fileVersion.FileVersion);
+            string version = clrInfo.Version.ToString();
+            // coreclr uses commas in FileVersion (e.g., "10,0,326,7603"), Framework uses dots
+            Assert.True(
+                fileVersion.FileVersion.Contains(version) ||
+                fileVersion.FileVersion.Contains(version.Replace('.', ',')),
+                $"Expected '{version}' in '{fileVersion.FileVersion}'");
         }
 
-        [FrameworkFact]
+        [WindowsFact]
         public void TestResourceImages()
         {
-            using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
             ClrInfo clr = dt.ClrVersions.Single();
             using PEImage image = ((PEModuleInfo)clr.ModuleInfo).GetPEImage();
             ResourceEntry entry = image.Resources;
