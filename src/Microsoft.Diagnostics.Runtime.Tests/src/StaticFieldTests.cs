@@ -72,5 +72,80 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.True(staticsArray.IsValid);
             Assert.True(staticsArray.IsArray);
         }
+
+        /// <summary>
+        /// Regression test for issue #1302: GetAddress on a thread that hasn't initialized
+        /// a [ThreadStatic] field must return 0, not a bogus offset-only address.
+        /// </summary>
+        [Fact]
+        public void ThreadStaticField_UninitializedThread_ReturnsZeroAddress()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule module = runtime.GetModule("types.dll");
+            ClrType type = module.GetTypeByName("Types");
+            Assert.NotNull(type);
+
+            Assert.NotEmpty(type.ThreadStaticFields);
+            ClrThreadStaticField field = type.ThreadStaticFields.Single(f => f.Name == "ts_threadName");
+
+            bool foundInitialized = false;
+            bool foundUninitialized = false;
+
+            foreach (ClrThread thread in runtime.Threads)
+            {
+                ulong address = field.GetAddress(thread);
+                if (address == 0)
+                {
+                    Assert.False(field.IsInitialized(thread));
+                    foundUninitialized = true;
+                }
+                else
+                {
+                    Assert.True(field.IsInitialized(thread));
+                    foundInitialized = true;
+                }
+            }
+
+            Assert.True(foundInitialized, "Expected at least one thread with initialized thread static");
+            Assert.True(foundUninitialized, "Expected at least one thread with uninitialized thread static");
+        }
+
+        /// <summary>
+        /// Verifies that thread-static field values can be read correctly from the thread
+        /// that initialized them. Tests both reference (string) and primitive (int) types.
+        /// </summary>
+        [Fact]
+        public void ThreadStaticField_ReadValueFromInitializedThread()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule module = runtime.GetModule("types.dll");
+            ClrType type = module.GetTypeByName("Types");
+            Assert.NotNull(type);
+
+            ClrThreadStaticField nameField = type.ThreadStaticFields.Single(f => f.Name == "ts_threadName");
+            ClrThreadStaticField idField = type.ThreadStaticFields.Single(f => f.Name == "ts_threadId");
+
+            bool foundValue = false;
+            foreach (ClrThread thread in runtime.Threads)
+            {
+                if (!nameField.IsInitialized(thread))
+                    continue;
+
+                string value = nameField.ReadString(thread);
+                Assert.Equal("MainThread", value);
+
+                int id = idField.Read<int>(thread);
+                Assert.NotEqual(0, id);
+
+                foundValue = true;
+                break;
+            }
+
+            Assert.True(foundValue, "No thread had the thread static field initialized");
+        }
     }
 }

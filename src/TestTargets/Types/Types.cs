@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
+#pragma warning disable 0414
+
 interface IExplicitTest
 {
     void ExplicitMethod();
@@ -20,6 +22,12 @@ class ExplicitImpl : IExplicitTest
 
 class Types
 {
+    [ThreadStatic]
+    static int ts_threadId;
+
+    [ThreadStatic]
+    static string ts_threadName;
+
     static object s_one = new object();
     static object s_two = new object();
     static object s_three = new object();
@@ -82,6 +90,10 @@ class Types
 
         // Ensure InstanceMethod is JIT'd so delegate tests can resolve it
         try { new Types().InstanceMethod(); } catch { }
+
+        // Set thread-static values on the main thread only
+        ts_threadId = Environment.CurrentManagedThreadId;
+        ts_threadName = "MainThread";
 
         Inner();
 
