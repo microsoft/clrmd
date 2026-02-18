@@ -330,6 +330,48 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(')', methodName.Last());
         }
 
+        [Fact]
+        public void ExplicitInterfaceMethodNameTest()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule module = runtime.GetModule("types.dll");
+            ClrType type = module.GetTypeByName("ExplicitImpl");
+            Assert.NotNull(type);
+
+            ClrMethod method = type.Methods.Single(m => m.Signature is not null && m.Signature.Contains("ExplicitMethod"));
+            Assert.Equal("IExplicitTest.ExplicitMethod", method.Name);
+        }
+
+        [Fact]
+        public void RegularMethodNameIsUnchanged()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule module = runtime.GetModule("types.dll");
+            ClrType type = module.GetTypeByName("ExplicitImpl");
+            Assert.NotNull(type);
+
+            ClrMethod method = type.GetMethod("RegularMethod");
+            Assert.Equal("RegularMethod", method.Name);
+        }
+
+        [Fact]
+        public void ConstructorMethodNameTest()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule module = runtime.GetModule("types.dll");
+            ClrType type = module.GetTypeByName("Types");
+            Assert.NotNull(type);
+
+            ClrMethod ctor = type.Methods.Single(m => m.Signature is not null && m.Signature.Contains(".ctor"));
+            Assert.Equal(".ctor", ctor.Name);
+        }
+
         [WindowsFact]
         public void AssemblySize()
         {

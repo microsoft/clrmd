@@ -79,7 +79,22 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (last > 0)
                 {
-                    // Skip over generic parameter brackets (e.g., [[System.Int32, System.Private.CoreLib]])
+                    // Try to use the owning type's name to find where the method name begins.
+                    // This correctly handles explicit interface implementations (e.g., IInterface.Method)
+                    // and compiler-generated names that contain dots.
+                    string? typeName = Type?.Name;
+                    if (typeName is not null)
+                    {
+                        int typeNameEnd = signature.IndexOf(typeName, StringComparison.Ordinal);
+                        if (typeNameEnd >= 0)
+                        {
+                            int methodStart = typeNameEnd + typeName.Length + 1; // +1 for the '.'
+                            if (methodStart < last)
+                                return signature.Substring(methodStart, last - methodStart);
+                        }
+                    }
+
+                    // Fallback: Skip over generic parameter brackets (e.g., [[System.Int32, System.Private.CoreLib]])
                     // to find the dot that separates type name from method name (issue #935).
                     int searchPos = last - 1;
                     int depth = 0;
@@ -207,7 +222,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Gets the regions of memory that
+        /// Gets the hot and cold regions of memory that contain the method's native code.
         /// </summary>
         public HotColdRegions HotColdInfo { get; }
 

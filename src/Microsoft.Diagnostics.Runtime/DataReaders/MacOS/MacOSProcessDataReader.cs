@@ -38,7 +38,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             int kr = Native.task_for_pid(_machTaskSelf, processId, out int task);
             if (kr != 0)
-                throw new ClrDiagnosticsException($"task_for_pid failed with status code 0x{kr:x}");
+                throw new ClrDiagnosticsException($"task_for_pid failed with status code 0x{kr:x}. " +
+                    "On macOS, attaching to a process requires running as root (sudo) and your application may need " +
+                    "the appropriate entitlements to debug other processes.");
 
             _task = task;
 

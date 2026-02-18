@@ -145,5 +145,124 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // Assert
             Assert.Equal(typeof(Guid).FullName, sampleGuid.Type.Name);
         }
+
+        [Fact]
+        public void ReadFieldByInstance_WhenBool_ReturnsExpected()
+        {
+            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
+            ClrInstanceField field = _primitiveCarrier.Type.GetFieldByName(nameof(prototype.TrueBool));
+
+            bool actual = _primitiveCarrier.ReadField<bool>(field);
+
+            Assert.True(actual);
+        }
+
+        [Fact]
+        public void ReadFieldByInstance_WhenLong_ReturnsExpected()
+        {
+            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
+            ClrInstanceField field = _primitiveCarrier.Type.GetFieldByName(nameof(prototype.OneLargerMaxInt));
+
+            long actual = _primitiveCarrier.ReadField<long>(field);
+
+            Assert.Equal(prototype.OneLargerMaxInt, actual);
+        }
+
+        [Fact]
+        public void ReadObjectFieldByInstance_WhenStringField_ReturnsExpected()
+        {
+            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
+            ClrInstanceField field = _primitiveCarrier.Type.GetFieldByName(nameof(prototype.HelloWorldString));
+
+            ClrObject textPointer = _primitiveCarrier.ReadObjectField(field);
+
+            Assert.Equal(prototype.HelloWorldString, (string)textPointer);
+        }
+
+        [Fact]
+        public void ReadObjectFieldByInstance_WhenReferenceField_ReturnsExpected()
+        {
+            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
+            ClrInstanceField field = _primitiveCarrier.Type.GetFieldByName(nameof(prototype.SamplePointer));
+
+            ClrObject referenceFieldValue = _primitiveCarrier.ReadObjectField(field);
+
+            Assert.Equal("SamplePointerType", referenceFieldValue.Type.Name);
+        }
+
+        [Fact]
+        public void ReadStringFieldByInstance_ReturnsExpected()
+        {
+            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
+            ClrInstanceField field = _primitiveCarrier.Type.GetFieldByName(nameof(prototype.HelloWorldString));
+
+            string text = _primitiveCarrier.ReadStringField(field);
+
+            Assert.Equal(prototype.HelloWorldString, text);
+        }
+
+        [Fact]
+        public void ReadValueTypeFieldByInstance_WhenDateTime_ReturnsExpected()
+        {
+            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
+            ClrInstanceField field = _primitiveCarrier.Type.GetFieldByName(nameof(prototype.Birthday));
+
+            ClrValueType birthday = _primitiveCarrier.ReadValueTypeField(field);
+
+            Assert.Equal(typeof(DateTime).FullName, birthday.Type.Name);
+        }
+
+        [Fact]
+        public void ReadValueTypeFieldByInstance_WhenGuid_ReturnsExpected()
+        {
+            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
+            ClrInstanceField field = _primitiveCarrier.Type.GetFieldByName(nameof(prototype.SampleGuid));
+
+            ClrValueType sampleGuid = _primitiveCarrier.ReadValueTypeField(field);
+
+            Assert.Equal(typeof(Guid).FullName, sampleGuid.Type.Name);
+        }
+
+        [Fact]
+        public void ReadObjectFieldByInstance_WhenNull_ThrowsArgumentNull()
+        {
+            Assert.Throws<ArgumentNullException>(() => _primitiveCarrier.ReadObjectField((ClrInstanceField)null));
+        }
+
+        [Fact]
+        public void ReadFieldByInstance_WhenNull_ThrowsArgumentNull()
+        {
+            Assert.Throws<ArgumentNullException>(() => _primitiveCarrier.ReadField<int>((ClrInstanceField)null));
+        }
+
+        [Fact]
+        public void ReadStringFieldByInstance_WhenNull_ThrowsArgumentNull()
+        {
+            Assert.Throws<ArgumentNullException>(() => _primitiveCarrier.ReadStringField((ClrInstanceField)null));
+        }
+
+        [Fact]
+        public void ReadValueTypeFieldByInstance_WhenNull_ThrowsArgumentNull()
+        {
+            Assert.Throws<ArgumentNullException>(() => _primitiveCarrier.ReadValueTypeField((ClrInstanceField)null));
+        }
+
+        [Fact]
+        public void ReadStringFieldByInstance_WhenTypeMismatch_ThrowsInvalidOperation()
+        {
+            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
+            ClrInstanceField field = _primitiveCarrier.Type.GetFieldByName(nameof(prototype.SomeEnum));
+
+            Assert.Throws<InvalidOperationException>(() => _primitiveCarrier.ReadStringField(field));
+        }
+
+        [Fact]
+        public void ReadObjectFieldByInstance_WhenNotObjectRef_ThrowsArgumentException()
+        {
+            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
+            ClrInstanceField field = _primitiveCarrier.Type.GetFieldByName(nameof(prototype.TrueBool));
+
+            Assert.Throws<ArgumentException>(() => _primitiveCarrier.ReadObjectField(field));
+        }
     }
 }

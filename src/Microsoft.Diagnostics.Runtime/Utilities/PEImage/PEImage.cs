@@ -355,8 +355,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         //           ^
                         // The read range starts within a relocation, extend the read
                         Debug.Assert((beginSearchComplement & 1) == 1);
-                        Debug.Assert(beginSearch > 0);
-                        beginRelocation = beginSearch - 1;
+                        Debug.Assert(beginSearchComplement > 0);
+                        beginRelocation = beginSearchComplement - 1;
                         beginRead = _relocations[beginRelocation];
                     }
                 }
@@ -404,8 +404,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         //           ^
                         // The read range ends within a relocation, extend the read
                         Debug.Assert((endSearchComplement & 1) == 1);
-                        Debug.Assert(endSearch > 0);
-                        endRelocation = endSearch;
+                        Debug.Assert(endSearchComplement > 0);
+                        endRelocation = endSearchComplement;
                         endRead = _relocations[endRelocation];
                     }
                 }
