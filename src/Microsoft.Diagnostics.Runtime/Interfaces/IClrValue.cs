@@ -39,9 +39,13 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         IRuntimeCallableWrapper? GetRuntimeCallableWrapper();
         T ReadBoxedValue<T>() where T : unmanaged;
         T ReadField<T>(string fieldName) where T : unmanaged;
+        T ReadField<T>(IClrInstanceField field) where T : unmanaged;
         IClrValue ReadObjectField(string fieldName);
+        IClrValue ReadObjectField(IClrInstanceField field);
         string? ReadStringField(string fieldName, int maxLength = 4096);
+        string? ReadStringField(IClrInstanceField field, int maxLength = 4096);
         IClrValue ReadValueTypeField(string fieldName);
+        IClrValue ReadValueTypeField(IClrInstanceField field);
 
         bool TryReadStringField(string fieldName, int? maxLength, out string? result);
 

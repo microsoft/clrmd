@@ -8,6 +8,18 @@ using System.Threading.Tasks;
 
 #pragma warning disable 0414
 
+interface IExplicitTest
+{
+    void ExplicitMethod();
+}
+
+class ExplicitImpl : IExplicitTest
+{
+    void IExplicitTest.ExplicitMethod() { }
+
+    public void RegularMethod() { }
+}
+
 class Types
 {
     [ThreadStatic]
@@ -69,6 +81,9 @@ class Types
     public static void Main()
     {
         new StructTestClass(); // Ensure type is constructed
+        ExplicitImpl ei = new ExplicitImpl();
+        ((IExplicitTest)ei).ExplicitMethod();
+        ei.RegularMethod();
         Foo f = new Foo();
         Foo[] foos = new Foo[] { f };
         Task task = Async();

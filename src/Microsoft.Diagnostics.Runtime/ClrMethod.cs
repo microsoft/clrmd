@@ -57,9 +57,25 @@ namespace Microsoft.Diagnostics.Runtime
                 int last = signature.LastIndexOf('(');
                 if (last > 0)
                 {
+                    // Try to use the owning type's name to find where the method name begins.
+                    // This correctly handles explicit interface implementations (e.g., IInterface.Method)
+                    // and compiler-generated names that contain dots.
+                    string? typeName = Type?.Name;
+                    if (typeName is not null)
+                    {
+                        int typeNameEnd = signature.IndexOf(typeName, StringComparison.Ordinal);
+                        if (typeNameEnd >= 0)
+                        {
+                            int methodStart = typeNameEnd + typeName.Length + 1; // +1 for the '.'
+                            if (methodStart < last)
+                                return signature.Substring(methodStart, last - methodStart);
+                        }
+                    }
+
+                    // Fallback: find the last '.' before '(' but handle '..' for constructors.
                     int first = signature.LastIndexOf('.', last - 1);
 
-                    if (first != -1 && signature[first - 1] == '.')
+                    if (first != -1 && first > 0 && signature[first - 1] == '.')
                         first--;
 
                     return signature.Substring(first + 1, last - first - 1);
@@ -169,7 +185,7 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Gets the regions of memory that
+        /// Gets the hot and cold regions of memory that contain the method's native code.
         /// </summary>
         public HotColdRegions HotColdInfo { get; }
 

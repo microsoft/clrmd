@@ -143,7 +143,8 @@ namespace Microsoft.Diagnostics.Runtime
         public bool IsFree => Type?.IsFree ?? false;
 
         /// <summary>
-        /// Returns whether this is a valid object.  This will return null
+        /// Returns whether this is a valid object.  This will return false if the address
+        /// did not point to a valid object, or if the object is null (<see cref="IsNull"/>).
         /// </summary>
         public bool IsValid => Address != 0 && Type != null;
 
@@ -334,6 +335,30 @@ namespace Microsoft.Diagnostics.Runtime
             return heap.GetObject(obj);
         }
 
+        /// <summary>
+        /// Gets the given object reference field from this ClrObject.
+        /// </summary>
+        /// <param name="field">The field to retrieve.</param>
+        /// <returns>A ClrObject of the given field.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="field"/> is <see langword="null"/>.</exception>
+        /// <exception cref="ArgumentException">The given field is not an object reference.</exception>
+        /// <exception cref="InvalidOperationException"><see cref="IsNull"/> is <see langword="true"/>.</exception>
+        public ClrObject ReadObjectField(ClrInstanceField field)
+        {
+            if (field is null)
+                throw new ArgumentNullException(nameof(field));
+
+            GetTypeOrThrow();
+            if (!field.IsObjectReference)
+                throw new ArgumentException($"Field '{field.Name}' is not an object reference.");
+
+            ulong addr = field.GetAddress(Address);
+            if (!DataReader.ReadPointer(addr, out ulong obj))
+                return default;
+
+            return Type!.Heap.GetObject(obj);
+        }
+
         public ClrValueType ReadValueTypeField(string fieldName)
         {
             ClrType type = GetTypeOrThrow();
@@ -341,6 +366,29 @@ namespace Microsoft.Diagnostics.Runtime
             ClrInstanceField field = type.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
             if (!field.IsValueType)
                 throw new ArgumentException($"Field '{type.Name}.{fieldName}' is not a ValueClass.");
+
+            if (field.Type is null)
+                throw new InvalidOperationException("Field does not have an associated class.");
+
+            ulong addr = field.GetAddress(Address);
+            return new ClrValueType(addr, field.Type, true);
+        }
+
+        /// <summary>
+        /// Gets the given value type field from this ClrObject.
+        /// </summary>
+        /// <param name="field">The field to retrieve.</param>
+        /// <returns>A ClrValueType of the given field.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="field"/> is <see langword="null"/>.</exception>
+        /// <exception cref="ArgumentException">The given field is not a value type.</exception>
+        public ClrValueType ReadValueTypeField(ClrInstanceField field)
+        {
+            if (field is null)
+                throw new ArgumentNullException(nameof(field));
+
+            GetTypeOrThrow();
+            if (!field.IsValueType)
+                throw new ArgumentException($"Field '{field.Name}' is not a ValueClass.");
 
             if (field.Type is null)
                 throw new InvalidOperationException("Field does not have an associated class.");
@@ -383,6 +431,22 @@ namespace Microsoft.Diagnostics.Runtime
         {
             ClrType type = GetTypeOrThrow();
             ClrInstanceField field = type.GetFieldByName(fieldName) ?? throw new ArgumentException($"Type '{type.Name}' does not contain a field named '{fieldName}'");
+            return field.Read<T>(Address, interior: false);
+        }
+
+        /// <summary>
+        /// Gets the value of a primitive field.
+        /// </summary>
+        /// <typeparam name="T">The type of the field itself.</typeparam>
+        /// <param name="field">The field to read.</param>
+        /// <returns>The value of this field.</returns>
+        public T ReadField<T>(ClrInstanceField field)
+            where T : unmanaged
+        {
+            if (field is null)
+                throw new ArgumentNullException(nameof(field));
+
+            GetTypeOrThrow();
             return field.Read<T>(Address, interior: false);
         }
 
@@ -499,6 +563,33 @@ namespace Microsoft.Diagnostics.Runtime
             return type.Heap.ReadString(strPtr, maxLength);
         }
 
+        /// <summary>
+        /// Gets a string field from the object.
+        /// </summary>
+        /// <param name="field">The field to get the value for.</param>
+        /// <param name="maxLength">The maximum length of the string returned.</param>
+        /// <returns>The value of the given field.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="field"/> is <see langword="null"/>.</exception>
+        /// <exception cref="InvalidOperationException">The field is not a string.</exception>
+        public string? ReadStringField(ClrInstanceField field, int maxLength = 4096)
+        {
+            if (field is null)
+                throw new ArgumentNullException(nameof(field));
+
+            GetTypeOrThrow();
+            if (field.ElementType != ClrElementType.String)
+                throw new InvalidOperationException($"Field '{field.Name}' is not of type 'string'.");
+
+            ulong address = field.GetAddress(Address);
+            if (!DataReader.ReadPointer(address, out ulong strPtr))
+                return null;
+
+            if (strPtr == 0)
+                return null;
+
+            return Type!.Heap.ReadString(strPtr, maxLength);
+        }
+
         public string? AsString(int maxLength = 4096)
         {
             ClrType type = GetTypeOrThrow();
@@ -597,8 +688,13 @@ namespace Microsoft.Diagnostics.Runtime
         IRuntimeCallableWrapper? IClrValue.GetRuntimeCallableWrapper() => GetRuntimeCallableWrapper();
 
         IClrValue IClrValue.ReadObjectField(string fieldName) => ReadObjectField(fieldName);
+        IClrValue IClrValue.ReadObjectField(IClrInstanceField field) => ReadObjectField((ClrInstanceField)field);
 
         IClrValue IClrValue.ReadValueTypeField(string fieldName) => ReadValueTypeField(fieldName);
+        IClrValue IClrValue.ReadValueTypeField(IClrInstanceField field) => ReadValueTypeField((ClrInstanceField)field);
+
+        T IClrValue.ReadField<T>(IClrInstanceField field) => ReadField<T>((ClrInstanceField)field);
+        string? IClrValue.ReadStringField(IClrInstanceField field, int maxLength) => ReadStringField((ClrInstanceField)field, maxLength);
 
         bool IClrValue.TryReadObjectField(string fieldName, [NotNullWhen(true)] out IClrValue? result)
         {
