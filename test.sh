@@ -1,16 +1,47 @@
 #!/usr/bin/env bash
+set -e
 
-source="${BASH_SOURCE[0]}"
+scriptroot="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+testproject="$scriptroot/src/Microsoft.Diagnostics.Runtime.Tests/Microsoft.Diagnostics.Runtime.Tests.csproj"
+exitcode=0
+arch="${1}"
+shift 2>/dev/null || true
 
-# resolve $SOURCE until the file is no longer a symlink
-while [[ -h $source ]]; do
-  scriptroot="$( cd -P "$( dirname "$source" )" && pwd )"
-  source="$(readlink "$source")"
+run_64() {
+    echo "=== Running 64-bit tests ==="
+    dotnet test "$testproject" --arch x64 "$@" || exitcode=1
+}
 
-  # if $source was a relative symlink, we need to resolve it relative to the path where the
-  # symlink file was located
-  [[ $source != /* ]] && source="$scriptroot/$source"
-done
+run_32() {
+    echo "=== Running 32-bit tests ==="
+    dotnet test "$testproject" --arch x86 "$@" || exitcode=1
+}
 
-scriptroot="$( cd -P "$( dirname "$source" )" && pwd )"
-"$scriptroot/eng/common/build.sh" --test $@
+case "$arch" in
+    ""|"--help")
+        if [ -z "$arch" ]; then
+            run_64 "$@"
+            echo ""
+            run_32 "$@"
+        else
+            echo "Usage: test.sh [arch] [dotnet test args...]"
+            echo "  No args: run both 32-bit and 64-bit tests"
+            echo "  x86, x32, arm:     run 32-bit tests only"
+            echo "  x64, amd64, arm64: run 64-bit tests only"
+            exit 1
+        fi
+        ;;
+    x86|x32|arm)
+        run_32 "$@"
+        ;;
+    x64|amd64|arm64)
+        run_64 "$@"
+        ;;
+    *)
+        echo "Unknown architecture: $arch"
+        echo "Use x86/x32/arm for 32-bit, x64/amd64/arm64 for 64-bit"
+        exit 1
+        ;;
+esac
+
+exit $exitcode
