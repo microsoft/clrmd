@@ -12,7 +12,15 @@ run_64() {
     dotnet test "$testproject" --arch x64 "$@" || exitcode=1
 }
 
+can_run_32() {
+    dotnet --info --arch x86 >/dev/null 2>&1
+}
+
 run_32() {
+    if ! can_run_32; then
+        echo "=== Skipping 32-bit tests (x86 .NET runtime not found) ==="
+        return
+    fi
     echo "=== Running 32-bit tests ==="
     dotnet test "$testproject" --arch x86 "$@" || exitcode=1
 }
