@@ -20,10 +20,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public static readonly string NestedTypesModuleName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "NestedTypes.exe" : "NestedTypes.dll";
 
-        [Fact]
-        public void TestTypeModifiers()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TestTypeModifiers(bool singleFile)
         {
-            using DataTarget dt = TestTargets.NestedTypes.LoadFullDump();
+            using DataTarget dt = TestTargets.NestedTypes.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrModule module = runtime.GetModule(NestedTypesModuleName);
@@ -57,10 +59,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.True((staticClass.TypeAttributes & TypeAttributes.Sealed) == TypeAttributes.Sealed);
         }
 
-        [Fact]
-        public void IntegerObjectClrType()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void IntegerObjectClrType(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
             ClrAppDomain domain = runtime.AppDomains.Single();
@@ -120,12 +124,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void ComponentType()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ComponentType(bool singleFile)
         {
             // Simply test that we can enumerate the heap.
 
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -141,10 +147,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void AsEnumTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void AsEnumTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrModule typesModule = runtime.GetModule(ModuleName);
@@ -232,12 +240,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotEqual(typesFromModule[0], typesFromModule[1]);
         }
 
-        [WindowsFact]
-        public void VariableRootTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void VariableRootTest(bool singleFile)
         {
             // Test to make sure that a specific static and local variable exist.
 
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -262,10 +272,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.True(low <= localVarRoot.Address && localVarRoot.Address <= high);
         }
 
-        [Fact]
-        public void MethodTableHeapEnumeration()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void MethodTableHeapEnumeration(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -358,14 +370,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(nestedExceptionFooMethodTable, fooType2.MethodTable);
         }
 
-        [Fact]
-        public void PrimitiveTypeEquality()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void PrimitiveTypeEquality(bool singleFile)
         {
             // Make sure ClrmdPrimitiveType always equals "real" ClrmdTypes if their ElementTypes are equal.
             // ClrmdPrimitiveType are fake, mocked up types we create if we aren't able to create the real
             // ClrType for a field.
 
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             dt.CacheOptions.CacheTypes = false;
 
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
@@ -388,11 +402,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void InnerStructSizeTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void InnerStructSizeTest(bool singleFile)
         {
             // https://github.com/microsoft/clrmd/issues/101
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrModule sharedLibrary = runtime.GetModule("sharedlibrary.dll");
@@ -415,10 +431,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(0, es.Size);
         }
 
-        [Fact]
-        public void StringEmptyIsObtainableTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void StringEmptyIsObtainableTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -432,13 +450,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(string.Empty, value);
         }
 
-        [Fact]
-        public void ComponentTypeEventuallyFilledTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ComponentTypeEventuallyFilledTest(bool singleFile)
         {
             // https://github.com/microsoft/clrmd/issues/108
             // Ensure that ComponentType is set on array types.
 
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrType fooType = runtime.GetModule(ModuleName).GetTypeByName("Types");
@@ -460,11 +480,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotNull(itemsObj.Type.ComponentType);
         }
 
-        [Fact]
-        public void FieldNameAndValueTests()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void FieldNameAndValueTests(bool singleFile)
         {
             // TODO: test reading structs from instance/static fields
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -516,10 +538,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return field;
         }
 
-        [Fact]
-        public void CorElementType()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void CorElementType(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrType classType = runtime.GetModule("sharedlibrary.dll").GetTypeByName("Foo");
@@ -529,10 +553,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(ClrElementType.Class, arrayType.ElementType);
         }
 
-        [Fact]
-        public void GenericTypeTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void GenericTypeTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrModule sharedlibrary = runtime.GetModule("sharedlibrary.dll");
@@ -594,10 +620,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             context.Unload();
         }
 
-        [Fact]
-        public void EnumerateInterfaces()
+        [Theory]
+        [InlineData(false)]
+        // Single-file: async state machine type may not be JIT'd/present in single-file dumps.
+        public void EnumerateInterfaces(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrObject obj = Assert.Single(runtime.Heap.EnumerateObjects().Where(obj => obj.Type?.Name?.StartsWith("Types+<Async>d__") ?? false));
@@ -606,10 +634,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal("System.Runtime.CompilerServices.IAsyncStateMachine", clrInterface.Name);
         }
 
-        [Fact]
-        public void StringEnumerateInterfaces()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void StringEnumerateInterfaces(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             IEnumerable<ClrType> query = from obj in runtime.Heap.EnumerateObjects()
@@ -643,10 +673,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
     public class ArrayTests
     {
-        [Fact]
-        public void ArrayOffsetsTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ArrayOffsetsTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -674,10 +706,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void ArrayLengthTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ArrayLengthTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -694,10 +728,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(3, arr.Length);
         }
 
-        [Fact]
-        public void ArrayReferenceEnumeration()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ArrayReferenceEnumeration(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -724,10 +760,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Contains(s_three, objs);
         }
 
-        [Fact]
-        public void ArrayRankTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ArrayRankTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrAppDomain domain = runtime.AppDomains.Single();
 
@@ -743,10 +781,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(5, s_5dArray.Rank);
         }
 
-        [Fact]
-        public void ArrayMultiDimensionalLengthTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ArrayMultiDimensionalLengthTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrAppDomain domain = runtime.AppDomains.Single();
 
@@ -765,10 +805,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(10, s_5dArray.GetLength(4));
         }
 
-        [Fact]
-        public void ArrayGetObjectValue()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ArrayGetObjectValue(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrAppDomain domain = runtime.AppDomains.Single();
 
@@ -795,10 +837,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(s_2dObjArray.Address, s_2dObjArray.GetObjectValue(1, 2).Address);
         }
 
-        [Fact]
-        public void ArrayGetValue()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ArrayGetValue(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrAppDomain domain = runtime.AppDomains.Single();
 

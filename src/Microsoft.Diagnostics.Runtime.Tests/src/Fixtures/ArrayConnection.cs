@@ -11,6 +11,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Fixtures
         {
         }
 
+        protected ArrayConnection(bool singleFile) : base(TestTargets.Arrays, typeof(ArraysHolder), singleFile)
+        {
+        }
+
         /// <summary>
         /// Please keep definitions in sync with Array.cs
         /// </summary>

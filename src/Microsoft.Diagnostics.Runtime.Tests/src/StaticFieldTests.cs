@@ -42,10 +42,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(42, value42);
         }
 
-        [Fact]
-        public void StringEmptyTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void StringEmptyTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrType strType = runtime.Heap.StringType;
@@ -77,10 +79,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// Regression test for issue #1302: GetAddress on a thread that hasn't initialized
         /// a [ThreadStatic] field must return 0, not a bogus offset-only address.
         /// </summary>
-        [Fact]
-        public void ThreadStaticField_UninitializedThread_ReturnsZeroAddress()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ThreadStaticField_UninitializedThread_ReturnsZeroAddress(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrModule module = runtime.GetModule("types.dll");
@@ -116,10 +120,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// Verifies that thread-static field values can be read correctly from the thread
         /// that initialized them. Tests both reference (string) and primitive (int) types.
         /// </summary>
-        [Fact]
-        public void ThreadStaticField_ReadValueFromInitializedThread()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ThreadStaticField_ReadValueFromInitializedThread(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrModule module = runtime.GetModule("types.dll");

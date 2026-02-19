@@ -14,6 +14,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Fixtures
         {
         }
 
+        protected ClrObjectConnection(bool singleFile) : base(TestTargets.ClrObjects, typeof(PrimitiveTypeCarrier), singleFile)
+        {
+        }
+
         public class PrimitiveTypeCarrier
         {
             public bool TrueBool = true;

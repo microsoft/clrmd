@@ -14,19 +14,23 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class VerifyHeapTests
     {
-        [Fact]
-        public void ServerNoCorruption()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ServerNoCorruption(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(GCMode.Server);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile, GCMode.Server);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
             Assert.Empty(heap.VerifyHeap());
         }
 
-        [Fact]
-        public void WorkstationNoCorruption()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void WorkstationNoCorruption(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(GCMode.Workstation);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile, GCMode.Workstation);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
             Assert.Empty(heap.VerifyHeap());

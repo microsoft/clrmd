@@ -9,12 +9,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class DataTargetTests
     {
-        [Fact]
-        public void EnsureFinalReleaseOfInterfaces()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void EnsureFinalReleaseOfInterfaces(bool singleFile)
         {
             RefCountedFreeLibrary library;
 
-            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            using (DataTarget dt = TestTargets.Types.LoadFullDump(singleFile))
             {
                 using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrHeap heap = runtime.Heap;

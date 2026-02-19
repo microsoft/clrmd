@@ -8,11 +8,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class ClrDelegateTests
     {
-        [Fact]
-        public void IsDelegateTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void IsDelegateTest(bool singleFile)
         {
 
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
             ClrType type = typesModule.GetTypeByName("Types");
@@ -29,10 +31,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
 
-        [Fact]
-        public void GetDelegateTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void GetDelegateTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
             ClrType Types = typesModule.GetTypeByName("Types");
@@ -74,10 +78,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal("InstanceMethod", delegateTarget.Method.Name);
         }
 
-        [Fact]
-        public void EnumerateDelegateTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void EnumerateDelegateTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrModule typesModule = runtime.GetModule(TypeTests.ModuleName);
             ClrType Types = typesModule.GetTypeByName("Types");

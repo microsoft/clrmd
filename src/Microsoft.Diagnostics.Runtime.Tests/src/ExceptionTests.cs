@@ -9,10 +9,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class ExceptionTests
     {
-        [Fact]
-        public void ExceptionPropertyTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ExceptionPropertyTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.NestedException.LoadFullDump();
+            using DataTarget dt = TestTargets.NestedException.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             TestProperties(runtime);
         }
@@ -30,10 +32,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotNull(ex.Inner);
         }
 
-        [Fact]
-        public void TestStackTrace()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TestStackTrace(bool singleFile)
         {
-            using DataTarget dt = TestTargets.NestedException.LoadFullDump();
+            using DataTarget dt = TestTargets.NestedException.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrThread thread = runtime.GetMainThread();
             ClrException exception = thread.CurrentException;

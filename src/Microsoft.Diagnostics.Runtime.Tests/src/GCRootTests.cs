@@ -9,10 +9,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class GCRootTests
     {
-        [Fact]
-        public void TestEnumerateRefsWithFieldsArrayFieldValues()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TestEnumerateRefsWithFieldsArrayFieldValues(bool singleFile)
         {
-            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(singleFile);
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -40,10 +42,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void TestEnumerateRefsWithFields()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TestEnumerateRefsWithFields(bool singleFile)
         {
-            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(singleFile);
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -86,10 +90,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             throw new InvalidOperationException($"Did not find a SingleRef pointing to a {targetTypeName}.");
         }
 
-        [Fact]
-        public void EnumerateGCRefs()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void EnumerateGCRefs(bool singleFile)
         {
-            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(singleFile);
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -111,10 +117,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void EnumerateGCRefsArray()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void EnumerateGCRefsArray(bool singleFile)
         {
-            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(singleFile);
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 

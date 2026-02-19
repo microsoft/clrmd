@@ -13,18 +13,27 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Fixtures
     public abstract class ObjectConnection<T> : IDisposable
         where T : new()
     {
-        protected ObjectConnection(TestTarget testTarget, Type type) : this(testTarget, type.Name)
+        protected ObjectConnection(TestTarget testTarget, Type type, bool singleFile = false) : this(testTarget, type.Name, singleFile)
         {
         }
 
-        protected ObjectConnection(TestTarget testTarget, string typeName)
+        protected ObjectConnection(TestTarget testTarget, string typeName, bool singleFile = false)
         {
-            DataTarget = testTarget.LoadFullDump();
+            SingleFile = singleFile;
+            if (singleFile)
+                DataTarget = testTarget.LoadFullDump(singleFile: true);
+            else
+                DataTarget = testTarget.LoadFullDump();
             Runtime = DataTarget.ClrVersions.Single().CreateRuntime();
 
             TestDataClrObject = FindFirstInstanceOfType(Runtime.Heap, typeName);
             TestTarget = testTarget;
         }
+
+        /// <summary>
+        /// Whether this connection is using a single-file dump.
+        /// </summary>
+        public bool SingleFile { get; }
 
         /// <summary>
         /// Test object with various field types.

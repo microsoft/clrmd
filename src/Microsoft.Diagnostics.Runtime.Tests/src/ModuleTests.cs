@@ -40,13 +40,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.True(found, "Did not find any modules with non-null GetFileVersionInfo to compare");
         }
 
-        [Fact]
-        public void NoDuplicateModules()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void NoDuplicateModules(bool singleFile)
         {
             // Modules should have a unique .Address.
             // https://github.com/microsoft/clrmd/issues/440
 
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             HashSet<ulong> seen = new() { 0 };
@@ -58,10 +60,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void TestGetTypeByName()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TestGetTypeByName(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -74,10 +78,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Null(types.GetTypeByName("Foo"));
         }
 
-        [Fact]
-        public void ModuleEqualityTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ModuleEqualityTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrModule[] oldModules = runtime.EnumerateModules().ToArray();
@@ -95,10 +101,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void TestModulesNames()
+        [Theory]
+        [InlineData(false)]
+        // Single-file: module files are bundled inside the executable; File.Exists() returns false.
+        public void TestModulesNames(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             foreach (ClrModule module in runtime.EnumerateModules())
@@ -108,10 +116,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [CoreFact]
-        public void TestModuleSize()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TestModuleSize(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             foreach (ClrModule module in runtime.EnumerateModules())
@@ -120,10 +130,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void TestTypeMapRoundTrip()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TestTypeMapRoundTrip(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             int badTypes = 0;

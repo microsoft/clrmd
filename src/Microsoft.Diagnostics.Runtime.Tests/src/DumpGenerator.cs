@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// Ensures a dump file exists for the given test target. If the dump doesn't exist,
         /// builds the target and generates the dump.
         /// </summary>
-        public static void EnsureDump(string name, string projectDir, string dumpPath, string architecture, bool isFramework, GCMode gcMode, bool full)
+        public static void EnsureDump(string name, string projectDir, string dumpPath, string architecture, bool isFramework, GCMode gcMode, bool full, bool singleFile = false)
         {
             if (File.Exists(dumpPath))
                 return;
@@ -38,19 +38,35 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 string outputDir = Path.GetDirectoryName(dumpPath);
                 Directory.CreateDirectory(outputDir);
 
-                string exePath = BuildTarget(name, projectDir, outputDir, architecture, isFramework);
+                string exePath;
+                if (singleFile)
+                {
+                    exePath = PublishSingleFile(name, projectDir, outputDir, architecture);
+                }
+                else
+                {
+                    exePath = BuildTarget(name, projectDir, outputDir, architecture, isFramework);
+                }
 
+                string processOutput = null;
                 if (isFramework && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     GenerateFrameworkDump(exePath, dumpPath, gcMode, full);
                 }
                 else
                 {
-                    GenerateCoreDump(exePath, dumpPath, gcMode, full);
+                    processOutput = GenerateCoreDump(exePath, dumpPath, gcMode, full, singleFile);
                 }
 
                 if (!File.Exists(dumpPath))
-                    throw new InvalidOperationException($"Failed to generate dump: {dumpPath}");
+                {
+                    string msg = $"Failed to generate dump: {dumpPath}";
+                    if (singleFile)
+                        msg += $"\n  exePath: {exePath}\n  exists: {File.Exists(exePath)}";
+                    if (processOutput != null)
+                        msg += $"\n  process: {processOutput}";
+                    throw new InvalidOperationException(msg);
+                }
             }
         }
 
@@ -134,10 +150,71 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             throw new InvalidOperationException($"Build succeeded but could not find output for {name} in {projectBinDir}");
         }
 
+        /// <summary>
+        /// Publishes a test target as a single-file executable.
+        /// Returns the path to the published executable.
+        /// </summary>
+        private static string PublishSingleFile(string name, string projectDir, string outputDir, string architecture)
+        {
+            string csprojPath = Path.Combine(projectDir, name + ".csproj");
+            if (!File.Exists(csprojPath))
+                throw new FileNotFoundException($"Could not find project file: {csprojPath}");
+
+            string rid = GetRuntimeIdentifier(architecture);
+            string publishDir = Path.Combine(outputDir, "singlefile");
+            Directory.CreateDirectory(publishDir);
+
+            RunDotnetPublish(csprojPath, "net10.0", rid, publishDir);
+
+            string exeName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? name + ".exe" : name;
+            string publishedExe = Path.Combine(publishDir, exeName);
+
+            if (File.Exists(publishedExe))
+                return publishedExe;
+
+            throw new InvalidOperationException($"Single-file publish succeeded but could not find output for {name} in {publishDir}");
+        }
+
+        /// <summary>
+        /// Returns the RID for the given architecture on the current OS.
+        /// </summary>
+        private static string GetRuntimeIdentifier(string architecture)
+        {
+            string os;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                os = "win";
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                os = "osx";
+            else
+                os = "linux";
+
+            return $"{os}-{architecture}";
+        }
+
         private static void CopyFileIfNewer(string src, string dest)
         {
             if (!File.Exists(dest) || File.GetLastWriteTimeUtc(src) > File.GetLastWriteTimeUtc(dest))
                 File.Copy(src, dest, overwrite: true);
+        }
+
+        private static void RunDotnetPublish(string csprojPath, string tfm, string rid, string outputDir)
+        {
+            ProcessStartInfo psi = new("dotnet")
+            {
+                Arguments = $"publish \"{csprojPath}\" --nologo -f {tfm} -r {rid} -p:PublishSingleFile=true -p:SelfContained=true -p:IsPublishable=true -o \"{outputDir}\" -v:q",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using Process process = Process.Start(psi);
+            string output = process.StandardOutput.ReadToEnd();
+            string error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+
+            if (process.ExitCode != 0)
+                throw new InvalidOperationException($"dotnet publish (single-file) failed for {csprojPath}:\n{output}\n{error}");
         }
 
         private static void RunDotnetBuild(string csprojPath, string tfm, string platform)
@@ -164,7 +241,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// Generates a dump for a .NET Core target using DOTNET_DbgEnableMiniDump environment variables.
         /// The target is expected to crash with an unhandled exception.
         /// </summary>
-        private static void GenerateCoreDump(string exePath, string dumpPath, GCMode gcMode, bool full)
+        private static string GenerateCoreDump(string exePath, string dumpPath, GCMode gcMode, bool full, bool singleFile = false)
         {
             bool isDll = exePath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase);
 
@@ -203,9 +280,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             psi.Environment["DOTNET_DbgMiniDumpName"] = dumpPath;
             psi.Environment["COMPlus_DbgMiniDumpName"] = dumpPath;
 
-            // Enable crash reports
-            psi.Environment["DOTNET_EnableCrashReport"] = "1";
-            psi.Environment["COMPlus_EnableCrashReport"] = "1";
+            // Enable crash reports (not supported for single-file apps)
+            if (!singleFile)
+            {
+                psi.Environment["DOTNET_EnableCrashReport"] = "1";
+                psi.Environment["COMPlus_EnableCrashReport"] = "1";
+            }
+            else
+            {
+                psi.Environment["DOTNET_EnableCrashReport"] = "0";
+                psi.Environment["COMPlus_EnableCrashReport"] = "0";
+            }
 
             if (gcMode == GCMode.Server)
             {
@@ -214,14 +299,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
 
             using Process process = Process.Start(psi);
-            process.StandardOutput.ReadToEnd();
-            process.StandardError.ReadToEnd();
+            string stdout = process.StandardOutput.ReadToEnd();
+            string stderr = process.StandardError.ReadToEnd();
 
             if (!process.WaitForExit(60_000))
             {
                 process.Kill();
-                throw new TimeoutException($"Test target {exePath} did not exit within 60 seconds.");
+                throw new TimeoutException($"Test target {exePath} did not exit within 60 seconds.\nstdout: {stdout}\nstderr: {stderr}");
             }
+
+            return $"exit={process.ExitCode}\nstdout: {stdout}\nstderr: {stderr}";
         }
 
         /// <summary>

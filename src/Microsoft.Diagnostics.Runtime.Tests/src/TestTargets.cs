@@ -138,7 +138,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// <summary>
         /// Builds the dump file name for a given configuration.
         /// </summary>
-        public string BuildDumpName(GCMode gcmode, bool full, string architecture = null, bool? isFramework = null)
+        public string BuildDumpName(GCMode gcmode, bool full, string architecture = null, bool? isFramework = null, bool singleFile = false)
         {
             architecture ??= DumpGenerator.GetArchitecture();
             bool framework = isFramework ?? FrameworkOnly;
@@ -147,7 +147,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             string gc = gcmode == GCMode.Server ? "svr" : "wks";
             string dumpType = full ? string.Empty : "_mini";
             string fwSuffix = framework ? "_net48" : string.Empty;
-            return Path.Combine(dir, $"{Name}_{gc}{dumpType}{fwSuffix}.dmp");
+            string sfSuffix = singleFile ? "_sf" : string.Empty;
+            return Path.Combine(dir, $"{Name}_{gc}{dumpType}{fwSuffix}{sfSuffix}.dmp");
         }
 
         private static DataTarget LoadDump(string path)
@@ -170,6 +171,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// </summary>
         public DataTarget LoadFullDump(GCMode gc = GCMode.Workstation) => LoadFullDump(gc, DumpGenerator.GetArchitecture());
 
+        /// <summary>
+        /// Loads a full dump with optional single-file variant.
+        /// </summary>
+        public DataTarget LoadFullDump(bool singleFile, GCMode gc = GCMode.Workstation)
+        {
+            string architecture = DumpGenerator.GetArchitecture();
+            string dumpPath = BuildDumpName(gc, full: true, architecture: architecture, isFramework: false, singleFile: singleFile);
+            DumpGenerator.EnsureDump(Name, ProjectDir, dumpPath, architecture, isFramework: false, gc, full: true, singleFile: singleFile);
+            return LoadDump(dumpPath);
+        }
+
         public DataTarget LoadFullDump(GCMode gc, string architecture, bool? isFramework = null)
         {
             bool framework = isFramework ?? FrameworkOnly;
@@ -183,6 +195,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// Loads a mini dump, generating it on-demand if it doesn't exist.
         /// </summary>
         public DataTarget LoadMinidump(GCMode gc = GCMode.Workstation) => LoadMinidump(gc, DumpGenerator.GetArchitecture());
+
+        /// <summary>
+        /// Loads a mini dump with optional single-file variant.
+        /// </summary>
+        public DataTarget LoadMinidump(bool singleFile, GCMode gc = GCMode.Workstation)
+        {
+            string architecture = DumpGenerator.GetArchitecture();
+            string dumpPath = BuildDumpName(gc, full: false, architecture: architecture, isFramework: false, singleFile: singleFile);
+            DumpGenerator.EnsureDump(Name, ProjectDir, dumpPath, architecture, isFramework: false, gc, full: false, singleFile: singleFile);
+            return LoadDump(dumpPath);
+        }
 
         public DataTarget LoadMinidump(GCMode gc, string architecture, bool? isFramework = null)
         {

@@ -17,17 +17,20 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     public class MinidumpTests
     {
 
-        [Fact]
-        public void MinidumpProcessIdTest()
+        [Theory]
+        [InlineData(false)]
+        public void MinidumpProcessIdTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.NestedException.LoadMinidump();
+            using DataTarget dt = TestTargets.NestedException.LoadMinidump(singleFile);
             Assert.True(dt.DataReader.ProcessId > 0);
         }
 
-        [Fact]
-        public void MinidumpCallstackTest()
+        [Theory]
+        [InlineData(false)]
+        // Single-file apps only support full dumps (runtime limitation).
+        public void MinidumpCallstackTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.NestedException.LoadMinidump();
+            using DataTarget dt = TestTargets.NestedException.LoadMinidump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrThread thread = runtime.GetMainThread();
 
@@ -49,20 +52,24 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void MinidumpExceptionPropertiesTest()
+        [Theory]
+        [InlineData(false)]
+        // Single-file apps only support full dumps (runtime limitation).
+        public void MinidumpExceptionPropertiesTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.NestedException.LoadMinidump();
+            using DataTarget dt = TestTargets.NestedException.LoadMinidump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ExceptionTests.TestProperties(runtime);
         }
 
 
 
-        [Fact]
-        public void MinidumpExceptionPropertiesNoSymbolsTest()
+        [Theory]
+        [InlineData(false)]
+        // Single-file apps only support full dumps (runtime limitation).
+        public void MinidumpExceptionPropertiesNoSymbolsTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.NestedException.LoadMinidump();
+            using DataTarget dt = TestTargets.NestedException.LoadMinidump(singleFile);
             dt.FileLocator = new NullBinaryLocator(dt.FileLocator);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ExceptionTests.TestProperties(runtime);

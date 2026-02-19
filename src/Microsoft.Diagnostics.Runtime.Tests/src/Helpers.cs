@@ -52,9 +52,25 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public static ClrModule GetMainModule(this ClrRuntime runtime)
         {
-            // .NET Core SDK 3.x creates an executable host by default (FDE)
-            return runtime.AppDomains.SelectMany(ad => ad.Modules).Single(m => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? m.Name.EndsWith(".exe") : File.Exists(Path.ChangeExtension(m.Name, null)));
+            // Find the main module by excluding well-known framework/system modules.
+            // This works for both regular and single-file deployments.
+            return runtime.AppDomains.SelectMany(ad => ad.Modules).Single(m =>
+            {
+                string fileName = Path.GetFileName(m.Name);
+                if (string.IsNullOrEmpty(fileName))
+                    return false;
+
+                // Skip system/framework modules
+                if (fileName.StartsWith("System.", StringComparison.OrdinalIgnoreCase)
+                    || fileName.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase)
+                    || fileName.Equals("mscorlib.dll", StringComparison.OrdinalIgnoreCase)
+                    || fileName.Equals("SharedLibrary.dll", StringComparison.OrdinalIgnoreCase)
+                    || fileName.Equals("netstandard.dll", StringComparison.OrdinalIgnoreCase)
+                    || fileName.Equals("WindowsBase.dll", StringComparison.OrdinalIgnoreCase))
+                    return false;
+
+                return true;
+            });
         }
 
         public static ClrMethod GetMethod(this ClrType type, string name)
