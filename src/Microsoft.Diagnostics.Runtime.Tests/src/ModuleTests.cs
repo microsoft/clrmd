@@ -165,5 +165,62 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.True(badTypes <= 1);
         }
+
+        /// <summary>
+        /// For single-file apps, module files are bundled inside the executable and
+        /// don't exist on disk. Verify that module properties are still meaningful.
+        /// </summary>
+        [Fact]
+        public void SingleFileModuleProperties()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile: true);
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule[] modules = runtime.EnumerateModules().ToArray();
+            Assert.NotEmpty(modules);
+
+            foreach (ClrModule module in modules)
+            {
+                // Every module should have a non-null, non-empty name
+                Assert.False(string.IsNullOrEmpty(module.Name), "Module.Name should not be null/empty");
+
+                // Address should be valid
+                Assert.NotEqual(0ul, module.Address);
+
+                // Non-dynamic modules should have a valid ImageBase and Size
+                if (!module.IsDynamic)
+                {
+                    Assert.True(module.Size > 0, $"Module {module.Name} should have Size > 0");
+                    Assert.True(module.IsPEFile, $"Module {module.Name} should be a PE file");
+                }
+
+                // Metadata should be accessible
+                Assert.NotEqual(0ul, module.MetadataAddress);
+                Assert.True(module.MetadataLength > 0, $"Module {module.Name} should have MetadataLength > 0");
+            }
+        }
+
+        /// <summary>
+        /// Verify that module names for single-file apps point to bundled assemblies
+        /// (i.e. they are non-null but the files don't exist on disk).
+        /// </summary>
+        [Fact]
+        public void SingleFileModuleNamesAreBundled()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile: true);
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            bool foundBundled = false;
+            foreach (ClrModule module in runtime.EnumerateModules())
+            {
+                Assert.False(string.IsNullOrEmpty(module.Name));
+
+                // At least some modules should NOT exist on disk (they're bundled)
+                if (!File.Exists(module.Name))
+                    foundBundled = true;
+            }
+
+            Assert.True(foundBundled, "Expected at least one module to be bundled (not on disk) in a single-file app");
+        }
     }
 }

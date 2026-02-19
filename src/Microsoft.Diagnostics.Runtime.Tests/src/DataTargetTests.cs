@@ -38,5 +38,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             string path = Path.GetTempFileName();
             _ = Assert.Throws<InvalidDataException>(() => DataTarget.LoadDump(path));
         }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ProcessIdIsValid(bool singleFile)
+        {
+            using DataTarget dt = TestTargets.NestedException.LoadFullDump(singleFile);
+            Assert.True(dt.DataReader.ProcessId > 0);
+        }
     }
 }
