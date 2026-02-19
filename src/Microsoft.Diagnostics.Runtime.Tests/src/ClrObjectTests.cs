@@ -121,6 +121,21 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
+        public void GetObjectField_WhenNull_ReturnsFieldType()
+        {
+            // Arrange
+            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
+
+            // Act
+            ClrObject nullRef = _primitiveCarrier.ReadObjectField(nameof(prototype.NullReference));
+
+            // Assert
+            Assert.True(nullRef.IsNull);
+            Assert.NotNull(nullRef.Type);
+            Assert.Equal("SamplePointerType", nullRef.Type.Name);
+        }
+
+        [Fact]
         public void GetValueTypeField_WhenDateTime_ThrowsException()
         {
             // Arrange

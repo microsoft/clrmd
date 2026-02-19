@@ -29,6 +29,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Fixtures
             public string HelloWorldString = "Hello World";
 
             public Guid SampleGuid = new("{EB06CEC0-5E2D-4DC4-875B-01ADCC577D13}");
+
+            public SamplePointerType NullReference = null;
         }
 
         public class SamplePointerType
