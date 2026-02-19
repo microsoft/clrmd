@@ -11,11 +11,12 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class CoredumpReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader
+    internal sealed class CoredumpReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader, IDumpInfoProvider
     {
         private readonly ElfCoreFile _core;
         private Dictionary<uint, IElfPRStatus>? _threads;
         private List<ModuleInfo>? _modules;
+        private bool? _isCreatedByDotNetRuntime;
 
         public string DisplayName { get; }
         public OSPlatform TargetPlatform => OSPlatform.Linux;
@@ -43,6 +44,17 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         public bool IsThreadSafe => false;
+
+        public bool IsMiniOrTriage => false;
+
+        public bool IsCreatedByDotNetRuntime
+        {
+            get
+            {
+                _isCreatedByDotNetRuntime ??= SpecialDiagInfo.TryReadSpecialDiagInfo(this, out _);
+                return _isCreatedByDotNetRuntime.Value;
+            }
+        }
 
         public void Dispose()
         {

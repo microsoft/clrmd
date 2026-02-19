@@ -213,7 +213,7 @@ namespace Microsoft.Diagnostics.Runtime
                         
                         // The above EnumerateModules() call populated (the sorted) _modules array
                         int found = _modules!.Search(info.RuntimeBaseAddress, (m, k) => m.ImageBase.CompareTo(k));
-                        if (found > 0)
+                        if (found >= 0)
                         {
                             // Run the module through the clr info providers to see if it is an app model/runtime supported by CLRMD
                             clrs = new(

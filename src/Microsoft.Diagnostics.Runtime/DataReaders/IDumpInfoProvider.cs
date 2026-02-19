@@ -25,5 +25,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// explicitly NOT placed into the dump).
         /// </summary>
         bool IsMiniOrTriage { get; }
+
+        /// <summary>
+        /// Returns whether the dump was collected by the .NET runtime's createdump tool (or the
+        /// .NET runtime's crash handler). When false, the dump is a system dump (e.g. from gcore,
+        /// coredumpctl, lldb, or the kernel) and may be missing memory regions required for
+        /// reliable .NET diagnostics analysis.
+        /// </summary>
+        bool IsCreatedByDotNetRuntime { get; }
     }
 }

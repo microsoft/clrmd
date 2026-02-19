@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             {
                 Address = moduleAddress,
                 Assembly = data.Assembly,
-                AssemblyName = _sos.GetAssemblyName(data.Assembly),
+                AssemblyName = data.Assembly != 0 ? _sos.GetAssemblyName(data.Assembly) : null,
                 Id = data.ModuleID,
                 Index = data.ModuleIndex,
                 IsPEFile = data.IsPEFile != 0,
