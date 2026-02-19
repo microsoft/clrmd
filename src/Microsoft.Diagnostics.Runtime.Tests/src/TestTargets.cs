@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             string curr = Environment.CurrentDirectory;
             while (curr != null)
             {
-                string artifacts = Path.Combine(curr, "test_artifacts");
+                string artifacts = Path.Combine(curr, ".test_artifacts");
                 if (Directory.Exists(artifacts))
                     return artifacts;
 
