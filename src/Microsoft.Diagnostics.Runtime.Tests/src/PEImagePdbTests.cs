@@ -12,11 +12,18 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class PEImagePdbTests
     {
-        [FrameworkFact]
+        [WindowsFact]
         public void ManagedPdbTest()
         {
-            using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
-            PEModuleInfo clrModule = (PEModuleInfo)dt.EnumerateModules().SingleOrDefault(m => Path.GetFileNameWithoutExtension(m.FileName).Equals("clr", StringComparison.OrdinalIgnoreCase));
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            PEModuleInfo clrModule = (PEModuleInfo)dt.EnumerateModules().SingleOrDefault(m =>
+            {
+                string name = Path.GetFileNameWithoutExtension(m.FileName);
+                return name.Equals("clr", StringComparison.OrdinalIgnoreCase)
+                    || name.Equals("coreclr", StringComparison.OrdinalIgnoreCase);
+            });
+
+            Assert.NotNull(clrModule);
 
             using PEImage img = clrModule.GetPEImage();
             Assert.NotNull(img);

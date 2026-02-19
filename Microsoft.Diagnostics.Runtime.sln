@@ -17,9 +17,33 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		doc\ReleaseNotes3.1.md = doc\ReleaseNotes3.1.md
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestTasks", "src\TestTasks\TestTasks.csproj", "{94F92EB1-0C62-446B-82A6-0CEDA8EFACF6}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Diagnostics.Runtime.Utilities", "src\Microsoft.Diagnostics.Runtime.Utilities\Microsoft.Diagnostics.Runtime.Utilities.csproj", "{370E02A2-AA02-44D7-9EDE-11003365AE91}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TestTargets", "TestTargets", "{B1A2C3D4-E5F6-7890-ABCD-EF1234567890}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharedLibrary", "src\TestTargets\Shared\SharedLibrary.csproj", "{D1000001-0000-0000-0000-000000000001}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AppDomains", "src\TestTargets\AppDomains\AppDomains.csproj", "{D1000001-0000-0000-0000-000000000002}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Arrays", "src\TestTargets\Arrays\Arrays.csproj", "{D1000001-0000-0000-0000-000000000003}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ByReference", "src\TestTargets\ByReference\ByReference.csproj", "{D1000001-0000-0000-0000-000000000004}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClrObjects", "src\TestTargets\ClrObjects\ClrObjects.csproj", "{D1000001-0000-0000-0000-000000000005}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FinalizationQueue", "src\TestTargets\FinalizationQueue\FinalizationQueue.csproj", "{D1000001-0000-0000-0000-000000000006}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GCHandles", "src\TestTargets\GCHandles\GCHandles.csproj", "{D1000001-0000-0000-0000-000000000007}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GCRoot", "src\TestTargets\GCRoot\GCRoot.csproj", "{D1000001-0000-0000-0000-000000000008}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GCRoot2", "src\TestTargets\GCRoot2\GCRoot2.csproj", "{D1000001-0000-0000-0000-000000000009}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NestedException", "src\TestTargets\NestedException\NestedException.csproj", "{D1000001-0000-0000-0000-00000000000A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NestedTypes", "src\TestTargets\NestedTypes\NestedTypes.csproj", "{D1000001-0000-0000-0000-00000000000B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Types", "src\TestTargets\Types\Types.csproj", "{D1000001-0000-0000-0000-00000000000C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,10 +59,6 @@ Global
 		{C443A5AF-066E-4B08-B286-2BF1BD1443DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C443A5AF-066E-4B08-B286-2BF1BD1443DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C443A5AF-066E-4B08-B286-2BF1BD1443DC}.Release|Any CPU.Build.0 = Release|Any CPU
-		{94F92EB1-0C62-446B-82A6-0CEDA8EFACF6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{94F92EB1-0C62-446B-82A6-0CEDA8EFACF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{94F92EB1-0C62-446B-82A6-0CEDA8EFACF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{94F92EB1-0C62-446B-82A6-0CEDA8EFACF6}.Release|Any CPU.Build.0 = Release|Any CPU
 		{370E02A2-AA02-44D7-9EDE-11003365AE91}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{370E02A2-AA02-44D7-9EDE-11003365AE91}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{370E02A2-AA02-44D7-9EDE-11003365AE91}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -46,6 +66,20 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{D1000001-0000-0000-0000-000000000001} = {B1A2C3D4-E5F6-7890-ABCD-EF1234567890}
+		{D1000001-0000-0000-0000-000000000002} = {B1A2C3D4-E5F6-7890-ABCD-EF1234567890}
+		{D1000001-0000-0000-0000-000000000003} = {B1A2C3D4-E5F6-7890-ABCD-EF1234567890}
+		{D1000001-0000-0000-0000-000000000004} = {B1A2C3D4-E5F6-7890-ABCD-EF1234567890}
+		{D1000001-0000-0000-0000-000000000005} = {B1A2C3D4-E5F6-7890-ABCD-EF1234567890}
+		{D1000001-0000-0000-0000-000000000006} = {B1A2C3D4-E5F6-7890-ABCD-EF1234567890}
+		{D1000001-0000-0000-0000-000000000007} = {B1A2C3D4-E5F6-7890-ABCD-EF1234567890}
+		{D1000001-0000-0000-0000-000000000008} = {B1A2C3D4-E5F6-7890-ABCD-EF1234567890}
+		{D1000001-0000-0000-0000-000000000009} = {B1A2C3D4-E5F6-7890-ABCD-EF1234567890}
+		{D1000001-0000-0000-0000-00000000000A} = {B1A2C3D4-E5F6-7890-ABCD-EF1234567890}
+		{D1000001-0000-0000-0000-00000000000B} = {B1A2C3D4-E5F6-7890-ABCD-EF1234567890}
+		{D1000001-0000-0000-0000-00000000000C} = {B1A2C3D4-E5F6-7890-ABCD-EF1234567890}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7DB8722F-5AAF-4913-A5AF-4A77D75BC39C}

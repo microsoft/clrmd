@@ -40,13 +40,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.True(found, "Did not find any modules with non-null GetFileVersionInfo to compare");
         }
 
-        [FrameworkFact]
+        [Fact]
         public void NoDuplicateModules()
         {
             // Modules should have a unique .Address.
             // https://github.com/microsoft/clrmd/issues/440
 
-            using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             HashSet<ulong> seen = new() { 0 };

@@ -296,10 +296,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [FrameworkFact]
+        [Fact]
         public void GetObjectMethodTableTest()
         {
-            using DataTarget dt = TestTargets.AppDomains.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 

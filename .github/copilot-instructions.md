@@ -7,33 +7,33 @@ Microsoft.Diagnostics.Runtime (ClrMD) is a .NET library for inspecting crash dum
 ## Build & Test
 
 ```bash
-# Restore (also installs the local .dotnet SDK):
-./restore.sh
-
-# Build the solution:
-./build.sh
-
-# Run all tests:
-./test.sh
-
-# Or use dotnet directly (SDK is in .dotnet/):
-export PATH="$(git rev-parse --show-toplevel)/.dotnet:$PATH"
+# Build the solution (does NOT build test targets or generate dumps):
 dotnet build Microsoft.Diagnostics.Runtime.sln
+
+# Run all tests (both 32-bit and 64-bit):
+./Test.cmd          # Windows
+./test.sh           # Linux/macOS
+
+# Run only 64-bit or 32-bit tests:
+./Test.cmd x64
+./Test.cmd x86      # also accepts: x32, arm, amd64, arm64
+
+# Run with a test filter:
+./Test.cmd x64 --filter TypeTests
+./Test.cmd x86 --filter "FullyQualifiedName~HeapTests.ServerNoCorruption"
+
+# Or use dotnet directly (runs in current process architecture):
 dotnet test src/Microsoft.Diagnostics.Runtime.Tests/Microsoft.Diagnostics.Runtime.Tests.csproj
-
-# Run a single test:
-dotnet test src/Microsoft.Diagnostics.Runtime.Tests --filter "FullyQualifiedName~TypeTests.GetObjectMethodTableTest"
-
-# Run a test class:
 dotnet test src/Microsoft.Diagnostics.Runtime.Tests --filter ClassName=Microsoft.Diagnostics.Runtime.Tests.TypeTests
 ```
 
-**Test prerequisites:** Tests require pre-generated crash dump files. Build test targets first:
-```bash
-dotnet build src/TestTasks/TestTasks.csproj
-dotnet msbuild src/TestTargets/TestTargets.proj
-```
-Some dumps are pre-committed in `test_artifacts/`. Many tests will fail without the full set of generated dumps.
+**Important:** ClrMD loads architecture-specific native components (DAC), so the test host must match the dump architecture. Use `--arch x86` to test 32-bit dumps and `--arch x64` for 64-bit. The `Test.cmd`/`test.sh` scripts handle this automatically.
+
+**Dump generation:** Tests generate crash dumps lazily on first run — no manual pre-build step needed. `DumpGenerator.cs` in the test project builds test targets for the required architecture and captures dumps automatically:
+- **.NET Core targets:** Built with `dotnet build`, dumps captured via `DOTNET_DbgEnableMiniDump` environment variables
+- **.NET Framework 4.8 targets (Windows):** Built with `dotnet build -f net48`, dumps captured via DbgEng
+
+Dumps are cached in `src/TestTargets/bin/{x86|x64}/` and reused across test runs. Delete the `bin/` directory to force regeneration.
 
 ## Architecture
 
@@ -71,11 +71,10 @@ Platform-specific code lives in `src/Microsoft.Diagnostics.Runtime/src/{Windows,
 
 ### Projects
 
-- **Microsoft.Diagnostics.Runtime** — Core library. Multi-targets `netstandard2.0` + `net8.0`.
-- **Microsoft.Diagnostics.Runtime.Utilities** — DbgEng COM wrappers. Targets `net8.0`.
-- **Microsoft.Diagnostics.Runtime.Tests** — xUnit tests. Targets `net8.0`.
-- **TestTasks** — Custom MSBuild task that generates crash dumps from test target executables.
-- **TestTargets** — MSBuild project (`.proj`, not `.csproj`) that compiles small test programs and creates dumps from them.
+- **Microsoft.Diagnostics.Runtime** — Core library. Multi-targets `netstandard2.0` + `net10.0`.
+- **Microsoft.Diagnostics.Runtime.Utilities** — DbgEng COM wrappers. Targets `net10.0`.
+- **Microsoft.Diagnostics.Runtime.Tests** — xUnit tests. Targets `net10.0`. Includes `DumpGenerator.cs` for lazy dump creation and `TestTargets.cs` for loading dumps.
+- **TestTargets** (solution folder, not built by default) — Small test programs that crash with unhandled exceptions to produce dumps. Multi-targeted `net10.0;net48`. Each target has its own `.csproj` and references `SharedLibrary`.
 
 ## Conventions
 
@@ -93,14 +92,17 @@ Platform-specific code lives in `src/Microsoft.Diagnostics.Runtime/src/{Windows,
 
 ### Test patterns
 - Tests use **xUnit** with `AutoFixture`. Test parallelization is **disabled** globally.
-- Platform-specific tests use `[WindowsFact]`, `[LinuxFact]`, or `[CoreFact]` attributes instead of `[Fact]`.
-- Test targets are loaded via the `TestTargets` static class:
+- Platform-specific tests use `[WindowsFact]`, `[LinuxFact]`, `[FrameworkFact]`, or `[CoreFact]` attributes instead of `[Fact]`.
+  - `[FrameworkFact]` — Only runs on Windows (tests .NET Framework 4.8 dumps, e.g., AppDomains)
+  - `[WindowsFact]` — Only runs on Windows (tests Windows-specific features)
+- Test targets are loaded via the `TestTargets` static class. Dumps are generated lazily on first access:
   ```csharp
   using DataTarget dt = TestTargets.Types.LoadFullDump();
   using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
   ```
 - Fixture-based tests use `IClassFixture<ObjectConnection<T>>` to share a loaded dump across tests in a class.
-- Dump file naming: `{TargetName}_{wks|svr}[_mini].dmp`
+- Dump file naming: `{TargetName}_{wks|svr}[_mini][_net48].dmp` (in `src/TestTargets/bin/{arch}/`)
+- Pre-committed cross-platform test dumps live in `.test_artifacts/`.
 
 ### IDisposable
 - `DataTarget` and `ClrRuntime` must be disposed. Check `_disposed` and throw `ObjectDisposedException` on use-after-dispose.

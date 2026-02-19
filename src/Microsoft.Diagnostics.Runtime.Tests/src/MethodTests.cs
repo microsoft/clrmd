@@ -143,7 +143,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(".ctor", ctor.Name);
         }
 
-        [WindowsFact]
+        [FrameworkFact]
         public void AssemblySize()
         {
             using DataTarget dt = TestTargets.AppDomains.LoadFullDump();

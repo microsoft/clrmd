@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private static readonly Lazy<TestTarget> _nestedTypes = new(() => new TestTarget("NestedTypes"));
         private static readonly Lazy<TestTarget> _gcHandles = new(() => new TestTarget("GCHandles"));
         private static readonly Lazy<TestTarget> _types = new(() => new TestTarget("Types"));
-        private static readonly Lazy<TestTarget> _appDomains = new(() => new TestTarget("AppDomains"));
+        private static readonly Lazy<TestTarget> _appDomains = new(() => new TestTarget("AppDomains", frameworkOnly: true));
         private static readonly Lazy<TestTarget> _finalizationQueue = new(() => new TestTarget("FinalizationQueue"));
         private static readonly Lazy<TestTarget> _byReference = new(() => new TestTarget("ByReference"));
 
@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             string curr = Environment.CurrentDirectory;
             while (curr != null)
             {
-                string artifacts = Path.Combine(curr, "test_artifacts");
+                string artifacts = Path.Combine(curr, ".test_artifacts");
                 if (Directory.Exists(artifacts))
                     return artifacts;
 
@@ -68,19 +68,22 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
     public class TestTarget
     {
-        public string Executable { get; }
-
-        public string Pdb { get; }
-
         public string Source { get; }
 
-        private static string Architecture { get; }
+        /// <summary>
+        /// The name of this test target (e.g. "Types", "Arrays").
+        /// </summary>
+        public string Name { get; }
+
+        /// <summary>
+        /// Whether this target only supports .NET Framework (e.g. AppDomains).
+        /// </summary>
+        public bool FrameworkOnly { get; }
+
         private static string TestRoot { get; }
 
         static TestTarget()
         {
-            Architecture = IntPtr.Size == 4 ? "x86" : "x64";
-
             DirectoryInfo info = new(Environment.CurrentDirectory);
             while (info.GetFiles(".gitignore").Length != 1)
                 info = info.Parent;
@@ -88,20 +91,63 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             TestRoot = Path.Combine(info.FullName, "src", "TestTargets");
         }
 
-        public TestTarget(string name)
+        public TestTarget(string name, bool frameworkOnly = false)
         {
+            Name = name;
+            FrameworkOnly = frameworkOnly;
+
             Source = Path.Combine(TestRoot, name, name + ".cs");
             if (!File.Exists(Source))
                 throw new FileNotFoundException($"Could not find source file: {name}.cs");
+        }
 
-            Executable = Path.Combine(TestRoot, "bin", Architecture, name + (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : null));
-            Pdb = Path.ChangeExtension(Executable, ".pdb");
+        /// <summary>
+        /// Gets the directory containing the test target's project file.
+        /// </summary>
+        private string ProjectDir => Path.Combine(TestRoot, Name);
 
-            if (!File.Exists(Executable) || !File.Exists(Pdb))
-            {
-                string buildTestAssets = Path.Combine(TestRoot, "TestTargets.csproj");
-                throw new InvalidOperationException($"You must first generate test binaries and crash dumps using by running: dotnet build {buildTestAssets}");
-            }
+        /// <summary>
+        /// Gets the output directory for built targets of a given architecture.
+        /// </summary>
+        private static string GetOutputDir(string architecture) => Path.Combine(TestRoot, "bin", architecture);
+
+        /// <summary>
+        /// Gets the path to the executable for a given architecture and framework.
+        /// </summary>
+        public string GetExecutable(string architecture, bool isFramework)
+        {
+            string dir = GetOutputDir(architecture);
+            return Path.Combine(dir, RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? Name + ".exe" : Name);
+        }
+
+        /// <summary>
+        /// Gets the PDB path for a given architecture.
+        /// </summary>
+        public string GetPdb(string architecture)
+        {
+            string dir = GetOutputDir(architecture);
+            return Path.Combine(dir, Name + ".pdb");
+        }
+
+        /// <summary>
+        /// Legacy properties for backward compatibility.
+        /// </summary>
+        public string Executable => GetExecutable(DumpGenerator.GetArchitecture(), FrameworkOnly);
+        public string Pdb => GetPdb(DumpGenerator.GetArchitecture());
+
+        /// <summary>
+        /// Builds the dump file name for a given configuration.
+        /// </summary>
+        public string BuildDumpName(GCMode gcmode, bool full, string architecture = null, bool? isFramework = null)
+        {
+            architecture ??= DumpGenerator.GetArchitecture();
+            bool framework = isFramework ?? FrameworkOnly;
+
+            string dir = GetOutputDir(architecture);
+            string gc = gcmode == GCMode.Server ? "svr" : "wks";
+            string dumpType = full ? string.Empty : "_mini";
+            string fwSuffix = framework ? "_net48" : string.Empty;
+            return Path.Combine(dir, $"{Name}_{gc}{dumpType}{fwSuffix}.dmp");
         }
 
         private static DataTarget LoadDump(string path)
@@ -119,23 +165,42 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        public string BuildDumpName(GCMode gcmode, bool full)
-        {
-            string fileName = Path.Combine(Path.GetDirectoryName(Executable), Path.GetFileNameWithoutExtension(Executable));
+        /// <summary>
+        /// Loads a full dump, generating it on-demand if it doesn't exist.
+        /// </summary>
+        public DataTarget LoadFullDump(GCMode gc = GCMode.Workstation) => LoadFullDump(gc, DumpGenerator.GetArchitecture());
 
-            string gc = gcmode == GCMode.Server ? "svr" : "wks";
-            string dumpType = full ? string.Empty : "_mini";
-            fileName = $"{fileName}_{gc}{dumpType}.dmp";
-            return fileName;
+        public DataTarget LoadFullDump(GCMode gc, string architecture, bool? isFramework = null)
+        {
+            bool framework = isFramework ?? FrameworkOnly;
+            string dumpPath = BuildDumpName(gc, full: true, architecture: architecture, isFramework: framework);
+
+            DumpGenerator.EnsureDump(Name, ProjectDir, dumpPath, architecture, framework, gc, full: true);
+            return LoadDump(dumpPath);
         }
 
-        public DataTarget LoadMinidump(GCMode gc = GCMode.Workstation) => LoadDump(BuildDumpName(gc, false));
+        /// <summary>
+        /// Loads a mini dump, generating it on-demand if it doesn't exist.
+        /// </summary>
+        public DataTarget LoadMinidump(GCMode gc = GCMode.Workstation) => LoadMinidump(gc, DumpGenerator.GetArchitecture());
 
-        public DataTarget LoadFullDump(GCMode gc = GCMode.Workstation) => LoadDump(BuildDumpName(gc, true));
+        public DataTarget LoadMinidump(GCMode gc, string architecture, bool? isFramework = null)
+        {
+            bool framework = isFramework ?? FrameworkOnly;
+            string dumpPath = BuildDumpName(gc, full: false, architecture: architecture, isFramework: framework);
+
+            DumpGenerator.EnsureDump(Name, ProjectDir, dumpPath, architecture, framework, gc, full: false);
+            return LoadDump(dumpPath);
+        }
 
         public DataTarget LoadFullDumpWithDbgEng(GCMode gc = GCMode.Workstation)
         {
-            string dumpPath = BuildDumpName(gc, true);
+            string architecture = DumpGenerator.GetArchitecture();
+            bool framework = FrameworkOnly;
+            string dumpPath = BuildDumpName(gc, full: true, architecture: architecture, isFramework: framework);
+
+            DumpGenerator.EnsureDump(Name, ProjectDir, dumpPath, architecture, framework, gc, full: true);
+
             Utilities.DbgEng.DbgEngIDataReader dbgengReader = new(dumpPath);
             return new DataTarget(new CustomDataTarget(dbgengReader, null));
         }
