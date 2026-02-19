@@ -39,10 +39,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void EnumerateOSThreadIdsTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void EnumerateOSThreadIdsTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             IThreadReader threadReader = (IThreadReader)dt.DataReader;
@@ -58,10 +60,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.Contains(threadId, threads);
         }
 
-        [Fact]
-        public void EnsureOSThreadOrdering()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void EnsureOSThreadOrdering(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             IThreadReader threadReader = (IThreadReader)dt.DataReader;

@@ -9,10 +9,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class FinalizationQueueTests
     {
-        [Fact]
-        public void TestAllFinalizableObjects()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TestAllFinalizableObjects(bool singleFile)
         {
-            using DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump();
+            using DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             Stats stats = GetStats(runtime.Heap.EnumerateFinalizableObjects());
 
@@ -21,10 +23,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(25, stats.C);
         }
 
-        [Fact]
-        public void TestFinalizerQueueObjects()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TestFinalizerQueueObjects(bool singleFile)
         {
-            using DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump();
+            using DataTarget dt = TestTargets.FinalizationQueue.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             Stats stats = GetStats(runtime.Heap.EnumerateFinalizerRoots().Select(r => r.Object));
 

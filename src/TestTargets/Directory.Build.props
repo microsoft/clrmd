@@ -7,8 +7,9 @@
     <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net10.0;net48</TargetFrameworks>
     <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">net10.0</TargetFrameworks>
 
-    <!-- Test targets are not packable or publishable -->
+    <!-- Test targets are not packable -->
     <IsPackable>false</IsPackable>
+    <!-- Allow publishing for single-file (overridden by dotnet publish -p:IsPublishable=true) -->
     <IsPublishable>false</IsPublishable>
   </PropertyGroup>
 

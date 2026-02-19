@@ -8,11 +8,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class HeapTests
     {
-        [Fact]
-        public void HeapEnumeration()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void HeapEnumeration(bool singleFile)
         {
             // Simply test that we can enumerate the heap.
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -39,11 +41,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.True(encounteredFoo);
         }
 
-        [Fact]
-        public void AllocationContextLocation()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void AllocationContextLocation(bool singleFile)
         {
             // Simply test that we can enumerate the heap.
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -63,11 +67,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void SegmentEnumeration()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void SegmentEnumeration(bool singleFile)
         {
             // Simply test that we can enumerate the heap.
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -88,10 +94,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(objs.Length, index);
         }
 
-        [Fact]
-        public void NextObject()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void NextObject(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -118,10 +126,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void PrevObject()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void PrevObject(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -144,10 +154,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
 
-        [Fact]
-        public void EnumerateRange()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void EnumerateRange(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -184,11 +196,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void HeapEnumerationWhileClearingCache()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void HeapEnumerationWhileClearingCache(bool singleFile)
         {
             // Simply test that we can enumerate the heap.
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
             ClrObject[] objects = heap.EnumerateObjects().ToArray();
@@ -207,10 +221,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void ServerSegmentTests()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ServerSegmentTests(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(GCMode.Server);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile, GCMode.Server);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -219,10 +235,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             CheckSegments(heap);
         }
 
-        [Fact]
-        public void WorkstationSegmentTests()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void WorkstationSegmentTests(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(GCMode.Workstation);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile, GCMode.Workstation);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -291,10 +309,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void MarkerCreation()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void MarkerCreation(bool singleFile)
         {
-            using DataTarget dt = TestTargets.GCRoot.LoadFullDump(GCMode.Workstation);
+            using DataTarget dt = TestTargets.GCRoot.LoadFullDump(singleFile, GCMode.Workstation);
             using ClrRuntime rt = dt.ClrVersions.Single().CreateRuntime();
 
             foreach (ClrSegment seg in rt.Heap.Segments)

@@ -8,12 +8,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class StackTest
     {
-        [Fact]
-        public void StackTraceTests()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void StackTraceTests(bool singleFile)
         {
             string[] frames = new string[] { "Inner", "Inner", "Middle", "Outer", "Main" };
 
-            using DataTarget dt = TestTargets.NestedException.LoadFullDump();
+            using DataTarget dt = TestTargets.NestedException.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrStackFrame[] items = runtime.GetMainThread().EnumerateStackTrace().Where(f => f.Kind == ClrStackFrameKind.ManagedMethod).ToArray();

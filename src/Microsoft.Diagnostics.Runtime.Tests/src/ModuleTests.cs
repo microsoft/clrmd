@@ -40,13 +40,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.True(found, "Did not find any modules with non-null GetFileVersionInfo to compare");
         }
 
-        [Fact]
-        public void NoDuplicateModules()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void NoDuplicateModules(bool singleFile)
         {
             // Modules should have a unique .Address.
             // https://github.com/microsoft/clrmd/issues/440
 
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             HashSet<ulong> seen = new() { 0 };
@@ -58,10 +60,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void TestGetTypeByName()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TestGetTypeByName(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -74,10 +78,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Null(types.GetTypeByName("Foo"));
         }
 
-        [Fact]
-        public void ModuleEqualityTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ModuleEqualityTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrModule[] oldModules = runtime.EnumerateModules().ToArray();
@@ -95,10 +101,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void TestModulesNames()
+        [Theory]
+        [InlineData(false)]
+        // Single-file: module files are bundled inside the executable; File.Exists() returns false.
+        public void TestModulesNames(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             foreach (ClrModule module in runtime.EnumerateModules())
@@ -108,10 +116,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [CoreFact]
-        public void TestModuleSize()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TestModuleSize(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             foreach (ClrModule module in runtime.EnumerateModules())
@@ -120,10 +130,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void TestTypeMapRoundTrip()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TestTypeMapRoundTrip(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             int badTypes = 0;
@@ -152,6 +164,63 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
 
             Assert.True(badTypes <= 1);
+        }
+
+        /// <summary>
+        /// For single-file apps, module files are bundled inside the executable and
+        /// don't exist on disk. Verify that module properties are still meaningful.
+        /// </summary>
+        [Fact]
+        public void SingleFileModuleProperties()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile: true);
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule[] modules = runtime.EnumerateModules().ToArray();
+            Assert.NotEmpty(modules);
+
+            foreach (ClrModule module in modules)
+            {
+                // Every module should have a non-null, non-empty name
+                Assert.False(string.IsNullOrEmpty(module.Name), "Module.Name should not be null/empty");
+
+                // Address should be valid
+                Assert.NotEqual(0ul, module.Address);
+
+                // Non-dynamic modules should have a valid ImageBase and Size
+                if (!module.IsDynamic)
+                {
+                    Assert.True(module.Size > 0, $"Module {module.Name} should have Size > 0");
+                    Assert.True(module.IsPEFile, $"Module {module.Name} should be a PE file");
+                }
+
+                // Metadata should be accessible
+                Assert.NotEqual(0ul, module.MetadataAddress);
+                Assert.True(module.MetadataLength > 0, $"Module {module.Name} should have MetadataLength > 0");
+            }
+        }
+
+        /// <summary>
+        /// Verify that module names for single-file apps point to bundled assemblies
+        /// (i.e. they are non-null but the files don't exist on disk).
+        /// </summary>
+        [Fact]
+        public void SingleFileModuleNamesAreBundled()
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile: true);
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            bool foundBundled = false;
+            foreach (ClrModule module in runtime.EnumerateModules())
+            {
+                Assert.False(string.IsNullOrEmpty(module.Name));
+
+                // At least some modules should NOT exist on disk (they're bundled)
+                if (!File.Exists(module.Name))
+                    foundBundled = true;
+            }
+
+            Assert.True(foundBundled, "Expected at least one module to be bundled (not on disk) in a single-file app");
         }
     }
 }

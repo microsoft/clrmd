@@ -66,10 +66,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void EnsureFlushClearsData()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void EnsureFlushClearsData(bool singleFile)
         {
-            using DataTarget dt = TestTargets.NestedException.LoadFullDump();
+            using DataTarget dt = TestTargets.NestedException.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrAppDomain oldShared = runtime.SharedDomain;

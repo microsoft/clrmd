@@ -9,12 +9,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class GCHandleTests
     {
-        [Fact]
-        public void EnsureEnumerationStability()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void EnsureEnumerationStability(bool singleFile)
         {
             // I made some changes to v4.5 handle enumeration to enumerate handles out faster.
             // This test makes sure I have a stable enumeration.
-            using DataTarget dt = TestTargets.GCHandles.LoadFullDump();
+            using DataTarget dt = TestTargets.GCHandles.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             List<ClrHandle> handles = new(runtime.EnumerateHandles());
@@ -33,13 +35,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.True(handles.Count > 4);
         }
 
-        [Fact]
-        public void EnsureAllItemsAreUnique()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void EnsureAllItemsAreUnique(bool singleFile)
         {
             // Making sure that handles are returned only once
             HashSet<ClrHandle> handles = new();
 
-            using DataTarget dt = TestTargets.GCHandles.LoadFullDump();
+            using DataTarget dt = TestTargets.GCHandles.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             foreach (ClrHandle handle in runtime.EnumerateHandles())

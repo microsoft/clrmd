@@ -46,11 +46,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void MethodHandleSingleDomainTests()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void MethodHandleSingleDomainTests(bool singleFile)
         {
             ulong methodDesc;
-            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            using (DataTarget dt = TestTargets.Types.LoadFullDump(singleFile))
             {
                 using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
@@ -62,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.NotEqual(0ul, methodDesc);
             }
 
-            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            using (DataTarget dt = TestTargets.Types.LoadFullDump(singleFile))
             {
                 using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
                 ClrMethod method = runtime.GetMethodByHandle(methodDesc);
@@ -72,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.Equal("Types", method.Type.Name);
             }
 
-            using (DataTarget dt = TestTargets.Types.LoadFullDump())
+            using (DataTarget dt = TestTargets.Types.LoadFullDump(singleFile))
             {
                 using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
@@ -101,10 +103,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(')', methodName.Last());
         }
 
-        [Fact]
-        public void ExplicitInterfaceMethodNameTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ExplicitInterfaceMethodNameTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrModule module = runtime.GetModule("types.dll");
@@ -115,10 +119,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal("IExplicitTest.ExplicitMethod", method.Name);
         }
 
-        [Fact]
-        public void RegularMethodNameIsUnchanged()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void RegularMethodNameIsUnchanged(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrModule module = runtime.GetModule("types.dll");

@@ -10,10 +10,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class MemoryReaderTests
     {
-        [Fact]
-        public void SearchMemoryTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void SearchMemoryTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 

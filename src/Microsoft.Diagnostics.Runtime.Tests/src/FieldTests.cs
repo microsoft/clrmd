@@ -10,10 +10,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class FieldTests
     {
-        [Fact]
-        public void TestInstanceFieldModifiers()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TestInstanceFieldModifiers(bool singleFile)
         {
-            using DataTarget dt = TestTargets.NestedTypes.LoadFullDump();
+            using DataTarget dt = TestTargets.NestedTypes.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrModule module = runtime.GetModule(TypeTests.NestedTypesModuleName);
@@ -32,10 +34,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.True((protectedField.Attributes & FieldAttributes.FieldAccessMask) == FieldAttributes.Family);
         }
 
-        [Fact]
-        public void TestStaticFieldModifiers()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TestStaticFieldModifiers(bool singleFile)
         {
-            using DataTarget dt = TestTargets.NestedTypes.LoadFullDump();
+            using DataTarget dt = TestTargets.NestedTypes.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrModule module = runtime.GetModule(TypeTests.NestedTypesModuleName);
@@ -54,10 +58,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.True((protectedField.Attributes & FieldAttributes.FieldAccessMask) == FieldAttributes.Family);
         }
 
-        [Fact]
-        public void InstanceFieldProperties()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void InstanceFieldProperties(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
