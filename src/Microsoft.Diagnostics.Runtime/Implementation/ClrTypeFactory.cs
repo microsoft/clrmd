@@ -152,7 +152,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
-        public ClrType? GetOrCreateTypeFromSignature(ClrModule module, SigParser parser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters)
+        public ClrType? GetOrCreateTypeFromSignature(ClrModule module, SigParser parser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters, IReadOnlyList<ClrType?>? concreteTypeArgs = null)
         {
             // ECMA 335 - II.23.2.12 - Type
 
@@ -164,7 +164,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             if (etype == ClrElementType.Array)
             {
-                ClrType? innerType = GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters);
+                ClrType? innerType = GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters, concreteTypeArgs);
                 innerType ??= GetOrCreateBasicType(ClrElementType.Void);  // Need a placeholder if we can't determine type
 
                 // II.23.2.13
@@ -222,9 +222,33 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (!parser.GetData(out int count))
                     return null;
 
-                // Even though we don't make use of these types we need to move past them in the parser.
+                // Resolve the type arguments, saving them if we have concrete type args to substitute.
+                ClrType?[]? resolvedArgs = concreteTypeArgs != null ? new ClrType?[count] : null;
                 for (int i = 0; i < count; i++)
-                    GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters);
+                {
+                    ClrType? argType = GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters, concreteTypeArgs);
+                    if (resolvedArgs != null)
+                        resolvedArgs[i] = argType;
+                }
+
+                // If we have concrete resolved args, try to find the concrete generic instantiation
+                // by constructing its name and looking it up in loaded types.
+                if (resolvedArgs != null && Array.TrueForAll(resolvedArgs, t => t != null && t is not ClrGenericType))
+                {
+                    ClrType? openType = GetOrCreateTypeFromToken(module, token);
+                    if (openType?.Name != null)
+                    {
+                        string baseName = openType.Name;
+                        int angleIndex = baseName.IndexOf('<');
+                        if (angleIndex > 0)
+                            baseName = baseName.Substring(0, angleIndex);
+
+                        string concreteName = baseName + "<" + string.Join(", ", resolvedArgs.Select(t => t!.Name)) + ">";
+                        ClrType? concreteResult = _heap.GetTypeByName(concreteName);
+                        if (concreteResult != null)
+                            return concreteResult;
+                    }
+                }
 
                 ClrType? result = GetOrCreateTypeFromToken(module, token);
                 return result;
@@ -234,6 +258,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 if (!parser.GetData(out int index))
                     return null;
+
+                // If we have concrete type arguments (from a generic instantiation like
+                // LinkedListNode<string>), use them to resolve the type variable to the
+                // actual concrete type (e.g., Var(0) -> string).
+                if (etype == ClrElementType.Var && concreteTypeArgs != null && index >= 0 && index < concreteTypeArgs.Count)
+                {
+                    ClrType? concreteType = concreteTypeArgs[index];
+                    if (concreteType != null)
+                        return concreteType;
+                }
 
                 ClrGenericParameter[] param = (etype == ClrElementType.Var ? typeParameters : methodParameters).ToArray();
                 if (index < 0 || index >= param.Length)
@@ -247,7 +281,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (!parser.SkipCustomModifiers())
                     return null;
 
-                ClrType? innerType = GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters) ?? GetOrCreateBasicType(ClrElementType.Void);
+                ClrType? innerType = GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters, concreteTypeArgs) ?? GetOrCreateBasicType(ClrElementType.Void);
                 return GetOrCreatePointerType(innerType, 1);
             }
 
@@ -256,7 +290,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (!parser.SkipCustomModifiers())
                     return null;
 
-                ClrType? innerType = GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters) ?? GetOrCreateBasicType(ClrElementType.Void);
+                ClrType? innerType = GetOrCreateTypeFromSignature(module, parser, typeParameters, methodParameters, concreteTypeArgs) ?? GetOrCreateBasicType(ClrElementType.Void);
                 return GetOrCreateArrayType(innerType, 1);
             }
 

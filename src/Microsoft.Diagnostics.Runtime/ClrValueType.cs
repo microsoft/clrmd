@@ -267,7 +267,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (field.ElementType != ClrElementType.String)
                 return false;
 
-            ulong addr = field.GetAddress(Address);
+            ulong addr = field.GetAddress(Address, _interior);
             if (!DataReader.ReadPointer(addr, out ulong strPtr))
                 return false;
 

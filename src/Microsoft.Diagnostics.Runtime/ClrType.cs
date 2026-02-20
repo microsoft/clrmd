@@ -122,6 +122,75 @@ namespace Microsoft.Diagnostics.Runtime
         public virtual IEnumerable<ClrGenericParameter> EnumerateGenericParameters() => Array.Empty<ClrGenericParameter>();
 
         /// <summary>
+        /// Returns the concrete generic type arguments for this type if it is a generic instantiation.
+        /// For example, for <c>Dictionary&lt;string, int&gt;</c>, this returns [ClrType for string, ClrType for int].
+        /// Returns null if the type is not a generic instantiation or if type arguments cannot be resolved.
+        /// </summary>
+        internal IReadOnlyList<ClrType?>? GetConcreteGenericTypeArguments()
+        {
+            string? name = Name;
+            if (name is null)
+                return null;
+
+            List<string>? argNames = ParseGenericTypeArgumentNames(name);
+            if (argNames is null || argNames.Count == 0)
+                return null;
+
+            ClrType?[] result = new ClrType?[argNames.Count];
+            ClrHeap heap = Heap;
+            for (int i = 0; i < argNames.Count; i++)
+                result[i] = heap.GetTypeByName(argNames[i]);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Parses the top-level generic type argument names from a type name.
+        /// Handles nested generics by tracking angle bracket depth.
+        /// </summary>
+        private static List<string>? ParseGenericTypeArgumentNames(string typeName)
+        {
+            int firstAngle = typeName.IndexOf('<');
+            if (firstAngle < 0)
+                return null;
+
+            List<string> args = new();
+            int depth = 0;
+            int argStart = firstAngle + 1;
+
+            for (int i = firstAngle; i < typeName.Length; i++)
+            {
+                char c = typeName[i];
+                if (c == '<')
+                {
+                    depth++;
+                    if (depth == 1)
+                        argStart = i + 1;
+                }
+                else if (c == '>')
+                {
+                    if (depth == 1)
+                    {
+                        string arg = typeName.Substring(argStart, i - argStart).Trim();
+                        if (arg.Length > 0)
+                            args.Add(arg);
+                        break;
+                    }
+                    depth--;
+                }
+                else if (c == ',' && depth == 1)
+                {
+                    string arg = typeName.Substring(argStart, i - argStart).Trim();
+                    if (arg.Length > 0)
+                        args.Add(arg);
+                    argStart = i + 1;
+                }
+            }
+
+            return args.Count > 0 ? args : null;
+        }
+
+        /// <summary>
         /// Returns the list of interfaces this type implements.
         /// </summary>
         public IEnumerable<ClrInterface> EnumerateInterfaces()
@@ -259,6 +328,14 @@ namespace Microsoft.Diagnostics.Runtime
                     continue;
 
                 ClrType? type = heap.GetTypeByMethodTable(field.MethodTable);
+
+                // Don't expose System.__Canon as a field type.  It's the canonical
+                // method table used for shared generic instantiations of reference types.
+                // Setting it to null triggers the metadata signature fallback in ClrField
+                // which can resolve the concrete type from the parent's generic arguments.
+                if (type?.Name != null && type.Name.Contains("__Canon"))
+                    type = null;
+
                 if (field.Kind == FieldKind.Static)
                     staticFieldsBuilder.Add(new ClrStaticField(this, type, Helpers, field));
                 else if (field.Kind == FieldKind.Instance)

@@ -1139,9 +1139,9 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        internal ClrType? GetOrCreateTypeFromSignature(ClrModule module, SigParser sigParser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters)
+        internal ClrType? GetOrCreateTypeFromSignature(ClrModule module, SigParser sigParser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters, IReadOnlyList<ClrType?>? concreteTypeArgs = null)
         {
-            return _typeFactory.GetOrCreateTypeFromSignature(module, sigParser, typeParameters, methodParameters);
+            return _typeFactory.GetOrCreateTypeFromSignature(module, sigParser, typeParameters, methodParameters, concreteTypeArgs);
         }
         public ClrType? GetTypeByMethodTable(ulong methodTable) => _typeFactory.GetOrCreateType(methodTable, 0);
 
