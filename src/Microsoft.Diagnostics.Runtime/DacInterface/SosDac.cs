@@ -427,7 +427,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public string? GetAppDomainName(ulong appDomain)
         {
             if (appDomain == 0)
+            {
                 return null;
+            }
 
             return GetString(VTable.GetAppDomainName, appDomain);
         }
