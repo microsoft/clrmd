@@ -25,6 +25,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private const int ImageDataDirectoryCount = 15;
         private const int OptionalMagic32 = 0x010b;
 
+        // Upper bounds for untrusted header values to prevent OOM and excessive processing.
+        private const int MaxSections = 10_000;
+        private const int MaxRelocations = 10_000_000;
+        private const int MaxExportNames = 1_000_000;
+        private const int MaxDebugDirectories = 10_000;
+
         private int HeaderOffset => _peHeaderOffset + sizeof(uint);
         private int OptionalHeaderOffset => HeaderOffset + sizeof(ImageFileHeader);
         internal int SpecificHeaderOffset => OptionalHeaderOffset + sizeof(ImageOptionalHeader);
@@ -107,6 +113,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             // Read image_file_header
             ImageFileHeader header = Read<ImageFileHeader>(HeaderOffset);
             _sectionCount = header.NumberOfSections;
+            if (_sectionCount > MaxSections)
+                throw new InvalidDataException($"PE image reports {_sectionCount} sections, which exceeds the maximum of {MaxSections}.");
+
             IndexTimeStamp = header.TimeDateStamp;
 
             if (TryRead(OptionalHeaderOffset, out ImageOptionalHeader optional))
@@ -137,6 +146,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             while (readingCursor < readingLimit)
             {
                 ImageRelocation relocation = Read<ImageRelocation>(ref readingCursor);
+
+                // Ensure forward progress: blockSize must advance past the header.
+                if (relocation.blockSize < Unsafe.SizeOf<ImageRelocation>())
+                    break;
 
                 int numRelocationsInBlock = (relocation.blockSize - Unsafe.SizeOf<ImageRelocation>()) / Unsafe.SizeOf<ushort>();
 
@@ -171,6 +184,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     {
                         // TODO: Implementation if this happens.
                     }
+
+                    if (relocations.Count > MaxRelocations)
+                        throw new InvalidDataException($"PE image contains more than {MaxRelocations} relocations.");
                 }
 
                 if (readingCursor % 4 != 0)
@@ -572,7 +588,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     if (TryRead(RvaToOffset(exportTableDirectory.VirtualAddress), out ImageExportDirectory exportDirectory))
                     {
-                        for (int nameIndex = 0; nameIndex < exportDirectory.NumberOfNames; nameIndex++)
+                        int numberOfNames = exportDirectory.NumberOfNames;
+                        if (numberOfNames > MaxExportNames)
+                            throw new InvalidDataException($"PE image reports {numberOfNames} export names, which exceeds the maximum of {MaxExportNames}.");
+
+                        for (int nameIndex = 0; nameIndex < numberOfNames; nameIndex++)
                         {
                             int namePointerRVA = Read<int>(RvaToOffset(exportDirectory.AddressOfNames + (sizeof(uint) * nameIndex)));
                             if (namePointerRVA != 0)
@@ -722,6 +742,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 if (debugDirectory.VirtualAddress != 0 && debugDirectory.Size != 0)
                 {
                     int count = debugDirectory.Size / sizeof(ImageDebugDirectory);
+                    if (count > MaxDebugDirectories)
+                        throw new InvalidDataException($"PE image reports {count} debug directories, which exceeds the maximum of {MaxDebugDirectories}.");
+
                     int offset = RvaToOffset(debugDirectory.VirtualAddress);
                     if (offset == -1)
                         return ImmutableArray<PdbInfo>.Empty;
