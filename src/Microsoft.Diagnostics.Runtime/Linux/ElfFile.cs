@@ -12,6 +12,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     internal sealed class ElfFile : IDisposable
     {
+        // Upper bounds for untrusted header values to prevent OOM and excessive processing.
+        private const int MaxProgramHeaders = 10_000;
+
         private readonly ulong _position;
         private readonly bool _virtual;
         private readonly Stream? _stream;
@@ -242,6 +245,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                         ElfNote note = new(reader, position);
                         notes.Add(note);
 
+                        // Ensure forward progress to prevent infinite loops on corrupt data.
+                        if (note.TotalSize == 0)
+                            break;
+
                         position += note.TotalSize;
                     }
                 }
@@ -254,6 +261,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (!_programHeaders.IsDefault)
                 return;
+
+            if (Header.ProgramHeaderCount > MaxProgramHeaders)
+                throw new InvalidDataException($"ELF file '{Reader.DataSource.Name ?? "unknown"}' reports {Header.ProgramHeaderCount} program headers, which exceeds the maximum of {MaxProgramHeaders}.");
 
             // Calculate the loadBias. It is usually just the base address except for some executable modules.
             long loadBias = (long)_position;
