@@ -24,6 +24,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult GetAssemblyLoadContext(ClrDataAddress methodTable, out ClrDataAddress assemblyLoadContext)
         {
+            if (methodTable == 0)
+            {
+                assemblyLoadContext = 0;
+                return HResult.E_INVALIDARG;
+            }
+
             return VTable.GetAssemblyLoadContext(Self, methodTable, out assemblyLoadContext);
         }
 
