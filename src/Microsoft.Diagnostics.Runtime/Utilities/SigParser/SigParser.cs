@@ -479,7 +479,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                         // Skip the parameters
                         while (argCnt-- != 0)
-                            SkipExactlyOne();
+                            if (!SkipExactlyOne())
+                                return false;
                         break;
                 }
             }

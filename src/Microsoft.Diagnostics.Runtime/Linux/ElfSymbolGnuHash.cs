@@ -70,14 +70,20 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public int[] Buckets { get; }
 
+        // Cap chain walks to prevent infinite loops on corrupted data.
+        private const int MaxChainLength = 100_000;
+
         public IEnumerable<int> GetPossibleSymbolIndex(string symbolName)
         {
             // This implementation completely ignores the bloom filter. The results should still be correct, but may
             // be slower to determine that a missing symbol isn't in the table.
             uint hash = Hash(symbolName);
             int i = Buckets[hash % BucketCount] - SymbolOffset;
-            for (; ; i++)
+            for (int iter = 0; ; i++, iter++)
             {
+                if (iter >= MaxChainLength)
+                    yield break;
+
                 int chainVal = GetChain(i);
                 if ((chainVal & 0xfffffffe) == (hash & 0xfffffffe))
                 {
