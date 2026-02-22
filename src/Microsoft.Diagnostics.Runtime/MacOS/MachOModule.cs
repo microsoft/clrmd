@@ -12,6 +12,10 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 {
     internal sealed unsafe class MachOModule
     {
+        // Upper bounds for untrusted header values to prevent OOM and excessive processing.
+        private const int MaxLoadCommands = 10_000;
+        private const int MaxSymbols = 10_000_000;
+
         public MachOCoreDump? Parent { get; }
 
         public ulong BaseAddress { get; }
@@ -50,6 +54,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             if (header.Magic != MachHeader64.Magic64)
                 throw new InvalidDataException($"Module at {address:x} does not contain the expected Mach-O header.");
 
+            if (header.NumberCommands > MaxLoadCommands)
+                throw new InvalidDataException($"Mach-O module at {address:x} reports {header.NumberCommands} load commands, which exceeds the maximum of {MaxLoadCommands}.");
+
             // Since MachO segments are not contiguous the image size is just the headers/commands
             ImageSize = MachHeader64.Size + _header.SizeOfCommands;
 
@@ -60,6 +67,10 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             {
                 ulong cmdAddress = BaseAddress + offset;
                 LoadCommandHeader cmd = DataReader.Read<LoadCommandHeader>(cmdAddress);
+
+                // Ensure forward progress: each load command must be at least header-sized.
+                if (cmd.Size < sizeof(LoadCommandHeader))
+                    throw new InvalidDataException($"Mach-O module at {address:x} contains a load command with invalid size {cmd.Size}.");
 
                 switch (cmd.Kind)
                 {
@@ -183,6 +194,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 			if (_symtab.NSyms == 0)
 				return null;
 
+            if (_symtab.NSyms > MaxSymbols)
+                throw new InvalidDataException($"Mach-O module at {BaseAddress:x} reports {_symtab.NSyms} symbols, which exceeds the maximum of {MaxSymbols}.");
+
             ulong symbolTableAddress = GetAddressFromFileOffset(_symtab.SymOff);
             NList64[] symTable = new NList64[_symtab.NSyms];
 
@@ -210,6 +224,10 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             {
                 ulong cmdAddress = BaseAddress + offset;
                 LoadCommandHeader cmd = DataReader.Read<LoadCommandHeader>(cmdAddress);
+
+                // Ensure forward progress: each load command must be at least header-sized.
+                if (cmd.Size < LoadCommandHeader.HeaderSize)
+                    throw new InvalidDataException($"Mach-O module at {BaseAddress:x} contains a load command with invalid size {cmd.Size}.");
 
                 if (cmd.Kind == LoadCommandType.Segment64)
                     yield return DataReader.Read<Segment64LoadCommand>(cmdAddress + LoadCommandHeader.HeaderSize);

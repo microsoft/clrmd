@@ -17,6 +17,12 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         private const uint X86_THREAD_STATE64 = 4;
         private const uint ARM_THREAD_STATE64 = 6;
 
+        // Upper bounds for untrusted header values to prevent OOM and excessive processing.
+        private const int MaxLoadCommands = 10_000;
+        private const int MaxThreadEntries = 10_000;
+        private const int MaxModules = 100_000;
+        private const int MaxAsciiLength = 4096;
+
         private readonly object _sync = new();
         private readonly Stream _stream;
         private bool _leaveOpen;
@@ -53,6 +59,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             if (_header.Magic != MachHeader64.Magic64)
                 throw new InvalidDataException($"'{displayName}' does not have a valid Mach-O header.");
 
+            if (_header.NumberCommands > MaxLoadCommands)
+                throw new InvalidDataException($"Mach-O file '{displayName}' reports {_header.NumberCommands} load commands, which exceeds the maximum of {MaxLoadCommands}.");
+
             _stream = stream;
             _leaveOpen = leaveOpen;
 
@@ -71,6 +80,10 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 #endif
 
                 long next = position + loadCommand.Size;
+
+                // Ensure forward progress: each load command must be at least header-sized.
+                if (loadCommand.Size < sizeof(LoadCommandHeader))
+                    throw new InvalidDataException($"Mach-O file '{displayName}' contains a load command with invalid size {loadCommand.Size}.");
 
                 switch (loadCommand.Kind)
                 {
@@ -93,6 +106,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                             }
                             else
                             {
+                                if (threadInfo.NumberThreadEntries > MaxThreadEntries)
+                                    throw new InvalidDataException($"Mach-O file '{displayName}' reports {threadInfo.NumberThreadEntries} thread entries, which exceeds the maximum of {MaxThreadEntries}.");
+
                                 for (int j = 0; j < threadInfo.NumberThreadEntries; j++)
                                 {
                                     SpecialThreadInfoEntry threadEntry = Read<SpecialThreadInfoEntry>(stream);
@@ -236,20 +252,22 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             int read = 0;
             Span<byte> buffer = new byte[32];
 
-            while (true)
+            while (read < MaxAsciiLength)
             {
                 int count = ReadMemory(address + (uint)read, buffer);
                 if (count <= 0)
                     return sb.ToString();
 
-                foreach (byte b in buffer)
-                    if (b == 0)
+                for (int k = 0; k < count; k++)
+                    if (buffer[k] == 0)
                         return sb.ToString();
                     else
-                        sb.Append((char)b);
+                        sb.Append((char)buffer[k]);
 
                 read += count;
             }
+
+            return sb.ToString();
         }
 
         private Dictionary<ulong, MachOModule> ReadModules()
@@ -262,6 +280,10 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             if (_dylinker != null && _dylinker.TryLookupSymbol("dyld_all_image_infos", out ulong dyld_allImage_address))
             {
                 DyldAllImageInfos allImageInfo = ReadMemory<DyldAllImageInfos>(dyld_allImage_address);
+
+                if (allImageInfo.infoArrayCount > MaxModules)
+                    throw new InvalidDataException($"Mach-O core dump reports {allImageInfo.infoArrayCount} modules, which exceeds the maximum of {MaxModules}.");
+
                 DyldImageInfo[] allImages = new DyldImageInfo[allImageInfo.infoArrayCount];
 
                 fixed (DyldImageInfo* ptr = allImages)
