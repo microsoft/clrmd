@@ -343,9 +343,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         public void Dispose()
         {
-            if (_leaveOpen)
+            if (!_leaveOpen)
             {
-                _leaveOpen = false; // allow multiple calls to Dispose without throwing
+                _leaveOpen = true; // allow multiple calls to Dispose without throwing
                 _stream.Dispose();
             }
         }
