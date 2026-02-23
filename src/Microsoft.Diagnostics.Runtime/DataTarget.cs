@@ -119,7 +119,7 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     try
                     {
-                        result = new PEImage(File.OpenRead(foundFile), false, imageBase);
+                        result = new PEImage(File.OpenRead(foundFile), false, imageBase, Limits);
                         if (!result.IsValid)
                             result = null;
                     }
@@ -137,7 +137,7 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     try
                     {
-                        result = new(File.OpenRead(fileName), leaveOpen: false);
+                        result = new(File.OpenRead(fileName), leaveOpen: false, loadedImageBase: 0, limits: Limits);
                         if (!result.IsValid)
                         {
                             result = null;
@@ -379,12 +379,12 @@ namespace Microsoft.Diagnostics.Runtime
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 WindowsProcessDataReaderMode mode = suspend ? WindowsProcessDataReaderMode.Suspend : WindowsProcessDataReaderMode.Passive;
-                return new DataTarget(new WindowsProcessDataReader(processId, mode), options);
+                return new DataTarget(new WindowsProcessDataReader(processId, mode, options.Limits), options);
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                return new DataTarget(new LinuxLiveDataReader(processId, suspend), options);
+                return new DataTarget(new LinuxLiveDataReader(processId, suspend, options.Limits), options);
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
@@ -414,7 +414,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                return new DataTarget(new WindowsProcessDataReader(processId, WindowsProcessDataReaderMode.Snapshot), options);
+                return new DataTarget(new WindowsProcessDataReader(processId, WindowsProcessDataReaderMode.Snapshot, options.Limits), options);
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
@@ -450,7 +450,8 @@ namespace Microsoft.Diagnostics.Runtime
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 throw GetPlatformException();
 
-            return new(new DbgEngDataReader(pDebugClient), options ?? new DataTargetOptions());
+            options ??= new DataTargetOptions();
+            return new(new DbgEngDataReader(pDebugClient, options.Limits), options);
         }
 
         private static PlatformNotSupportedException GetPlatformException([CallerMemberName] string? method = null) =>

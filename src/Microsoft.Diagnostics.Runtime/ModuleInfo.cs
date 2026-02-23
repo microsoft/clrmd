@@ -24,8 +24,9 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="reader">The data reader to create this module from.</param>
         /// <param name="baseAddress">The base address of this module.</param>
         /// <param name="name">The name of the module.</param>
+        /// <param name="limits">Optional safety limits for parsing.</param>
         /// <returns>A constructed ModuleInfo, or null.</returns>
-        public static ModuleInfo? TryCreate(IDataReader reader, ulong baseAddress, string name)
+        public static ModuleInfo? TryCreate(IDataReader reader, ulong baseAddress, string name, DataTargetLimits? limits = null)
         {
             if (reader is null)
                 throw new ArgumentNullException(nameof(reader));
@@ -39,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return null;
 
                 if (Unsafe.As<byte, ushort>(ref buffer[0]) == 0x5a4d)
-                    return new PEModuleInfo(reader, baseAddress, name, isVirtualHint: true);
+                    return new PEModuleInfo(reader, baseAddress, name, isVirtualHint: true, limits);
 
                 uint header = Unsafe.As<byte, uint>(ref buffer[0]);
                 if (header == ElfHeaderCommon.Magic)
@@ -75,10 +76,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="indexFileSize">The file size of this module.</param>
         /// <param name="indexTimeStamp">The timestamp of this module (for PE Images).</param>
         /// <param name="version">The version of the module.</param>
+        /// <param name="limits">Optional safety limits for parsing.</param>
         /// <returns>A constructed ModuleInfo, or null.</returns>
-        public static ModuleInfo? TryCreate(IDataReader reader, ulong baseAddress, string name, int indexFileSize, int indexTimeStamp, Version? version)
+        public static ModuleInfo? TryCreate(IDataReader reader, ulong baseAddress, string name, int indexFileSize, int indexTimeStamp, Version? version, DataTargetLimits? limits = null)
         {
-            ModuleInfo? result = TryCreate(reader, baseAddress, name);
+            ModuleInfo? result = TryCreate(reader, baseAddress, name, limits);
             result?.TrySetProperties(indexFileSize, indexTimeStamp, version);
             return result;
         }
@@ -90,10 +92,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="imageBase">The base address of this module.</param>
         /// <param name="imageSize">The module image size.</param>
         /// <param name="isFileLayout">if true, the PE has file layout, false loaded layout</param>
+        /// <param name="limits">Optional safety limits for parsing.</param>
         /// <returns>IResourceNode instance</returns>
-        public static IResourceNode? TryCreateResourceRoot(IDataReader reader, ulong imageBase, ulong imageSize, bool isFileLayout)
+        public static IResourceNode? TryCreateResourceRoot(IDataReader reader, ulong imageBase, ulong imageSize, bool isFileLayout, DataTargetLimits? limits = null)
         {
-            PEImage image = new(new ReadVirtualStream(reader, (long)imageBase, unchecked((int)imageSize)), leaveOpen: false, isVirtual: !isFileLayout);
+            PEImage image = new(new ReadVirtualStream(reader, (long)imageBase, unchecked((int)imageSize)), leaveOpen: false, isVirtual: !isFileLayout, limits);
             if (image.IsValid)
             {
                 return image.Resources;

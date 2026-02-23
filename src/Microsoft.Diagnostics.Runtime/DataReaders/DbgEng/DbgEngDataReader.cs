@@ -26,6 +26,7 @@ namespace Microsoft.Diagnostics.Runtime
         private DebugSystemObjects _systemObjects = null!;
 
         private bool _disposed;
+        private readonly DataTargetLimits? _limits;
 
         private List<ModuleInfo>? _modules;
         private int? _pointerSize;
@@ -40,29 +41,30 @@ namespace Microsoft.Diagnostics.Runtime
             Dispose(false);
         }
 
-        public DbgEngDataReader(string displayName, Stream stream, bool leaveOpen)
-            : this((stream as FileStream)?.Name ?? throw new NotSupportedException($"{nameof(DbgEngDataReader)} can only be used with real files. Try to use {nameof(FileStream)}."))
-        {
+        public DbgEngDataReader(string displayName, Stream stream, bool leaveOpen, DataTargetLimits? limits = null)
+            : this((stream as FileStream)?.Name ?? throw new NotSupportedException($"{nameof(DbgEngDataReader)} can only be used with real files. Try to use {nameof(FileStream)}."), limits)        {
             DisplayName = displayName;
             if (!leaveOpen)
                 stream?.Dispose();
         }
 
-        public DbgEngDataReader(IntPtr pDebugClient)
+        public DbgEngDataReader(IntPtr pDebugClient, DataTargetLimits? limits = null)
         {
             if (pDebugClient == IntPtr.Zero)
                 throw new ArgumentNullException(nameof(pDebugClient));
 
+            _limits = limits;
             DisplayName = $"DbgEng, IDebugClient={pDebugClient.ToInt64():x}";
             CreateClient(pDebugClient);
             _systemObjects.Init();
         }
 
-        public DbgEngDataReader(string dumpFile)
+        public DbgEngDataReader(string dumpFile, DataTargetLimits? limits = null)
         {
             if (!File.Exists(dumpFile))
                 throw new FileNotFoundException(dumpFile);
 
+            _limits = limits;
             DisplayName = dumpFile;
 
             IntPtr pClient = CreateIDebugClient();
@@ -84,8 +86,9 @@ namespace Microsoft.Diagnostics.Runtime
             DebugOnly.Assert(result);
         }
 
-        public DbgEngDataReader(int processId, bool invasive, uint msecTimeout)
+        public DbgEngDataReader(int processId, bool invasive, uint msecTimeout, DataTargetLimits? limits = null)
         {
+            _limits = limits;
             DisplayName = $"{processId:x}";
 
             IntPtr client = CreateIDebugClient();
@@ -182,7 +185,7 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     string? fn = _symbols.GetModuleNameStringWide(DebugModuleName.Image, i, bases[i]) ?? "";
 
-                    ModuleInfo info = new PEModuleInfo(this, bases[i], fn, true, mods[i].TimeDateStamp, mods[i].Size, GetVersionInfo(bases[i]));
+                    ModuleInfo info = new PEModuleInfo(this, bases[i], fn, true, mods[i].TimeDateStamp, mods[i].Size, GetVersionInfo(bases[i]), _limits);
                     modules.Add(info);
                 }
             }
