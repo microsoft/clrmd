@@ -16,6 +16,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     internal sealed class ElfCoreFile : IDisposable
     {
+        private readonly DataTargetLimits _limits;
+
         private readonly Stream _stream;
         private readonly bool _leaveOpen;
         private readonly Reader _reader;
@@ -84,14 +86,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         /// <param name="stream">The Elf stream to read the coredump from.</param>
         /// <param name="leaveOpen">Whether to leave the given stream open after this class is disposed.</param>
+        /// <param name="limits">Optional safety limits for parsing.</param>
         /// <exception cref="InvalidDataException">Throws <see cref="InvalidDataException"/> if the file is not an Elf coredump.</exception>
-        public ElfCoreFile(Stream stream, bool leaveOpen = false)
+        public ElfCoreFile(Stream stream, bool leaveOpen = false, DataTargetLimits? limits = null)
         {
+            _limits = limits ?? new DataTargetLimits();
             _stream = stream;
             _leaveOpen = leaveOpen;
 
             _reader = new Reader(new StreamAddressSpace(stream));
-            ElfFile = new ElfFile(_reader);
+            ElfFile = new ElfFile(_reader, limits: _limits);
 
             if (ElfFile.Header.Type != ElfHeaderType.Core)
                 throw new InvalidDataException($"{stream.GetFilename() ?? "The given stream"} is not a coredump");
@@ -125,8 +129,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             ElfNote auxvNote = GetNotes(ElfNoteType.Aux).SingleOrDefault() ?? throw new BadImageFormatException($"No auxv entries in coredump");
             ulong position = 0;
+            int count = 0;
             while (true)
             {
+                if (count++ > _limits.MaxElfAuxvEntries)
+                    throw new InvalidDataException($"ELF coredump contains more than {_limits.MaxElfAuxvEntries} auxv entries, which exceeds the maximum allowed.");
+
                 ulong type;
                 ulong value;
                 if (ElfFile.Header.Is64Bit)
@@ -168,6 +176,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 entryCount = header.EntryCount;
             }
 
+            if (entryCount > (ulong)_limits.MaxElfFileTableEntries)
+                throw new InvalidDataException($"ELF coredump file table reports {entryCount} entries, which exceeds the maximum of {_limits.MaxElfFileTableEntries}.");
+
             ElfFileTableEntryPointers64[] fileTable = new ElfFileTableEntryPointers64[entryCount];
             Dictionary<string, ElfLoadedImage> lookup = new(fileTable.Length);
 
@@ -195,8 +206,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 for (int i = 0; i < fileTable.Length; i++)
                 {
                     int end = start;
-                    while (bytes[end] != 0)
+                    while (end < read && bytes[end] != 0)
                         end++;
+
+                    if (end >= read)
+                        throw new InvalidDataException("ELF coredump file table contains a file path without a null terminator.");
 
                     string path = Encoding.UTF8.GetString(bytes, start, end - start);
                     start = end + 1;

@@ -13,12 +13,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     {
         private readonly Reader _reader;
         private readonly ulong _chainsAddress;
+        private readonly int _maxChainLength;
 
-        internal static ElfSymbolGnuHash? Create(Reader reader, bool is64Bit, ulong address)
+        internal static ElfSymbolGnuHash? Create(Reader reader, bool is64Bit, ulong address, DataTargetLimits? limits = null)
         {
             try
             {
-                return new ElfSymbolGnuHash(reader, is64Bit, address);
+                return new ElfSymbolGnuHash(reader, is64Bit, address, limits);
             }
             catch (IOException)
             {
@@ -30,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        private ElfSymbolGnuHash(Reader reader, bool is64Bit, ulong address)
+        private ElfSymbolGnuHash(Reader reader, bool is64Bit, ulong address, DataTargetLimits? limits)
         {
             _reader = reader;
 
@@ -58,6 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 Buckets[i] = BitConverter.ToInt32(buffer, i * Marshal.SizeOf<int>());
 
             _chainsAddress = address + (ulong)(BucketCount * (uint)Marshal.SizeOf<int>());
+            _maxChainLength = (limits ?? new DataTargetLimits()).MaxElfGnuHashChainLength;
         }
 
         public int BucketCount { get; }
@@ -76,8 +78,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             // be slower to determine that a missing symbol isn't in the table.
             uint hash = Hash(symbolName);
             int i = Buckets[hash % BucketCount] - SymbolOffset;
-            for (; ; i++)
+            for (int iter = 0; ; i++, iter++)
             {
+                if (iter >= _maxChainLength)
+                    yield break;
+
                 int chainVal = GetChain(i);
                 if ((chainVal & 0xfffffffe) == (hash & 0xfffffffe))
                 {

@@ -12,6 +12,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 {
     internal sealed unsafe class MachOModule
     {
+        private readonly DataTargetLimits _limits;
+
         public MachOCoreDump? Parent { get; }
 
         public ulong BaseAddress { get; }
@@ -29,18 +31,19 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         private readonly ulong _stringTableAddress;
         private volatile NList64[]? _symTable;
 
-        public MachOModule(IDataReader reader, ulong address, string path)
-            : this(null, reader, reader.Read<MachHeader64>(address), address, path)
+        public MachOModule(IDataReader reader, ulong address, string path, DataTargetLimits? limits = null)
+            : this(null, reader, reader.Read<MachHeader64>(address), address, path, limits)
         {
         }
 
         public MachOModule(MachOCoreDump parent, ulong address, string path)
-            : this(parent, parent.Parent, parent.ReadMemory<MachHeader64>(address), address, path)
+            : this(parent, parent.Parent, parent.ReadMemory<MachHeader64>(address), address, path, parent._limits)
         {
         }
 
-        private MachOModule(MachOCoreDump? parent, IDataReader reader, in MachHeader64 header, ulong address, string path)
+        private MachOModule(MachOCoreDump? parent, IDataReader reader, in MachHeader64 header, ulong address, string path, DataTargetLimits? limits = null)
         {
+            _limits = limits ?? new DataTargetLimits();
             BaseAddress = address;
             FileName = path;
             Parent = parent;
@@ -49,6 +52,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             if (header.Magic != MachHeader64.Magic64)
                 throw new InvalidDataException($"Module at {address:x} does not contain the expected Mach-O header.");
+
+            if (header.NumberCommands > _limits.MaxMachOLoadCommands)
+                throw new InvalidDataException($"Mach-O module at {address:x} reports {header.NumberCommands} load commands, which exceeds the maximum of {_limits.MaxMachOLoadCommands}.");
 
             // Since MachO segments are not contiguous the image size is just the headers/commands
             ImageSize = MachHeader64.Size + _header.SizeOfCommands;
@@ -60,6 +66,10 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             {
                 ulong cmdAddress = BaseAddress + offset;
                 LoadCommandHeader cmd = DataReader.Read<LoadCommandHeader>(cmdAddress);
+
+                // Ensure forward progress: each load command must be at least header-sized.
+                if (cmd.Size < sizeof(LoadCommandHeader))
+                    throw new InvalidDataException($"Mach-O module at {address:x} contains a load command with invalid size {cmd.Size}.");
 
                 switch (cmd.Kind)
                 {
@@ -183,6 +193,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 			if (_symtab.NSyms == 0)
 				return null;
 
+            if (_symtab.NSyms > _limits.MaxMachOSymbols)
+                throw new InvalidDataException($"Mach-O module at {BaseAddress:x} reports {_symtab.NSyms} symbols, which exceeds the maximum of {_limits.MaxMachOSymbols}.");
+
             ulong symbolTableAddress = GetAddressFromFileOffset(_symtab.SymOff);
             NList64[] symTable = new NList64[_symtab.NSyms];
 
@@ -210,6 +223,10 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             {
                 ulong cmdAddress = BaseAddress + offset;
                 LoadCommandHeader cmd = DataReader.Read<LoadCommandHeader>(cmdAddress);
+
+                // Ensure forward progress: each load command must be at least header-sized.
+                if (cmd.Size < LoadCommandHeader.HeaderSize)
+                    throw new InvalidDataException($"Mach-O module at {BaseAddress:x} contains a load command with invalid size {cmd.Size}.");
 
                 if (cmd.Kind == LoadCommandType.Segment64)
                     yield return DataReader.Read<Segment64LoadCommand>(cmdAddress + LoadCommandHeader.HeaderSize);

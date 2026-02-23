@@ -17,6 +17,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 {
     internal sealed class MacOSProcessDataReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader
     {
+        // Upper bound for untrusted header values to prevent excessive processing.
+        private const int MaxLoadCommands = 10_000;
+
         private readonly int _task;
 
         private ImmutableArray<MemoryRegion>.Builder _memoryRegions;
@@ -176,6 +179,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             if (!Read(baseAddress, out MachOHeader64 header) || header.Magic != MachOHeader64.ExpectedMagic)
                 return null;
 
+            if (header.NumberOfCommands > MaxLoadCommands)
+                return null;
+
             baseAddress += (uint)sizeof(MachOHeader64);
 
             byte[] dataSegmentName = Encoding.ASCII.GetBytes("__DATA\0");
@@ -185,6 +191,10 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 MachOCommand command = Read<MachOCommand>(ref baseAddress);
                 MachOCommandType commandType = command.Command;
                 int commandSize = command.CommandSize;
+
+                // Ensure forward progress: each load command must be at least command-header-sized.
+                if (commandSize < sizeof(MachOCommand))
+                    return null;
 
                 if (commandType == MachOCommandType.Segment64)
                 {

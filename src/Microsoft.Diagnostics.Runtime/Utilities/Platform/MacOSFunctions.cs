@@ -11,6 +11,8 @@ namespace Microsoft.Diagnostics.Runtime
 {
     internal sealed class MacOSFunctions : CoreFunctions
     {
+        // Upper bound for untrusted header values to prevent excessive processing.
+        private const int MaxLoadCommands = 10_000;
         public override bool TryGetWow64(IntPtr proc, out bool result)
         {
             result = false;
@@ -28,6 +30,9 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new NotSupportedException();
             }
 
+            if (header.NumberOfCommands > MaxLoadCommands)
+                throw new InvalidDataException($"Mach-O file '{dll}' reports {header.NumberOfCommands} load commands, which exceeds the maximum of {MaxLoadCommands}.");
+
             long dataOffset = 0;
             long dataSize = 0;
 
@@ -38,6 +43,10 @@ namespace Microsoft.Diagnostics.Runtime
                 MachOCommand command = reader.Read<MachOCommand>();
                 MachOCommandType commandType = command.Command;
                 int commandSize = command.CommandSize;
+
+                // Ensure forward progress: each load command must be at least command-header-sized.
+                if (commandSize < sizeof(MachOCommand))
+                    throw new InvalidDataException($"Mach-O file '{dll}' contains a load command with invalid size {commandSize}.");
 
                 if (commandType == MachOCommandType.Segment64)
                 {

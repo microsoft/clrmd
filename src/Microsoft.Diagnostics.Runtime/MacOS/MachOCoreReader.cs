@@ -25,10 +25,10 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         public int ProcessId { get; }
 
-        public unsafe MachOCoreReader(string displayName, Stream stream, bool leaveOpen)
+        public unsafe MachOCoreReader(string displayName, Stream stream, bool leaveOpen, DataTargetLimits? limits = null)
         {
             DisplayName = displayName;
-            _core = new MachOCoreDump(this, stream, leaveOpen, DisplayName);
+            _core = new MachOCoreDump(this, stream, leaveOpen, DisplayName, limits);
         }
 
         public IEnumerable<ModuleInfo> EnumerateModules() => _core.EnumerateModules().Select(m => new MachOModuleInfo(m, m.BaseAddress, m.FileName, null, m.ImageSize));
