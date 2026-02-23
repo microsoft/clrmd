@@ -13,16 +13,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
         }
 
-        public string FindElfImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildId, bool checkProperties)
-        {
-            return null;
-        }
-
-        public string FindMachOImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> uuid, bool checkProperties)
-        {
-            return null;
-        }
-
         public string FindPEImage(string fileName, int buildTimeStamp, int imageSize, bool checkProperties)
         {
             return null;
