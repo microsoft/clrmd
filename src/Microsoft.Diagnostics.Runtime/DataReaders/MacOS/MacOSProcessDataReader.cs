@@ -105,7 +105,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                     if (disposing)
                         throw new ClrDiagnosticsException($"Could not detach from process {ProcessId}, errno: {errno}");
                     else
-                        Trace.WriteLine($"Could not detach from process {ProcessId}, errno: {errno}");
+                        Debug.WriteLine($"Could not detach from process {ProcessId}, errno: {errno}");
                 }
 
                 _suspended = false;

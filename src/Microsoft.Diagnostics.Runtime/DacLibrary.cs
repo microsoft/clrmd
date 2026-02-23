@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime
                 {
                     if (!AuthenticodeUtil.VerifyDacDll(dacPath, out fileLock))
                     {
-                        throw new ClrDiagnosticsException($"Failed to load dac from {dacPath}: not properly signed");
+                        throw new ClrDiagnosticsException("Failed to load dac: not properly signed.");
                     }
                 }
 
@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Runtime
                 }
                 catch (Exception e) when (e is DllNotFoundException or BadImageFormatException)
                 {
-                    throw new ClrDiagnosticsException($"Failed to load dac from {dacPath}: {e.Message}", e);
+                    throw new ClrDiagnosticsException("Failed to load dac library.", e);
                 }
             }
             finally

@@ -95,7 +95,7 @@ namespace Microsoft.Diagnostics.Runtime.DataReaders.Windows
                     //     2.  We want to finish resuming threads.
                     //     3.  There's nothing the caller can really do about it.
 
-                    Trace.WriteLine($"Failed to resume thread id:{threadId:id} in pid:{_pid:x}.");
+                    Debug.WriteLine($"Failed to resume thread id:{threadId:id} in pid:{_pid:x}.");
                 }
             }
         }
