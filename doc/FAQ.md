@@ -54,11 +54,11 @@ public static IEnumerable<(ClrStaticField Field, ClrObject Object)> EnumerateAll
 
 ## What platforms are supported?
 
-ClrMD is fully supported on Windows and Linux.  We are currently working on OS X support but there is no ETA for when this will be complete.
+ClrMD is fully supported on Windows, Linux, and macOS.
 
 ## Can I use this API to inspect my own process?
 
-Yes.  ClrMD allows you to create a snapshot of a running process and attach to that snapshot using `DataTarget.CreateSnapshotAndAttach`.  On Windows we use the `PssCreateSnapshot` API which is relatively fast to take an in-memory snapshot of a live process to debug.  On Linux (and eventually OS X when that is supported) you can also use `CreateSnapshotAndAttach` but since there isn't a fast in-memory OS API to take a snapshot we will temporarily drop a coredump to disk and "attach" to that, then delete the temporary coredump when `DataTarget.Dispose` is called.
+Yes.  ClrMD allows you to create a snapshot of a running process and attach to that snapshot using `DataTarget.CreateSnapshotAndAttach`.  On Windows we use the `PssCreateSnapshot` API which is relatively fast to take an in-memory snapshot of a live process to debug.  On Linux and macOS you can also use `CreateSnapshotAndAttach` but since there isn't a fast in-memory OS API to take a snapshot we will temporarily drop a coredump to disk and "attach" to that, then delete the temporary coredump when `DataTarget.Dispose` is called.
 
 Attaching to your own, unsuspended process using `DataTarget.AttachToProcess(Process.GetCurrentProcess().Id, suspend: false)` is **not** supported.  In general, inspecting any running process that is not suspended is not supported, and we likely won't attempt to fix any bugs or issues in that scenario.
 

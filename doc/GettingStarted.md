@@ -64,7 +64,17 @@ ClrInfo runtimeInfo = dataTarget.ClrVersions[0];  // just using the first runtim
 ClrRuntime runtime = runtimeInfo.CreateRuntime();
 ```
 
-Note that we did not specify the location of the dac library when calling here.  ClrMD will default to looking at the `LocalDacPath` and use it if it is non-null.  If the `_NT_SYMBOL_PATH` environment variable is set we will also check the symbol servers listed for a matching dac.  To use the Microsoft symbol server you can set `_NT_SYMBOL_PATH=https://msdl.microsoft.com/download/symbols`.
+Note that we did not specify the location of the dac library when calling here.  ClrMD will default to using its built-in symbol server to locate the matching dac.  By default it contacts the Microsoft public symbol server (`https://msdl.microsoft.com/download/symbols`).  You can configure symbol server paths via `DataTargetOptions`:
+
+```cs
+using DataTarget dataTarget = DataTarget.LoadDump(@"c:\work\crash.dmp", new DataTargetOptions
+{
+    SymbolPaths = new[] { "https://msdl.microsoft.com/download/symbols" },
+    SymbolCachePath = @"C:\symbols",
+});
+ClrInfo runtimeInfo = dataTarget.ClrVersions[0];
+ClrRuntime runtime = runtimeInfo.CreateRuntime();
+```
 
 You can also create a runtime from a dac location on disk if you know exactly where it is:
 
@@ -75,11 +85,11 @@ ClrRuntime runtime = runtimeInfo.CreateRuntime(@"C:\path\to\mscordacwks.dll");
 
 ## Getting the Dac from the Symbol Server
 
-When you call CreateRuntime without specifying the location of mscordacwks.dll, ClrMD attempts to locate the dac for you.  It does this through a few mechanisms, first it checks to see if you have the same version of CLR that you are attempting to debug on your local machine.  If so, it loads the dac from there.  (This is usually at c:\windows\Framework[64]\[version]\mscordacwks.dll.)  If you are debugging a crash dump that came from another computer, you will have to find the dac that matches the crash dump you are debugging.
+When you call CreateRuntime without specifying the location of mscordacwks.dll, ClrMD attempts to locate the dac for you.  It does this by querying the symbol servers configured in `DataTargetOptions.SymbolPaths` (which defaults to the Microsoft public symbol server at https://msdl.microsoft.com/download/symbols).
 
-All versions of the dac are required to be on the Microsoft public symbol server, located here:  https://msdl.microsoft.com/download/symbols.  The DataTarget.SymbolLocator property is how ClrMD interacts with symbol servers.  If you have set the _NT_SYMBOL_PATH environment variable, ClrMD will use that string as your symbol path.  If this environment variable is not set, it will default to the Microsoft Symbol Server.
+On Windows, ClrMD downloads the DAC, verifies its Authenticode signature, and loads it.  On Linux and macOS, ClrMD does not download DAC binaries from the network because there is no mechanism to verify their integrity.  If the matching DAC is not already on disk, ClrMD throws an exception telling you which DAC is needed.  You are responsible for acquiring the DAC through a mechanism you trust and providing the path directly.
 
-With any luck, you should never have to manually locate the dac or interact with DataTarget.SymbolLocator.  CreateRuntime should be able to successfully locate all released builds of CLR.
+The `DataTarget.FileLocator` property (configured via `DataTargetOptions.FileLocator`) controls how ClrMD resolves symbol server requests.  You can provide a custom `IFileLocator` implementation to override this behavior entirely.
 
 However, if you have built .Net Core yourself from source or are using a non-standard build, you will have to keep track of the correct dac yourself (these will not be on the symbol servers).  In that case you will need to pass the path of the dac on disk to ClrInfo.CreateRuntime manually.
 
@@ -93,7 +103,7 @@ DataTarget dataTarget = DataTarget.AttachToProcess(0x123, suspend: true);
 
 The first parameter is the process id to attach to.  The second parameter tells ClrMD whether or not to suspend the target process when it attaches to the process.  Note that ClrMD **only** support inspecting a suspended process or a crash dump, we do *not* support inspecting a running process.  The reason we allow you to specify whether to suspend the process or not is so that diagnostic tool developers can do process suspension themselves without ClrMD interfering with that.
 
-If you need to inspect a running process (or your own process) the only supported way to do this is to create a snapshot of the running process using `CreateSnapshotAndAttach` and inspect that snapshot instead.  Note that on Windows we use the PssCreateSnapshot api which will only leave process suspended a relatively short amount of time.  On Linux and OS X we have no such API to use, so we will create a temporary coredump from the live process and this may take significantly longer.
+If you need to inspect a running process (or your own process) the only supported way to do this is to create a snapshot of the running process using `CreateSnapshotAndAttach` and inspect that snapshot instead.  On Windows we use the PssCreateSnapshot api which will only leave process suspended a relatively short amount of time.  On Linux and macOS we have no such API to use, so we will create a temporary coredump from the live process and this may take significantly longer.
 
 For example, this is how you would create a DataTarget capable of inspecting your own process.  Note that the target process will be left suspended for only the duration of the call to `CreateSnapshotAndAttach`.
 

@@ -9,9 +9,14 @@ which can do thing similar to SOS and PSSCOR.
 
 For more details, take a look at the [GettingStarted] guide, [FAQ], and [Samples].
 
-For information on migrating from ClrMD 2.0 -> 2.1 please take a look at [Migrating21].
+For migration guides between major versions:
+- [Migrating from 2.0 to 2.1][Migrating21]
+- [Migrating from 2.x to 3.x][Migrating3]
+- [Migrating from 3.x to 4.0][Migrating4]
 
 [Migrating21]: ./doc/Migrating21.md
+[Migrating3]: ./doc/Migrating3.md
+[Migrating4]: ./doc/Migrating4.md
 [GettingStarted]: ./doc/GettingStarted.md
 [FAQ]: ./doc/FAQ.md
 [Samples]: ./src/Samples
