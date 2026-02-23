@@ -1,4 +1,6 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+﻿#nullable enable
+
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -50,10 +52,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static TestTarget Arrays => _arrays.Value;
         public static TestTarget ByReference => _byReference.Value;
 
-        public static string GetTestArtifactFolder()
+        public static string? GetTestArtifactFolder()
         {
-            string curr = Environment.CurrentDirectory;
-            while (curr != null)
+            string? curr = Environment.CurrentDirectory;
+            while (curr is not null)
             {
                 string artifacts = Path.Combine(curr, ".test_artifacts");
                 if (Directory.Exists(artifacts))
@@ -86,7 +88,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             DirectoryInfo info = new(Environment.CurrentDirectory);
             while (info.GetFiles(".gitignore").Length != 1)
-                info = info.Parent;
+                info = info.Parent!;
 
             TestRoot = Path.Combine(info.FullName, "src", "TestTargets");
         }
@@ -138,7 +140,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// <summary>
         /// Builds the dump file name for a given configuration.
         /// </summary>
-        public string BuildDumpName(GCMode gcmode, bool full, string architecture = null, bool? isFramework = null, bool singleFile = false)
+        public string BuildDumpName(GCMode gcmode, bool full, string? architecture = null, bool? isFramework = null, bool singleFile = false)
         {
             architecture ??= DumpGenerator.GetArchitecture();
             bool framework = isFramework ?? FrameworkOnly;
