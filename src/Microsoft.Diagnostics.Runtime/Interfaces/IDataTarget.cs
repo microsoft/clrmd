@@ -12,9 +12,8 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         CacheOptions CacheOptions { get; }
         ImmutableArray<IClrInfo> ClrVersions { get; }
         IDataReader DataReader { get; }
-        IFileLocator? FileLocator { get; set; }
+        IFileLocator? FileLocator { get; }
 
         IEnumerable<ModuleInfo> EnumerateModules();
-        void SetSymbolPath(string symbolPath);
     }
 }

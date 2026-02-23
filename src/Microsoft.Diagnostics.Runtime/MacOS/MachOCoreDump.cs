@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         private readonly object _sync = new();
         private readonly Stream _stream;
-        private readonly bool _leaveOpen;
+        private bool _leaveOpen;
 
         private readonly MachHeader64 _header;
         private readonly MachOSegment[] _segments;
@@ -344,7 +344,10 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         public void Dispose()
         {
             if (!_leaveOpen)
+            {
+                _leaveOpen = false; // allow multiple calls to Dispose without throwing
                 _stream.Dispose();
+            }
         }
     }
 }

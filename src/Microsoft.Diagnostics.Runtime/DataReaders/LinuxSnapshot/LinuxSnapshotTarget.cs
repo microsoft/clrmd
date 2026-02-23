@@ -3,38 +3,19 @@
 
 using System;
 using System.IO;
-using Azure.Core;
 using Microsoft.Diagnostics.NETCore.Client;
+using Microsoft.Diagnostics.Runtime.DataReaders;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class LinuxSnapshotTarget : CustomDataTarget
+    internal sealed class LinuxSnapshotTarget : ISnapshot, IDisposable
     {
-        private readonly int _pid;
+        private readonly CoredumpReader _coreReader;
         private readonly string _filename;
 
-        public LinuxSnapshotTarget(IDataReader reader, int pid, string filename, TokenCredential? credential = null) : base(reader, credential)
-        {
-            _pid = pid;
-            _filename = filename;
-        }
+        public IDataReader DataReader => _coreReader;
 
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-
-            try
-            {
-                File.Delete(_filename);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
-            {
-            }
-        }
-
-        public override string ToString() => $"{_filename} (snapshot of pid:{_pid:x})";
-
-        public static LinuxSnapshotTarget CreateSnapshotFromProcess(int pid)
+        public LinuxSnapshotTarget(int pid)
         {
             string? dumpPath = Path.GetTempFileName();
             try
@@ -49,15 +30,54 @@ namespace Microsoft.Diagnostics.Runtime
                     throw new ArgumentException($"Unable to create a snapshot of process {pid:x}.", sxe);
                 }
 
-                LinuxSnapshotTarget result = new(new CoredumpReader(dumpPath, File.OpenRead(dumpPath), leaveOpen: false), pid, dumpPath);
+                _coreReader = new CoredumpReader(dumpPath, File.OpenRead(dumpPath), leaveOpen: false);
+                _filename = dumpPath;
                 dumpPath = null;
-                return result;
             }
             finally
             {
                 if (dumpPath != null)
                     File.Delete(dumpPath);
             }
+        }
+
+        private bool _disposed;
+
+        ~LinuxSnapshotTarget()
+        {
+            Dispose(disposing: false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+
+            _disposed = true;
+
+            if (disposing)
+            {
+                _coreReader.Dispose();
+            }
+
+            try
+            {
+                File.Delete(_filename);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+            {
+            }
+        }
+
+        public void SaveSnapshot(string path, bool overwrite)
+        {
+            File.Copy(_filename, path, overwrite);
         }
     }
 }

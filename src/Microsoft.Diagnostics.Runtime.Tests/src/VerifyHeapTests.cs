@@ -19,7 +19,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [InlineData(true)]
         public void ServerNoCorruption(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile, GCMode.Server);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile, gc: GCMode.Server);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
             Assert.Empty(heap.VerifyHeap());
@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [InlineData(true)]
         public void WorkstationNoCorruption(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile, GCMode.Workstation);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile, gc: GCMode.Workstation);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
             Assert.Empty(heap.VerifyHeap());
