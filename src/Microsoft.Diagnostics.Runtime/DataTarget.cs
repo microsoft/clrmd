@@ -71,6 +71,10 @@ namespace Microsoft.Diagnostics.Runtime
         {
             if (!_disposed)
             {
+
+                if (DataReader is IDisposable dataReaderDisposable)
+                    dataReaderDisposable.Dispose();
+
                 if (Snapshot is IDisposable disposable)
                     disposable.Dispose();
 
@@ -81,7 +85,6 @@ namespace Microsoft.Diagnostics.Runtime
 
                     _pefileCache.Clear();
                 }
-
                 _disposed = true;
             }
         }
