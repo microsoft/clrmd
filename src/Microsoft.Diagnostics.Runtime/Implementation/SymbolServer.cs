@@ -5,6 +5,7 @@ using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
@@ -65,38 +66,42 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return builder.Uri;
         }
 
+        [Obsolete("Non-Windows DAC download is disabled. Provide the DAC path directly via ClrInfo.CreateRuntime(dacPath, ...).")]
+#pragma warning disable CS0809 // Obsolete member overrides non-obsolete member
         public override string? FindElfImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildId, bool checkProperties)
+#pragma warning restore CS0809
         {
             string? result = _cache.FindElfImage(fileName, archivedUnder, buildId, checkProperties);
             if (result != null)
                 return result;
 
             string? key = base.FindElfImage(fileName, archivedUnder, buildId, checkProperties);
-            if (key == null)
-                return null;
-
-            Stream? stream = FindFileOnServer(key).Result;
-            if (stream != null)
-                return _cache.Store(stream, key);
-
-            return null;
+            throw new NotSupportedException(
+                $"ClrMD does not download DAC binaries on non-Windows platforms because there is no " +
+                $"mechanism to verify their integrity. Acquire the DAC through a mechanism you trust " +
+                $"and provide the path directly via ClrInfo.CreateRuntime(dacPath, ...).\n\n" +
+                $"The DAC you need is: {fileName}\n" +
+                $"Expected build ID: {BuildIdToHex(buildId)}\n" +
+                $"Symbol Key: {key}");
         }
 
+        [Obsolete("Non-Windows DAC download is disabled. Provide the DAC path directly via ClrInfo.CreateRuntime(dacPath, ...).")]
+#pragma warning disable CS0809 // Obsolete member overrides non-obsolete member
         public override string? FindMachOImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> uuid, bool checkProperties)
+#pragma warning restore CS0809
         {
             string? result = _cache.FindMachOImage(fileName, archivedUnder, uuid, checkProperties);
             if (result != null)
                 return result;
 
             string? key = base.FindMachOImage(fileName, archivedUnder, uuid, checkProperties);
-            if (key == null)
-                return null;
-
-            Stream? stream = FindFileOnServer(key).Result;
-            if (stream != null)
-                return _cache.Store(stream, key);
-
-            return null;
+            throw new NotSupportedException(
+                $"ClrMD does not download DAC binaries on non-Windows platforms because there is no " +
+                $"mechanism to verify their integrity. Acquire the DAC through a mechanism you trust " +
+                $"and provide the path directly via ClrInfo.CreateRuntime(dacPath, ...).\n\n" +
+                $"The DAC you need is: {fileName}\n" +
+                $"Expected UUID: {BuildIdToHex(uuid)}\n" +
+                $"Symbol Key: {key}");
         }
 
         public override string? FindPEImage(string fileName, int buildTimeStamp, int imageSize, bool checkProperties)
@@ -171,6 +176,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 _accessToken = await _tokenCredential.GetTokenAsync(new TokenRequestContext(["api://af9e1c69-e5e9-4331-8cc5-cdf93d57bafa/.default"]), default).ConfigureAwait(false);
 
             return _accessToken.Token;
+        }
+
+        private static string BuildIdToHex(ImmutableArray<byte> bytes)
+        {
+            if (bytes.IsDefaultOrEmpty)
+                return "(none)";
+
+            return string.Join("", bytes.Select(b => b.ToString("x2")));
         }
     }
 }
