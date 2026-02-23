@@ -14,9 +14,12 @@ For migration guides between major versions:
 - [Migrating from 2.x to 3.x][Migrating3]
 - [Migrating from 3.x to 4.0][Migrating4]
 
+For security guidance, see [Secure Configuration Guidelines][SecureConfig].
+
 [Migrating21]: ./doc/Migrating21.md
 [Migrating3]: ./doc/Migrating3.md
 [Migrating4]: ./doc/Migrating4.md
+[SecureConfig]: ./SECURE-CONFIGURATION.md
 [GettingStarted]: ./doc/GettingStarted.md
 [FAQ]: ./doc/FAQ.md
 [Samples]: ./src/Samples
