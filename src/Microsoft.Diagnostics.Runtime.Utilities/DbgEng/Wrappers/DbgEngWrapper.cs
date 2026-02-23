@@ -75,9 +75,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             {
                 _disposed = true;
 
-                Marshal.Release(_client);
-                Marshal.Release(_control);
-                Marshal.Release(_spaces);
+                if (_client != 0) Marshal.Release(_client);
+                if (_control != 0) Marshal.Release(_control);
+                if (_spaces != 0) Marshal.Release(_spaces);
+                if (_symbols != 0) Marshal.Release(_symbols);
+                if (_systemObjects != 0) Marshal.Release(_systemObjects);
+                if (_advanced != 0) Marshal.Release(_advanced);
 
                 Interlocked.Exchange(ref _alive, 0);
             }

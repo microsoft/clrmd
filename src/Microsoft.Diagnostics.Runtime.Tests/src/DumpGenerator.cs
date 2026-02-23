@@ -53,6 +53,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 {
                     GenerateFrameworkDump(exePath, dumpPath, gcMode, full);
                 }
+                else if (singleFile && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    // Single-file self-contained apps don't include createdump, so
+                    // DOTNET_DbgEnableMiniDump won't work. Use DbgEng instead.
+                    GenerateDbgEngDump(exePath, dumpPath, gcMode, full);
+                }
                 else
                 {
                     processOutput = GenerateCoreDump(exePath, dumpPath, gcMode, full, singleFile);
@@ -328,6 +334,32 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 info.SetEnvironmentVariable("COMPlus_BuildFlavor", "SVR");
             }
 
+            LaunchAndCaptureDump(info, exePath, dumpPath, full, ClrExceptionCode);
+        }
+
+        /// <summary>
+        /// Generates a dump for a .NET Core single-file target using DbgEng on Windows.
+        /// Single-file apps don't include createdump, so DOTNET_DbgEnableMiniDump won't work.
+        /// </summary>
+        private static void GenerateDbgEngDump(string exePath, string dumpPath, GCMode gcMode, bool full)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                throw new PlatformNotSupportedException("DbgEng dump generation is only supported on Windows.");
+
+            const uint ClrExceptionCode = 0xe0434352;
+
+            DebuggerStartInfo info = new();
+            if (gcMode == GCMode.Server)
+            {
+                info.SetEnvironmentVariable("DOTNET_gcServer", "1");
+                info.SetEnvironmentVariable("COMPlus_gcServer", "1");
+            }
+
+            LaunchAndCaptureDump(info, exePath, dumpPath, full, ClrExceptionCode);
+        }
+
+        private static void LaunchAndCaptureDump(DebuggerStartInfo info, string exePath, string dumpPath, bool full, uint exceptionCode)
+        {
             using Debugger debugger = info.LaunchProcess(exePath, Path.GetDirectoryName(exePath));
 
             string miniDumpPath = full ? null : dumpPath;
@@ -335,7 +367,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             debugger.OnException += (dbg, exception, firstChance) =>
             {
-                if (!firstChance && exception.ExceptionCode == ClrExceptionCode)
+                if (!firstChance && exception.ExceptionCode == exceptionCode)
                 {
                     if (fullDumpPath != null)
                         dbg.WriteDumpFile(fullDumpPath, DEBUG_DUMP.DEFAULT);

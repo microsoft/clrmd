@@ -4,24 +4,68 @@
 using System;
 using System.IO;
 using Microsoft.Diagnostics.NETCore.Client;
+using Microsoft.Diagnostics.Runtime.DataReaders;
 using Microsoft.Diagnostics.Runtime.MacOS;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class MacOSSnapshotTarget : CustomDataTarget
+    internal sealed class MacOSSnapshotTarget : ISnapshot, IDisposable
     {
-        private readonly int _pid;
+        private readonly MachOCoreReader _coreReader;
         private readonly string _filename;
 
-        private MacOSSnapshotTarget(IDataReader reader, int pid, string filename) : base(reader, null)
+        public IDataReader DataReader => _coreReader;
+
+        public MacOSSnapshotTarget(int _pid)
         {
-            _pid = pid;
-            _filename = filename;
+            string? dumpPath = Path.GetTempFileName();
+            try
+            {
+                try
+                {
+                    DiagnosticsClient client = new(_pid);
+                    client.WriteDump(DumpType.Full, dumpPath, logDumpGeneration: false);
+                }
+                catch (ServerErrorException sxe)
+                {
+                    throw new ArgumentException($"Unable to create a snapshot of process {_pid:x}.", sxe);
+                }
+
+                _coreReader = new MachOCoreReader(dumpPath, File.OpenRead(dumpPath), leaveOpen: false);
+                _filename = dumpPath;
+                dumpPath = null;
+            }
+            finally
+            {
+                if (dumpPath != null)
+                    File.Delete(dumpPath);
+            }
         }
 
-        protected override void Dispose(bool disposing)
+        private bool _disposed;
+
+        ~MacOSSnapshotTarget()
         {
-            base.Dispose(disposing);
+            Dispose(disposing: false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+
+            _disposed = true;
+
+            if (disposing)
+            {
+                _coreReader.Dispose();
+            }
 
             try
             {
@@ -31,33 +75,9 @@ namespace Microsoft.Diagnostics.Runtime
             {
             }
         }
-
-        public override string ToString() => $"{_filename} (snapshot of pid:{_pid:x})";
-
-        public static MacOSSnapshotTarget CreateSnapshotFromProcess(int pid)
+        public void SaveSnapshot(string path, bool overwrite)
         {
-            string? dumpPath = Path.GetTempFileName();
-            try
-            {
-                try
-                {
-                    DiagnosticsClient client = new(pid);
-                    client.WriteDump(DumpType.Full, dumpPath, logDumpGeneration: false);
-                }
-                catch (ServerErrorException sxe)
-                {
-                    throw new ArgumentException($"Unable to create a snapshot of process {pid:x}.", sxe);
-                }
-
-                MacOSSnapshotTarget result = new(new MachOCoreReader(dumpPath, File.OpenRead(dumpPath), leaveOpen: false), pid, dumpPath);
-                dumpPath = null;
-                return result;
-            }
-            finally
-            {
-                if (dumpPath != null)
-                    File.Delete(dumpPath);
-            }
+            File.Copy(_filename, path, overwrite);
         }
     }
 }

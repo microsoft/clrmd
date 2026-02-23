@@ -226,7 +226,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [InlineData(true)]
         public void ServerSegmentTests(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile, GCMode.Server);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile, gc: GCMode.Server);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -240,7 +240,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [InlineData(true)]
         public void WorkstationSegmentTests(bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile, GCMode.Workstation);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile, gc: GCMode.Workstation);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -314,7 +314,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [InlineData(true)]
         public void MarkerCreation(bool singleFile)
         {
-            using DataTarget dt = TestTargets.GCRoot.LoadFullDump(singleFile, GCMode.Workstation);
+            using DataTarget dt = TestTargets.GCRoot.LoadFullDump(singleFile, gc: GCMode.Workstation);
             using ClrRuntime rt = dt.ClrVersions.Single().CreateRuntime();
 
             foreach (ClrSegment seg in rt.Heap.Segments)

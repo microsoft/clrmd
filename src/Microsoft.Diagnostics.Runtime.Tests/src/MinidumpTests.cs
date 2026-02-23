@@ -69,8 +69,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         // Single-file apps only support full dumps (runtime limitation).
         public void MinidumpExceptionPropertiesNoSymbolsTest(bool singleFile)
         {
-            using DataTarget dt = TestTargets.NestedException.LoadMinidump(singleFile);
-            dt.FileLocator = new NullBinaryLocator(dt.FileLocator);
+            var options = new DataTargetOptions()
+            {
+                FileLocator = new NullBinaryLocator()
+            };
+
+            using DataTarget dt = TestTargets.NestedException.LoadMinidump(singleFile, options);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ExceptionTests.TestProperties(runtime);
         }
