@@ -131,7 +131,7 @@ namespace Microsoft.Diagnostics.Runtime
                 IAbstractThreadHelpers? threadHelpers = GetService<IAbstractThreadHelpers>();
                 ImmutableArray<ClrThread>.Builder builder = ImmutableArray.CreateBuilder<ClrThread>();
 
-                int max = 20000;
+                int max = DataTarget.Options.Limits.MaxThreads;
                 foreach (ClrThreadInfo data in GetDacRuntime().EnumerateThreads())
                 {
                     builder.Add(new ClrThread(DataTarget.DataReader, this, threadHelpers, data));
@@ -417,15 +417,20 @@ namespace Microsoft.Diagnostics.Runtime
 
         private DomainAndModules InitAppDomainData()
         {
+            DataTargetLimits limits = DataTarget.Options.Limits;
             Dictionary<ulong, ClrModule> modules = new();
             string bclName = ClrInfo.Flavor == ClrFlavor.Core ? "SYSTEM.PRIVATE.CORELIB" : "MSCORLIB";
 
             ClrAppDomain? system = null, shared = null;
             ClrModule? bcl = null;
 
+            int domainCount = 0;
             ImmutableArray<ClrAppDomain>.Builder builder = ImmutableArray.CreateBuilder<ClrAppDomain>();
             foreach (AppDomainInfo domainInfo in GetDacRuntime().EnumerateAppDomains())
             {
+                if (domainCount++ >= limits.MaxAppDomains)
+                    break;
+
                 ClrAppDomain domain = new(this, domainInfo, GetService<IAbstractClrNativeHeaps>());
 
                 switch (domainInfo.Kind)
@@ -451,6 +456,9 @@ namespace Microsoft.Diagnostics.Runtime
                 ImmutableArray<ClrModule>.Builder moduleBuilder = ImmutableArray.CreateBuilder<ClrModule>();
                 foreach (ulong moduleAddress in GetDacRuntime().GetModuleList(domain.Address))
                 {
+                    if (modules.Count >= limits.MaxModules)
+                        break;
+
                     if (!modules.TryGetValue(moduleAddress, out ClrModule? module))
                     {
                         module = new(domain, moduleAddress, moduleHelpers, nativeHeaps, DataTarget.DataReader);

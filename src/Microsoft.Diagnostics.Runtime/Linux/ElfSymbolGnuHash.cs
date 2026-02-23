@@ -13,12 +13,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     {
         private readonly Reader _reader;
         private readonly ulong _chainsAddress;
+        private readonly int _maxChainLength;
 
-        internal static ElfSymbolGnuHash? Create(Reader reader, bool is64Bit, ulong address)
+        internal static ElfSymbolGnuHash? Create(Reader reader, bool is64Bit, ulong address, DataTargetLimits? limits = null)
         {
             try
             {
-                return new ElfSymbolGnuHash(reader, is64Bit, address);
+                return new ElfSymbolGnuHash(reader, is64Bit, address, limits);
             }
             catch (IOException)
             {
@@ -30,7 +31,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return null;
         }
 
-        private ElfSymbolGnuHash(Reader reader, bool is64Bit, ulong address)
+        private ElfSymbolGnuHash(Reader reader, bool is64Bit, ulong address, DataTargetLimits? limits)
         {
             _reader = reader;
 
@@ -58,6 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 Buckets[i] = BitConverter.ToInt32(buffer, i * Marshal.SizeOf<int>());
 
             _chainsAddress = address + (ulong)(BucketCount * (uint)Marshal.SizeOf<int>());
+            _maxChainLength = (limits ?? new DataTargetLimits()).MaxElfGnuHashChainLength;
         }
 
         public int BucketCount { get; }
@@ -70,9 +72,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public int[] Buckets { get; }
 
-        // Cap chain walks to prevent infinite loops on corrupted data.
-        private const int MaxChainLength = 100_000;
-
         public IEnumerable<int> GetPossibleSymbolIndex(string symbolName)
         {
             // This implementation completely ignores the bloom filter. The results should still be correct, but may
@@ -81,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             int i = Buckets[hash % BucketCount] - SymbolOffset;
             for (int iter = 0; ; i++, iter++)
             {
-                if (iter >= MaxChainLength)
+                if (iter >= _maxChainLength)
                     yield break;
 
                 int chainVal = GetChain(i);

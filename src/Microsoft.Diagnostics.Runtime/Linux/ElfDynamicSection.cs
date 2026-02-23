@@ -7,7 +7,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal sealed class ElfDynamicSection
     {
-        public ElfDynamicSection(Reader reader, bool is64Bit, ulong address, ulong size)
+        public ElfDynamicSection(Reader reader, bool is64Bit, ulong address, ulong size, DataTargetLimits? limits = null)
         {
             ulong endAddress = address + size;
             while (address < endAddress)
@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             StringTable = ElfStringTable.Create(reader, StringTableVA, StringTableSize);
             SymbolTable = ElfSymbolTable.Create(reader, is64Bit, SymbolTableVA, StringTable);
-            GnuHash = ElfSymbolGnuHash.Create(reader, is64Bit, GnuHashTableVA);
+            GnuHash = ElfSymbolGnuHash.Create(reader, is64Bit, GnuHashTableVA, limits);
         }
 
         public ulong GnuHashTableVA { get; }

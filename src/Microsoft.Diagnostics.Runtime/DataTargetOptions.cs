@@ -80,4 +80,14 @@ public class DataTargetOptions
     /// be useful for debugging or analyzing symbol loading behavior. Tracing may produce a large amount of output and
     /// could impact performance.</remarks>
     public bool TraceSymbolRequests { get; init; }
+
+    /// <summary>
+    /// Safety limits for parsing and enumeration operations. These limits prevent excessive memory
+    /// allocation and processing when reading untrusted or corrupted dump files.
+    /// </summary>
+    public DataTargetLimits Limits
+    {
+        get => field ??= new DataTargetLimits();
+        init;
+    }
 }

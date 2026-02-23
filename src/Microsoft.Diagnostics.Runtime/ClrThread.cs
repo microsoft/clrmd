@@ -15,7 +15,6 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrThread : IClrThread, IEquatable<ClrThread>
     {
-        private const int MaxFrameDefault = 8096;
         private readonly IDataReader _dataReader;
         private readonly IAbstractThreadHelpers? _threadHelpers;
         private ulong _exceptionInFlight;
@@ -162,9 +161,10 @@ namespace Microsoft.Diagnostics.Runtime
 
             // We need to make sure we don't loop forever when enumerating the stack trace.
             // We will only cache the stack if we completed enumeratione (i.e. got less
-            // than MaxFrameDefault frames)
-            ClrStackFrame[] stack = threadHelpers.EnumerateStackTrace(OSThreadId, includeContext: false, traceErrors: IsAlive).Select(r => CreateClrStackFrame(r)).Take(MaxFrameDefault).ToArray();
-            if (Runtime.DataTarget.CacheOptions.CacheStackTraces && stack.Length < MaxFrameDefault)
+            // than maxFrames frames)
+            int maxFrames = Runtime.DataTarget.Options.Limits.MaxStackFrames;
+            ClrStackFrame[] stack = threadHelpers.EnumerateStackTrace(OSThreadId, includeContext: false, traceErrors: IsAlive).Select(r => CreateClrStackFrame(r)).Take(maxFrames).ToArray();
+            if (Runtime.DataTarget.CacheOptions.CacheStackTraces && stack.Length < maxFrames)
                 _frameCache = new(stack, includedContext: false);
 
             return stack;
@@ -221,7 +221,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumeration of stack frames.</returns>
         public IEnumerable<ClrStackFrame> EnumerateStackTrace(bool includeContext = false)
         {
-            return EnumerateStackTrace(includeContext, maxFrames: MaxFrameDefault);
+            return EnumerateStackTrace(includeContext, maxFrames: Runtime.DataTarget.Options.Limits.MaxStackFrames);
         }
 
         /// <summary>

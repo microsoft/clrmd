@@ -20,10 +20,10 @@ namespace Microsoft.Diagnostics.Runtime
         public string DisplayName { get; }
         public OSPlatform TargetPlatform => OSPlatform.Linux;
 
-        public CoredumpReader(string path, Stream stream, bool leaveOpen)
+        public CoredumpReader(string path, Stream stream, bool leaveOpen, DataTargetLimits? limits = null)
         {
             DisplayName = path ?? throw new ArgumentNullException(nameof(path));
-            _core = new ElfCoreFile(stream ?? throw new ArgumentNullException(nameof(stream)), leaveOpen);
+            _core = new ElfCoreFile(stream ?? throw new ArgumentNullException(nameof(stream)), leaveOpen, limits);
 
             ElfMachine architecture = _core.ElfFile.Header.Architecture;
             (PointerSize, Architecture) = architecture switch

@@ -63,6 +63,11 @@ namespace Microsoft.Diagnostics.Runtime
         public CacheOptions CacheOptions => Options.CacheOptions;
 
         /// <summary>
+        /// Safety limits for parsing and enumeration operations.
+        /// </summary>
+        public DataTargetLimits Limits => Options.Limits;
+
+        /// <summary>
         /// Gets or sets instance to manage the symbol path(s).
         /// </summary>
         public IFileLocator? FileLocator => Options.FileLocator;
@@ -282,9 +287,9 @@ namespace Microsoft.Diagnostics.Runtime
                 DumpFileFormat format = ReadFileFormat(stream);
                 IDataReader reader = format switch
                 {
-                    DumpFileFormat.Minidump => new MinidumpReader(displayName, stream, options.CacheOptions, leaveOpen),
-                    DumpFileFormat.ElfCoredump => new CoredumpReader(displayName, stream, leaveOpen),
-                    DumpFileFormat.MachOCoredump => new MachOCoreReader(displayName, stream, leaveOpen),
+                    DumpFileFormat.Minidump => new MinidumpReader(displayName, stream, options.CacheOptions, leaveOpen, options.Limits),
+                    DumpFileFormat.ElfCoredump => new CoredumpReader(displayName, stream, leaveOpen, options.Limits),
+                    DumpFileFormat.MachOCoredump => new MachOCoreReader(displayName, stream, leaveOpen, options.Limits),
 
                     // USERDU64 dumps are the "old" style of dumpfile.  This file format is very old and shouldn't be
                     // used.  However, IDebugClient::WriteDumpFile(,DEBUG_DUMP_DEFAULT) still generates this format

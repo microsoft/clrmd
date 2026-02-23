@@ -12,13 +12,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     internal sealed class ElfFile : IDisposable
     {
-        // Upper bounds for untrusted header values to prevent OOM and excessive processing.
-        private const int MaxProgramHeaders = 10_000;
-
         private readonly ulong _position;
         private readonly bool _virtual;
         private readonly Stream? _stream;
         private readonly bool _leaveOpen;
+        private readonly DataTargetLimits _limits;
         private Reader? _virtualAddressReader;
         private ImmutableArray<ElfNote> _notes;
         private ImmutableArray<ElfProgramHeader> _programHeaders;
@@ -101,7 +99,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     {
                         if (header.Type == ElfProgramHeaderType.Dynamic)
                         {
-                            _dynamicSection = new ElfDynamicSection(Reader, Header.Is64Bit, _position + (_virtual ? header.VirtualAddress : header.FileOffset), _virtual ? header.VirtualSize : header.FileSize);
+                            _dynamicSection = new ElfDynamicSection(Reader, Header.Is64Bit, _position + (_virtual ? header.VirtualAddress : header.FileOffset), _virtual ? header.VirtualSize : header.FileSize, _limits);
                             break;
                         }
                     }
@@ -185,8 +183,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
         }
 
-        internal ElfFile(Reader reader, ulong position = 0, bool isVirtual = false)
+        internal ElfFile(Reader reader, ulong position = 0, bool isVirtual = false, DataTargetLimits? limits = null)
         {
+            _limits = limits ?? new DataTargetLimits();
             Reader = reader;
             _position = position;
             _virtual = isVirtual;
@@ -209,8 +208,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 throw new InvalidDataException($"{reader.DataSource.Name ?? "This coredump"} does not contain a valid ELF header.");
         }
 
-        internal ElfFile(IElfHeader header, Reader reader, ulong position = 0, bool isVirtual = false)
+        internal ElfFile(IElfHeader header, Reader reader, ulong position = 0, bool isVirtual = false, DataTargetLimits? limits = null)
         {
+            _limits = limits ?? new DataTargetLimits();
             Reader = reader;
             _position = position;
             _virtual = isVirtual;
@@ -262,8 +262,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             if (!_programHeaders.IsDefault)
                 return;
 
-            if (Header.ProgramHeaderCount > MaxProgramHeaders)
-                throw new InvalidDataException($"ELF file '{Reader.DataSource.Name ?? "unknown"}' reports {Header.ProgramHeaderCount} program headers, which exceeds the maximum of {MaxProgramHeaders}.");
+            if (Header.ProgramHeaderCount > _limits.MaxElfProgramHeaders)
+                throw new InvalidDataException($"ELF file '{Reader.DataSource.Name ?? "unknown"}' reports {Header.ProgramHeaderCount} program headers, which exceeds the maximum of {_limits.MaxElfProgramHeaders}.");
 
             // Calculate the loadBias. It is usually just the base address except for some executable modules.
             long loadBias = (long)_position;

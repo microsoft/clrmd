@@ -17,11 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         private const uint X86_THREAD_STATE64 = 4;
         private const uint ARM_THREAD_STATE64 = 6;
 
-        // Upper bounds for untrusted header values to prevent OOM and excessive processing.
-        private const int MaxLoadCommands = 10_000;
-        private const int MaxThreadEntries = 10_000;
-        private const int MaxModules = 100_000;
-        private const int MaxAsciiLength = 4096;
+        internal readonly DataTargetLimits _limits;
 
         private readonly object _sync = new();
         private readonly Stream _stream;
@@ -48,8 +44,9 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         public MachOCoreReader Parent { get; }
 
-        public MachOCoreDump(MachOCoreReader parent, Stream stream, bool leaveOpen, string displayName)
+        public MachOCoreDump(MachOCoreReader parent, Stream stream, bool leaveOpen, string displayName, DataTargetLimits? limits = null)
         {
+            _limits = limits ?? new DataTargetLimits();
             Parent = parent;
 
             fixed (MachHeader64* header = &_header)
@@ -59,8 +56,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             if (_header.Magic != MachHeader64.Magic64)
                 throw new InvalidDataException($"'{displayName}' does not have a valid Mach-O header.");
 
-            if (_header.NumberCommands > MaxLoadCommands)
-                throw new InvalidDataException($"Mach-O file '{displayName}' reports {_header.NumberCommands} load commands, which exceeds the maximum of {MaxLoadCommands}.");
+            if (_header.NumberCommands > _limits.MaxMachOLoadCommands)
+                throw new InvalidDataException($"Mach-O file '{displayName}' reports {_header.NumberCommands} load commands, which exceeds the maximum of {_limits.MaxMachOLoadCommands}.");
 
             _stream = stream;
             _leaveOpen = leaveOpen;
@@ -106,8 +103,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                             }
                             else
                             {
-                                if (threadInfo.NumberThreadEntries > MaxThreadEntries)
-                                    throw new InvalidDataException($"Mach-O file '{displayName}' reports {threadInfo.NumberThreadEntries} thread entries, which exceeds the maximum of {MaxThreadEntries}.");
+                                if (threadInfo.NumberThreadEntries > _limits.MaxThreads)
+                                    throw new InvalidDataException($"Mach-O file '{displayName}' reports {threadInfo.NumberThreadEntries} thread entries, which exceeds the maximum of {_limits.MaxThreads}.");
 
                                 for (int j = 0; j < threadInfo.NumberThreadEntries; j++)
                                 {
@@ -252,7 +249,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             int read = 0;
             Span<byte> buffer = new byte[32];
 
-            while (read < MaxAsciiLength)
+            while (read < _limits.MaxMachOAsciiLength)
             {
                 int count = ReadMemory(address + (uint)read, buffer);
                 if (count <= 0)
@@ -281,8 +278,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             {
                 DyldAllImageInfos allImageInfo = ReadMemory<DyldAllImageInfos>(dyld_allImage_address);
 
-                if (allImageInfo.infoArrayCount > MaxModules)
-                    throw new InvalidDataException($"Mach-O core dump reports {allImageInfo.infoArrayCount} modules, which exceeds the maximum of {MaxModules}.");
+                if (allImageInfo.infoArrayCount > _limits.MaxModules)
+                    throw new InvalidDataException($"Mach-O core dump reports {allImageInfo.infoArrayCount} modules, which exceeds the maximum of {_limits.MaxModules}.");
 
                 DyldImageInfo[] allImages = new DyldImageInfo[allImageInfo.infoArrayCount];
 

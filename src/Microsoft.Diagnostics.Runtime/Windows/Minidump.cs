@@ -21,11 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         private const int MiniDumpWithPrivateReadWriteMemory = 0x200;
         private const int MiniDumpWithPrivateWriteCopyMemory = 0x10000;
 
-        // Upper bounds for untrusted header values to prevent OOM and excessive processing.
-        private const int MaxStreams = 10_000;
-        private const int MaxModules = 10_000;
-        private const int MaxThreads = 10_000;
-        private const int MaxMemoryRanges = 10_000_000;
+        private readonly DataTargetLimits _limits;
 
         private readonly string _displayName;
         private readonly MinidumpDirectory[] _directories;
@@ -65,8 +61,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public bool IsMiniDump { get; }
 
-        public Minidump(string displayName, Stream stream, CacheOptions cacheOptions, bool leaveOpen)
+        public Minidump(string displayName, Stream stream, CacheOptions cacheOptions, bool leaveOpen, DataTargetLimits? limits = null)
         {
+            _limits = limits ?? new DataTargetLimits();
             _displayName = displayName;
 
             // Load header
@@ -74,8 +71,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             if (!header.IsValid)
                 throw new InvalidDataException($"File '{displayName}' is not a Minidump.");
 
-            if (header.NumberOfStreams > MaxStreams)
-                throw new InvalidDataException($"Minidump '{displayName}' reports {header.NumberOfStreams} streams, which exceeds the maximum of {MaxStreams}.");
+            if (header.NumberOfStreams > _limits.MaxMinidumpStreams)
+                throw new InvalidDataException($"Minidump '{displayName}' reports {header.NumberOfStreams} streams, which exceeds the maximum of {_limits.MaxMinidumpStreams}.");
 
             IsMiniDump = (header.Flags & (MiniDumpWithFullMemory | MiniDumpWithPrivateReadWriteMemory | MiniDumpWithPrivateWriteCopyMemory)) == 0;
 
@@ -101,8 +98,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             long rva = _directories[moduleListIndex].Rva;
             uint count = Read<uint>(stream, rva);
 
-            if (count > MaxModules)
-                throw new InvalidDataException($"Minidump '{displayName}' reports {count} modules, which exceeds the maximum of {MaxModules}.");
+            if (count > _limits.MaxModules)
+                throw new InvalidDataException($"Minidump '{displayName}' reports {count} modules, which exceeds the maximum of {_limits.MaxModules}.");
 
             rva += sizeof(uint);
             MinidumpModule[] modules = new MinidumpModule[count];
@@ -223,8 +220,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         if (numThreads == 0)
                             continue;
 
-                        if (numThreads > MaxThreads)
-                            throw new InvalidDataException($"Minidump '{_displayName}' reports {numThreads} threads in ThreadListStream, which exceeds the maximum of {MaxThreads}.");
+                        if (numThreads > _limits.MaxThreads)
+                            throw new InvalidDataException($"Minidump '{_displayName}' reports {numThreads} threads in ThreadListStream, which exceeds the maximum of {_limits.MaxThreads}.");
 
                         int count = ResizeBytesForArray<MinidumpThread>(numThreads, ref buffer);
                         int read = await ReadAsync(stream, buffer, count).ConfigureAwait(false);
@@ -245,8 +242,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         if (numThreads == 0)
                             continue;
 
-                        if (numThreads > MaxThreads)
-                            throw new InvalidDataException($"Minidump '{_displayName}' reports {numThreads} threads in ThreadExListStream, which exceeds the maximum of {MaxThreads}.");
+                        if (numThreads > _limits.MaxThreads)
+                            throw new InvalidDataException($"Minidump '{_displayName}' reports {numThreads} threads in ThreadExListStream, which exceeds the maximum of {_limits.MaxThreads}.");
 
                         int count = ResizeBytesForArray<MinidumpThreadEx>(numThreads, ref buffer);
                         int read = await ReadAsync(stream, buffer, count).ConfigureAwait(false);
@@ -267,8 +264,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                         if (threadInfoList.NumberOfEntries <= 0)
                             continue;
 
-                        if (threadInfoList.NumberOfEntries > MaxThreads)
-                            throw new InvalidDataException($"Minidump '{_displayName}' reports {threadInfoList.NumberOfEntries} entries in ThreadInfoListStream, which exceeds the maximum of {MaxThreads}.");
+                        if (threadInfoList.NumberOfEntries > _limits.MaxThreads)
+                            throw new InvalidDataException($"Minidump '{_displayName}' reports {threadInfoList.NumberOfEntries} entries in ThreadInfoListStream, which exceeds the maximum of {_limits.MaxThreads}.");
 
                         if (threadInfoList.SizeOfEntry != SizeOf<MinidumpThreadInfo>())
                             throw new InvalidDataException($"ThreadInfoList.SizeOfEntry=0x{threadInfoList.SizeOfEntry:x}, but sizeof(MinidumpThreadInfo)=0x{SizeOf<MinidumpThreadInfo>()}");
@@ -336,8 +333,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     {
                         // MINIDUMP_MEMORY_LIST only contains a count followed by MINIDUMP_MEMORY_DESCRIPTORs
                         uint count = Read<uint>(stream, _directories[i].Rva);
-                        if (count > MaxMemoryRanges)
-                            throw new InvalidDataException($"Minidump '{_displayName}' reports {count} memory ranges in MemoryListStream, which exceeds the maximum of {MaxMemoryRanges}.");
+                        if (count > _limits.MaxMinidumpMemoryRanges)
+                            throw new InvalidDataException($"Minidump '{_displayName}' reports {count} memory ranges in MemoryListStream, which exceeds the maximum of {_limits.MaxMinidumpMemoryRanges}.");
 
                         int byteCount = ResizeBytesForArray<MinidumpMemoryDescriptor>(count, ref buffer);
 
@@ -347,8 +344,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     else if (_directories[i].StreamType == MinidumpStreamType.Memory64ListStream)
                     {
                         MinidumpMemory64List memList64 = Read<MinidumpMemory64List>(stream, _directories[i].Rva);
-                        if (memList64.NumberOfMemoryRanges > MaxMemoryRanges)
-                            throw new InvalidDataException($"Minidump '{_displayName}' reports {memList64.NumberOfMemoryRanges} memory ranges in Memory64ListStream, which exceeds the maximum of {MaxMemoryRanges}.");
+                        if (memList64.NumberOfMemoryRanges > (ulong)_limits.MaxMinidumpMemoryRanges)
+                            throw new InvalidDataException($"Minidump '{_displayName}' reports {memList64.NumberOfMemoryRanges} memory ranges in Memory64ListStream, which exceeds the maximum of {_limits.MaxMinidumpMemoryRanges}.");
 
                         int byteCount = ResizeBytesForArray<MinidumpMemoryDescriptor>(memList64.NumberOfMemoryRanges, ref buffer);
 

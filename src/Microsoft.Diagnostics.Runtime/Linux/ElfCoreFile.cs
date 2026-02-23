@@ -16,9 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     /// </summary>
     internal sealed class ElfCoreFile : IDisposable
     {
-        // Upper bounds for untrusted header values to prevent OOM and excessive processing.
-        private const int MaxFileTableEntries = 10_000;
-        private const int MaxAuxvEntries = 10_000;
+        private readonly DataTargetLimits _limits;
 
         private readonly Stream _stream;
         private readonly bool _leaveOpen;
@@ -88,14 +86,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         /// <param name="stream">The Elf stream to read the coredump from.</param>
         /// <param name="leaveOpen">Whether to leave the given stream open after this class is disposed.</param>
+        /// <param name="limits">Optional safety limits for parsing.</param>
         /// <exception cref="InvalidDataException">Throws <see cref="InvalidDataException"/> if the file is not an Elf coredump.</exception>
-        public ElfCoreFile(Stream stream, bool leaveOpen = false)
+        public ElfCoreFile(Stream stream, bool leaveOpen = false, DataTargetLimits? limits = null)
         {
+            _limits = limits ?? new DataTargetLimits();
             _stream = stream;
             _leaveOpen = leaveOpen;
 
             _reader = new Reader(new StreamAddressSpace(stream));
-            ElfFile = new ElfFile(_reader);
+            ElfFile = new ElfFile(_reader, limits: _limits);
 
             if (ElfFile.Header.Type != ElfHeaderType.Core)
                 throw new InvalidDataException($"{stream.GetFilename() ?? "The given stream"} is not a coredump");
@@ -132,8 +132,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             int count = 0;
             while (true)
             {
-                if (count++ > MaxAuxvEntries)
-                    throw new InvalidDataException($"ELF coredump contains more than {MaxAuxvEntries} auxv entries, which exceeds the maximum allowed.");
+                if (count++ > _limits.MaxElfAuxvEntries)
+                    throw new InvalidDataException($"ELF coredump contains more than {_limits.MaxElfAuxvEntries} auxv entries, which exceeds the maximum allowed.");
 
                 ulong type;
                 ulong value;
@@ -176,8 +176,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 entryCount = header.EntryCount;
             }
 
-            if (entryCount > MaxFileTableEntries)
-                throw new InvalidDataException($"ELF coredump file table reports {entryCount} entries, which exceeds the maximum of {MaxFileTableEntries}.");
+            if (entryCount > (ulong)_limits.MaxElfFileTableEntries)
+                throw new InvalidDataException($"ELF coredump file table reports {entryCount} entries, which exceeds the maximum of {_limits.MaxElfFileTableEntries}.");
 
             ElfFileTableEntryPointers64[] fileTable = new ElfFileTableEntryPointers64[entryCount];
             Dictionary<string, ElfLoadedImage> lookup = new(fileTable.Length);
