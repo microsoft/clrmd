@@ -162,7 +162,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 options = new DataTargetOptions()
                 {
-                    SymbolPaths = []
+                    SymbolPaths = [],
+                    FileLocator = InstalledRuntimeLocator.Instance,
                 };
 
                 return DataTarget.LoadDump(path, options);
