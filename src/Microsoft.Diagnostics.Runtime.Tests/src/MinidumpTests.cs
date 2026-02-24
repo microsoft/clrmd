@@ -34,22 +34,31 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrThread thread = runtime.GetMainThread();
 
-            string[] frames = IntPtr.Size == 8 ? new[] { "Inner", "Inner", "Middle", "Outer", "Main" } : new[] { "Inner", "Middle", "Outer", "Main" };
+            string[] expectedFrames = IntPtr.Size == 8 ? new[] { "Inner", "Inner", "Middle", "Outer", "Main" } : new[] { "Inner", "Middle", "Outer", "Main" };
 
-            int i = 0;
+            var managedFrames = thread.EnumerateStackTrace()
+                .Where(f => f.Kind == ClrStackFrameKind.ManagedMethod)
+                .ToArray();
 
-            foreach (ClrStackFrame frame in thread.EnumerateStackTrace())
+            foreach (ClrStackFrame frame in managedFrames)
             {
-                if (frame.Kind == ClrStackFrameKind.ManagedMethod)
-                {
-                    Assert.NotEqual(0ul, frame.InstructionPointer);
-                    Assert.NotEqual(0ul, frame.StackPointer);
-                    Assert.NotNull(frame.Method);
-                    Assert.NotNull(frame.Method.Type);
-                    Assert.NotNull(frame.Method.Type.Module);
-                    Assert.Equal(frames[i++], frame.Method.Name);
-                }
+                Assert.NotEqual(0ul, frame.InstructionPointer);
+                Assert.NotEqual(0ul, frame.StackPointer);
+                Assert.NotNull(frame.Method);
+                Assert.NotNull(frame.Method.Type);
+                Assert.NotNull(frame.Method.Type.Module);
             }
+
+            // Verify expected frames appear in order (runtime may add helper frames like DispatchEx)
+            int expectedIdx = 0;
+            for (int i = 0; i < managedFrames.Length && expectedIdx < expectedFrames.Length; i++)
+            {
+                if (managedFrames[i].Method.Name == expectedFrames[expectedIdx])
+                    expectedIdx++;
+            }
+
+            Assert.True(expectedIdx == expectedFrames.Length,
+                $"Expected to find frames [{string.Join(", ", expectedFrames)}] in order within stack [{string.Join(", ", managedFrames.Select(f => f.Method.Name))}]");
         }
 
         [Theory]

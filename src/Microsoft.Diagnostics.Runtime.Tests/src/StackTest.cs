@@ -13,16 +13,26 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [InlineData(true)]
         public void StackTraceTests(bool singleFile)
         {
-            string[] frames = new string[] { "Inner", "Inner", "Middle", "Outer", "Main" };
+            string[] expectedFrames = new string[] { "Inner", "Inner", "Middle", "Outer", "Main" };
 
             using DataTarget dt = TestTargets.NestedException.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            ClrStackFrame[] items = runtime.GetMainThread().EnumerateStackTrace().Where(f => f.Kind == ClrStackFrameKind.ManagedMethod).ToArray();
+            string[] actualNames = runtime.GetMainThread().EnumerateStackTrace()
+                .Where(f => f.Kind == ClrStackFrameKind.ManagedMethod)
+                .Select(f => f.Method.Name)
+                .ToArray();
 
-            Assert.Equal(frames.Length, items.Length);
-            for (int i = 0; i < frames.Length; i++)
-                Assert.StartsWith(frames[i], items[i].Method.Name);
+            // Verify the expected frames appear in order (runtime may add helper frames like DispatchEx)
+            int expectedIdx = 0;
+            for (int i = 0; i < actualNames.Length && expectedIdx < expectedFrames.Length; i++)
+            {
+                if (actualNames[i].StartsWith(expectedFrames[expectedIdx]))
+                    expectedIdx++;
+            }
+
+            Assert.True(expectedIdx == expectedFrames.Length,
+                $"Expected to find frames [{string.Join(", ", expectedFrames)}] in order within stack [{string.Join(", ", actualNames)}]");
         }
     }
 }
