@@ -113,7 +113,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="dacPath">A full path to the matching DAC dll for this process.</param>
         /// <param name="ignoreMismatch">Whether or not to ignore mismatches between. </param>
         /// <returns>The runtime associated with this CLR.</returns>
-        public ClrRuntime CreateRuntime(string dacPath, bool ignoreMismatch) => CreateRuntime(dacPath, ignoreMismatch);
+        public ClrRuntime CreateRuntime(string dacPath, bool ignoreMismatch)
+        {
+            if (string.IsNullOrEmpty(dacPath))
+                throw new ArgumentNullException(nameof(dacPath));
+
+            if (!File.Exists(dacPath))
+                throw new FileNotFoundException(dacPath);
+
+            return CreateRuntimeWorker(dacPath, ignoreMismatch);
+        }
 
 
         private ClrRuntime CreateRuntimeWorker(string? dacPath, bool ignoreMismatch)
