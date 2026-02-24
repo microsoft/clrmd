@@ -15,7 +15,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void CreationSpecificDacNegativeTest()
         {
             using DataTarget dt = TestTargets.NestedException.LoadFullDump();
-            string badDac = dt.EnumerateModules().Single(m => Path.GetFileNameWithoutExtension(m.FileName).Equals("clr", StringComparison.OrdinalIgnoreCase)).FileName;
+            string badDac = dt.EnumerateModules().Single(m =>
+            {
+                string name = Path.GetFileNameWithoutExtension(m.FileName);
+                return name.Equals("coreclr", StringComparison.OrdinalIgnoreCase)
+                    || name.Equals("clr", StringComparison.OrdinalIgnoreCase);
+            }).FileName;
 
             Assert.Throws<ClrDiagnosticsException>(() => dt.ClrVersions.Single().CreateRuntime(badDac));
         }

@@ -102,8 +102,6 @@ Platform-specific code lives in `src/Microsoft.Diagnostics.Runtime/src/{Windows,
   ```
 - Fixture-based tests use `IClassFixture<ObjectConnection<T>>` to share a loaded dump across tests in a class.
 - Dump file naming: `{TargetName}_{wks|svr}[_mini][_net48].dmp` (in `src/TestTargets/bin/{arch}/`)
-- Pre-committed cross-platform test dumps live in `.test_artifacts/`.
-
 ### IDisposable
 - `DataTarget` and `ClrRuntime` must be disposed. Check `_disposed` and throw `ObjectDisposedException` on use-after-dispose.
 

@@ -245,6 +245,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [InlineData(true)]
         public void VariableRootTest(bool singleFile)
         {
+            // Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10 on Linux.
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Environment.Version.Major < 11)
+                return;
+
             // Test to make sure that a specific static and local variable exist.
 
             using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);

@@ -11,6 +11,7 @@ class Program
     static Foo s_foo = new Foo();
     static void Main(string[] args)
     {
+#if NETFRAMEWORK
         string codebase = Assembly.GetExecutingAssembly().CodeBase;
 
         if (codebase.StartsWith("file://"))
@@ -20,6 +21,7 @@ class Program
 
         AppDomain domain = AppDomain.CreateDomain("Second AppDomain");
         domain.ExecuteAssembly(Path.Combine(Path.GetDirectoryName(codebase), "NestedException.exe"));
+#endif
 
         while (true)
             Thread.Sleep(250);

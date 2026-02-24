@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// Ensures a dump file exists for the given test target. If the dump doesn't exist,
         /// builds the target and generates the dump.
         /// </summary>
-        public static void EnsureDump(string name, string projectDir, string dumpPath, string architecture, bool isFramework, GCMode gcMode, bool full, bool singleFile = false)
+        public static void EnsureDump(string name, string projectDir, string dumpPath, string architecture, bool isFramework, GCMode gcMode, bool full, bool singleFile = false, string[] companionTargets = null)
         {
             if (File.Exists(dumpPath))
                 return;
@@ -45,7 +45,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 }
                 else
                 {
-                    exePath = BuildTarget(name, projectDir, outputDir, architecture, isFramework);
+                    exePath = BuildTarget(name, projectDir, outputDir, architecture, isFramework, companionTargets);
                 }
 
                 string processOutput = null;
@@ -80,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// Builds a test target for a specific architecture and framework.
         /// Returns the path to the built executable.
         /// </summary>
-        private static string BuildTarget(string name, string projectDir, string outputDir, string architecture, bool isFramework)
+        private static string BuildTarget(string name, string projectDir, string outputDir, string architecture, bool isFramework, string[] companionTargets = null)
         {
             string csprojPath = Path.Combine(projectDir, name + ".csproj");
             if (!File.Exists(csprojPath))
@@ -97,51 +97,25 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             string projectBinDir = Path.Combine(projectDir, "bin", "Debug", tfm);
             Directory.CreateDirectory(outputDir);
 
-            // Copy the output files to our dump output directory
             string exeName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? name + ".exe" : name;
-            string srcExe = Path.Combine(projectBinDir, exeName);
-            string srcDll = Path.Combine(projectBinDir, name + ".dll");
+            CopyBuildOutput(name, projectBinDir, outputDir);
 
-            // .NET Core produces both exe and dll; .NET Framework produces exe only
-            if (File.Exists(srcExe))
+            // Build and copy companion targets (e.g., NestedException for AppDomains)
+            if (companionTargets is { Length: > 0 })
             {
-                CopyFileIfNewer(srcExe, Path.Combine(outputDir, exeName));
-            }
+                string testTargetsRoot = Path.GetDirectoryName(projectDir)!;
+                foreach (string companion in companionTargets)
+                {
+                    string companionProjectDir = Path.Combine(testTargetsRoot, companion);
+                    string companionCsproj = Path.Combine(companionProjectDir, companion + ".csproj");
+                    if (!File.Exists(companionCsproj))
+                        throw new FileNotFoundException($"Could not find companion project file: {companionCsproj}");
 
-            if (File.Exists(srcDll))
-            {
-                CopyFileIfNewer(srcDll, Path.Combine(outputDir, name + ".dll"));
-            }
+                    RunDotnetBuild(companionCsproj, tfm, platform);
 
-            // Copy PDB
-            string srcPdb = Path.Combine(projectBinDir, name + ".pdb");
-            if (File.Exists(srcPdb))
-            {
-                CopyFileIfNewer(srcPdb, Path.Combine(outputDir, name + ".pdb"));
-            }
-
-            // Copy SharedLibrary and its PDB if present
-            string srcShared = Path.Combine(projectBinDir, "SharedLibrary.dll");
-            if (File.Exists(srcShared))
-            {
-                CopyFileIfNewer(srcShared, Path.Combine(outputDir, "SharedLibrary.dll"));
-                string srcSharedPdb = Path.Combine(projectBinDir, "SharedLibrary.pdb");
-                if (File.Exists(srcSharedPdb))
-                    CopyFileIfNewer(srcSharedPdb, Path.Combine(outputDir, "SharedLibrary.pdb"));
-            }
-
-            // Copy the runtimeconfig.json for .NET Core targets
-            string runtimeConfig = Path.Combine(projectBinDir, name + ".runtimeconfig.json");
-            if (File.Exists(runtimeConfig))
-            {
-                CopyFileIfNewer(runtimeConfig, Path.Combine(outputDir, name + ".runtimeconfig.json"));
-            }
-
-            // Copy deps.json for .NET Core targets
-            string depsJson = Path.Combine(projectBinDir, name + ".deps.json");
-            if (File.Exists(depsJson))
-            {
-                CopyFileIfNewer(depsJson, Path.Combine(outputDir, name + ".deps.json"));
+                    string companionBinDir = Path.Combine(companionProjectDir, "bin", "Debug", tfm);
+                    CopyBuildOutput(companion, companionBinDir, outputDir);
+                }
             }
 
             string destExe = Path.Combine(outputDir, exeName);
@@ -199,8 +173,66 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private static void CopyFileIfNewer(string src, string dest)
         {
-            if (!File.Exists(dest) || File.GetLastWriteTimeUtc(src) > File.GetLastWriteTimeUtc(dest))
-                File.Copy(src, dest, overwrite: true);
+            if (File.Exists(dest) && File.GetLastWriteTimeUtc(src) <= File.GetLastWriteTimeUtc(dest))
+                return;
+
+            // Retry with backoff to handle transient file locks from dump generation
+            // child processes that haven't fully exited yet.
+            for (int attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    File.Copy(src, dest, overwrite: true);
+                    return;
+                }
+                catch (IOException) when (attempt < 3)
+                {
+                    System.Threading.Thread.Sleep(100 * (attempt + 1));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Copies the build output (exe, dll, pdb, runtimeconfig, deps, SharedLibrary) for a project
+        /// from its bin directory to the shared output directory.
+        /// </summary>
+        private static void CopyBuildOutput(string name, string projectBinDir, string outputDir)
+        {
+            string exeName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? name + ".exe" : name;
+            string srcExe = Path.Combine(projectBinDir, exeName);
+            string srcDll = Path.Combine(projectBinDir, name + ".dll");
+
+            // .NET Core produces both exe and dll; .NET Framework produces exe only
+            if (File.Exists(srcExe))
+                CopyFileIfNewer(srcExe, Path.Combine(outputDir, exeName));
+
+            if (File.Exists(srcDll))
+                CopyFileIfNewer(srcDll, Path.Combine(outputDir, name + ".dll"));
+
+            // Copy PDB
+            string srcPdb = Path.Combine(projectBinDir, name + ".pdb");
+            if (File.Exists(srcPdb))
+                CopyFileIfNewer(srcPdb, Path.Combine(outputDir, name + ".pdb"));
+
+            // Copy SharedLibrary and its PDB if present
+            string srcShared = Path.Combine(projectBinDir, "SharedLibrary.dll");
+            if (File.Exists(srcShared))
+            {
+                CopyFileIfNewer(srcShared, Path.Combine(outputDir, "SharedLibrary.dll"));
+                string srcSharedPdb = Path.Combine(projectBinDir, "SharedLibrary.pdb");
+                if (File.Exists(srcSharedPdb))
+                    CopyFileIfNewer(srcSharedPdb, Path.Combine(outputDir, "SharedLibrary.pdb"));
+            }
+
+            // Copy the runtimeconfig.json for .NET Core targets
+            string runtimeConfig = Path.Combine(projectBinDir, name + ".runtimeconfig.json");
+            if (File.Exists(runtimeConfig))
+                CopyFileIfNewer(runtimeConfig, Path.Combine(outputDir, name + ".runtimeconfig.json"));
+
+            // Copy deps.json for .NET Core targets
+            string depsJson = Path.Combine(projectBinDir, name + ".deps.json");
+            if (File.Exists(depsJson))
+                CopyFileIfNewer(depsJson, Path.Combine(outputDir, name + ".deps.json"));
         }
 
         private static void RunDotnetPublish(string csprojPath, string tfm, string rid, string outputDir)

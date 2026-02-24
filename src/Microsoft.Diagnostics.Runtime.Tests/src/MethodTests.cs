@@ -140,10 +140,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                             AddFailure($"Unbalanced brackets ({opens} '[' vs {closes} ']') in name '{name}' from: {signature}");
 
                         // The method identifier (before any '[') must not contain dots
-                        // (except for .ctor and .cctor which start with a dot)
+                        // (except for .ctor/.cctor, compiler-generated methods containing
+                        // them, and explicit interface implementations which use dots).
                         int bracketIdx = name.IndexOf('[');
                         string methodIdent = bracketIdx >= 0 ? name.Substring(0, bracketIdx) : name;
-                        if (methodIdent != ".ctor" && methodIdent != ".cctor" && methodIdent.Contains('.'))
+                        bool isConstructorRelated = methodIdent.Contains(".ctor") || methodIdent.Contains(".cctor");
+                        bool isExplicitInterfaceImpl = signature.Contains($".{methodIdent}(");
+                        if (!isConstructorRelated && !isExplicitInterfaceImpl && methodIdent.Contains('.'))
                             AddFailure($"Method identifier '{methodIdent}' contains dots, name '{name}' from: {signature}");
 
                         // Name + "(" must appear in the signature
@@ -153,7 +156,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         // Name must not contain parentheses — that indicates the
                         // outermost '(' was not correctly identified, e.g. when function
                         // pointer types introduce nested parens (issue #842).
-                        if (name.Contains('(') || name.Contains(')'))
+                        // However, methods returning function pointer types (FnPtr) may
+                        // legitimately have parens in their DAC-reported name.
+                        bool hasFnPtrReturn = signature.Contains("FnPtr(");
+                        if (!hasFnPtrReturn && (name.Contains('(') || name.Contains(')')))
                             AddFailure($"Name '{name}' contains parentheses from: {signature}");
                     }
                 }

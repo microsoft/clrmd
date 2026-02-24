@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private static readonly Lazy<TestTarget> _nestedTypes = new(() => new TestTarget("NestedTypes"));
         private static readonly Lazy<TestTarget> _gcHandles = new(() => new TestTarget("GCHandles"));
         private static readonly Lazy<TestTarget> _types = new(() => new TestTarget("Types"));
-        private static readonly Lazy<TestTarget> _appDomains = new(() => new TestTarget("AppDomains", frameworkOnly: true));
+        private static readonly Lazy<TestTarget> _appDomains = new(() => new TestTarget("AppDomains", frameworkOnly: true, companionTargets: ["NestedException"]));
         private static readonly Lazy<TestTarget> _finalizationQueue = new(() => new TestTarget("FinalizationQueue"));
         private static readonly Lazy<TestTarget> _byReference = new(() => new TestTarget("ByReference"));
 
@@ -51,21 +51,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static TestTarget ClrObjects => _clrObjects.Value;
         public static TestTarget Arrays => _arrays.Value;
         public static TestTarget ByReference => _byReference.Value;
-
-        public static string? GetTestArtifactFolder()
-        {
-            string? curr = Environment.CurrentDirectory;
-            while (curr is not null)
-            {
-                string artifacts = Path.Combine(curr, ".test_artifacts");
-                if (Directory.Exists(artifacts))
-                    return artifacts;
-
-                curr = Path.GetDirectoryName(curr);
-            }
-
-            return null;
-        }
     }
 
     public class TestTarget
@@ -93,15 +78,22 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             TestRoot = Path.Combine(info.FullName, "src", "TestTargets");
         }
 
-        public TestTarget(string name, bool frameworkOnly = false)
+        public TestTarget(string name, bool frameworkOnly = false, string[]? companionTargets = null)
         {
             Name = name;
             FrameworkOnly = frameworkOnly;
+            CompanionTargets = companionTargets ?? Array.Empty<string>();
 
             Source = Path.Combine(TestRoot, name, name + ".cs");
             if (!File.Exists(Source))
                 throw new FileNotFoundException($"Could not find source file: {name}.cs");
         }
+
+        /// <summary>
+        /// Additional test targets that must be built and copied alongside this one.
+        /// For example, AppDomains needs NestedException.exe in its output directory.
+        /// </summary>
+        public string[] CompanionTargets { get; }
 
         /// <summary>
         /// Gets the directory containing the test target's project file.
@@ -158,19 +150,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             if (options is not null)
                 return DataTarget.LoadDump(path, options);
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            options = new DataTargetOptions()
             {
-                options = new DataTargetOptions()
-                {
-                    SymbolPaths = []
-                };
+                SymbolPaths = [],
+                FileLocator = InstalledRuntimeLocator.Instance,
+            };
 
-                return DataTarget.LoadDump(path, options);
-            }
-            else
-            {
-                return DataTarget.LoadDump(path);
-            }
+            return DataTarget.LoadDump(path, options);
         }
 
         /// <summary>
@@ -194,7 +180,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             bool framework = isFramework ?? FrameworkOnly;
             string dumpPath = BuildDumpName(gc, full: true, architecture: architecture, isFramework: framework);
 
-            DumpGenerator.EnsureDump(Name, ProjectDir, dumpPath, architecture, framework, gc, full: true);
+            DumpGenerator.EnsureDump(Name, ProjectDir, dumpPath, architecture, framework, gc, full: true, companionTargets: CompanionTargets);
             return LoadDump(dumpPath, options);
         }
 
@@ -219,7 +205,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             bool framework = isFramework ?? FrameworkOnly;
             string dumpPath = BuildDumpName(gc, full: false, architecture: architecture, isFramework: framework);
 
-            DumpGenerator.EnsureDump(Name, ProjectDir, dumpPath, architecture, framework, gc, full: false);
+            DumpGenerator.EnsureDump(Name, ProjectDir, dumpPath, architecture, framework, gc, full: false, companionTargets: CompanionTargets);
             return LoadDump(dumpPath, options);
         }
 
@@ -229,7 +215,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             bool framework = FrameworkOnly;
             string dumpPath = BuildDumpName(gc, full: true, architecture: architecture, isFramework: framework);
 
-            DumpGenerator.EnsureDump(Name, ProjectDir, dumpPath, architecture, framework, gc, full: true);
+            DumpGenerator.EnsureDump(Name, ProjectDir, dumpPath, architecture, framework, gc, full: true, companionTargets: CompanionTargets);
 
             Utilities.DbgEng.DbgEngIDataReader dbgengReader = new(dumpPath);
             return new DataTarget(dbgengReader, options ?? new DataTargetOptions());

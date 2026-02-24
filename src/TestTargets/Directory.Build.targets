@@ -1,5 +1,7 @@
 ﻿<Project>
 
-  <!-- STOP -->
+  <!-- Block arcade SDK targets - these are test target apps, not test projects.
+       Provide a no-op Test target so arcade's /p:Test=true doesn't fail. -->
+  <Target Name="Test" />
 
 </Project>
