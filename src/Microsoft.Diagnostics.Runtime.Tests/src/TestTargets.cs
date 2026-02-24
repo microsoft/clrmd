@@ -51,21 +51,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static TestTarget ClrObjects => _clrObjects.Value;
         public static TestTarget Arrays => _arrays.Value;
         public static TestTarget ByReference => _byReference.Value;
-
-        public static string? GetTestArtifactFolder()
-        {
-            string? curr = Environment.CurrentDirectory;
-            while (curr is not null)
-            {
-                string artifacts = Path.Combine(curr, ".test_artifacts");
-                if (Directory.Exists(artifacts))
-                    return artifacts;
-
-                curr = Path.GetDirectoryName(curr);
-            }
-
-            return null;
-        }
     }
 
     public class TestTarget
