@@ -295,6 +295,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult GetFieldInfo(ulong mt, out MethodTableFieldInfo data)
         {
+            if (mt == 0)
+            {
+                data = default;
+                return HResult.E_INVALIDARG;
+            }
+
             return VTable.GetMethodTableFieldData(Self, mt, out data);
         }
 
@@ -420,6 +426,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public string? GetAppDomainName(ulong appDomain)
         {
+            if (appDomain == 0)
+            {
+                return null;
+            }
+
             return GetString(VTable.GetAppDomainName, appDomain);
         }
 
@@ -436,7 +447,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public HResult GetMethodTableData(ulong addr, out MethodTableData data)
         {
             // If the 2nd bit is set it means addr is actually a TypeHandle (which GetMethodTable does not support).
-            if ((addr & 2) == 2)
+            if (addr == 0 || (addr & 2) == 2)
             {
                 data = default;
                 return HResult.E_INVALIDARG;
@@ -662,6 +673,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult TraverseModuleMap(ModuleMapTraverseKind mt, ulong module, ModuleMapTraverse traverse)
         {
+            if (module == 0)
+                return HResult.E_INVALIDARG;
+
             HResult hr = VTable.TraverseModuleMap(Self, mt, module, Marshal.GetFunctionPointerForDelegate(traverse), IntPtr.Zero);
             GC.KeepAlive(traverse);
             return hr;
@@ -688,6 +702,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult TraverseStubHeap(ulong heap, VCSHeapType type, LoaderHeapTraverse callback)
         {
+            if (heap == 0)
+                return HResult.E_INVALIDARG;
+
             HResult hr = VTable.TraverseVirtCallStubHeap(Self, heap, type, Marshal.GetFunctionPointerForDelegate(callback));
             GC.KeepAlive(callback);
             return hr;
