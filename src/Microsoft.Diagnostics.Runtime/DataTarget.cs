@@ -297,8 +297,8 @@ namespace Microsoft.Diagnostics.Runtime
                     DumpFileFormat.Userdump64 => throw new NotSupportedException($"This dump is in the Userdump64 format, which is not supported by ClrMD directly. " +
                                 "DbgEng can read this dump format, which can be obtained via DbgEngDataReader in the Microsoft.Diagnostics.Runtime.Utilities NuGet package."),
 
-                    DumpFileFormat.CompressedArchive => throw new InvalidDataException($"Stream '{displayName}' is a compressed archived instead of a dump file."),
-                    _ => throw new InvalidDataException($"Stream '{displayName}' is in an unknown or unsupported file format."),
+                    DumpFileFormat.CompressedArchive => throw new InvalidDataException("The provided stream is a compressed archive instead of a dump file."),
+                    _ => throw new InvalidDataException("The provided stream is in an unknown or unsupported file format."),
                 };
 
                 DataTarget result = new(reader, options);

@@ -760,7 +760,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
             else
             {
-                Trace.TraceInformation($"EnumerateStackRefs for OSThreadId:{osThreadId:x} failed with hr={hr}");
+                Debug.WriteLine($"EnumerateStackRefs for OSThreadId:{osThreadId:x} failed with hr={hr}");
             }
 
             return null;

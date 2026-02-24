@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (stackRef.Object == 0)
                 {
                     if (traceErrors)
-                        Trace.TraceWarning($"EnumerateStackRoots found an unexpected entry with Object == 0, addr:{(ulong)stackRef.Address:x} srcType:{stackRef.SourceType:x}");
+                        Debug.WriteLine($"EnumerateStackRoots found an unexpected entry with Object == 0, addr:{(ulong)stackRef.Address:x} srcType:{stackRef.SourceType:x}");
                     continue;
                 }
 
@@ -139,7 +139,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (!hr)
                 {
                     if (traceErrors)
-                        Trace.TraceError($"GetContext failed, flags:{contextFlags:x} size: {contextSize:x} hr={hr}");
+                        Debug.WriteLine($"GetContext failed, flags:{contextFlags:x} size: {contextSize:x} hr={hr}");
 
                     break;
                 }
@@ -177,7 +177,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
                 hr = stackwalk.Next();
                 if (traceErrors && !hr)
-                    Trace.TraceInformation($"STACKWALK FAILED - hr:{hr}");
+                    Debug.WriteLine($"STACKWALK FAILED - hr:{hr}");
             }
 
             ArrayPool<byte>.Shared.Return(context);

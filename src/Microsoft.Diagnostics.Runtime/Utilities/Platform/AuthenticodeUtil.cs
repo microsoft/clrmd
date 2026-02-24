@@ -33,12 +33,12 @@ public unsafe static class AuthenticodeUtil
         string filePath = Path.GetFullPath(dacPath);
         if (!File.Exists(filePath))
         {
-            throw new FileNotFoundException(filePath);
+            throw new FileNotFoundException("The specified DAC file was not found.");
         }
 
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            Trace.TraceError("VerifyDacDll: not supported on Linux/MacOS");
+            Debug.WriteLine("VerifyDacDll: not supported on Linux/MacOS");
             return false;
         }
 
@@ -68,21 +68,21 @@ public unsafe static class AuthenticodeUtil
         {
             if (result != 0)
             {
-                Trace.TraceError($"VerifyDacDll: WinVerifyTrust failed {result:X} {filePath}");
+                Trace.TraceError($"VerifyDacDll: WinVerifyTrust failed 0x{result:X}");
                 return false;
             }
 
             IntPtr provider = WTHelperProvDataFromStateData(trustData.hWVTStateData);
             if (provider == IntPtr.Zero)
             {
-                Trace.TraceError($"VerifyDacDll: WTHelperProvDataFromStateData failed {filePath}");
+                Trace.TraceError("VerifyDacDll: WTHelperProvDataFromStateData failed");
                 return false;
             }
 
             CRYPT_PROVIDER_SGNR* signer = WTHelperGetProvSignerFromChain(provider, 0, false, 0);
             if (signer == null)
             {
-                Trace.TraceError($"VerifyDacDll: WTHelperGetProvSignerFromChain failed {filePath}");
+                Trace.TraceError("VerifyDacDll: WTHelperGetProvSignerFromChain failed");
                 return false;
             }
 
@@ -100,14 +100,14 @@ public unsafe static class AuthenticodeUtil
             bool bTrusted = CertVerifyCertificateChainPolicy(policyOID, signer->pChainContext, &parameters, &status) && status.dwError == 0;
             if (!bTrusted)
             {
-                Trace.TraceError($"VerifyDacDll: chain can't be verified for the specified policy or does not meet the policy: {status.dwError:X} {filePath}");
+                Trace.TraceError($"VerifyDacDll: chain can't be verified for the specified policy or does not meet the policy: 0x{status.dwError:X}");
                 return false;
             }
 
             CRYPT_PROVIDER_CERT* leafCert = WTHelperGetProvCertFromChain(signer, 0);
             if (leafCert == null)
             {
-                Trace.TraceError($"VerifyDacDll: could not obtain the leaf most cert in signing chain {filePath}");
+                Trace.TraceError("VerifyDacDll: could not obtain the leaf most cert in signing chain");
                 return false;
             }
 
@@ -124,7 +124,7 @@ public unsafe static class AuthenticodeUtil
                 }
             }
 
-            Trace.TraceError($"VerifyDacDll: could not find DAC special OID EKU extension {filePath}");
+            Trace.TraceError("VerifyDacDll: could not find DAC special OID EKU extension");
             return false;
         }
         finally

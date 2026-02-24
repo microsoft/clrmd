@@ -61,7 +61,7 @@ namespace Microsoft.Diagnostics.Runtime
         public DbgEngDataReader(string dumpFile)
         {
             if (!File.Exists(dumpFile))
-                throw new FileNotFoundException(dumpFile);
+                throw new FileNotFoundException("The specified dump file was not found.");
 
             DisplayName = dumpFile;
 
@@ -73,9 +73,9 @@ namespace Microsoft.Diagnostics.Runtime
                 const int STATUS_MAPPED_FILE_SIZE_ZERO = unchecked((int)0xC000011E);
 
                 if (hr == HResult.E_INVALIDARG || hr == (STATUS_MAPPED_FILE_SIZE_ZERO | 0x10000000))
-                    throw new InvalidDataException($"'{dumpFile}' is not a crash dump.");
+                    throw new InvalidDataException("The specified file is not a crash dump.");
 
-                throw new ClrDiagnosticsException($"Could not load crash dump, HRESULT: {hr}", hr).AddData("DumpFile", dumpFile);
+                throw new ClrDiagnosticsException($"Could not load crash dump, HRESULT: {hr}", hr);
             }
 
             // This actually "attaches" to the crash dump.

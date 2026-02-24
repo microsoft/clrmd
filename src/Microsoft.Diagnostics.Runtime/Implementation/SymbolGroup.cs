@@ -133,7 +133,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     }
                     else
                     {
-                        Trace.WriteLine($"Ignoring symbol part: {server}");
+                        Debug.WriteLine($"Ignoring symbol part: {server}");
                     }
                 }
             }

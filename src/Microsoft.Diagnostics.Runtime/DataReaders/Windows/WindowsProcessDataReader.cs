@@ -98,7 +98,7 @@ namespace Microsoft.Diagnostics.Runtime
                     DebugOnly.Assert(hr == 0);
 
                     if (hr != 0)
-                        Trace.WriteLine($"Unable to free the snapshot of the process we took: hr={hr}");
+                        Debug.WriteLine($"Unable to free the snapshot of the process we took: hr={hr}");
                 }
 
                 if (_process != IntPtr.Zero)
@@ -113,7 +113,7 @@ namespace Microsoft.Diagnostics.Runtime
                     }
                     catch (Exception e)
                     {
-                        Trace.WriteLine($"Unable to kill the target process: {e}");
+                        Debug.WriteLine($"Unable to kill the target process: {e.GetType().Name}");
                     }
                 }
 
