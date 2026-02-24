@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <!-- AppDomains uses AppDomain.CreateDomain which is only available on .NET Framework -->
-    <TargetFrameworks>net48</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">net48</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>

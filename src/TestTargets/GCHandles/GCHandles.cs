@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable 0162
+#pragma warning disable CA1416 // Overlapped is marked Windows-only but works cross-platform; this is test code
 
 using System;
 using System.Diagnostics;
