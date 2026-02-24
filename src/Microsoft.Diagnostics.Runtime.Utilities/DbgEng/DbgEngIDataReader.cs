@@ -32,12 +32,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
         public static DataTarget CreateDataTarget(nint pDebugClient)
         {
-            return new DataTarget(new CustomDataTarget(new DbgEngIDataReader(pDebugClient)));
+            return new DataTarget(new DbgEngIDataReader(pDebugClient), new DataTargetOptions());
         }
 
         public static DataTarget CreateDataTarget(object dbgeng)
         {
-            return new DataTarget(new CustomDataTarget(new DbgEngIDataReader(dbgeng)));
+            return new DataTarget(new DbgEngIDataReader(dbgeng), new DataTargetOptions());
         }
 
         /// <summary>
@@ -267,7 +267,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                         // the bare minimum for functionality.
                         Version? version = null;
                         if (TargetPlatform == OSPlatform.Windows || moduleName.Contains("libcoreclr", StringComparison.OrdinalIgnoreCase))
-                            GetVersionInfo(bases[i], moduleParams[i].Size);
+                            version = GetVersionInfo(bases[i], moduleParams[i].Size);
 
                         ModuleInfo? module = ModuleInfo.TryCreate(this, bases[i], moduleName, (int)moduleParams[i].Size, (int)moduleParams[i].TimeDateStamp, version);
                         if (module is not null)
