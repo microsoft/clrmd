@@ -81,6 +81,7 @@ public class DataTargetOptions
     /// could impact performance.</remarks>
     public bool TraceSymbolRequests { get; init; }
 
+    /// <summary>
     /// Safety limits for parsing and enumeration operations. These limits prevent excessive memory
     /// allocation and processing when reading untrusted or corrupted dump files.
     /// </summary>
@@ -96,5 +97,5 @@ public class DataTargetOptions
     /// from source).  This only affects dacs with a signature.
     /// Note that disabling this option can lead to security risks, so it should only be disabled if you understand the implications.
     /// </summary>
-    public bool VerifyDacSignature { get; init; } = true;
+    public bool VerifyDacOnWindows { get; init; } = true;
 }

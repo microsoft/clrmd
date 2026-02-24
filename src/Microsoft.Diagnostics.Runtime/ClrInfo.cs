@@ -118,7 +118,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ClrRuntime CreateRuntimeWorker(string? dacPath, bool ignoreMismatch)
         {
-            IServiceProvider services = ClrInfoProvider.GetDacServices(this, dacPath, ignoreMismatch, DataTarget.Options.VerifyDacSignature);
+            IServiceProvider services = ClrInfoProvider.GetDacServices(this, dacPath, ignoreMismatch, DataTarget.Options.VerifyDacOnWindows);
             return new ClrRuntime(this, services);
         }
 
