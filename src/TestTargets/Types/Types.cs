@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 #pragma warning disable 0414
@@ -90,6 +91,13 @@ class Types
 
         // Ensure InstanceMethod is JIT'd so delegate tests can resolve it
         try { new Types().InstanceMethod(); } catch { }
+
+        // Force a full sync block on s_foo for VerifyHeapTests.
+        // GetHashCode stores the identity hash in the object header, then
+        // Monitor.Enter forces promotion to a full sync block since the
+        // header can't hold both the hash and the thin lock simultaneously.
+        System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(s_foo);
+        Monitor.Enter(s_foo);
 
         // Set thread-static values on the main thread only
         ts_threadId = Environment.CurrentManagedThreadId;
