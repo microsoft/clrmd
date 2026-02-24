@@ -5,9 +5,12 @@
 
 using System;
 using System.Buffers.Binary;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
+using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
@@ -51,7 +54,116 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public string? FindPEImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildIdOrUUID, OSPlatform originalPlatform, bool checkProperties)
         {
+            if (buildIdOrUUID.IsDefaultOrEmpty)
+                return null;
+
+            string runtimeModuleName;
+            if (originalPlatform == OSPlatform.Linux)
+                runtimeModuleName = "libcoreclr.so";
+            else if (originalPlatform == OSPlatform.OSX)
+                runtimeModuleName = "libcoreclr.dylib";
+            else
+                return null;
+
+            foreach (string dir in EnumerateRuntimeDirectories())
+            {
+                string potentialClr = Path.Combine(dir, runtimeModuleName);
+                if (!File.Exists(potentialClr))
+                    continue;
+
+                try
+                {
+                    using ElfFile elf = new(potentialClr);
+                    if (!elf.BuildId.IsDefaultOrEmpty && elf.BuildId.SequenceEqual(buildIdOrUUID))
+                    {
+                        string potentialDac = Path.Combine(dir, fileName);
+                        if (File.Exists(potentialDac))
+                            return potentialDac;
+                    }
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+                {
+                }
+            }
+
             return null;
+        }
+
+        private static IEnumerable<string> EnumerateRuntimeDirectories()
+        {
+            string? sharedFrameworkDir = GetSharedFrameworkDir();
+            if (sharedFrameworkDir is not null)
+            {
+                foreach (string dir in Directory.EnumerateDirectories(sharedFrameworkDir))
+                    yield return dir;
+            }
+
+            foreach (string dir in EnumerateNuGetRuntimePackDirectories())
+                yield return dir;
+        }
+
+        private static IEnumerable<string> EnumerateNuGetRuntimePackDirectories()
+        {
+            string? nugetPackages = Environment.GetEnvironmentVariable("NUGET_PACKAGES");
+            if (string.IsNullOrWhiteSpace(nugetPackages))
+            {
+                string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                if (string.IsNullOrWhiteSpace(home))
+                    yield break;
+
+                nugetPackages = Path.Combine(home, ".nuget", "packages");
+            }
+
+            if (!Directory.Exists(nugetPackages))
+                yield break;
+
+            string portableRid = GetPortableRid();
+
+            foreach (string rid in new[] { portableRid, RuntimeInformation.RuntimeIdentifier })
+            {
+                string runtimePackDir = Path.Combine(nugetPackages, $"microsoft.netcore.app.runtime.{rid}");
+                if (!Directory.Exists(runtimePackDir))
+                    continue;
+
+                string[] versions;
+                try
+                {
+                    versions = Directory.GetDirectories(runtimePackDir);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    continue;
+                }
+
+                foreach (string versionDir in versions)
+                {
+                    string nativeDir = Path.Combine(versionDir, "runtimes", rid, "native");
+                    if (Directory.Exists(nativeDir))
+                        yield return nativeDir;
+                }
+            }
+        }
+
+        private static string GetPortableRid()
+        {
+            string os;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                os = "linux";
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                os = "osx";
+            else
+                os = "win";
+
+            string arch = RuntimeInformation.ProcessArchitecture switch
+            {
+                Architecture.X64 => "x64",
+                Architecture.X86 => "x86",
+                Architecture.Arm64 => "arm64",
+                Architecture.Arm => "arm",
+                _ => RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant()
+            };
+
+            return $"{os}-{arch}";
         }
 
         private static bool PEMatchesProperties(string path, int expectedTimeStamp, int expectedSize)

@@ -150,20 +150,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             if (options is not null)
                 return DataTarget.LoadDump(path, options);
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            options = new DataTargetOptions()
             {
-                options = new DataTargetOptions()
-                {
-                    SymbolPaths = [],
-                    FileLocator = InstalledRuntimeLocator.Instance,
-                };
+                SymbolPaths = [],
+                FileLocator = InstalledRuntimeLocator.Instance,
+            };
 
-                return DataTarget.LoadDump(path, options);
-            }
-            else
-            {
-                return DataTarget.LoadDump(path);
-            }
+            return DataTarget.LoadDump(path, options);
         }
 
         /// <summary>
