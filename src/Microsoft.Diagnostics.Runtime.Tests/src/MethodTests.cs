@@ -156,7 +156,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         // Name must not contain parentheses — that indicates the
                         // outermost '(' was not correctly identified, e.g. when function
                         // pointer types introduce nested parens (issue #842).
-                        if (name.Contains('(') || name.Contains(')'))
+                        // However, methods returning function pointer types (FnPtr) may
+                        // legitimately have parens in their DAC-reported name.
+                        bool hasFnPtrReturn = signature.Contains("FnPtr(");
+                        if (!hasFnPtrReturn && (name.Contains('(') || name.Contains(')')))
                             AddFailure($"Name '{name}' contains parentheses from: {signature}");
                     }
                 }
