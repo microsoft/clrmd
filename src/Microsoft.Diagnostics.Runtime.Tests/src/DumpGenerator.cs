@@ -173,8 +173,23 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private static void CopyFileIfNewer(string src, string dest)
         {
-            if (!File.Exists(dest) || File.GetLastWriteTimeUtc(src) > File.GetLastWriteTimeUtc(dest))
-                File.Copy(src, dest, overwrite: true);
+            if (File.Exists(dest) && File.GetLastWriteTimeUtc(src) <= File.GetLastWriteTimeUtc(dest))
+                return;
+
+            // Retry with backoff to handle transient file locks from dump generation
+            // child processes that haven't fully exited yet.
+            for (int attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    File.Copy(src, dest, overwrite: true);
+                    return;
+                }
+                catch (IOException) when (attempt < 3)
+                {
+                    System.Threading.Thread.Sleep(100 * (attempt + 1));
+                }
+            }
         }
 
         /// <summary>
