@@ -52,18 +52,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private bool _disposed;
         private readonly DataTargetLimits _limits;
 
-        public PEImage(FileStream stream, bool leaveOpen = false, ulong loadedImageBase = 0)
-            : this(stream, leaveOpen, isVirtual: false, loadedImageBase)
+        public PEImage(FileStream stream, bool leaveOpen = false, ulong loadedImageBase = 0, DataTargetLimits? limits = null)
+            : this(stream, leaveOpen, isVirtual: false, loadedImageBase, limits)
         {
         }
 
-        public PEImage(ReadVirtualStream stream, bool leaveOpen, bool isVirtual)
-            : this(stream, leaveOpen, isVirtual, 0)
+        public PEImage(ReadVirtualStream stream, bool leaveOpen, bool isVirtual, DataTargetLimits? limits = null)
+            : this(stream, leaveOpen, isVirtual, 0, limits)
         {
         }
 
-        public PEImage(ReaderStream stream, bool leaveOpen, bool isVirtual)
-            : this(stream, leaveOpen, isVirtual, 0)
+        public PEImage(ReaderStream stream, bool leaveOpen, bool isVirtual, DataTargetLimits? limits = null)
+            : this(stream, leaveOpen, isVirtual, 0, limits)
         {
         }
 

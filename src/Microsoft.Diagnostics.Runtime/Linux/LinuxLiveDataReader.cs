@@ -25,17 +25,19 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private bool _suspended;
         private bool _disposed;
+        private readonly DataTargetLimits? _limits;
         private FileStream? _fileStream;
 
         public string DisplayName => $"pid:{ProcessId:x}";
         public OSPlatform TargetPlatform => OSPlatform.Linux;
 
-        public LinuxLiveDataReader(int processId, bool suspend)
+        public LinuxLiveDataReader(int processId, bool suspend, DataTargetLimits? limits = null)
         {
             int status = kill(processId, 0);
             if (status < 0 && Marshal.GetLastWin32Error() != EPERM)
                 throw new ArgumentException("The process is not running");
 
+            _limits = limits;
             ProcessId = processId;
             _memoryMapEntries = LoadMemoryMaps();
 
@@ -101,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private ModuleInfo GetModuleInfo(IDataReader reader, ulong baseAddress, string filePath, bool isVirtual)
         {
             if (reader.Read<ushort>(baseAddress) == 0x5a4d)
-                return new PEModuleInfo(reader, baseAddress, filePath, isVirtual);
+                return new PEModuleInfo(reader, baseAddress, filePath, isVirtual, _limits);
 
             long size = 0;
             FileInfo fileInfo = new(filePath);

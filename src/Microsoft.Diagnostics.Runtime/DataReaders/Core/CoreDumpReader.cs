@@ -14,6 +14,7 @@ namespace Microsoft.Diagnostics.Runtime
     internal sealed class CoredumpReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader
     {
         private readonly ElfCoreFile _core;
+        private readonly DataTargetLimits? _limits;
         private Dictionary<uint, IElfPRStatus>? _threads;
         private List<ModuleInfo>? _modules;
 
@@ -23,6 +24,7 @@ namespace Microsoft.Diagnostics.Runtime
         public CoredumpReader(string path, Stream stream, bool leaveOpen, DataTargetLimits? limits = null)
         {
             DisplayName = path ?? throw new ArgumentNullException(nameof(path));
+            _limits = limits;
             _core = new ElfCoreFile(stream ?? throw new ArgumentNullException(nameof(stream)), leaveOpen, limits);
 
             ElfMachine architecture = _core.ElfFile.Header.Architecture;
@@ -92,7 +94,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return new ElfModuleInfo(this, file, image.BaseAddress, size, path);
             }
 
-            return new PEModuleInfo(this, image.BaseAddress, path, true);
+            return new PEModuleInfo(this, image.BaseAddress, path, true, _limits);
         }
 
         public void FlushCachedData()

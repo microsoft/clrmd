@@ -15,6 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         private readonly IDataReader _dataReader;
         private readonly bool _isVirtual;
+        private readonly DataTargetLimits? _limits;
 
         private int _timestamp;
         private int _filesize;
@@ -34,11 +35,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             try
             {
-                PEImage image = new(new ReadVirtualStream(_dataReader, (long)ImageBase, int.MaxValue), leaveOpen: false, isVirtual: _isVirtual);
+                PEImage image = new(new ReadVirtualStream(_dataReader, (long)ImageBase, int.MaxValue), leaveOpen: false, isVirtual: _isVirtual, _limits);
                 if (!image.IsValid)
                 {
                     image.Dispose();
-                    image = new PEImage(new ReadVirtualStream(_dataReader, (long)ImageBase, int.MaxValue), leaveOpen: false, isVirtual: !_isVirtual);
+                    image = new PEImage(new ReadVirtualStream(_dataReader, (long)ImageBase, int.MaxValue), leaveOpen: false, isVirtual: !_isVirtual, _limits);
                 }
 
                 if (image.IsValid)
@@ -157,7 +158,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override IResourceNode? ResourceRoot => GetPEImage()?.Resources;
 
-        public PEModuleInfo(IDataReader dataReader, ulong imageBase, string fileName, bool isVirtualHint)
+        public PEModuleInfo(IDataReader dataReader, ulong imageBase, string fileName, bool isVirtualHint, DataTargetLimits? limits = null)
             : base(imageBase, fileName)
         {
             if (dataReader is null)
@@ -168,10 +169,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             _dataReader = dataReader;
             _isVirtual = isVirtualHint;
+            _limits = limits;
         }
 
-        public PEModuleInfo(IDataReader dataReader, ulong imageBase, string fileName, bool isVirtual, int timestamp, int filesize, Version? version = null)
-            : this(dataReader, imageBase, fileName, isVirtual)
+        public PEModuleInfo(IDataReader dataReader, ulong imageBase, string fileName, bool isVirtual, int timestamp, int filesize, Version? version = null, DataTargetLimits? limits = null)
+            : this(dataReader, imageBase, fileName, isVirtual, limits)
         {
             _timestamp = timestamp;
             _filesize = filesize;

@@ -15,6 +15,7 @@ namespace Microsoft.Diagnostics.Runtime
     internal sealed class MinidumpReader : IDataReader, IDisposable, IThreadReader, IDumpInfoProvider
     {
         private readonly Minidump _minidump;
+        private readonly DataTargetLimits? _limits;
         private IMemoryReader? _readerCached;
 
         public OSPlatform TargetPlatform => OSPlatform.Windows;
@@ -33,6 +34,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             DisplayName = displayName;
 
+            _limits = limits;
             _minidump = new Minidump(displayName, stream, cacheOptions, leaveOpen, limits);
 
             Architecture = _minidump.Architecture switch
@@ -67,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime
             // We set buildId to "Empty" since only PEImages exist where minidumps are created, and we do not
             // want to try to lazily evaluate the buildId later
             return from module in _minidump.EnumerateModuleInfo()
-                   select new PEModuleInfo(this, module.BaseOfImage, module.ModuleName ?? "", true, module.DateTimeStamp, module.SizeOfImage);
+                   select new PEModuleInfo(this, module.BaseOfImage, module.ModuleName ?? "", true, module.DateTimeStamp, module.SizeOfImage, limits: _limits);
         }
 
         public void FlushCachedData()

@@ -15,6 +15,7 @@ namespace Microsoft.Diagnostics.Runtime
     internal sealed unsafe class WindowsProcessDataReader : CommonMemoryReader, IDataReader, IDisposable
     {
         private bool _disposed;
+        private readonly DataTargetLimits? _limits;
         private readonly WindowsThreadSuspender? _suspension;
         private readonly int _originalPid;
         private readonly IntPtr _snapshotHandle;
@@ -27,8 +28,9 @@ namespace Microsoft.Diagnostics.Runtime
         public string DisplayName => $"pid:{ProcessId:x}";
         public OSPlatform TargetPlatform => OSPlatform.Windows;
 
-        public WindowsProcessDataReader(int processId, WindowsProcessDataReaderMode mode)
+        public WindowsProcessDataReader(int processId, WindowsProcessDataReaderMode mode, DataTargetLimits? limits = null)
         {
+            _limits = limits;
             if (mode == WindowsProcessDataReaderMode.Snapshot)
             {
                 _originalPid = processId;
@@ -184,7 +186,7 @@ namespace Microsoft.Diagnostics.Runtime
                 if (DataTarget.PlatformFunctions.GetFileVersion(fileName, out int major, out int minor, out int revision, out int patch))
                     version = new Version(major, minor, revision, patch);
 
-                ModuleInfo module = new PEModuleInfo(this, baseAddr, fileName, true, timestamp, filesize, version);
+                ModuleInfo module = new PEModuleInfo(this, baseAddr, fileName, true, timestamp, filesize, version, _limits);
                 result.Add(module);
             }
 
