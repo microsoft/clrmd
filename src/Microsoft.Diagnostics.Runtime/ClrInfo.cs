@@ -97,7 +97,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Creates a runtime by searching for the correct dac to load.
         /// </summary>
         /// <returns>The runtime associated with this CLR.</returns>
-        public ClrRuntime CreateRuntime() => CreateRuntimeWorker(null, ignoreMismatch: false, verifySignature: false);
+        public ClrRuntime CreateRuntime() => CreateRuntimeWorker(null, ignoreMismatch: false);
 
         /// <summary>
         /// Creates a runtime from the given DAC file on disk.  This is equivalent to
@@ -105,7 +105,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         /// <param name="dacPath">A full path to the matching DAC dll for this process.</param>
         /// <returns>The runtime associated with this CLR.</returns>
-        public ClrRuntime CreateRuntime(string dacPath) => CreateRuntime(dacPath, ignoreMismatch: false, verifySignature: false);
+        public ClrRuntime CreateRuntime(string dacPath) => CreateRuntime(dacPath, ignoreMismatch: false);
 
         /// <summary>
         /// Creates a runtime from the given DAC file on disk.
@@ -113,16 +113,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="dacPath">A full path to the matching DAC dll for this process.</param>
         /// <param name="ignoreMismatch">Whether or not to ignore mismatches between. </param>
         /// <returns>The runtime associated with this CLR.</returns>
-        public ClrRuntime CreateRuntime(string dacPath, bool ignoreMismatch) => CreateRuntime(dacPath, ignoreMismatch, verifySignature: false);
-
-        /// <summary>
-        /// Creates a runtime from the given DAC file on disk.
-        /// </summary>
-        /// <param name="dacPath">A full path to the matching DAC dll for this process.</param>
-        /// <param name="ignoreMismatch">Whether or not to ignore mismatches between.</param>
-        /// <param name="verifySignature">If true, verify the DAC signature</param>
-        /// <returns>The runtime associated with this CLR.</returns>
-        public ClrRuntime CreateRuntime(string dacPath, bool ignoreMismatch, bool verifySignature)
+        public ClrRuntime CreateRuntime(string dacPath, bool ignoreMismatch)
         {
             if (string.IsNullOrEmpty(dacPath))
                 throw new ArgumentNullException(nameof(dacPath));
@@ -130,12 +121,13 @@ namespace Microsoft.Diagnostics.Runtime
             if (!File.Exists(dacPath))
                 throw new FileNotFoundException(dacPath);
 
-            return CreateRuntimeWorker(dacPath, ignoreMismatch, verifySignature);
+            return CreateRuntimeWorker(dacPath, ignoreMismatch);
         }
 
-        private ClrRuntime CreateRuntimeWorker(string? dacPath, bool ignoreMismatch, bool verifySignature)
+
+        private ClrRuntime CreateRuntimeWorker(string? dacPath, bool ignoreMismatch)
         {
-            IServiceProvider services = ClrInfoProvider.GetDacServices(this, dacPath, ignoreMismatch, verifySignature);
+            IServiceProvider services = ClrInfoProvider.GetDacServices(this, dacPath, ignoreMismatch, DataTarget.Options.VerifyDacOnWindows);
             return new ClrRuntime(this, services);
         }
 

@@ -90,4 +90,12 @@ public class DataTargetOptions
         get => field ??= new DataTargetLimits();
         init;
     }
+
+    /// <summary>
+    /// On Windows, this property determines if we verify the signature of the dac before downloading/loading it.  This is enabled
+    /// by default, but can be disabled to allow loading of a DAC that doesn't have a signature (such as building CLR
+    /// from source).  This only affects dacs with a signature.
+    /// Note that disabling this option can lead to security risks, so it should only be disabled if you understand the implications.
+    /// </summary>
+    public bool VerifyDacOnWindows { get; init; } = true;
 }

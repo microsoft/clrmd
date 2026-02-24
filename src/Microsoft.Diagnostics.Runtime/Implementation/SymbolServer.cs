@@ -65,40 +65,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return builder.Uri;
         }
 
-        public override string? FindElfImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildId, bool checkProperties)
-        {
-            string? result = _cache.FindElfImage(fileName, archivedUnder, buildId, checkProperties);
-            if (result != null)
-                return result;
-
-            string? key = base.FindElfImage(fileName, archivedUnder, buildId, checkProperties);
-            if (key == null)
-                return null;
-
-            Stream? stream = FindFileOnServer(key).Result;
-            if (stream != null)
-                return _cache.Store(stream, key);
-
-            return null;
-        }
-
-        public override string? FindMachOImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> uuid, bool checkProperties)
-        {
-            string? result = _cache.FindMachOImage(fileName, archivedUnder, uuid, checkProperties);
-            if (result != null)
-                return result;
-
-            string? key = base.FindMachOImage(fileName, archivedUnder, uuid, checkProperties);
-            if (key == null)
-                return null;
-
-            Stream? stream = FindFileOnServer(key).Result;
-            if (stream != null)
-                return _cache.Store(stream, key);
-
-            return null;
-        }
-
         public override string? FindPEImage(string fileName, int buildTimeStamp, int imageSize, bool checkProperties)
         {
             string? result = _cache.FindPEImage(fileName, buildTimeStamp, imageSize, checkProperties);

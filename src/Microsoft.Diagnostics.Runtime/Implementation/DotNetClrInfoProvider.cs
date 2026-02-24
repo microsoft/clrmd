@@ -77,10 +77,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         {
                             if (dac.Platform == OSPlatform.Windows)
                                 dacPath = locator.FindPEImage(dac.FileName, SymbolProperties.Coreclr, dac.IndexBuildId, clrInfo.DataTarget.DataReader.TargetPlatform, checkProperties: false);
-                            else if (dac.Platform == OSPlatform.Linux)
-                                dacPath = locator.FindElfImage(dac.FileName, SymbolProperties.Coreclr, dac.IndexBuildId, checkProperties: false);
-                            else if (dac.Platform == OSPlatform.OSX)
-                                dacPath = locator.FindMachOImage(dac.FileName, SymbolProperties.Coreclr, dac.IndexBuildId, checkProperties: false);
                         }
                         else if (dac.IndexTimeStamp != 0 && dac.IndexFileSize != 0)
                         {
@@ -113,7 +109,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (!foundOne)
                 throw new InvalidOperationException($"Debugging a '{clrInfo.DataTarget.DataReader.TargetPlatform}' crash is not supported on '{currentPlatform}'.");
 
-            throw new FileNotFoundException("Could not find matching DAC for this runtime.");
+            if (currentPlatform == OSPlatform.Windows)
+                throw new FileNotFoundException("Could not find matching DAC for this runtime.");
+
+            throw new FileNotFoundException("Could not find matching DAC for this runtime.  Note that symbol server download of the DAC is disabled for this platform.");
         }
 
         private static DacLibrary CreateDacFromPath(ClrInfo clrInfo, string dacPath, bool ignoreMismatch, bool verifySignature)

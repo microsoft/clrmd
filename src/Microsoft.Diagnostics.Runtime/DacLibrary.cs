@@ -33,7 +33,10 @@ namespace Microsoft.Diagnostics.Runtime
             IntPtr dacLibrary;
             try
             {
-                if (verifySignature)
+                // VerifyDacDll uses WinVerifyTrust, which only exists on windows.  For non-windows platforms, we do
+                // not verify signatures of the DAC.  We also do not download DACs from the internet on those platforms,
+                // leaving it up to the consumer of ClrMD to safely procure the DAC.
+                if (verifySignature && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     if (!AuthenticodeUtil.VerifyDacDll(dacPath, out fileLock))
                     {

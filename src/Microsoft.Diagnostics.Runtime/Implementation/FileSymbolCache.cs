@@ -39,37 +39,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             Location = cacheLocation;
         }
 
-        public override string? FindElfImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildId, bool checkProperties)
-        {
-            if (Path.GetFileName(fileName) != fileName && File.Exists(fileName))
-            {
-                if (!checkProperties || buildId.IsDefaultOrEmpty)
-                    return fileName;
-
-                using ElfFile elf = new(fileName);
-                if (elf.BuildId.SequenceEqual(buildId))
-                    return fileName;
-            }
-
-            string? key = base.FindElfImage(fileName, archivedUnder, buildId, checkProperties);
-            return FindImage(key);
-        }
-
-        public override string? FindMachOImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> uuid, bool checkProperties)
-        {
-            if (Path.GetFileName(fileName) != fileName && File.Exists(fileName))
-            {
-                if (!checkProperties || uuid.IsDefaultOrEmpty)
-                    return fileName;
-
-                // TODO:  We don't have a mach-o file reader to grab the uuid to verify.
-                return fileName;
-            }
-
-            string? key = base.FindMachOImage(fileName, archivedUnder, uuid, checkProperties);
-            return FindImage(key);
-        }
-
         public override string? FindPEImage(string fileName, int buildTimeStamp, int imageSize, bool checkProperties)
         {
             if (Path.GetFileName(fileName) != fileName && File.Exists(fileName))

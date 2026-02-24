@@ -16,8 +16,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private const string MachOPlatformKey = "mach-uuid";
         private const string ElfPlatformKey = "elf-buildid";
 
-        public virtual string? FindElfImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildId, bool checkProperties) => GetUnixKey(ElfPlatformKey, fileName, archivedUnder, buildId);
-        public virtual string? FindMachOImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> uuid, bool checkProperties) => GetUnixKey(MachOPlatformKey, fileName, archivedUnder, uuid);
         public virtual string? FindPEImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildIdOrUUID, OSPlatform originalPlatform, bool checkProperties)
         {
             string osKey;

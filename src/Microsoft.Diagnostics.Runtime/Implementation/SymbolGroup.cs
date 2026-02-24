@@ -50,29 +50,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return null;
         }
 
-        public string? FindElfImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildId, bool checkProperties)
-        {
-            foreach (IFileLocator locator in _groups)
-            {
-                string? result = locator.FindElfImage(fileName, archivedUnder, buildId, checkProperties);
-                if (result != null)
-                    return result;
-            }
-
-            return null;
-        }
-
-        public string? FindMachOImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> uuid, bool checkProperties)
-        {
-            foreach (IFileLocator locator in _groups)
-            {
-                string? result = locator.FindMachOImage(fileName, archivedUnder, uuid, checkProperties);
-                if (result != null)
-                    return result;
-            }
-            return null;
-        }
-
         private static FileSymbolCache GetDefaultCache()
         {
             FileSymbolCache? cache = s_cache;
