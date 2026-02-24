@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -43,16 +44,41 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Empty(stackRoots);
         }
 
-        [Fact(Skip = "Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10.")]
-        public void HeapReferenceType() => AssertReferenceType(GetStackRoots(nameof(HeapReferenceType)));
+        [Fact]
+        public void HeapReferenceType()
+        {
+            // Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10.
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Environment.Version.Major < 11)
+                return;
 
-        [Fact(Skip = "Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10.")]
-        public void HeapValueType() => AssertValueType(GetStackRoots(nameof(HeapValueType)));
+            AssertReferenceType(GetStackRoots(nameof(HeapReferenceType)));
+        }
 
-        [Fact(Skip = "Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10.")]
-        public void StackReferenceType() => AssertReferenceType(GetStackRoots(nameof(StackReferenceType)));
+        [Fact]
+        public void HeapValueType()
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Environment.Version.Major < 11)
+                return;
 
-        [Fact(Skip = "Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10.")]
-        public void StackValueType() => AssertValueType(GetStackRoots(nameof(StackValueType)));
+            AssertValueType(GetStackRoots(nameof(HeapValueType)));
+        }
+
+        [Fact]
+        public void StackReferenceType()
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Environment.Version.Major < 11)
+                return;
+
+            AssertReferenceType(GetStackRoots(nameof(StackReferenceType)));
+        }
+
+        [Fact]
+        public void StackValueType()
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Environment.Version.Major < 11)
+                return;
+
+            AssertValueType(GetStackRoots(nameof(StackValueType)));
+        }
     }
 }

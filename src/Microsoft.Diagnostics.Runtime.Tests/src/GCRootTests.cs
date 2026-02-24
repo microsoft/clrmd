@@ -3,6 +3,7 @@
 
 using System;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -139,9 +140,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal("DoubleRef", obj.Type.Name);
         }
 
-        [Fact(Skip = "Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10. See repros/GCRootCrash.")]
+        [Fact]
         public void GCRoots()
         {
+            // Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10.
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Environment.Version.Major < 11)
+                return;
+
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
@@ -150,9 +155,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ContainsPathsToTarget(heap, 0, target);
         }
 
-        [Fact(Skip = "Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10. See repros/GCRootCrash.")]
+        [Fact]
         public void GCRootsPredicate()
         {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Environment.Version.Major < 11)
+                return;
+
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
@@ -160,9 +168,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ContainsPathsToTarget(heap, 0, (obj) => obj.Type?.Name == "TargetType");
         }
 
-        [Fact(Skip = "Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10. See repros/GCRootCrash.")]
+        [Fact]
         public void GCRootsDirectHandles()
         {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Environment.Version.Major < 11)
+                return;
+
             using DataTarget dataTarget = TestTargets.GCRoot2.LoadFullDump();
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
@@ -172,9 +183,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ContainsPathsToTarget(heap, 0, target);
         }
 
-        [Fact(Skip = "Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10. See repros/GCRootCrash.")]
+        [Fact]
         public void GCRootsIndirectHandles()
         {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Environment.Version.Major < 11)
+                return;
+
             using DataTarget dataTarget = TestTargets.GCRoot2.LoadFullDump();
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
@@ -183,9 +197,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ContainsPathsToTarget(heap, 0, target);
         }
 
-        [Fact(Skip = "Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10. See repros/GCRootCrash.")]
+        [Fact]
         public void FindAllPaths()
         {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Environment.Version.Major < 11)
+                return;
+
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
