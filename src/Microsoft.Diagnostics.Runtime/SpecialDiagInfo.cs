@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             fixed (SpecialDiagInfo* ptr = &info)
             {
-                return reader.Read(address, new Span<byte>(ptr, size)) != size || !info.IsValid;
+                return reader.Read(address, new Span<byte>(ptr, size)) == size && info.IsValid;
             }
         }
 

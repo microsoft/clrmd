@@ -127,8 +127,19 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ClrRuntime CreateRuntimeWorker(string? dacPath, bool ignoreMismatch)
         {
-            IServiceProvider services = ClrInfoProvider.GetDacServices(this, dacPath, ignoreMismatch, DataTarget.Options.VerifyDacOnWindows);
-            return new ClrRuntime(this, services);
+            try
+            {
+                IServiceProvider services = ClrInfoProvider.GetDacServices(this, dacPath, ignoreMismatch, DataTarget.Options.VerifyDacOnWindows);
+                return new ClrRuntime(this, services);
+            }
+            catch (Exception ex) when (DataTarget.DataReader is IDumpInfoProvider { IsCreatedByDotNetRuntime: false } provider)
+            {
+                throw new ClrDiagnosticsException(
+                    $"Failed to create ClrRuntime and the dump was not collected by the .NET runtime's " +
+                    $"createdump tool. System/kernel dumps may be missing memory required for .NET diagnostics. " +
+                    $"Recollect the dump using createdump or set DOTNET_DbgEnableMiniDump=1. Original error: {ex.Message}",
+                    ex);
+            }
         }
 
         IClrRuntime IClrInfo.CreateRuntime() => CreateRuntime();
