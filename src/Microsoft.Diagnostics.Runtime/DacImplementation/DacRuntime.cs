@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
             int version = 0;
             if (!_dac.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))))
-                throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data.  Failed to request DacVersion.");
+                throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data. This may indicate the dump was taken before the CLR was fully initialized, or the dump is corrupt or truncated. Failed to request DacVersion.");
 
             if (version != 9)
                 throw new NotSupportedException($"The CLR debugging layer reported a version of {version} which this build of ClrMD does not support.");
@@ -85,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         public IEnumerable<AppDomainInfo> EnumerateAppDomains()
         {
             if (!_sos.GetAppDomainStoreData(out AppDomainStoreData domainStore))
-                throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data. Failed to request AppDomainStoreData.");
+                throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data. This may indicate the dump was taken before the CLR was fully initialized, or the dump is corrupt or truncated. Failed to request AppDomainStoreData.");
 
             if (domainStore.SharedDomain != 0)
                 yield return CreateAppDomainInfo(domainStore.SharedDomain, AppDomainKind.Shared, "Shared Domain");
