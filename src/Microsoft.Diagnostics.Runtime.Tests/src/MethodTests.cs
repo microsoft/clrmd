@@ -220,10 +220,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             List<string> failures = new();
             int failureCount = 0;
             int bracketMethodCount = 0;
-            const int MaxRecordedFailures = 50;
-            List<string> failures = new();
-            int failureCount = 0;
-            int bracketMethodCount = 0;
 
             foreach (ClrModule module in runtime.EnumerateModules())
             {
