@@ -42,3 +42,55 @@ public class GenericClass<T1, T2, T3, T4, T5>
 struct EmptyStruct { }
 struct NestedEmptyStruct { EmptyStruct es; }
 public class StructTestClass { Struct s; NestedEmptyStruct nes; }
+
+public interface IStructTest
+{
+    int TestMethod();
+}
+
+public struct StructWithInterface : IStructTest
+{
+    public int TestMethod() { return 123; }
+}
+
+/// <summary>
+/// A generic class with a single reference-type constraint. When instantiated with
+/// different reference types (e.g., string and object), .NET Core shares JIT'd code
+/// via the canonical (__Canon) MethodDesc. The per-instantiation MethodDesc for a
+/// non-canonical instantiation may have HasNativeCode=0 even though the method has
+/// been JIT'd via the canonical instantiation.
+/// </summary>
+public class RefGenericClass<T> where T : class
+{
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public T GetValue(T input)
+    {
+        return input;
+    }
+}
+
+public static class GenericStaticMethod
+{
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public static T Echo<T>(T value)
+    {
+        return value;
+    }
+
+    // Stores MethodDesc for Echo<string> instantiation (set by test target at runtime)
+    public static System.IntPtr EchoStringMethodHandle;
+
+    // Stores MethodDesc for GenericClass<bool,int,float,string,object>.Invoke (set by test target)
+    // This exercises ref-type generic TYPE methods where the per-instantiation MethodDesc
+    // has HasNativeCode=0 but the slot-based lookup finds the shared JIT'd code.
+    public static System.IntPtr GenericClassInvokeMethodHandle;
+
+    // Stores MethodDesc for RefGenericClass<object>.GetValue — a second ref-type
+    // instantiation that shares JIT'd code with RefGenericClass<string> via __Canon.
+    public static System.IntPtr RefGenericGetValueMethodHandle;
+
+    // Stores MethodDesc for Echo<int> — value-type generic METHOD instantiation.
+    // This is the exact scenario from issue #935: a generic method on a non-generic
+    // class, called with a value-type parameter. HasNativeCode should be != 0.
+    public static System.IntPtr EchoIntMethodHandle;
+}

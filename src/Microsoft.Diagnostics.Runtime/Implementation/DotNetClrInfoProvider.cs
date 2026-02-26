@@ -75,8 +75,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     {
                         if (!dac.IndexBuildId.IsDefaultOrEmpty)
                         {
-                            if (dac.Platform == OSPlatform.Windows)
-                                dacPath = locator.FindPEImage(dac.FileName, SymbolProperties.Coreclr, dac.IndexBuildId, clrInfo.DataTarget.DataReader.TargetPlatform, checkProperties: false);
+                            dacPath = locator.FindPEImage(dac.FileName, SymbolProperties.Coreclr, dac.IndexBuildId, clrInfo.DataTarget.DataReader.TargetPlatform, checkProperties: false);
                         }
                         else if (dac.IndexTimeStamp != 0 && dac.IndexFileSize != 0)
                         {

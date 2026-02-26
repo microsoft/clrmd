@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -103,9 +105,64 @@ class Types
         ts_threadId = Environment.CurrentManagedThreadId;
         ts_threadName = "MainThread";
 
+        // Exercise struct interface dispatch to create unboxing stub + JIT the implementation
+        IStructTest structTest = new StructWithInterface();
+        int structResult = structTest.TestMethod();
+
+        // Force JIT compilation of generic method with reference-type parameter and
+        // store the instantiation-specific MethodDesc handle for test lookup.
+        string echoResult = GenericStaticMethod.Echo("test");
+        GC.KeepAlive(echoResult);
+        MethodInfo echoStr = typeof(GenericStaticMethod).GetMethod("Echo").MakeGenericMethod(typeof(string));
+        RuntimeHelpers.PrepareMethod(echoStr.MethodHandle);
+        GenericStaticMethod.EchoStringMethodHandle = echoStr.MethodHandle.Value;
+
+        // Force JIT compilation of generic method with value-type parameter (issue #935
+        // exact scenario: generic method M<T>() called with int). The MethodDesc for
+        // Echo<int> should have HasNativeCode != 0 and correct CompilationType/HotSize.
+        int echoIntResult = GenericStaticMethod.Echo(42);
+        GC.KeepAlive(echoIntResult);
+        MethodInfo echoInt = typeof(GenericStaticMethod).GetMethod("Echo").MakeGenericMethod(typeof(int));
+        RuntimeHelpers.PrepareMethod(echoInt.MethodHandle);
+        GenericStaticMethod.EchoIntMethodHandle = echoInt.MethodHandle.Value;
+
+        // Force JIT of GenericClass<...>.Invoke and store the per-instantiation MethodDesc.
+        // For ref-type generic types, the per-instantiation MethodDesc may have HasNativeCode=0
+        // because the JIT'd code lives on the canonical (__Canon) desc, exercising the
+        // slot-based fallback path in DacMethodLocator.GetMethodInfo.
+        GenericClass<bool, int, float, string, object> gc = new GenericClass<bool, int, float, string, object>();
+        object invokeResult = gc.Invoke(false, 0, 0f, "test");
+        GC.KeepAlive(invokeResult);
+        MethodInfo invokeMethod = typeof(GenericClass<bool, int, float, string, object>).GetMethod("Invoke");
+        RuntimeHelpers.PrepareMethod(invokeMethod.MethodHandle,
+            new RuntimeTypeHandle[] {
+                typeof(bool).TypeHandle, typeof(int).TypeHandle,
+                typeof(float).TypeHandle, typeof(string).TypeHandle, typeof(object).TypeHandle
+            });
+        GenericStaticMethod.GenericClassInvokeMethodHandle = invokeMethod.MethodHandle.Value;
+
+        // Exercise RefGenericClass with two different reference-type instantiations.
+        // On .NET Core, RefGenericClass<string> and RefGenericClass<object> share JIT'd
+        // code via the canonical __Canon instantiation. JIT the code via <string> first,
+        // then store the <object> MethodDesc. The <object> per-instantiation MethodDesc
+        // may have HasNativeCode=0 because the code lives on the canonical desc.
+        RefGenericClass<string> rgs = new RefGenericClass<string>();
+        string rgsResult = rgs.GetValue("hello");
+        GC.KeepAlive(rgsResult);
+
+        RefGenericClass<object> rgo = new RefGenericClass<object>();
+        object rgoResult = rgo.GetValue(new object());
+        GC.KeepAlive(rgoResult);
+
+        MethodInfo getValueObj = typeof(RefGenericClass<object>).GetMethod("GetValue");
+        RuntimeHelpers.PrepareMethod(getValueObj.MethodHandle,
+            new RuntimeTypeHandle[] { typeof(object).TypeHandle });
+        GenericStaticMethod.RefGenericGetValueMethodHandle = getValueObj.MethodHandle.Value;
+
         Inner();
 
         GC.KeepAlive(foos);
+        GC.KeepAlive(structResult);
     }
 
     private static void Inner()

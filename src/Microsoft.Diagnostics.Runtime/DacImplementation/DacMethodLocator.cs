@@ -37,34 +37,51 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public bool GetMethodInfo(ulong methodDesc, out MethodInfo methodInfo)
         {
-            if (!_sos.GetMethodDescData(methodDesc, 0, out MethodDescData mdd) || !_sos.GetCodeHeaderData(mdd.NativeCodeAddr, out CodeHeaderData chd))
+            if (!_sos.GetMethodDescData(methodDesc, 0, out MethodDescData mdd))
             {
                 methodInfo = default;
                 return false;
             }
 
-            uint compilation = chd.JITType;
-            ulong md = chd.MethodDesc;
-
-            HotColdRegions regions;
-            if (mdd.HasNativeCode != 0)
+            if (mdd.HasNativeCode != 0 && _sos.GetCodeHeaderData(mdd.NativeCodeAddr, out CodeHeaderData chd))
             {
-                regions = new(mdd.NativeCodeAddr, chd.HotRegionSize, chd.ColdRegionStart, chd.ColdRegionSize);
-                md = chd.MethodDesc;
-                compilation = chd.JITType;
+                methodInfo = new()
+                {
+                    CompilationType = (MethodCompilationType)chd.JITType,
+                    HotCold = new(mdd.NativeCodeAddr, chd.HotRegionSize, chd.ColdRegionStart, chd.ColdRegionSize),
+                    MethodDesc = chd.MethodDesc,
+                    Token = (int)mdd.MDToken
+                };
             }
             else
             {
-                regions = new(mdd.NativeCodeAddr, chd.HotRegionSize, chd.ColdRegionStart, chd.ColdRegionSize);
+                // Fall back to slot-based lookup (issue #935). Reference-type generic
+                // instantiations share code via canonical method descs and may not have
+                // NativeCodeAddr set, but the method table slot points to the shared code.
+                ulong slot = _sos.GetMethodTableSlot(mdd.MethodTable, mdd.SlotNumber);
+                if (slot != 0 && _sos.GetCodeHeaderData(slot, out CodeHeaderData slotChd))
+                {
+                    methodInfo = new()
+                    {
+                        CompilationType = (MethodCompilationType)slotChd.JITType,
+                        HotCold = new(slot, slotChd.HotRegionSize, slotChd.ColdRegionStart, slotChd.ColdRegionSize),
+                        MethodDesc = methodDesc,
+                        Token = (int)mdd.MDToken
+                    };
+                }
+                else
+                {
+                    // Method has no native code by either path (not yet JIT compiled)
+                    methodInfo = new()
+                    {
+                        CompilationType = MethodCompilationType.None,
+                        HotCold = default,
+                        MethodDesc = methodDesc,
+                        Token = (int)mdd.MDToken
+                    };
+                }
             }
 
-            methodInfo = new()
-            {
-                CompilationType = (MethodCompilationType)compilation,
-                HotCold = regions,
-                MethodDesc = md,
-                Token = (int)mdd.MDToken
-            };
             return true;
         }
     }
