@@ -212,7 +212,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                     // These are defined as non-nullable but just in case, double check we have a non-null instance.
                     if (heapHelpers is null || typeHelpers is null)
-                        throw new NotSupportedException("Unable to create a ClrHeap for this runtime.");
+                        throw new InvalidDataException("Unable to create a ClrHeap for this runtime. This may indicate that the CLR wasn't fully initialized at the time the dump was taken, or the dump is corrupt or truncated.");
 
                     heap = new(this, DataTarget.DataReader, heapHelpers, typeHelpers);
                     Interlocked.CompareExchange(ref _heap, heap, null);
