@@ -78,7 +78,10 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         {
             HashSet<ulong> seen = [0];
             ulong syncBlock = 0;
-            while (_sos.GetSyncBlockCleanupData(syncBlock, out SyncBlockCleanupData data))
+            HResult hr = default;
+            // For back-compat with older versions of CLRMD, SOS returns E_INVALIDARG if you pass in 0 for the sync block.
+            // So we will continue on E_INVALIDARG if it is this special case of passing 0 to start enumerating.
+            while ((hr = _sos.GetSyncBlockCleanupData(syncBlock, out SyncBlockCleanupData data)) || (hr == HResult.E_INVALIDARG && syncBlock == 0))
             {
                 yield return new(data.SyncBlockPointer, data.BlockRCW, data.BlockCCW, data.BlockClassFactory);
 
