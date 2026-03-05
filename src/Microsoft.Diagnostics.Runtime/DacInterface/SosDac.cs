@@ -26,7 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private volatile Dictionary<ulong, string>? _frameNames;
 
         // SOS_BREAKING_CHANGE_VERSION from ISOSDacInterface9::GetBreakingChangeVersion()
-        internal int BreakingChangeVersion { get; set; }
+        public int BreakingChangeVersion { get; set; }
 
         public SOSDac(DacLibrary? library, IntPtr ptr)
             : base(library?.OwningLibrary, IID_ISOSDac, ptr)
