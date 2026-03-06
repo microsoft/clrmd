@@ -25,9 +25,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private volatile Dictionary<int, string>? _regNames;
         private volatile Dictionary<ulong, string>? _frameNames;
 
-        // SOS_BREAKING_CHANGE_VERSION from ISOSDacInterface9::GetBreakingChangeVersion()
-        public int BreakingChangeVersion { get; set; }
-
         public SOSDac(DacLibrary? library, IntPtr ptr)
             : base(library?.OwningLibrary, IID_ISOSDac, ptr)
         {
@@ -713,22 +710,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr;
         }
 
-        // Prior to SOS_BREAKING_CHANGE_VERSION 6, the DAC's DefaultCOMImpl::Release() used
-        // post-decrement (mRef--) instead of pre-decrement (--mRef), meaning the ref count
-        // never reached zero and objects were never freed. The CallableCOMWrapper constructor
-        // calls QueryInterface (AddRef) then Release on the original pointer, leaving us with
-        // one extra ref from the DAC's leak. This method releases that extra ref on old DACs.
-        // With the fix (version >= 6) the DAC correctly frees at zero so we must not Release.
-        private void ReleaseLeakedDacRef(CallableCOMWrapper wrapper, string apiName)
-        {
-            if (BreakingChangeVersion < 6)
-            {
-                int count = wrapper.Release();
-                if (count == 0)
-                    throw new InvalidOperationException($"We expected to borrow a reference from {apiName}, but instead fully released the object!");
-            }
-        }
-
         public SOSHandleEnum? EnumerateHandles(params ClrHandleKind[] types)
         {
             fixed (ClrHandleKind* ptr = types)
@@ -737,7 +718,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 if (hr)
                 {
                     SOSHandleEnum result = new(_library, ptrEnum);
-                    ReleaseLeakedDacRef(result, nameof(ISOSDacVTable.GetHandleEnumForTypes));
+                    int count = result.Release();
+                    if (count == 0)
+                        throw new InvalidOperationException($"We expected to borrow a reference from GetHandleEnumForTypes, but instead fully released the object!");
+
                     return result;
                 }
             }
@@ -751,7 +735,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (hr)
             {
                 SOSHandleEnum result = new(_library, ptrEnum);
-                ReleaseLeakedDacRef(result, nameof(ISOSDacVTable.GetHandleEnum));
+                int count = result.Release();
+                if (count == 0)
+                    throw new InvalidOperationException($"We expected to borrow a reference from GetHandleEnum, but instead fully released the object!");
+
                 return result;
             }
 
@@ -765,7 +752,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (hr)
             {
                 SOSStackRefEnum result = new(_library, ptrEnum);
-                ReleaseLeakedDacRef(result, nameof(ISOSDacVTable.GetStackReferences));
+                int count = result.Release();
+                if (count == 0)
+                    throw new InvalidOperationException($"We expected to borrow a reference from GetStackReferences, but instead fully released the object!");
+
                 return result;
             }
             else
