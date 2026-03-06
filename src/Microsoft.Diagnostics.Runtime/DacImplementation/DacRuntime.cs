@@ -30,8 +30,10 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             if (!_dac.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))))
                 throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data. This may indicate the dump was taken before the CLR was fully initialized, or the dump is corrupt or truncated. Failed to request DacVersion.");
 
-            if (version != 9)
+            if (version < 9)
                 throw new NotSupportedException($"The CLR debugging layer reported a version of {version} which this build of ClrMD does not support.");
+
+            _sos.DacVersion = version;
         }
 
         public IEnumerable<ClrThreadInfo> EnumerateThreads()
