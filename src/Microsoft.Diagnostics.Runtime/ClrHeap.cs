@@ -1145,7 +1145,18 @@ namespace Microsoft.Diagnostics.Runtime
         }
         public ClrType? GetTypeByMethodTable(ulong methodTable) => _typeFactory.GetOrCreateType(methodTable, 0);
 
-        public ClrType? GetTypeByName(string name) => Runtime.EnumerateModules().OrderBy(m => m.Name ?? "").Select(m => GetTypeByName(m, name)).Where(r => r != null).FirstOrDefault();
+        public ClrType? GetTypeByName(string name)
+        {
+            // Search TypeDef maps across all modules (finds typedefs like System.String).
+            ClrType? result = Runtime.EnumerateModules().OrderBy(m => m.Name ?? "").Select(m => GetTypeByName(m, name)).Where(r => r != null).FirstOrDefault();
+
+            // Fallback: search all already-constructed types in the cache.  This finds
+            // generic instantiations (e.g. LinkedListNode<System.String>) that are not
+            // in any module's TypeDef map but were constructed during heap enumeration.
+            result ??= _typeFactory.TryGetCachedTypeByName(name);
+
+            return result;
+        }
 
         public ClrType? GetTypeByName(ClrModule module, string name)
         {

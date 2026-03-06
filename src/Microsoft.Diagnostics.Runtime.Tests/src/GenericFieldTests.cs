@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#nullable enable
+
 using System.Linq;
 using Xunit;
 
@@ -30,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.True(node.IsValid, "Could not find LinkedListNode<string> on the heap.");
 
-            ClrInstanceField itemField = node.Type!.GetFieldByName("item");
+            ClrInstanceField? itemField = node.Type!.GetFieldByName("item");
             Assert.NotNull(itemField);
 
             // The field type should be System.String, not T or System.__Canon
@@ -98,6 +100,52 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     Assert.DoesNotContain("__Canon", field.Type.Name);
                 }
             }
+        }
+
+        /// <summary>
+        /// Issue #1396: All fields of LinkedListNode should have non-null types.
+        /// The next/prev fields are GenericInstantiation(LinkedListNode, Var(0)) in metadata
+        /// and the list field is GenericInstantiation(LinkedList, Var(0)).
+        /// These require resolving generic instantiations by searching cached types, not
+        /// just TypeDef maps.
+        /// </summary>
+        [Fact]
+        public void LinkedListNode_AllFields_HaveNonNullType()
+        {
+            ClrHeap heap = _connection.Runtime.Heap;
+            ClrObject node = heap.EnumerateObjects()
+                .FirstOrDefault(o => o.Type?.Name?.Contains("LinkedListNode<System.String>") == true);
+
+            Assert.True(node.IsValid, "Could not find LinkedListNode<string> on the heap.");
+
+            foreach (ClrInstanceField field in node.Type!.Fields)
+            {
+                Assert.NotNull(field.Type);
+                Assert.NotEqual(ClrElementType.Unknown, field.Type!.ElementType);
+            }
+        }
+
+        /// <summary>
+        /// Issue #1396: GetTypeByName should find generic instantiations that have
+        /// been constructed during heap enumeration, not just types in TypeDef maps.
+        /// </summary>
+        [Fact]
+        public void GetTypeByName_FindsConstructedGenericInstantiations()
+        {
+            ClrHeap heap = _connection.Runtime.Heap;
+
+            // Force heap enumeration so types get constructed and cached.
+            foreach (ClrObject obj in heap.EnumerateObjects())
+            {
+                // Touch Type to ensure it's constructed
+                _ = obj.Type;
+            }
+
+            // LinkedListNode<System.String> is a generic instantiation, not a TypeDef.
+            // GetTypeByName should find it via the cache fallback.
+            ClrType? nodeType = heap.GetTypeByName("System.Collections.Generic.LinkedListNode<System.String>");
+            Assert.NotNull(nodeType);
+            Assert.Contains("LinkedListNode", nodeType!.Name);
         }
 
         public class GenericConnection : Fixtures.ObjectConnection<GenericTypeCarrier>
