@@ -18,7 +18,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly SOSDac _sos;
         private readonly SOSDac6? _sos6;
         private readonly SOSDac8? _sos8;
-        private readonly SosDac9? _sos9;
         private readonly SosDac12? _sos12;
         private readonly ISOSDac13? _sos13;
         private readonly SosDac14? _sos14;
@@ -46,8 +45,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             _sos = _process.CreateSOSDacInterface() ?? throw new InvalidOperationException($"Could not create ISOSDacInterface.");
             _sos6 = _process.CreateSOSDacInterface6();
             _sos8 = _process.CreateSOSDacInterface8();
-            _sos9 = _process.CreateSOSDacInterface9();
-            _sos.BreakingChangeVersion = _sos9?.GetBreakingChangeVersion() ?? 0;
             _sos12 = _process.CreateSOSDacInterface12();
             _sos13 = _process.CreateSOSDacInterface13();
             _sos14 = _process.CreateSOSDacInterface14();
@@ -68,7 +65,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             _sos.Dispose();
             _sos6?.Dispose();
             _sos8?.Dispose();
-            _sos9?.Dispose();
             _sos12?.Dispose();
             _sos13?.Dispose();
             _sos14?.Dispose();

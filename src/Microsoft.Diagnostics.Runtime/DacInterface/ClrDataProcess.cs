@@ -82,22 +82,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        public SosDac9? CreateSOSDacInterface9()
-        {
-            IntPtr result = QueryInterface(SosDac9.IID_ISOSDac9);
-            if (result == IntPtr.Zero)
-                return null;
-
-            try
-            {
-                return new SosDac9(_library, result);
-            }
-            catch (InvalidOperationException)
-            {
-                return null;
-            }
-        }
-
         public SosDac12? CreateSOSDacInterface12()
         {
             IntPtr result = QueryInterface(SosDac12.IID_ISOSDac12);
