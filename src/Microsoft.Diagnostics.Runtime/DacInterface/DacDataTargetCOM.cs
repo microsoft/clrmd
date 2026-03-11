@@ -54,9 +54,19 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         protected override unsafe ComInterfaceEntry* ComputeVtables(object obj, CreateComInterfaceFlags flags, out int count)
         {
-            // We only expose ICLRRuntimeLocator if we actually have the base address of the runtime.
             DacDataTarget dacDataTarget = obj as DacDataTarget ?? throw new InvalidOperationException($"Expected {nameof(DacDataTarget)} but got {obj.GetType()}.");
-            count = dacDataTarget.RuntimeBaseAddress == 0 ? 2 : 3;
+
+            // Interfaces exposed (in order): IDacDataTarget, IMetadataLocator, ICLRRuntimeLocator, ICLRContractLocator
+            // ICLRRuntimeLocator requires a valid RuntimeBaseAddress; ICLRContractLocator requires a valid ContractDescriptor.
+            count = 2;
+            if (dacDataTarget.RuntimeBaseAddress != 0)
+            {
+                count = 3;
+            }
+            if (dacDataTarget.ContractDescriptor != 0)
+            {
+                count = 4;
+            }
 
             ComInterfaceEntry* result = s_wrapperEntry;
             return result;
