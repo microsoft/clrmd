@@ -137,7 +137,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
 
             int readingCursor = RvaToOffset(RelocationDataDirectory.VirtualAddress);
+            if (readingCursor < 0)
+                return;
+
             int readingLimit = readingCursor + RelocationDataDirectory.Size;
+
+            // Clamp readingLimit to the stream length so that bounds calculations
+            // based on readingLimit reflect actually-readable data.  Without this,
+            // a malformed Size field can cause millions of no-op reads past the
+            // end of the stream.
+            if (readingLimit > _stream.Length || readingLimit < readingCursor)
+                readingLimit = (int)Math.Min(_stream.Length, int.MaxValue);
 
             List<int> relocations = new();
             while (readingCursor < readingLimit)
