@@ -632,7 +632,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            ClrObject obj = Assert.Single(runtime.Heap.EnumerateObjects().Where(obj => obj.Type?.Name?.StartsWith("Types+<Async>d__") ?? false));
+            ClrObject obj = Assert.Single(runtime.Heap.EnumerateObjects(), obj => obj.Type?.Name?.StartsWith("Types+<Async>d__") ?? false);
             ClrInterface clrInterface = Assert.Single(obj.Type.EnumerateInterfaces());
 
             Assert.Equal("System.Runtime.CompilerServices.IAsyncStateMachine", clrInterface.Name);

@@ -1,14 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
     /// <summary>
     /// Helper for conditionally skipping tests at runtime for single-file limitations.
-    /// Uses xUnit v2 SkipException for dynamic skip support.
-    /// Note: Requires xUnit runner support for $XunitDynamicSkip$ token.
+    /// Uses xUnit's dynamic skip convention ($XunitDynamicSkip$ message prefix).
     /// </summary>
     internal static class SingleFileSkip
     {
@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static void SkipIf(bool singleFile, string reason)
         {
             if (singleFile)
-                throw new Xunit.Sdk.SkipException("Single-file: " + reason);
+                throw new Exception("$XunitDynamicSkip$Single-file: " + reason);
         }
     }
 }

@@ -67,17 +67,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     ClrObject[] foundObjs = heap.EnumerateObjects(carefully: true).ToArray();
                     Assert.Equal(objs.Length, foundObjs.Length);
 
-                    ClrObject corruptedObject = Assert.Single(foundObjs.Where(f => f.Address == obj.Address));
+                    ClrObject corruptedObject = Assert.Single(foundObjs, f => f.Address == obj.Address);
                     Assert.False(corruptedObject.IsValid);
 
-                    ClrObject corruptedArray = Assert.Single(foundObjs.Where(f => f.Address == arr.Address));
+                    ClrObject corruptedArray = Assert.Single(foundObjs, f => f.Address == arr.Address);
                     Assert.False(corruptedArray.IsValid);
 
                     ObjectCorruption[] corrupted = heap.VerifyHeap().ToArray();
                     Assert.True(corrupted.Length >= 2);
 
-                    Assert.Single(corrupted.Where(c => c.Object == corruptedObject));
-                    Assert.Single(corrupted.Where(c => c.Object == corruptedArray));
+                    Assert.Single(corrupted, c => c.Object == corruptedObject);
+                    Assert.Single(corrupted, c => c.Object == corruptedArray);
                 });
             });
         }
