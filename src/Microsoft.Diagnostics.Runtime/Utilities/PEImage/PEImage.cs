@@ -150,6 +150,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
                 int numRelocationsInBlock = (relocation.blockSize - Unsafe.SizeOf<ImageRelocation>()) / Unsafe.SizeOf<ushort>();
 
+                // Clamp to what actually fits within the remaining relocation data to avoid
+                // near-infinite loops when blockSize is bogus in malformed images.
+                int maxFromRemaining = (readingLimit - readingCursor) / Unsafe.SizeOf<ushort>();
+                if (numRelocationsInBlock > maxFromRemaining)
+                    numRelocationsInBlock = maxFromRemaining;
+
                 for (int i = 0; i < numRelocationsInBlock; i++)
                 {
                     ushort reloc = Read<ushort>(ref readingCursor);
