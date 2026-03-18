@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime
                 MinidumpProcessorArchitecture.Arm => Architecture.Arm,
                 MinidumpProcessorArchitecture.Arm64 => Architecture.Arm64,
                 MinidumpProcessorArchitecture.Intel => Architecture.X86,
-                _ => throw new NotImplementedException($"No support for platform {_minidump.Architecture}"),
+                _ => throw new NotSupportedException($"Architecture {_minidump.Architecture} is not supported."),
             };
 
             PointerSize = _minidump.PointerSize;

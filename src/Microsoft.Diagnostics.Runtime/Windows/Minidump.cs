@@ -56,7 +56,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             MinidumpProcessorArchitecture.Arm64 or MinidumpProcessorArchitecture.Amd64 => 8,
             MinidumpProcessorArchitecture.Intel or MinidumpProcessorArchitecture.Arm => 4,
-            _ => throw new NotImplementedException($"Not implemented for architecture {Architecture}."),
+            _ => throw new NotSupportedException($"Architecture {Architecture} is not supported."),
         };
 
         public bool IsMiniDump { get; }
