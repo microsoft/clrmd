@@ -178,24 +178,23 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     const int IMAGE_REL_BASED_HIGHLOW = 3;
                     const int IMAGE_REL_BASED_DIR64 = 10;
 
-                    if (type == IMAGE_REL_BASED_ABSOLUTE)
+                    if (type == IMAGE_REL_BASED_ABSOLUTE || fileOffset < 0)
                     {
                         continue;
                     }
 
-                    relocations.Add(fileOffset);
-
+                    // Only add start/end pairs for known relocation types.
+                    // Adding a start without a matching end breaks the pair
+                    // invariant that DoRead depends on.
                     if (type == IMAGE_REL_BASED_HIGHLOW)
                     {
+                        relocations.Add(fileOffset);
                         relocations.Add(fileOffset + 3);
                     }
                     else if (type == IMAGE_REL_BASED_DIR64)
                     {
+                        relocations.Add(fileOffset);
                         relocations.Add(fileOffset + 7);
-                    }
-                    else
-                    {
-                        // TODO: Implementation if this happens.
                     }
 
                     if (relocations.Count > _limits.MaxPERelocations)
