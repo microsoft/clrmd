@@ -33,6 +33,9 @@ public sealed class DataTargetLimits
     /// <summary>Maximum length of an ASCII string read from a Mach-O core dump.</summary>
     public int MaxMachOAsciiLength { get => field; init => field = ValidatePositive(value); } = 4_096;
 
+    /// <summary>Maximum number of bytes to search per segment when looking for the dylinker module in a Mach-O core dump.</summary>
+    public long MaxMachODylinkerSearchBytes { get => field; init => field = ValidatePositiveLong(value); } = 256 * 1024 * 1024;
+
     // ──────────────────────────────────────────────
     //  ELF limits
     // ──────────────────────────────────────────────
@@ -82,5 +85,8 @@ public sealed class DataTargetLimits
     public int MaxAppDomains { get => field; init => field = ValidatePositive(value); } = 10_000;
 
     private static int ValidatePositive(int value) =>
+        value > 0 ? value : throw new System.ArgumentOutOfRangeException(nameof(value), "Limit must be a positive integer.");
+
+    private static long ValidatePositiveLong(long value) =>
         value > 0 ? value : throw new System.ArgumentOutOfRangeException(nameof(value), "Limit must be a positive integer.");
 }

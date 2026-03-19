@@ -309,10 +309,11 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         {
             const uint skip = 0x1000;
             const uint firstPassAttemptCount = 8;
+            ulong maxSearch = (ulong)_limits.MaxMachODylinkerSearchBytes;
             foreach (MachOSegment seg in _segments)
             {
                 ulong start = 0;
-                ulong end = seg.FileSize;
+                ulong end = Math.Min(seg.FileSize, maxSearch);
 
                 if (firstPass)
                     end = skip * firstPassAttemptCount;
