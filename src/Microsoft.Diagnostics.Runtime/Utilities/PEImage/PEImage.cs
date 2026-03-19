@@ -137,7 +137,17 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
 
             int readingCursor = RvaToOffset(RelocationDataDirectory.VirtualAddress);
+            if (readingCursor < 0)
+                return;
+
             int readingLimit = readingCursor + RelocationDataDirectory.Size;
+
+            // Clamp readingLimit to the stream length so that bounds calculations
+            // based on readingLimit reflect actually-readable data.  Without this,
+            // a malformed Size field can cause millions of no-op reads past the
+            // end of the stream.
+            if (readingLimit > _stream.Length || readingLimit < readingCursor)
+                readingLimit = (int)Math.Min(_stream.Length, int.MaxValue);
 
             List<int> relocations = new();
             while (readingCursor < readingLimit)
@@ -149,6 +159,12 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     break;
 
                 int numRelocationsInBlock = (relocation.blockSize - Unsafe.SizeOf<ImageRelocation>()) / Unsafe.SizeOf<ushort>();
+
+                // Clamp to what actually fits within the remaining relocation data to avoid
+                // near-infinite loops when blockSize is bogus in malformed images.
+                int maxFromRemaining = (readingLimit - readingCursor) / Unsafe.SizeOf<ushort>();
+                if (numRelocationsInBlock > maxFromRemaining)
+                    numRelocationsInBlock = maxFromRemaining;
 
                 for (int i = 0; i < numRelocationsInBlock; i++)
                 {
@@ -162,24 +178,23 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     const int IMAGE_REL_BASED_HIGHLOW = 3;
                     const int IMAGE_REL_BASED_DIR64 = 10;
 
-                    if (type == IMAGE_REL_BASED_ABSOLUTE)
+                    if (type == IMAGE_REL_BASED_ABSOLUTE || fileOffset < 0)
                     {
                         continue;
                     }
 
-                    relocations.Add(fileOffset);
-
+                    // Only add start/end pairs for known relocation types.
+                    // Adding a start without a matching end breaks the pair
+                    // invariant that DoRead depends on.
                     if (type == IMAGE_REL_BASED_HIGHLOW)
                     {
+                        relocations.Add(fileOffset);
                         relocations.Add(fileOffset + 3);
                     }
                     else if (type == IMAGE_REL_BASED_DIR64)
                     {
+                        relocations.Add(fileOffset);
                         relocations.Add(fileOffset + 7);
-                    }
-                    else
-                    {
-                        // TODO: Implementation if this happens.
                     }
 
                     if (relocations.Count > _limits.MaxPERelocations)

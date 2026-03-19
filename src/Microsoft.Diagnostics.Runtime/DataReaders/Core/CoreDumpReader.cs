@@ -37,11 +37,11 @@ namespace Microsoft.Diagnostics.Runtime
                 ElfMachine.EM_ARM => (4, Architecture.Arm),
                 ElfMachine.EM_RISCV => _core.ElfFile.Header.Is64Bit ?
                                             (8, (Architecture)9 /* Architecture.RiscV64 */) :
-                                            throw new NotImplementedException($"Support for RISC-V 32bit not yet implemented."),
+                                            throw new NotSupportedException($"RISC-V 32-bit is not supported."),
                 ElfMachine.EM_LOONGARCH => _core.ElfFile.Header.Is64Bit ?
                                             (8, (Architecture)6 /* Architecture.LoongArch64 */) :
-                                            throw new NotImplementedException($"Support for LoongArch 32bit not yet implemented."),
-                _ => throw new NotImplementedException($"Support for {architecture} not yet implemented."),
+                                            throw new NotSupportedException($"LoongArch 32-bit is not supported."),
+                _ => throw new NotSupportedException($"Architecture {architecture} is not supported."),
             };
         }
 

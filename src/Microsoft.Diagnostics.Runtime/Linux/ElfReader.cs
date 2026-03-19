@@ -81,6 +81,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public string ReadNullTerminatedAscii(ulong position, int length)
         {
+            if (length <= 0)
+                return string.Empty;
+
             byte[]? array = null;
             Span<byte> buffer = length <= 32 ? stackalloc byte[length] : (array = ArrayPool<byte>.Shared.Rent(length)).AsSpan(0, length);
 
