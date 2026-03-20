@@ -9,7 +9,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     internal struct ElfSymbol32
     {
         public uint Name;
-        public ulong Value;
+        public uint Value;
         public uint Size;
         public byte Info;
         public byte Other;

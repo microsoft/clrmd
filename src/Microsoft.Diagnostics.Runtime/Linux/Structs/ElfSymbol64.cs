@@ -12,7 +12,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public byte Info;
         public byte Other;
         public ushort Shndx;
-        public uint Value;
+        public ulong Value;
         public ulong Size;
     }
 }
