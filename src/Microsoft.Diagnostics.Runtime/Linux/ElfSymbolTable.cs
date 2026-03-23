@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 string name = _stringTable.GetStringAtIndex(s.Name);
                 ElfSymbolBind b = (ElfSymbolBind)(s.Info >> 4);
                 ElfSymbolType t = (ElfSymbolType)(s.Info & 0xF);
-                return new ElfSymbol(name, b, t, s.Value, (long)s.Size);
+                return new ElfSymbol(name, b, t, (long)s.Value, (long)s.Size);
             }
             else
             {
