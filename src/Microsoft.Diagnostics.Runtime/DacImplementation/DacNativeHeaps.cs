@@ -258,7 +258,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 {
                     int versionMajor = _clrInfo.Version.Major;
                     normalNeedsAdjustment = versionMajor == 7 || versionMajor == 8 && _sos13 is null || versionMajor == 0;
-                    explicitDoesNotNeedAdjustment = versionMajor == 11 || versionMajor == 0;
+                    explicitDoesNotNeedAdjustment = versionMajor >= 11 || versionMajor == 0;
                 }
 
                 ulong fixedHeapAddress = FixupHeapAddress(loaderHeap, loaderHeapKind, normalNeedsAdjustment, explicitDoesNotNeedAdjustment);
