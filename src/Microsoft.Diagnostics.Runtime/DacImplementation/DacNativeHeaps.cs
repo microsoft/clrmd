@@ -250,21 +250,25 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 // loader heaps.  We have to adjust certain loader heap kinds based on the version of dac we are
                 // targeting.  This includes .Net 7, and .Net 8 before ISOSDacInterface13 was implemented.  Additionally,
                 // we don't know the version info for a lot of versions of single-file compilation.  In all of those
-                // cases, we need to adjust the pointer.
+                // cases, we need to adjust the pointer. In .NET 11, we stabilize the layouts such that none of this is necessary.
 
                 bool normalNeedsAdjustment = false;
+                bool explicitDoesNotNeedAdjustment = false;
                 if (_clrInfo.Flavor == ClrFlavor.Core)
                 {
                     int versionMajor = _clrInfo.Version.Major;
                     normalNeedsAdjustment = versionMajor == 7 || versionMajor == 8 && _sos13 is null || versionMajor == 0;
+                    explicitDoesNotNeedAdjustment = versionMajor >= 11 || versionMajor == 0;
                 }
 
-                ulong fixedHeapAddress = FixupHeapAddress(loaderHeap, loaderHeapKind, normalNeedsAdjustment);
+                ulong fixedHeapAddress = FixupHeapAddress(loaderHeap, loaderHeapKind, normalNeedsAdjustment, explicitDoesNotNeedAdjustment);
 
                 HResult hr = _sos.TraverseLoaderHeap(fixedHeapAddress, (address, size, current) => {
                     result ??= new(8);
                     result.Add(new(MemoryRange.CreateFromLength(address, SanitizeSize(size)), nativeHeapKind, current != 0 ? ClrNativeHeapState.Active : ClrNativeHeapState.Inactive));
                 });
+
+                bool retry = !hr;
 
                 if (result is not null && result.Count > 0 && normalNeedsAdjustment)
                 {
@@ -275,13 +279,17 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     if (result.Any(entry => _dataReader.Read(entry.MemoryRange.Start, buffer) == 0))
                     {
                         result.Clear();
-                        fixedHeapAddress = FixupHeapAddress(loaderHeap, loaderHeapKind, !normalNeedsAdjustment);
-
-                        hr = _sos.TraverseLoaderHeap(fixedHeapAddress, (address, size, current) => {
-                            result ??= new(8);
-                            result.Add(new(MemoryRange.CreateFromLength(address, SanitizeSize(size)), nativeHeapKind, current != 0 ? ClrNativeHeapState.Active : ClrNativeHeapState.Inactive));
-                        });
+                        retry = true;
                     }
+                }
+
+                if (retry)
+                {
+                    fixedHeapAddress = FixupHeapAddress(loaderHeap, loaderHeapKind, !normalNeedsAdjustment, !explicitDoesNotNeedAdjustment);
+                    hr = _sos.TraverseLoaderHeap(fixedHeapAddress, (address, size, current) => {
+                        result ??= new(8);
+                        result.Add(new(MemoryRange.CreateFromLength(address, SanitizeSize(size)), nativeHeapKind, current != 0 ? ClrNativeHeapState.Active : ClrNativeHeapState.Inactive));
+                    });
                 }
 
                 // If TraverseLoaderHeap returns a failing HRESULT, it means that it encountered a bad block.
@@ -294,7 +302,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             return Enumerable.Empty<ClrNativeHeapInfo>();
         }
 
-        private ulong FixupHeapAddress(ulong loaderHeap, LoaderHeapKind loaderHeapKind, bool normalNeedsAdjustment)
+        private ulong FixupHeapAddress(ulong loaderHeap, LoaderHeapKind loaderHeapKind, bool normalNeedsAdjustment, bool explicitDoesNotNeedAdjustment)
         {
             if (normalNeedsAdjustment)
             {
@@ -303,7 +311,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             }
             else
             {
-                if (loaderHeapKind == LoaderHeapKind.LoaderHeapKindExplicitControl)
+                if (loaderHeapKind == LoaderHeapKind.LoaderHeapKindExplicitControl && !explicitDoesNotNeedAdjustment)
                     loaderHeap -= (uint)_dataReader.PointerSize;
             }
 
