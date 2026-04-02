@@ -77,14 +77,26 @@ extends:
                                       /p:OfficialBuildId=$(BUILD.BUILDNUMBER)
 
             steps:
-            - script: eng\common\cibuild.cmd
+            - script: eng\common\build.cmd
                 -configuration $(_BuildConfig)
                 -prepareMachine
                 -verbosity normal
+                -restore -build -test
+                -ci
+              name: BuildDebug
+              displayName: Build and Test (Debug)
+              condition: and(succeeded(), eq(variables['_BuildConfig'], 'Debug'))
+
+            - script: eng\common\build.cmd
+                -configuration $(_BuildConfig)
+                -prepareMachine
+                -verbosity normal
+                -restore -build -test -sign -pack -publish
+                -ci
                 $(_ReleaseBuildArgs)
-              name: Build
-              displayName: Build
-              condition: succeeded()
+              name: BuildRelease
+              displayName: Build, Sign, and Publish (Release)
+              condition: and(succeeded(), ne(variables['_BuildConfig'], 'Debug'))
 
           - job: Linux
             pool:
@@ -100,9 +112,11 @@ extends:
                   _BuildConfig: Release
 
             steps:
-            - script: eng/common/cibuild.sh
+            - script: eng/common/build.sh
                 --configuration $(_BuildConfig)
                 --prepareMachine
+                --restore --build --test
+                --ci
               name: Build
               displayName: Build
               condition: succeeded()
@@ -121,9 +135,11 @@ extends:
                   _BuildConfig: Release
 
             steps:
-            - script: eng/common/cibuild.sh
+            - script: eng/common/build.sh
                 --configuration $(_BuildConfig)
                 --prepareMachine
+                --restore --build --test
+                --ci
               name: Build
               displayName: Build
               condition: succeeded()
