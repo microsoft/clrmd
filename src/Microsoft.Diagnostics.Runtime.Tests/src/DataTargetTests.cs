@@ -39,6 +39,26 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             _ = Assert.Throws<InvalidDataException>(() => DataTarget.LoadDump(path));
         }
 
+        [WindowsFact]
+        public void LoadDump_StreamDisplayNameDoesNotNeedToBeAFilePath()
+        {
+            using (DataTarget _ = TestTargets.Types.LoadFullDump())
+            {
+            }
+
+            string dumpPath = TestTargets.Types.BuildDumpName(GCMode.Workstation, full: true);
+            using FileStream stream = File.OpenRead(dumpPath);
+            using DataTarget dt = DataTarget.LoadDump("<display name>", stream, options: new DataTargetOptions
+            {
+                CacheOptions = new CacheOptions
+                {
+                    MaxDumpCacheSize = 0x200_0000,
+                },
+            });
+
+            Assert.NotEmpty(dt.EnumerateModules());
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
