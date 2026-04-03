@@ -150,12 +150,26 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         private static List<string>? ParseGenericTypeArgumentNames(string typeName)
         {
-            int firstAngle = typeName.IndexOf('<');
+            // For nested generic types like "Outer<A>+Inner<B>", we need the LAST
+            // top-level generic argument list (Inner's), not the first (Outer's).
+            // Find the last '+' at depth 0 to locate the innermost type name.
+            int depth = 0;
+            int lastNestedSep = -1;
+            for (int i = 0; i < typeName.Length; i++)
+            {
+                char c = typeName[i];
+                if (c == '<') depth++;
+                else if (c == '>') depth--;
+                else if (c == '+' && depth == 0) lastNestedSep = i;
+            }
+
+            int searchStart = lastNestedSep >= 0 ? lastNestedSep + 1 : 0;
+            int firstAngle = typeName.IndexOf('<', searchStart);
             if (firstAngle < 0)
                 return null;
 
             List<string> args = new();
-            int depth = 0;
+            depth = 0;
             int argStart = firstAngle + 1;
 
             for (int i = firstAngle; i < typeName.Length; i++)
