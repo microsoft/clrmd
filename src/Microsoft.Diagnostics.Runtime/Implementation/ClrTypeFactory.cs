@@ -152,6 +152,25 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             }
         }
 
+        /// <summary>
+        /// Searches all cached (already-constructed) types by name.  This finds
+        /// generic instantiations that are not present in any module's TypeDef map
+        /// but were constructed during heap enumeration.
+        /// </summary>
+        public ClrType? TryGetCachedTypeByName(string name)
+        {
+            lock (_types)
+            {
+                foreach (ClrType type in _types.Values)
+                {
+                    if (type.Name == name)
+                        return type;
+                }
+            }
+
+            return null;
+        }
+
         public ClrType? GetOrCreateTypeFromSignature(ClrModule module, SigParser parser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters, IReadOnlyList<ClrType?>? concreteTypeArgs = null)
         {
             // ECMA 335 - II.23.2.12 - Type
