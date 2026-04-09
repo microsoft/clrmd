@@ -131,6 +131,13 @@ namespace Microsoft.Diagnostics.Runtime
                     IReadOnlyList<ClrType?>? concreteTypeArgs = ContainingType.GetConcreteGenericTypeArguments();
                     _type = ContainingType.Heap.GetOrCreateTypeFromSignature(ContainingType.Module, sigParser, ContainingType.EnumerateGenericParameters(), Array.Empty<ClrGenericParameter>(), concreteTypeArgs);
                 }
+
+                // If metadata resolution produced a generic placeholder (e.g. "TStateMachine"
+                // with no fields), fall back to the MethodTable. This handles compiler-generated
+                // types nested inside open generic classes where the name-based lookup fails
+                // due to open vs closed generic name mismatch.
+                if (_type is Implementation.ClrGenericType && FieldInfo.MethodTable != 0)
+                    _type = ContainingType.Heap.GetTypeByMethodTable(FieldInfo.MethodTable) ?? _type;
             }
 
             Interlocked.Exchange(ref _attributes, (int)info.Attributes);
