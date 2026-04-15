@@ -3,13 +3,13 @@
   <ProductDependencies>
   </ProductDependencies>
   <ToolsetDependencies>
-    <Dependency Name="Microsoft.DotNet.Arcade.Sdk" Version="10.0.0-beta.26201.4">
+    <Dependency Name="Microsoft.DotNet.Arcade.Sdk" Version="10.0.0-beta.26208.4">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>2ad6e0a00c692279222642dbcd6e72eb21572d93</Sha>
+      <Sha>ecdd5c6a7986cafabbf6a322ea09a07736a01a0d</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.CodeAnalysis" Version="10.0.0-beta.26201.4">
+    <Dependency Name="Microsoft.DotNet.CodeAnalysis" Version="10.0.0-beta.26208.4">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>2ad6e0a00c692279222642dbcd6e72eb21572d93</Sha>
+      <Sha>ecdd5c6a7986cafabbf6a322ea09a07736a01a0d</Sha>
     </Dependency>
     <Dependency Name="Microsoft.CodeAnalysis" Version="4.6.0-1.23073.4">
       <Uri>https://github.com/dotnet/roslyn</Uri>
