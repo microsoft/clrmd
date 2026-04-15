@@ -8,6 +8,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using Microsoft.Diagnostics.Runtime.Implementation;
 
 namespace Microsoft.Diagnostics.Runtime.DacImplementation
@@ -57,10 +58,21 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
                 ulong stackBase = 0;
                 ulong stackLimit = 0;
-                if (threadData.Teb != 0)
+                ulong teb = 0;
+
+                // Prefer IThreadReader.GetThreadTeb which looks up the TEB from the OS thread ID
+                // via the data reader. Fall back to threadData.Teb for DesktopCLR or when the
+                // data reader doesn't implement IThreadReader.
+                if (_dataReader is IThreadReader threadReader)
+                    teb = threadReader.GetThreadTeb(threadData.OSThreadId);
+
+                if (teb == 0)
+                    teb = threadData.Teb;
+
+                if (teb != 0)
                 {
-                    stackBase = _dataReader.ReadPointer(threadData.Teb + pointerSize);
-                    stackLimit = _dataReader.ReadPointer(threadData.Teb + pointerSize * 2);
+                    stackBase = _dataReader.ReadPointer(teb + pointerSize);
+                    stackLimit = _dataReader.ReadPointer(teb + pointerSize * 2);
                 }
 
                 yield return new()
@@ -77,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     StackBase = stackBase,
                     StackLimit = stackLimit,
                     State = (ClrThreadState)threadData.State,
-                    Teb = threadData.Teb,
+                    Teb = teb,
                 };
 
                 threadAddress = threadData.NextThread;
