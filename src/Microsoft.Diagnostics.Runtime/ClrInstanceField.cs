@@ -110,7 +110,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (interior)
                 return objRef + (ulong)Offset;
 
-            return objRef + (ulong)(Offset + IntPtr.Size);
+            return objRef + (ulong)(Offset + ContainingType.Module.DataReader.PointerSize);
         }
     }
 }

@@ -109,7 +109,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (helpers is null)
                 return default;
 
-            return DataReader.Read<T>(Address + (ulong)IntPtr.Size);
+            return DataReader.Read<T>(Address + (ulong)DataReader.PointerSize);
         }
 
         public bool IsException => Type != null && Type.IsException;

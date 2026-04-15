@@ -10,15 +10,21 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private byte* _sig;
         private int _len;
         private int _offs;
+        private int _pointerSize;
 
         public SigParser(SigParser rhs)
         {
             _sig = rhs._sig;
             _len = rhs._len;
             _offs = rhs._offs;
+            _pointerSize = rhs._pointerSize;
         }
 
-        public SigParser(IntPtr sig, int len)
+        public SigParser(IntPtr sig, int len) : this(sig, len, IntPtr.Size)
+        {
+        }
+
+        public SigParser(IntPtr sig, int len, int pointerSize)
         {
             if (len != 0)
             {
@@ -31,6 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             _len = len;
             _offs = 0;
+            _pointerSize = pointerSize;
         }
 
         public bool IsNull()
@@ -254,7 +261,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 case ELEMENT_TYPE_TYPEDBYREF:
                 case ELEMENT_TYPE_ARRAY:
                 case ELEMENT_TYPE_SZARRAY:
-                    pSize = IntPtr.Size;
+                    pSize = _pointerSize;
                     break;
 
                 case ELEMENT_TYPE_VOID:

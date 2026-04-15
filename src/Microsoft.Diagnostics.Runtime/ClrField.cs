@@ -172,7 +172,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the size of this field.
         /// </summary>
-        public int Size => GetSize(Type, ElementType);
+        public int Size => GetSize(Type, ElementType, ContainingType.Module.DataReader.PointerSize);
 
         /// <summary>
         /// Attributes of this field;
@@ -205,8 +205,10 @@ namespace Microsoft.Diagnostics.Runtime
             return $"{type.Name} {Name}";
         }
 
-        internal static int GetSize(ClrType? type, ClrElementType cet)
+        internal static int GetSize(ClrType? type, ClrElementType cet, int pointerSize = 0)
         {
+            if (pointerSize == 0)
+                pointerSize = IntPtr.Size;
             // todo:  What if we have a struct which is not fully constructed (null MT,
             //        null type) and need to get the size of the field?
             switch (cet)
@@ -255,7 +257,7 @@ namespace Microsoft.Diagnostics.Runtime
                 case ClrElementType.NativeUInt: // native unsigned int
                 case ClrElementType.Pointer:
                 case ClrElementType.FunctionPointer:
-                    return IntPtr.Size;
+                    return pointerSize;
 
                 case ClrElementType.UInt16:
                 case ClrElementType.Int16:

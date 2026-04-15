@@ -29,8 +29,8 @@ namespace Microsoft.Diagnostics.Runtime
         private const int SyncBlockIndexBits = 26;
         private const uint SyncBlockIndexMask = ((1u << SyncBlockIndexBits) - 1u);
 
-        private readonly uint _firstChar = (uint)IntPtr.Size + 4;
-        private readonly uint _stringLength = (uint)IntPtr.Size;
+        private readonly uint _firstChar;
+        private readonly uint _stringLength;
 
         private readonly ClrTypeFactory _typeFactory;
         private readonly IMemoryReader _memoryReader;
@@ -45,6 +45,8 @@ namespace Microsoft.Diagnostics.Runtime
         {
             Runtime = runtime;
             _memoryReader = memoryReader;
+            _firstChar = (uint)memoryReader.PointerSize + 4;
+            _stringLength = (uint)memoryReader.PointerSize;
             Helpers = helpers;
 
             GCState gcInfo = helpers.State;
@@ -511,7 +513,7 @@ namespace Microsoft.Diagnostics.Runtime
                     return _memoryReader.ReadPointer(address, out value);
 
                 int offset = (int)(address - Base);
-                value = _cache.AsSpan().AsPointer(offset);
+                value = _cache.AsSpan().AsPointer(_pointerSize, offset);
                 return true;
             }
 
@@ -630,7 +632,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             Dictionary<ulong, ulong> allocationContexts = GetAllocationContexts();
 
-            uint minObjSize = (uint)IntPtr.Size * 3;
+            uint minObjSize = (uint)_memoryReader.PointerSize * 3;
             while (allocationContexts.TryGetValue(address, out ulong nextObj))
             {
                 nextObj += Align(minObjSize, seg);
@@ -645,12 +647,12 @@ namespace Microsoft.Diagnostics.Runtime
             return address;
         }
 
-        private static ulong Align(ulong size, ClrSegment seg)
+        private ulong Align(ulong size, ClrSegment seg)
         {
             ulong AlignConst;
             ulong AlignLargeConst = 7;
 
-            if (IntPtr.Size == 4)
+            if (_memoryReader.PointerSize == 4)
                 AlignConst = 3;
             else
                 AlignConst = 7;
@@ -691,7 +693,8 @@ namespace Microsoft.Diagnostics.Runtime
                             ClrArray array = m_userObject.AsArray();
                             for (int i = 0; i < array.Length; i++)
                             {
-                                ulong innerAddress = m_userObject + (ulong)(2 * IntPtr.Size + i * IntPtr.Size);
+                                int pointerSize = _memoryReader.PointerSize;
+                                ulong innerAddress = m_userObject + (ulong)(2 * pointerSize + i * pointerSize);
                                 ClrObject innerObj = array.GetObjectValue(i);
 
                                 if (innerObj.IsValid)
@@ -855,7 +858,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
             else
             {
-                uint countOffset = (uint)IntPtr.Size;
+                uint countOffset = (uint)_memoryReader.PointerSize;
                 ulong loc = objRef + countOffset;
 
                 uint count = _memoryReader.Read<uint>(loc);
@@ -867,7 +870,7 @@ namespace Microsoft.Diagnostics.Runtime
                 size = count * (ulong)type.ComponentSize + (ulong)type.StaticSize;
             }
 
-            uint minSize = (uint)IntPtr.Size * 3;
+            uint minSize = (uint)_memoryReader.PointerSize * 3;
             if (size < minSize)
                 size = minSize;
             return size;
@@ -938,7 +941,7 @@ namespace Microsoft.Diagnostics.Runtime
                     int intSize = (int)size;
                     byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
                     int read = _memoryReader.Read(obj, new Span<byte>(buffer, 0, intSize));
-                    if (read > IntPtr.Size)
+                    if (read > _memoryReader.PointerSize)
                     {
                         foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
                             yield return new(reference, GetObjectType(reference) ?? ErrorType);
@@ -1008,14 +1011,14 @@ namespace Microsoft.Diagnostics.Runtime
                     int intSize = (int)size;
                     byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
                     int read = _memoryReader.Read(obj, new Span<byte>(buffer, 0, intSize));
-                    if (read > IntPtr.Size)
+                    if (read > _memoryReader.PointerSize)
                     {
                         foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
                         {
                             ClrObject target = new(reference, GetObjectType(reference) ?? ErrorType);
 
-                            DebugOnly.Assert(offset >= IntPtr.Size);
-                            yield return ClrReference.CreateFromFieldOrArray(target, type, offset - IntPtr.Size);
+                            DebugOnly.Assert(offset >= _memoryReader.PointerSize);
+                            yield return ClrReference.CreateFromFieldOrArray(target, type, offset - _memoryReader.PointerSize);
                         }
                     }
                     ArrayPool<byte>.Shared.Return(buffer);
@@ -1078,12 +1081,12 @@ namespace Microsoft.Diagnostics.Runtime
                     int intSize = (int)size;
                     byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
                     int read = _memoryReader.Read(obj, new Span<byte>(buffer, 0, intSize));
-                    if (read > IntPtr.Size)
+                    if (read > _memoryReader.PointerSize)
                     {
                         foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
                         {
                             yield return reference;
-                            DebugOnly.Assert(offset >= IntPtr.Size);
+                            DebugOnly.Assert(offset >= _memoryReader.PointerSize);
                         }
                     }
                     ArrayPool<byte>.Shared.Return(buffer);
@@ -1125,7 +1128,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             foreach (MemoryRange seg in memoryRanges)
             {
-                for (ulong ptr = seg.Start; ptr < seg.End; ptr += (uint)IntPtr.Size)
+                for (ulong ptr = seg.Start; ptr < seg.End; ptr += (uint)_memoryReader.PointerSize)
                 {
                     ulong obj = _memoryReader.ReadPointer(ptr);
                     if (obj == 0)

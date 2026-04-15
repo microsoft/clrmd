@@ -45,19 +45,28 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 #endif
-        public static unsafe ulong AsPointer(this Span<byte> span) => AsPointer(span, 0);
+        public static unsafe ulong AsPointer(this Span<byte> span) => AsPointer(span, IntPtr.Size, 0);
 
-        public static unsafe ulong AsPointer(this Span<byte> span, int offset = 0)
+        public static unsafe ulong AsPointer(this Span<byte> span, int offset) => AsPointer(span, IntPtr.Size, offset);
+
+        public static unsafe ulong AsPointer(this Span<byte> span, int pointerSize, int offset)
         {
             if (offset > 0)
                 span = span.Slice(offset);
 
-            DebugOnly.Assert(span.Length >= sizeof(nuint));
-            DebugOnly.Assert(unchecked((int)Unsafe.AsPointer(ref MemoryMarshal.GetReference(span))) % sizeof(nuint) == 0);
-            return Unsafe.As<byte, nuint>(ref MemoryMarshal.GetReference(span));
+            if (pointerSize == 8)
+            {
+                DebugOnly.Assert(span.Length >= sizeof(ulong));
+                return Unsafe.As<byte, ulong>(ref MemoryMarshal.GetReference(span));
+            }
+            else
+            {
+                DebugOnly.Assert(span.Length >= sizeof(uint));
+                return Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(span));
+            }
         }
 
-        public static unsafe ulong AsPointer(this Span<byte> span, ulong offset = 0) => AsPointer(span, (int)offset);
+        public static unsafe ulong AsPointer(this Span<byte> span, ulong offset) => AsPointer(span, IntPtr.Size, (int)offset);
 
         public static unsafe int AsInt32(this Span<byte> span, int offset = 0)
         {

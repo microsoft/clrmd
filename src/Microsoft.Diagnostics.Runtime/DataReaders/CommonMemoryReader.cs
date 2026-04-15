@@ -36,10 +36,11 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool ReadPointer(ulong address, out ulong value)
         {
-            Span<byte> buffer = stackalloc byte[IntPtr.Size];
-            if (Read(address, buffer) == IntPtr.Size)
+            int pointerSize = PointerSize;
+            Span<byte> buffer = stackalloc byte[pointerSize];
+            if (Read(address, buffer) == pointerSize)
             {
-                value = buffer.AsPointer();
+                value = buffer.AsPointer(pointerSize, 0);
                 return true;
             }
 
