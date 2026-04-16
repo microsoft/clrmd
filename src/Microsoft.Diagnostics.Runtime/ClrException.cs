@@ -281,16 +281,16 @@ namespace Microsoft.Diagnostics.Runtime
 
             int elementSize = pointerSize * 4;
             ulong dataPtr = _stackTrace + (ulong)(pointerSize * 2);
-            if (!dataReader.ReadPointer(dataPtr, out ulong count))
+            if (!dataReader.ReadPointer(dataPtr, out TargetPointer count))
                 return ImmutableArray<ClrStackFrame>.Empty;
 
-            ImmutableArray<ClrStackFrame>.Builder result = ImmutableArray.CreateBuilder<ClrStackFrame>((int)count);
+            ImmutableArray<ClrStackFrame>.Builder result = ImmutableArray.CreateBuilder<ClrStackFrame>((int)count.Value);
             result.Count = result.Capacity;
 
             // Skip size and header
             dataPtr += (ulong)(pointerSize * 2);
 
-            for (int i = 0; i < (int)count; ++i)
+            for (int i = 0; i < (int)count.Value; ++i)
             {
                 ulong ip = dataReader.ReadPointer(dataPtr);
                 ulong sp = dataReader.ReadPointer(dataPtr + (ulong)pointerSize);

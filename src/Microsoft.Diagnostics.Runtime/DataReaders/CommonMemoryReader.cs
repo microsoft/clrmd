@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Runtime
             return result;
         }
 
-        public bool ReadPointer(ulong address, out ulong value)
+        public bool ReadPointer(ulong address, out TargetPointer value)
         {
             int pointerSize = PointerSize;
             Span<byte> buffer = stackalloc byte[pointerSize];
@@ -44,13 +44,13 @@ namespace Microsoft.Diagnostics.Runtime
                 return true;
             }
 
-            value = 0;
+            value = TargetPointer.Null;
             return false;
         }
 
-        public ulong ReadPointer(ulong address)
+        public TargetPointer ReadPointer(ulong address)
         {
-            ReadPointer(address, out ulong value);
+            ReadPointer(address, out TargetPointer value);
             return value;
         }
     }

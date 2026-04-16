@@ -186,7 +186,7 @@ namespace Microsoft.Diagnostics.Runtime
                 ClrSegment? segment = heap.GetSegmentByAddress(obj);
 
                 // If not, this may be a pointer to an object.
-                if (segment is null && _dataReader.ReadPointer(obj, out ulong interiorObj))
+                if (segment is null && _dataReader.ReadPointer(obj, out TargetPointer interiorObj))
                 {
                     segment = heap.GetSegmentByAddress(interiorObj);
                     if (segment is not null)

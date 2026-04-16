@@ -429,7 +429,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             return result;
         }
 
-        public bool ReadPointer(ulong address, out ulong value)
+        public bool ReadPointer(ulong address, out TargetPointer value)
         {
             Span<byte> buffer = stackalloc byte[IntPtr.Size];
             if (Read(address, buffer) == IntPtr.Size)
@@ -438,13 +438,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                 return true;
             }
 
-            value = 0;
+            value = TargetPointer.Null;
             return false;
         }
 
-        public ulong ReadPointer(ulong address)
+        public TargetPointer ReadPointer(ulong address)
         {
-            ReadPointer(address, out ulong value);
+            ReadPointer(address, out TargetPointer value);
             return value;
         }
     }

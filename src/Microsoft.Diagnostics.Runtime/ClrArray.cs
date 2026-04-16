@@ -185,7 +185,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             int pointerSize = Type.Module.DataReader.PointerSize;
             ulong address = GetElementAddress(pointerSize, index);
-            Type.Module.DataReader.ReadPointer(address, out ulong value);
+            Type.Module.DataReader.ReadPointer(address, out TargetPointer value);
             return Type.Heap.GetObject(value);
         }
 
@@ -196,7 +196,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             int pointerSize = Type.Module.DataReader.PointerSize;
             ulong address = GetElementAddress(pointerSize, indices);
-            Type.Module.DataReader.ReadPointer(address, out ulong value);
+            Type.Module.DataReader.ReadPointer(address, out TargetPointer value);
             return Type.Heap.GetObject(value);
         }
 

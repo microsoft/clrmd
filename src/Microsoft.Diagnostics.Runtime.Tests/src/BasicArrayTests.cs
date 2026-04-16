@@ -120,7 +120,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // Act
             ulong elementAddress = referenceArray.Type.GetArrayElementAddress(referenceArray, index);
 
-            DataReader.ReadPointer(elementAddress, out ulong actualValue);
+            DataReader.ReadPointer(elementAddress, out TargetPointer actualValue);
 
             string actual = (string)_heap.GetObject(actualValue);
 
@@ -139,7 +139,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // Act
             ulong elementAddress = referenceArray.Type.GetArrayElementAddress(referenceArray, setElementIndex);
 
-            DataReader.ReadPointer(elementAddress, out ulong actualPointer);
+            DataReader.ReadPointer(elementAddress, out TargetPointer actualPointer);
 
             ClrType pointerType = _connection.Runtime.Heap.GetObjectType(actualPointer);
 
@@ -190,7 +190,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // Act
             ulong structStart = structArray.Type.GetArrayElementAddress(structArray, index);
 
-            DataReader.ReadPointer(structStart + (ulong)textField.Offset, out ulong textAddress);
+            DataReader.ReadPointer(structStart + (ulong)textField.Offset, out TargetPointer textAddress);
 
             ClrObject obj = _heap.GetObject(textAddress);
             string text = obj.AsString();

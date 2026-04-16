@@ -374,7 +374,7 @@ namespace Microsoft.Diagnostics.Runtime
             ulong obj = GetValidObjectForAddress(segment, startAddress);
             while (segment.ObjectRange.Contains(obj))
             {
-                if (!cache.ReadPointer(obj, out ulong mt))
+                if (!cache.ReadPointer(obj, out TargetPointer mt))
                 {
                     if (!carefully)
                         break;
@@ -507,7 +507,7 @@ namespace Microsoft.Diagnostics.Runtime
             public ulong Base { get; private set; }
             public int Length { get; private set; }
 
-            public bool ReadPointer(ulong address, out ulong value)
+            public bool ReadPointer(ulong address, out TargetPointer value)
             {
                 if (!EnsureInCache(address))
                     return _memoryReader.ReadPointer(address, out value);
@@ -557,7 +557,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 obj += pointerSize;
 
-                if (!cache.ReadPointer(obj, out ulong mt))
+                if (!cache.ReadPointer(obj, out TargetPointer mt))
                     return 0;
 
                 if (mt > 0x1000)

@@ -80,7 +80,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrObject ReadObject(ClrAppDomain appDomain)
         {
             ulong address = GetAddress(appDomain);
-            if (address == 0 || !ContainingType.Module.DataReader.ReadPointer(address, out ulong obj) || obj == 0)
+            if (address == 0 || !ContainingType.Module.DataReader.ReadPointer(address, out TargetPointer obj) || obj == 0)
                 return default;
 
             return ContainingType.Heap.GetObject(obj);
@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime
         IClrValue IClrStaticField.ReadObject(IClrAppDomain appDomain)
         {
             ulong address = GetAddress(appDomain);
-            if (address == 0 || !ContainingType.Module.DataReader.ReadPointer(address, out ulong obj) || obj == 0)
+            if (address == 0 || !ContainingType.Module.DataReader.ReadPointer(address, out TargetPointer obj) || obj == 0)
                 return default(ClrObject);
 
             return ContainingType.Heap.GetObject(obj);
@@ -106,7 +106,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return default;
 
             IDataReader dataReader = ContainingType.Module.DataReader;
-            if (address == 0 || !dataReader.ReadPointer(address, out ulong obj) || obj == 0)
+            if (address == 0 || !dataReader.ReadPointer(address, out TargetPointer obj) || obj == 0)
                 return default;
 
             return new ClrValueType(obj + (uint)dataReader.PointerSize, Type, interior: true);

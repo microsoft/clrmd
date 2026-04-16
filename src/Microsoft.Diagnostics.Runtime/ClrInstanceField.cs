@@ -40,14 +40,14 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Reads the value of a pointer-sized field using the target's pointer size.
         /// </summary>
-        public ulong ReadPointer(ulong objRef, bool interior)
+        public TargetPointer ReadPointer(ulong objRef, bool interior)
         {
             ulong address = GetAddress(objRef, interior);
             if (address == 0)
-                return 0;
+                return TargetPointer.Null;
 
-            if (!ContainingType.Module.DataReader.ReadPointer(address, out ulong value))
-                return 0;
+            if (!ContainingType.Module.DataReader.ReadPointer(address, out TargetPointer value))
+                return TargetPointer.Null;
 
             return value;
         }
@@ -61,7 +61,7 @@ namespace Microsoft.Diagnostics.Runtime
         public ClrObject ReadObject(ulong objRef, bool interior)
         {
             ulong address = GetAddress(objRef, interior);
-            if (address == 0 || !ContainingType.Module.DataReader.ReadPointer(address, out ulong obj) || obj == 0)
+            if (address == 0 || !ContainingType.Module.DataReader.ReadPointer(address, out TargetPointer obj) || obj == 0)
                 return default;
 
             return ContainingType.Heap.GetObject(obj);

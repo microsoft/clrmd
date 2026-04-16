@@ -269,7 +269,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrHeap heap = type.Heap;
 
             ulong addr = field.GetAddress(Address);
-            if (!DataReader.ReadPointer(addr, out ulong obj))
+            if (!DataReader.ReadPointer(addr, out TargetPointer obj))
                 return false;
 
             result = obj == 0 && field.Type is not null ? new ClrObject(0, field.Type) : heap.GetObject(obj);
@@ -302,7 +302,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return false;
 
             ulong addr = field.GetAddress(Address);
-            if (!DataReader.ReadPointer(addr, out ulong strPtr))
+            if (!DataReader.ReadPointer(addr, out TargetPointer strPtr))
                 return false;
 
             if (strPtr == 0)
@@ -329,7 +329,7 @@ namespace Microsoft.Diagnostics.Runtime
             ClrHeap heap = type.Heap;
 
             ulong addr = field.GetAddress(Address);
-            if (!DataReader.ReadPointer(addr, out ulong obj))
+            if (!DataReader.ReadPointer(addr, out TargetPointer obj))
                 return default;
 
             return obj == 0 && field.Type is not null ? new ClrObject(0, field.Type) : heap.GetObject(obj);
@@ -353,7 +353,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ArgumentException($"Field '{field.Name}' is not an object reference.");
 
             ulong addr = field.GetAddress(Address);
-            if (!DataReader.ReadPointer(addr, out ulong obj))
+            if (!DataReader.ReadPointer(addr, out TargetPointer obj))
                 return default;
 
             return obj == 0 && field.Type is not null ? new ClrObject(0, field.Type) : Type!.Heap.GetObject(obj);
@@ -560,7 +560,7 @@ namespace Microsoft.Diagnostics.Runtime
             ulong address = GetFieldAddress(fieldName, ClrElementType.String, "string");
             ClrType type = GetTypeOrThrow();
             IDataReader dataReader = type.Module.DataReader;
-            if (!dataReader.ReadPointer(address, out ulong strPtr))
+            if (!dataReader.ReadPointer(address, out TargetPointer strPtr))
                 return null;
 
             if (strPtr == 0)
@@ -587,7 +587,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new InvalidOperationException($"Field '{field.Name}' is not of type 'string'.");
 
             ulong address = field.GetAddress(Address);
-            if (!DataReader.ReadPointer(address, out ulong strPtr))
+            if (!DataReader.ReadPointer(address, out TargetPointer strPtr))
                 return null;
 
             if (strPtr == 0)

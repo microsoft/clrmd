@@ -46,7 +46,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="address">The address to read from.</param>
         /// <param name="value">A pointer sized value that was read.</param>
         /// <returns>True if the value was read, false if the value could not be read.</returns>
-        bool ReadPointer(ulong address, out ulong value);
+        bool ReadPointer(ulong address, out TargetPointer value);
 
         /// <summary>
         /// Read a pointer out of the target process.
@@ -55,6 +55,6 @@ namespace Microsoft.Diagnostics.Runtime
         /// The pointer at the give address, or 0 if that pointer doesn't exist in
         /// the data target.
         /// </returns>
-        ulong ReadPointer(ulong address);
+        TargetPointer ReadPointer(ulong address);
     }
 }
