@@ -32,6 +32,7 @@ public class DataTargetOptions
         {
             if (field is null)
             {
+                Directory.CreateDirectory(SymbolCachePath);
                 FileSymbolCache cache = new(SymbolCachePath);
                 IEnumerable<SymbolServer> servers = SymbolPaths.Select(r =>
                                                         new SymbolServer(cache, r, TraceSymbolRequests, SymbolTokenCredential));
