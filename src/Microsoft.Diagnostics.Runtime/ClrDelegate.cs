@@ -71,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 if (field.ElementType == ClrElementType.NativeInt)
                 {
-                    ulong targetMethod = field.Read<UIntPtr>(Object, interior: false).ToUInt64();
+                    ulong targetMethod = field.ReadPointer(Object.Address, interior: false);
 
                     if (targetMethod != 0)
                     {
@@ -184,23 +184,17 @@ namespace Microsoft.Diagnostics.Runtime
             ClrArray invocationArray = invocationList.AsArray();
             count = Math.Min(count, invocationArray.Length);
 
-            ClrHeap heap = Object.Type!.Heap;
-
-            UIntPtr[]? pointers = invocationArray.ReadValues<UIntPtr>(0, count);
-            if (pointers is not null)
+            for (int i = 0; i < count; i++)
             {
-                foreach (UIntPtr ptr in pointers)
-                {
-                    if (ptr == UIntPtr.Zero)
-                        continue;
+                ClrObject delegateObj = invocationArray.GetObjectValue(i);
+                if (!delegateObj.IsValid || delegateObj.Address == 0)
+                    continue;
 
-                    ClrObject delegateObj = heap.GetObject(ptr.ToUInt64());
-                    if (delegateObj.IsDelegate)
-                    {
-                        ClrDelegateTarget? delegateTarget = new ClrDelegate(delegateObj).GetDelegateTarget();
-                        if (delegateTarget is not null)
-                            yield return delegateTarget;
-                    }
+                if (delegateObj.IsDelegate)
+                {
+                    ClrDelegateTarget? delegateTarget = new ClrDelegate(delegateObj).GetDelegateTarget();
+                    if (delegateTarget is not null)
+                        yield return delegateTarget;
                 }
             }
         }

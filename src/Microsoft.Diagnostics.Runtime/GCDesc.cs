@@ -15,10 +15,6 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool IsEmpty => _data is null;
 
-        public GCDesc(byte[] data) : this(data, IntPtr.Size)
-        {
-        }
-
         public GCDesc(byte[] data, int pointerSize)
         {
             _data = data;

@@ -205,10 +205,8 @@ namespace Microsoft.Diagnostics.Runtime
             return $"{type.Name} {Name}";
         }
 
-        internal static int GetSize(ClrType? type, ClrElementType cet, int pointerSize = 0)
+        internal static int GetSize(ClrType? type, ClrElementType cet, int pointerSize)
         {
-            if (pointerSize == 0)
-                pointerSize = IntPtr.Size;
             // todo:  What if we have a struct which is not fully constructed (null MT,
             //        null type) and need to get the size of the field?
             switch (cet)

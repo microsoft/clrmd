@@ -183,7 +183,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (Type.ComponentType != null && !Type.ComponentType.IsObjectReference)
                 throw new InvalidOperationException($"{Type} does not contain object references.");
 
-            return Type.Heap.GetObject(ReadValue<nuint>(index));
+            int pointerSize = Type.Module.DataReader.PointerSize;
+            ulong address = GetElementAddress(pointerSize, index);
+            Type.Module.DataReader.ReadPointer(address, out ulong value);
+            return Type.Heap.GetObject(value);
         }
 
         public ClrObject GetObjectValue(params int[] indices)
@@ -191,7 +194,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (Type.ComponentType != null && !Type.ComponentType.IsObjectReference)
                 throw new InvalidOperationException($"{Type} does not contain object references.");
 
-            return Type.Heap.GetObject(ReadValue<nuint>(indices));
+            int pointerSize = Type.Module.DataReader.PointerSize;
+            ulong address = GetElementAddress(pointerSize, indices);
+            Type.Module.DataReader.ReadPointer(address, out ulong value);
+            return Type.Heap.GetObject(value);
         }
 
         private unsafe T ReadValue<T>(int index) where T : unmanaged

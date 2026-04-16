@@ -45,10 +45,6 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 #endif
-        public static unsafe ulong AsPointer(this Span<byte> span) => AsPointer(span, IntPtr.Size, 0);
-
-        public static unsafe ulong AsPointer(this Span<byte> span, int offset) => AsPointer(span, IntPtr.Size, offset);
-
         public static unsafe ulong AsPointer(this Span<byte> span, int pointerSize, int offset)
         {
             if (offset > 0)
@@ -66,7 +62,7 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        public static unsafe ulong AsPointer(this Span<byte> span, ulong offset) => AsPointer(span, IntPtr.Size, (int)offset);
+        public static unsafe ulong AsPointer(this Span<byte> span, int pointerSize, ulong offset) => AsPointer(span, pointerSize, (int)offset);
 
         public static unsafe int AsInt32(this Span<byte> span, int offset = 0)
         {

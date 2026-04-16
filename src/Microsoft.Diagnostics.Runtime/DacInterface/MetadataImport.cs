@@ -233,14 +233,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return true;
         }
 
-        public SigParser GetSigFromToken(int token)
-        {
-            HResult hr = VTable.GetSigFromToken(Self, token, out IntPtr sig, out int len);
-            if (hr)
-                return new SigParser(sig, len);
-
-            return default;
-        }
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -284,7 +276,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr GetFieldMarshal;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out uint, out uint, int> GetRVA;
         private readonly IntPtr GetPermissionSetProps;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out IntPtr, out int, int> GetSigFromToken;
+        private readonly IntPtr GetSigFromToken;
         private readonly IntPtr GetModuleRefProps;
         private readonly IntPtr EnumModuleRefs;
         private readonly IntPtr GetTypeSpecFromToken;
