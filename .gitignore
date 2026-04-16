@@ -358,3 +358,4 @@ MigrationBackup/
 .ionide/
 
 
+.nuget/nuget.exe
