@@ -20,10 +20,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             _pointerSize = rhs._pointerSize;
         }
 
-        public SigParser(IntPtr sig, int len) : this(sig, len, IntPtr.Size)
-        {
-        }
-
         public SigParser(IntPtr sig, int len, int pointerSize)
         {
             if (len != 0)

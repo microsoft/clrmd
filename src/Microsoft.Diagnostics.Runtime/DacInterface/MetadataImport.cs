@@ -17,14 +17,18 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         public static readonly Guid IID_IMetaDataImport = new("7DAC8207-D3AE-4c75-9B67-92801A497D44");
 
-        public MetadataImport(RefCountedFreeLibrary? library, IntPtr pUnknown)
+        private readonly int _pointerSize;
+
+        public MetadataImport(RefCountedFreeLibrary? library, IntPtr pUnknown, int pointerSize = 8)
             : base(library, IID_IMetaDataImport, pUnknown)
         {
+            _pointerSize = pointerSize;
         }
 
-        public MetadataImport(DacLibrary library, IntPtr pUnknown)
+        public MetadataImport(DacLibrary library, IntPtr pUnknown, int pointerSize = 8)
             : base(library?.OwningLibrary, IID_IMetaDataImport, pUnknown)
         {
+            _pointerSize = pointerSize;
         }
 
         private ref readonly IMetaDataImportVTable VTable => ref Unsafe.AsRef<IMetaDataImportVTable>(_vtable);
@@ -237,7 +241,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             HResult hr = VTable.GetSigFromToken(Self, token, out IntPtr sig, out int len);
             if (hr)
-                return new SigParser(sig, len);
+                return new SigParser(sig, len, _pointerSize);
 
             return default;
         }

@@ -38,6 +38,21 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Reads the value of a pointer-sized field using the target's pointer size.
+        /// </summary>
+        public ulong ReadPointer(ulong objRef, bool interior)
+        {
+            ulong address = GetAddress(objRef, interior);
+            if (address == 0)
+                return 0;
+
+            if (!ContainingType.Module.DataReader.ReadPointer(address, out ulong value))
+                return 0;
+
+            return value;
+        }
+
+        /// <summary>
         /// Reads the value of an object field.
         /// </summary>
         /// <param name="objRef">The object to read the instance field from.</param>

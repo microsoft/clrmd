@@ -61,7 +61,7 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if ((int)info.Attributes == 0x606 && info.Name == "value__")
                 {
-                    SigParser parser = new(info.Signature, info.SignatureSize);
+                    SigParser parser = new(info.Signature, info.SignatureSize, Type.Module.DataReader.PointerSize);
                     if (parser.GetCallingConvInfo(out _) && parser.GetElemType(out int elemType))
                         elementType = (ClrElementType)elemType;
                 }
@@ -69,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime
                 // public, static, literal, has default
                 if ((int)info.Attributes == 0x8056)
                 {
-                    SigParser parser = new(info.Signature, info.SignatureSize);
+                    SigParser parser = new(info.Signature, info.SignatureSize, Type.Module.DataReader.PointerSize);
                     parser.GetCallingConvInfo(out _);
                     parser.GetElemType(out int _);
 
@@ -81,23 +81,27 @@ namespace Microsoft.Diagnostics.Runtime
             return values.ToArray();
         }
 
-        private unsafe object? GetValueForPointer(ClrElementType pdwCPlusTypeFlag, IntPtr ppValue) => pdwCPlusTypeFlag switch
+        private unsafe object? GetValueForPointer(ClrElementType pdwCPlusTypeFlag, IntPtr ppValue)
         {
-            ClrElementType.Boolean => *(byte*)ppValue,
-            ClrElementType.Char => *(char*)ppValue,
-            ClrElementType.Double => *(double*)ppValue,
-            ClrElementType.Float => *(float*)ppValue,
-            ClrElementType.Int8 => *(sbyte*)ppValue,
-            ClrElementType.Int16 => *(short*)ppValue,
-            ClrElementType.Int32 => *(int*)ppValue,
-            ClrElementType.Int64 => *(long*)ppValue,
-            ClrElementType.UInt8 => *(byte*)ppValue,
-            ClrElementType.UInt16 => *(ushort*)ppValue,
-            ClrElementType.UInt32 => *(uint*)ppValue,
-            ClrElementType.UInt64 => *(ulong*)ppValue,
-            ClrElementType.NativeInt => *(nint*)ppValue,
-            ClrElementType.NativeUInt => *(nuint*)ppValue,
-            _ => null,
-        };
+            int pointerSize = Type.Module.DataReader.PointerSize;
+            return pdwCPlusTypeFlag switch
+            {
+                ClrElementType.Boolean => *(byte*)ppValue,
+                ClrElementType.Char => *(char*)ppValue,
+                ClrElementType.Double => *(double*)ppValue,
+                ClrElementType.Float => *(float*)ppValue,
+                ClrElementType.Int8 => *(sbyte*)ppValue,
+                ClrElementType.Int16 => *(short*)ppValue,
+                ClrElementType.Int32 => *(int*)ppValue,
+                ClrElementType.Int64 => *(long*)ppValue,
+                ClrElementType.UInt8 => *(byte*)ppValue,
+                ClrElementType.UInt16 => *(ushort*)ppValue,
+                ClrElementType.UInt32 => *(uint*)ppValue,
+                ClrElementType.UInt64 => *(ulong*)ppValue,
+                ClrElementType.NativeInt => pointerSize == 8 ? *(long*)ppValue : *(int*)ppValue,
+                ClrElementType.NativeUInt => pointerSize == 8 ? *(ulong*)ppValue : *(uint*)ppValue,
+                _ => null,
+            };
+        }
     }
 }

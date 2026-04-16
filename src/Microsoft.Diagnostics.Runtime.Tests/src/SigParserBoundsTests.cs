@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             fixed (byte* pSig = sig)
             {
-                SigParser parser = new(new IntPtr(pSig), sig.Length);
+                SigParser parser = new(new IntPtr(pSig), sig.Length, sizeof(nuint));
                 bool result = parser.SkipExactlyOne();
                 Assert.False(result);
             }
@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             fixed (byte* pSig = sig)
             {
-                SigParser parser = new(new IntPtr(pSig), sig.Length);
+                SigParser parser = new(new IntPtr(pSig), sig.Length, sizeof(nuint));
                 bool result = parser.SkipExactlyOne();
                 Assert.False(result);
             }
@@ -65,7 +65,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             fixed (byte* pSig = sig)
             {
-                SigParser parser = new(new IntPtr(pSig), sig.Length);
+                SigParser parser = new(new IntPtr(pSig), sig.Length, sizeof(nuint));
                 bool result = parser.SkipExactlyOne();
                 Assert.True(result);
             }

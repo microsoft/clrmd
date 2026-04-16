@@ -358,3 +358,4 @@ MigrationBackup/
 .ionide/
 
 
+CROSS_BITNESS_PLAN.md
