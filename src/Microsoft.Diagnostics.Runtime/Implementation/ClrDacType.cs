@@ -113,8 +113,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (reader is null)
                 return default;
 
+            int pointerSize = reader.PointerSize;
             DebugOnly.Assert(MethodTable != 0, "Attempted to fill GC desc with a constructed (not real) type.");
-            if (!reader.Read(MethodTable - (ulong)IntPtr.Size, out int entries))
+            if (!reader.Read(MethodTable - (ulong)pointerSize, out int entries))
             {
                 _gcDesc = default;
                 return default;
@@ -125,15 +126,15 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 entries = -entries;
 
             int slots = 1 + entries * 2;
-            byte[] buffer = new byte[slots * IntPtr.Size];
-            if (reader.Read(MethodTable - (ulong)(slots * IntPtr.Size), buffer) != buffer.Length)
+            byte[] buffer = new byte[slots * pointerSize];
+            if (reader.Read(MethodTable - (ulong)(slots * pointerSize), buffer) != buffer.Length)
             {
                 _gcDesc = default;
                 return default;
             }
 
             // Construct the gc desc
-            return _gcDesc = new GCDesc(buffer);
+            return _gcDesc = new GCDesc(buffer, pointerSize);
         }
 
         private ClrElementType GetElementType()
@@ -148,7 +149,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return _elementType = ClrElementType.String;
 
             if (ComponentSize > 0)
-                return _elementType = StaticSize > (uint)(3 * IntPtr.Size) ? ClrElementType.Array : ClrElementType.SZArray;
+                return _elementType = StaticSize > (uint)(3 * Module.DataReader.PointerSize) ? ClrElementType.Array : ClrElementType.SZArray;
 
             ClrType? baseType = BaseType;
             if (baseType is null)
@@ -286,7 +287,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     else if (componentType != null)
                     {
                         if (!componentType.IsObjectReference)
-                            _baseArrayOffset = IntPtr.Size * 2;
+                            _baseArrayOffset = Module.DataReader.PointerSize * 2;
                     }
                     else
                     {

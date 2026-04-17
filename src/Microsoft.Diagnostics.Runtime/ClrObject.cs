@@ -109,7 +109,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (helpers is null)
                 return default;
 
-            return DataReader.Read<T>(Address + (ulong)IntPtr.Size);
+            return DataReader.Read<T>(Address + (ulong)DataReader.PointerSize);
         }
 
         public bool IsException => Type != null && Type.IsException;
@@ -492,9 +492,17 @@ namespace Microsoft.Diagnostics.Runtime
 
             ulong mt;
             if (field.ElementType == ClrElementType.NativeInt)
-                mt = (ulong)ReadField<nint>("m_handle");
+            {
+                mt = field.ReadPointer(Address, interior: false);
+            }
             else
-                mt = (ulong)ReadValueTypeField("m_handle").ReadField<nint>("m_ptr");
+            {
+                ClrValueType handle = ReadValueTypeField("m_handle");
+                ClrInstanceField? ptrField = handle.Type?.GetFieldByName("m_ptr");
+                if (ptrField is null)
+                    return null;
+                mt = ptrField.ReadPointer(handle.Address, interior: true);
+            }
 
             return type.Heap.Runtime.GetTypeByMethodTable(mt);
         }

@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 if (_length == -1)
                 {
-                    _length = Type.Module.DataReader.Read<int>(Address + (ulong)IntPtr.Size);
+                    _length = Type.Module.DataReader.Read<int>(Address + (ulong)Type.Module.DataReader.PointerSize);
                 }
 
                 return _length;
@@ -49,9 +49,9 @@ namespace Microsoft.Diagnostics.Runtime
             }
         }
 
-        private readonly bool IsMultiDimensional => Type.StaticSize > (uint)(3 * IntPtr.Size);
+        private readonly bool IsMultiDimensional => Type.StaticSize > (uint)(3 * Type.Module.DataReader.PointerSize);
 
-        private readonly int MultiDimensionalRank => (int)((Type.StaticSize - (uint)(3 * IntPtr.Size)) / (2 * sizeof(int)));
+        private readonly int MultiDimensionalRank => (int)((Type.StaticSize - (uint)(3 * Type.Module.DataReader.PointerSize)) / (2 * sizeof(int)));
 
         IClrType IClrArray.Type => Type;
 
@@ -183,7 +183,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (Type.ComponentType != null && !Type.ComponentType.IsObjectReference)
                 throw new InvalidOperationException($"{Type} does not contain object references.");
 
-            return Type.Heap.GetObject(ReadValue<nuint>(index));
+            int pointerSize = Type.Module.DataReader.PointerSize;
+            ulong address = GetElementAddress(pointerSize, index);
+            Type.Module.DataReader.ReadPointer(address, out ulong value);
+            return Type.Heap.GetObject(value);
         }
 
         public ClrObject GetObjectValue(params int[] indices)
@@ -191,7 +194,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (Type.ComponentType != null && !Type.ComponentType.IsObjectReference)
                 throw new InvalidOperationException($"{Type} does not contain object references.");
 
-            return Type.Heap.GetObject(ReadValue<nuint>(indices));
+            int pointerSize = Type.Module.DataReader.PointerSize;
+            ulong address = GetElementAddress(pointerSize, indices);
+            Type.Module.DataReader.ReadPointer(address, out ulong value);
+            return Type.Heap.GetObject(value);
         }
 
         private unsafe T ReadValue<T>(int index) where T : unmanaged
@@ -210,7 +216,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ArgumentException($"Array {Address:x} was not a one-dimensional array. Type: {Type?.Name ?? "null"}");
 
             int valueOffset = index;
-            int dataByteOffset = 2 * sizeof(nint);
+            int dataByteOffset = 2 * Type.Module.DataReader.PointerSize;
 
             if (IsMultiDimensional)
             {
@@ -240,7 +246,7 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ArgumentException($"Indices length does not match the array rank. Array {Address:x} Rank = {rank}, {nameof(indices)} Rank = {indices.Length}");
 
             int valueOffset = 0;
-            int dataByteOffset = 2 * sizeof(nint);
+            int dataByteOffset = 2 * Type.Module.DataReader.PointerSize;
 
             if (rank == 1)
             {
@@ -285,7 +291,7 @@ namespace Microsoft.Diagnostics.Runtime
         //                 ^
         //                 | Address
         private readonly int GetMultiDimensionalBound(int offset) =>
-            Type.Module.DataReader.Read<int>(Address + (ulong)(2 * IntPtr.Size) + (ulong)(offset * sizeof(int)));
+            Type.Module.DataReader.Read<int>(Address + (ulong)(2 * Type.Module.DataReader.PointerSize) + (ulong)(offset * sizeof(int)));
 
         IClrValue IClrArray.GetObjectValue(int index) => GetObjectValue(index);
 

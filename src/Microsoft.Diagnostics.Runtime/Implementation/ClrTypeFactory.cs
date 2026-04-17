@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                         ParentMethodTable = _gcInfo.ObjectMethodTable,
                         MethodTable = _gcInfo.StringMethodTable,
                         IsShared = true,
-                        StaticSize = IntPtr.Size + sizeof(int),
+                        StaticSize = _heap.Runtime.DataTarget.DataReader.PointerSize + sizeof(int),
                         ComponentSize = sizeof(char),
                     };
                 }

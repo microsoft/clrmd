@@ -142,10 +142,11 @@ namespace Microsoft.Diagnostics.Runtime
 
         private uint GetStackTraceOffset(ClrType type)
         {
+            int pointerSize = Type.Module.DataReader.PointerSize;
             ClrField? field = type.Fields.FirstOrDefault(f => f.Name == "_stackTrace");
 
             if (field != null && field.Offset >= 0)
-                return (uint)(field.Offset + IntPtr.Size);
+                return (uint)(field.Offset + pointerSize);
 
             uint result = Type.Module.Heap.Runtime.ClrInfo.Flavor switch
             {
@@ -166,15 +167,16 @@ namespace Microsoft.Diagnostics.Runtime
                 _ => uint.MaxValue
             };
 
-            return result == uint.MaxValue ? 0 : result + (uint)IntPtr.Size;
+            return result == uint.MaxValue ? 0 : result + (uint)pointerSize;
         }
 
         private uint GetInnerExceptionOffset(ClrType type)
         {
+            int pointerSize = Type.Module.DataReader.PointerSize;
             ClrField? field = type.Fields.FirstOrDefault(f => f.Name == "_innerException");
 
             if (field != null && field.Offset >= 0)
-                return (uint)(field.Offset + IntPtr.Size);
+                return (uint)(field.Offset + pointerSize);
 
             uint result = Type.Module.Heap.Runtime.ClrInfo.Flavor switch
             {
@@ -195,15 +197,16 @@ namespace Microsoft.Diagnostics.Runtime
                 _ => uint.MaxValue
             };
 
-            return result == uint.MaxValue ? 0 : result + (uint)IntPtr.Size;
+            return result == uint.MaxValue ? 0 : result + (uint)pointerSize;
         }
 
         private uint GetHResultOffset(ClrType type)
         {
+            int pointerSize = Type.Module.DataReader.PointerSize;
             ClrField? field = type.Fields.FirstOrDefault(f => f.Name == "_HResult");
 
             if (field != null && field.Offset >= 0)
-                return (uint)(field.Offset + IntPtr.Size);
+                return (uint)(field.Offset + pointerSize);
 
             uint result = Type.Module.Heap.Runtime.ClrInfo.Flavor switch
             {
@@ -224,15 +227,16 @@ namespace Microsoft.Diagnostics.Runtime
                 _ => uint.MaxValue
             };
 
-            return result == uint.MaxValue ? 0 : result + (uint)IntPtr.Size;
+            return result == uint.MaxValue ? 0 : result + (uint)pointerSize;
         }
 
         private uint GetMessageOffset(ClrType type)
         {
+            int pointerSize = Type.Module.DataReader.PointerSize;
             ClrField? field = type.Fields.FirstOrDefault(f => f.Name == "_message");
 
             if (field != null && field.Offset >= 0)
-                return (uint)(field.Offset + IntPtr.Size);
+                return (uint)(field.Offset + pointerSize);
 
             uint result = Type.Module.Heap.Runtime.ClrInfo.Flavor switch
             {
@@ -253,7 +257,7 @@ namespace Microsoft.Diagnostics.Runtime
                 _ => uint.MaxValue
             };
 
-            return result == uint.MaxValue ? 0 : result + (uint)IntPtr.Size;
+            return result == uint.MaxValue ? 0 : result + (uint)pointerSize;
         }
 
         private ImmutableArray<ClrStackFrame> GetExceptionStackTrace()
@@ -264,6 +268,7 @@ namespace Microsoft.Diagnostics.Runtime
                 return ImmutableArray<ClrStackFrame>.Empty;
 
             IDataReader dataReader = Type.Module.DataReader;
+            int pointerSize = dataReader.PointerSize;
             ulong address = dataReader.ReadPointer(_object.Address + offset);
             ClrObject _stackTrace = Type.Module.Heap.GetObject(address);
 
@@ -274,8 +279,8 @@ namespace Microsoft.Diagnostics.Runtime
             if (len == 0)
                 return ImmutableArray<ClrStackFrame>.Empty;
 
-            int elementSize = IntPtr.Size * 4;
-            ulong dataPtr = _stackTrace + (ulong)(IntPtr.Size * 2);
+            int elementSize = pointerSize * 4;
+            ulong dataPtr = _stackTrace + (ulong)(pointerSize * 2);
             if (!dataReader.ReadPointer(dataPtr, out ulong count))
                 return ImmutableArray<ClrStackFrame>.Empty;
 
@@ -283,13 +288,13 @@ namespace Microsoft.Diagnostics.Runtime
             result.Count = result.Capacity;
 
             // Skip size and header
-            dataPtr += (ulong)(IntPtr.Size * 2);
+            dataPtr += (ulong)(pointerSize * 2);
 
             for (int i = 0; i < (int)count; ++i)
             {
                 ulong ip = dataReader.ReadPointer(dataPtr);
-                ulong sp = dataReader.ReadPointer(dataPtr + (ulong)IntPtr.Size);
-                ulong md = dataReader.ReadPointer(dataPtr + (ulong)IntPtr.Size + (ulong)IntPtr.Size);
+                ulong sp = dataReader.ReadPointer(dataPtr + (ulong)pointerSize);
+                ulong md = dataReader.ReadPointer(dataPtr + (ulong)pointerSize + (ulong)pointerSize);
 
                 ClrMethod? method = Type.Module.Heap.Runtime.GetMethodByHandle(md);
                 result[i] = new ClrStackFrame(Thread, null, ip, sp, ClrStackFrameKind.ManagedMethod, method, frameName: null);

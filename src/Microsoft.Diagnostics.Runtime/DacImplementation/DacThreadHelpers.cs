@@ -144,8 +144,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     break;
                 }
 
-                ulong ip = context.AsSpan().AsPointer(ipOffset);
-                ulong sp = context.AsSpan().AsPointer(spOffset);
+                ulong ip = context.AsSpan().AsPointer(_dataReader.PointerSize, ipOffset);
+                ulong sp = context.AsSpan().AsPointer(_dataReader.PointerSize, spOffset);
 
                 ulong frameVtbl = stackwalk.GetFrameVtable();
                 string? frameName = null;

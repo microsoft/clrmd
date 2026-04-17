@@ -290,7 +290,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             ulong committedStart;
 
             if (kind == GCSegmentKind.Frozen)
-                committedStart = allocated.Start - (uint)IntPtr.Size;
+                committedStart = allocated.Start - (uint)_memoryReader.PointerSize;
             else if ((allocated.Start & 0x1ffful) == 0x1000)
                 committedStart = allocated.Start - 0x1000;
             else
