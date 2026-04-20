@@ -66,12 +66,18 @@ stages:
                 _BuildConfig: Release
 
           steps:
-          # Build the solution (no tests) so cibuild.cmd's machine-prep runs.
-          - script: eng\common\cibuild.cmd
+          # Build the solution (no tests). cibuild.cmd hardcodes -test so we invoke
+          # build.cmd directly with the same flags minus -test.
+          - script: eng\common\build.cmd
+              -restore
+              -build
+              -sign
+              -pack
+              -publish
+              -ci
               -configuration $(_BuildConfig)
               -prepareMachine
               -verbosity normal
-              -test:false
             displayName: Build (no tests)
             condition: succeeded()
 
