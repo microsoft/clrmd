@@ -11,9 +11,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public FixedFileInfo VersionInfo { get; }
         public string? ModuleName { get; }
 
-        public MinidumpModuleInfo(MinidumpMemoryReader reader, in MinidumpModule module)
+        public MinidumpModuleInfo(MinidumpMemoryReader reader, in MinidumpModule module, ulong baseOfImage)
         {
-            BaseOfImage = module.BaseOfImage;
+            BaseOfImage = baseOfImage;
             SizeOfImage = module.SizeOfImage;
             DateTimeStamp = module.DateTimeStamp;
             VersionInfo = module.VersionInfo;

@@ -61,6 +61,15 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public bool IsMiniDump { get; }
 
+        /// <summary>
+        /// Masks <paramref name="address"/> to <see cref="PointerSize"/> bytes. On 32-bit targets some
+        /// tools (notably the .NET runtime's createdump) write sign-extended <c>ULONG64</c> values into
+        /// minidump records when the underlying 32-bit address has its high bit set — e.g.
+        /// <c>0xFFFFFFFF_800A0000</c> rather than <c>0x00000000_800A0000</c>. Passing those through
+        /// ClrMD causes overflow and mismatched segment lookups.
+        /// </summary>
+        public ulong SanitizeAddress(ulong address) => PointerSize == 4 ? unchecked((uint)address) : address;
+
         public Minidump(string displayName, Stream stream, CacheOptions cacheOptions, bool leaveOpen, DataTargetLimits? limits = null)
         {
             _limits = limits ?? new DataTargetLimits();
@@ -152,7 +161,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             _file?.Dispose();
         }
 
-        public IEnumerable<MinidumpModuleInfo> EnumerateModuleInfo() => Modules.Select(m => new MinidumpModuleInfo(MemoryReader, m));
+        public IEnumerable<MinidumpModuleInfo> EnumerateModuleInfo() => Modules.Select(m => new MinidumpModuleInfo(MemoryReader, m, SanitizeAddress(m.BaseOfImage)));
 
         private (int systemInfo, int moduleList, int miscInfo) FindImportantStreams(string crashDump)
         {
@@ -299,7 +308,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 uint threadId = item.Key;
 
                 contextBuilder.Add(new MinidumpContextData(threadId, item.Value.Rva, item.Value.Size));
-                tebBuilder.Add(threadId, item.Value.Teb);
+                tebBuilder.Add(threadId, SanitizeAddress(item.Value.Teb));
             }
 
             return new ThreadReadResult()
@@ -363,7 +372,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return segments.Where(s => s.Size > 0).OrderBy(s => s.VirtualAddress).ThenBy(s => s.Size).ToImmutableArray();
         }
 
-        private static unsafe void AddSegments(List<MinidumpSegment> segments, byte[] buffer, int byteCount)
+        private unsafe void AddSegments(List<MinidumpSegment> segments, byte[] buffer, int byteCount)
         {
             int count = byteCount / sizeof(MinidumpMemoryDescriptor);
 
@@ -371,11 +380,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             {
                 MinidumpMemoryDescriptor* desc = (MinidumpMemoryDescriptor*)ptr;
                 for (int i = 0; i < count; i++)
-                    segments.Add(new MinidumpSegment(desc[i].Rva, desc[i].StartAddress, desc[i].DataSize32));
+                    segments.Add(new MinidumpSegment(desc[i].Rva, SanitizeAddress(desc[i].StartAddress), desc[i].DataSize32));
             }
         }
 
-        private static unsafe void AddSegments(List<MinidumpSegment> segments, ulong rva, byte[] buffer, int byteCount)
+        private unsafe void AddSegments(List<MinidumpSegment> segments, ulong rva, byte[] buffer, int byteCount)
         {
             int count = byteCount / sizeof(MinidumpMemoryDescriptor);
 
@@ -384,7 +393,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 MinidumpMemoryDescriptor* desc = (MinidumpMemoryDescriptor*)ptr;
                 for (int i = 0; i < count; i++)
                 {
-                    segments.Add(new MinidumpSegment(rva, desc[i].StartAddress, desc[i].DataSize64));
+                    segments.Add(new MinidumpSegment(rva, SanitizeAddress(desc[i].StartAddress), desc[i].DataSize64));
                     rva += desc[i].DataSize64;
                 }
             }
