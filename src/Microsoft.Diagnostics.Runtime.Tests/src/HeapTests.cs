@@ -11,16 +11,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     {
         public static IEnumerable<object[]> TypesWithSingleFile => TestVariants.WithSingleFile(TestTargets.Types);
         public static IEnumerable<object[]> GCRootWithSingleFile => TestVariants.WithSingleFile(TestTargets.GCRoot);
-        public static IEnumerable<object[]> TypesHighBitOnly => TestVariants.HighBitOnly(TestTargets.Types);
 
         /// <summary>
         /// Sanity check: when running under the HighBit harness on 32-bit Windows, at least one
         /// managed object must live above the 0x80000000 boundary. If this fires, the low-memory
         /// reservation in HighBitHost failed and subsequent HighBit coverage is meaningless.
         /// </summary>
-        [Theory, MemberData(nameof(TypesHighBitOnly))]
-        public void HighBit_HeapHasObjectsAbove2Gb(DumpVariant variant)
+        [HighBitFact]
+        public void HighBit_HeapHasObjectsAbove2Gb()
         {
+            DumpVariant variant = new(DumpFlavor.Core, HighBit: true);
             using DataTarget dt = TestTargets.Types.LoadFullDump(variant);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
