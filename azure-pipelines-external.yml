@@ -49,6 +49,10 @@ stages:
             displayName: Build
             condition: succeeded()
 
+          - script: Test.cmd x64
+            displayName: Test (x64)
+            condition: succeeded()
+
         - job: Windows_x86
           displayName: Windows (x86 high-bit)
           pool:
@@ -107,6 +111,10 @@ stages:
             displayName: Build
             condition: succeeded()
 
+          - script: ./test.sh x64
+            displayName: Test (x64)
+            condition: succeeded()
+
         - job: MacOS
           pool:
             vmImage: macOS-latest
@@ -124,4 +132,8 @@ stages:
               --prepareMachine
             name: Build
             displayName: Build
+            condition: succeeded()
+
+          - script: ./test.sh x64
+            displayName: Test (x64)
             condition: succeeded()
