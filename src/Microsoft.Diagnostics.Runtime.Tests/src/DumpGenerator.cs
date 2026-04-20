@@ -223,9 +223,18 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     File.Copy(src, dest, overwrite: true);
                     return;
                 }
-                catch (IOException) when (attempt < 3)
+                catch (IOException) when (attempt < 5)
                 {
-                    System.Threading.Thread.Sleep(100 * (attempt + 1));
+                    System.Threading.Thread.Sleep(200 * (attempt + 1));
+                }
+                catch (IOException) when (File.Exists(dest))
+                {
+                    // Destination already exists and is locked (commonly because another
+                    // ClrMD DataTarget has memory-mapped it for module metadata). Since
+                    // SharedLibrary.dll and companion binaries are byte-identical between
+                    // builds within the same TFM/arch, a stale copy is equivalent. Tolerate
+                    // the collision rather than failing the test that triggered the build.
+                    return;
                 }
             }
         }
@@ -339,7 +348,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
 
             string commandLine = $"\"{host}\" --mode=framework \"{exePath}\"";
-            LaunchAndCaptureDump(info, commandLine, dumpPath, full, ClrExceptionCode);
+            LaunchAndCaptureDump(info, commandLine, workingDirectory: Path.GetDirectoryName(exePath), dumpPath, full, ClrExceptionCode);
         }
 
         /// <summary>
@@ -606,8 +615,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         private static void LaunchAndCaptureDump(DebuggerStartInfo info, string exePath, string dumpPath, bool full, uint exceptionCode)
+            => LaunchAndCaptureDump(info, exePath, workingDirectory: Path.GetDirectoryName(exePath), dumpPath, full, exceptionCode);
+
+        private static void LaunchAndCaptureDump(DebuggerStartInfo info, string commandLine, string workingDirectory, string dumpPath, bool full, uint exceptionCode)
         {
-            using Debugger debugger = info.LaunchProcess(exePath, Path.GetDirectoryName(exePath));
+            using Debugger debugger = info.LaunchProcess(commandLine, workingDirectory);
 
             string miniDumpPath = full ? null : dumpPath;
             string fullDumpPath = full ? dumpPath : null;
@@ -707,18 +719,30 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public Debugger(string dbgEngDirectory, string commandLine, string workingDirectory, IEnumerable<KeyValuePair<string, string>> env)
         {
             _dbgeng = IDebugClient.Create(dbgEngDirectory);
-            _client = (IDebugClient)_dbgeng;
-            _control = (IDebugControl)_client;
+            try
+            {
+                _client = (IDebugClient)_dbgeng;
+                _control = (IDebugControl)_client;
 
-            DEBUG_CREATE_PROCESS_OPTIONS options = default;
-            options.CreateFlags = DEBUG_CREATE_PROCESS.DEBUG_PROCESS;
-            int hr = _client.CreateProcessAndAttach(commandLine, workingDirectory, env, DEBUG_ATTACH.DEFAULT, options);
+                DEBUG_CREATE_PROCESS_OPTIONS options = default;
+                options.CreateFlags = DEBUG_CREATE_PROCESS.DEBUG_PROCESS;
+                int hr = _client.CreateProcessAndAttach(commandLine, workingDirectory, env, DEBUG_ATTACH.DEFAULT, options);
 
-            if (hr < 0)
-                throw new Exception($"IDebugClient::CreateProcessAndAttach failed with hresult={hr:X8}");
+                if (hr < 0)
+                    throw new Exception($"IDebugClient::CreateProcessAndAttach failed with hresult={hr:X8}");
 
-            _client.SetEventCallbacks(this);
-            _client.SetOutputCallbacks(this);
+                _client.SetEventCallbacks(this);
+                _client.SetOutputCallbacks(this);
+            }
+            catch
+            {
+                // DbgEng only tolerates one live instance per process. If construction fails
+                // (e.g., bad command line or working directory) we must dispose the wrapper
+                // here or every subsequent DbgEng-using test in this run will fault with
+                // "DbgEng doesn't properly handle multiple instances simultaneously".
+                _dbgeng.Dispose();
+                throw;
+            }
         }
 
         public DEBUG_STATUS ProcessEvents(TimeSpan timeout)
