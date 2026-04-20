@@ -235,6 +235,31 @@ namespace
             return 12;
         }
 
+        // Honor the server-GC request from the parent (DumpGenerator sets this env var
+        // for GCMode.Server). The CLR we're hosting won't read COMPlus_BuildFlavor on
+        // its own; we have to set the startup flag explicitly before Start().
+        {
+            wchar_t flavor[32] = {};
+            DWORD got = GetEnvironmentVariableW(L"COMPlus_BuildFlavor", flavor, ARRAYSIZE(flavor));
+            wchar_t svr[32] = {};
+            DWORD gotSvr = GetEnvironmentVariableW(L"COMPlus_gcServer", svr, ARRAYSIZE(svr));
+            bool wantServerGc =
+                (got > 0 && (_wcsicmp(flavor, L"SVR") == 0 || _wcsicmp(flavor, L"SERVER") == 0)) ||
+                (gotSvr > 0 && svr[0] == L'1');
+
+            if (wantServerGc)
+            {
+                DWORD flags = 0;
+                HRESULT hrFlags = pRuntimeInfo->GetDefaultStartupFlags(&flags, nullptr, nullptr);
+                if (SUCCEEDED(hrFlags))
+                {
+                    flags |= STARTUP_SERVER_GC;
+                    pRuntimeInfo->SetDefaultStartupFlags(flags, nullptr);
+                    fprintf(stderr, "HighBitHost(framework): enabled STARTUP_SERVER_GC\n");
+                }
+            }
+        }
+
         hr = pHost->Start();
         if (FAILED(hr))
         {
