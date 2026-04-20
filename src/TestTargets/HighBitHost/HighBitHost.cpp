@@ -274,22 +274,31 @@ namespace
         long retVal = 0;
 
         // ExecuteAssembly_2(BSTR AssemblyFile, long* pRetVal) runs the static Main
-        // of the assembly's entry point in the default AppDomain. Any unhandled
-        // managed exception is re-raised as a Win32 exception, triggering the
-        // configured JIT/crash-dump behavior — which is what our tests rely on.
+        // of the assembly's entry point in the default AppDomain. If Main throws
+        // unhandled, CLR's hosted policy CATCHES the exception and returns it as
+        // an HRESULT (typically 0x80131500-range) instead of letting SEH propagate.
+        // That's bad for us — the parent DbgEng is gated on the 0xe0434352 CLR
+        // managed-exception event to capture the dump. So we check the result and
+        // re-raise the CLR exception in-process while the managed heap is still
+        // live. Call RaiseException BEFORE tearing down the CLR so the captured
+        // dump has an intact heap for the ClrMD tests to inspect.
         hr = pDefaultDomain->ExecuteAssembly_2(assemblyPath, &retVal);
+
+        if (FAILED(hr))
+        {
+            fprintf(stderr, "HighBitHost(framework): ExecuteAssembly returned 0x%08X; re-raising as CLR exception for dump capture\n", (unsigned)hr);
+            fflush(stderr);
+            ULONG_PTR args[1] = { static_cast<ULONG_PTR>(static_cast<unsigned>(hr)) };
+            // 0xe0434352 = 'CCR\xe0' = CLR managed exception. Matches what the
+            // parent DbgEng event hook in DumpGenerator filters on.
+            RaiseException(0xe0434352u, 0, 1, args);
+        }
 
         pDefaultDomain->Release();
         pHost->Stop();
         pHost->Release();
         pRuntimeInfo->Release();
         pMetaHost->Release();
-
-        if (FAILED(hr))
-        {
-            fprintf(stderr, "HighBitHost(framework): ExecuteAssembly failed (0x%08X)\n", (unsigned)hr);
-            return 16;
-        }
 
         return (int)retVal;
     }
