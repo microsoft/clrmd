@@ -132,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// <summary>
         /// Builds the dump file name for a given configuration.
         /// </summary>
-        public string BuildDumpName(GCMode gcmode, bool full, string? architecture = null, bool? isFramework = null, bool singleFile = false)
+        public string BuildDumpName(GCMode gcmode, bool full, string? architecture = null, bool? isFramework = null, bool singleFile = false, bool highBit = false)
         {
             architecture ??= DumpGenerator.GetArchitecture();
             bool framework = isFramework ?? FrameworkOnly;
@@ -142,7 +142,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             string dumpType = full ? string.Empty : "_mini";
             string fwSuffix = framework ? "_net48" : string.Empty;
             string sfSuffix = singleFile ? "_sf" : string.Empty;
-            return Path.Combine(dir, $"{Name}_{gc}{dumpType}{fwSuffix}{sfSuffix}.dmp");
+            string hbSuffix = highBit ? "_highbit" : string.Empty;
+            return Path.Combine(dir, $"{Name}_{gc}{dumpType}{fwSuffix}{sfSuffix}{hbSuffix}.dmp");
         }
 
         private static DataTarget LoadDump(string path, DataTargetOptions? options = null)
@@ -181,6 +182,22 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             string dumpPath = BuildDumpName(gc, full: true, architecture: architecture, isFramework: framework);
 
             DumpGenerator.EnsureDump(Name, ProjectDir, dumpPath, architecture, framework, gc, full: true, companionTargets: CompanionTargets);
+            return LoadDump(dumpPath, options);
+        }
+
+        /// <summary>
+        /// Loads a full dump captured under the high-bit host, forcing the CLR heap into the
+        /// upper 2 GB of a 32-bit address space. Windows x86 only; callers must gate via
+        /// <see cref="HighBitFactAttribute"/>.
+        /// </summary>
+        public DataTarget LoadFullDumpHighBit(GCMode gc = GCMode.Workstation, DataTargetOptions? options = null)
+        {
+            if (FrameworkOnly)
+                throw new InvalidOperationException($"Target {Name} is .NET Framework-only; high-bit host requires .NET Core.");
+
+            string architecture = DumpGenerator.GetArchitecture();
+            string dumpPath = BuildDumpName(gc, full: true, architecture: architecture, isFramework: false, highBit: true);
+            DumpGenerator.EnsureDump(Name, ProjectDir, dumpPath, architecture, isFramework: false, gc, full: true, highBit: true, companionTargets: CompanionTargets);
             return LoadDump(dumpPath, options);
         }
 

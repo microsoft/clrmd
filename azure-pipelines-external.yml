@@ -49,6 +49,39 @@ stages:
             displayName: Build
             condition: succeeded()
 
+        - job: Windows_x86
+          displayName: Windows (x86 high-bit)
+          pool:
+            name: NetCore-Public
+            demands: ImageOverride -equals windows.vs2019.amd64.open
+
+          variables:
+          - DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX: 2
+
+          strategy:
+            matrix:
+              build_debug:
+                _BuildConfig: Debug
+              build_release:
+                _BuildConfig: Release
+
+          steps:
+          # Build the solution (no tests) so cibuild.cmd's machine-prep runs.
+          - script: eng\common\cibuild.cmd
+              -configuration $(_BuildConfig)
+              -prepareMachine
+              -verbosity normal
+              -test:false
+            displayName: Build (no tests)
+            condition: succeeded()
+
+          # Run the test suite in a 32-bit test host. The HighBitHost C++ harness is
+          # built lazily by DumpGenerator on the first high-bit test; it requires the
+          # Visual Studio C++ workload on this image.
+          - script: Test.cmd x86
+            displayName: Test (x86)
+            condition: succeeded()
+
         - job: Linux
           pool:
             vmImage: ubuntu-22.04

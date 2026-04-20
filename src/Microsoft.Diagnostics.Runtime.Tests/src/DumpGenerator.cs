@@ -24,7 +24,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// Ensures a dump file exists for the given test target. If the dump doesn't exist,
         /// builds the target and generates the dump.
         /// </summary>
-        public static void EnsureDump(string name, string projectDir, string dumpPath, string architecture, bool isFramework, GCMode gcMode, bool full, bool singleFile = false, string[] companionTargets = null)
+        public static void EnsureDump(string name, string projectDir, string dumpPath, string architecture, bool isFramework, GCMode gcMode, bool full, bool singleFile = false, bool highBit = false, string[] companionTargets = null)
         {
             if (File.Exists(dumpPath))
                 return;
@@ -49,7 +49,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 }
 
                 string processOutput = null;
-                if (isFramework && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                if (highBit)
+                {
+                    processOutput = GenerateHighBitCoreDump(exePath, dumpPath, gcMode, full, architecture);
+                }
+                else if (isFramework && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     GenerateFrameworkDump(exePath, dumpPath, gcMode, full);
                 }
@@ -273,6 +277,154 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             if (process.ExitCode != 0)
                 throw new InvalidOperationException($"dotnet build failed for {csprojPath}:\n{output}\n{error}");
+        }
+
+        /// <summary>
+        /// Generates a dump under the high-bit host. The host reserves memory below 0x80000000
+        /// before starting the CLR, forcing heap allocations into the upper 2 GB of the 32-bit
+        /// address space. Windows x86 only.
+        /// </summary>
+        private static string GenerateHighBitCoreDump(string exePath, string dumpPath, GCMode gcMode, bool full, string architecture)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                throw new PlatformNotSupportedException("High-bit dump generation is only supported on Windows.");
+            if (architecture != "x86" && architecture != "x64")
+                throw new PlatformNotSupportedException($"High-bit dump generation requires x86 (or x64 for parity); got {architecture}.");
+
+            // The high-bit host loads and runs a managed DLL via hostfxr. Prefer the .dll; if only
+            // the .exe exists, swap the extension.
+            string dllPath = exePath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+                ? Path.ChangeExtension(exePath, ".dll")
+                : exePath;
+            if (!File.Exists(dllPath))
+                throw new FileNotFoundException($"High-bit host requires a managed DLL, not found: {dllPath}");
+
+            string host = BuildHighBitHost(architecture);
+
+            ProcessStartInfo psi = new(host)
+            {
+                Arguments = $"\"{dllPath}\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            psi.Environment["DOTNET_DbgEnableMiniDump"] = "1";
+            psi.Environment["COMPlus_DbgEnableMiniDump"] = "1";
+
+            string dumpType = full ? "4" : "1";
+            psi.Environment["DOTNET_DbgMiniDumpType"] = dumpType;
+            psi.Environment["COMPlus_DbgMiniDumpType"] = dumpType;
+
+            psi.Environment["DOTNET_DbgMiniDumpName"] = dumpPath;
+            psi.Environment["COMPlus_DbgMiniDumpName"] = dumpPath;
+
+            psi.Environment["DOTNET_EnableCrashReport"] = "1";
+            psi.Environment["COMPlus_EnableCrashReport"] = "1";
+
+            if (gcMode == GCMode.Server)
+            {
+                psi.Environment["DOTNET_gcServer"] = "1";
+                psi.Environment["COMPlus_gcServer"] = "1";
+            }
+
+            using Process process = Process.Start(psi);
+            string stdout = process.StandardOutput.ReadToEnd();
+            string stderr = process.StandardError.ReadToEnd();
+
+            if (!process.WaitForExit(120_000))
+            {
+                process.Kill();
+                throw new TimeoutException($"HighBitHost for {dllPath} did not exit within 120 seconds.\nstdout: {stdout}\nstderr: {stderr}");
+            }
+
+            return $"exit={process.ExitCode}\nhost: {host}\nstdout: {stdout}\nstderr: {stderr}";
+        }
+
+        /// <summary>
+        /// Lazily builds HighBitHost.exe for the given architecture using MSBuild with the C++
+        /// toolset. The built executable lives at src/TestTargets/bin/HighBitHost/{Platform}/.
+        /// Requires Visual Studio with the C++ workload on PATH via vswhere.
+        /// </summary>
+        private static string BuildHighBitHost(string architecture)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                throw new PlatformNotSupportedException("HighBitHost is only supported on Windows.");
+
+            string platform = architecture == "x86" ? "Win32" : "x64";
+
+            // Walk up to the repo root (marker: .gitignore) so we can locate the host project.
+            DirectoryInfo info = new(Environment.CurrentDirectory);
+            while (info != null && info.GetFiles(".gitignore").Length != 1)
+                info = info.Parent;
+            if (info is null)
+                throw new InvalidOperationException("Could not locate repository root for HighBitHost build.");
+
+            string repoRoot = info.FullName;
+            string projectPath = Path.Combine(repoRoot, "src", "TestTargets", "HighBitHost", "HighBitHost.vcxproj");
+            string hostExe = Path.Combine(repoRoot, "src", "TestTargets", "bin", "HighBitHost", platform, "HighBitHost.exe");
+
+            if (File.Exists(hostExe))
+                return hostExe;
+
+            string msbuild = FindMsBuild();
+
+            ProcessStartInfo psi = new(msbuild)
+            {
+                Arguments = $"\"{projectPath}\" /p:Configuration=Debug /p:Platform={platform} /nologo /v:minimal",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            using Process process = Process.Start(psi);
+            string stdout = process.StandardOutput.ReadToEnd();
+            string stderr = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+
+            if (process.ExitCode != 0 || !File.Exists(hostExe))
+                throw new InvalidOperationException($"Failed to build HighBitHost ({platform}):\n{stdout}\n{stderr}");
+
+            return hostExe;
+        }
+
+        /// <summary>
+        /// Locates MSBuild.exe using vswhere. Required for the C++ HighBitHost build, since
+        /// 'dotnet build' does not drive vcxproj.
+        /// </summary>
+        private static string FindMsBuild()
+        {
+            string programFiles = Environment.GetEnvironmentVariable("ProgramFiles(x86)")
+                                  ?? Environment.GetEnvironmentVariable("ProgramFiles");
+            string vswhere = Path.Combine(programFiles ?? string.Empty, "Microsoft Visual Studio", "Installer", "vswhere.exe");
+            if (!File.Exists(vswhere))
+                throw new FileNotFoundException($"vswhere.exe not found at {vswhere}. Install Visual Studio with the C++ workload.");
+
+            ProcessStartInfo psi = new(vswhere)
+            {
+                Arguments = "-latest -prerelease -products * -requires Microsoft.Component.MSBuild Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            using Process process = Process.Start(psi);
+            string installDir = process.StandardOutput.ReadToEnd().Trim();
+            process.WaitForExit();
+
+            if (string.IsNullOrEmpty(installDir))
+                throw new InvalidOperationException("vswhere found no Visual Studio installation with the C++ toolset.");
+
+            // vswhere may return multiple lines if -latest is ignored; take the first.
+            string firstLine = installDir.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim();
+            string msbuild = Path.Combine(firstLine, "MSBuild", "Current", "Bin", "MSBuild.exe");
+            if (!File.Exists(msbuild))
+                throw new FileNotFoundException($"MSBuild.exe not found at {msbuild}.");
+
+            return msbuild;
         }
 
         /// <summary>
