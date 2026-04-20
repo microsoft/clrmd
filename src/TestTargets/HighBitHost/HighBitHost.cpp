@@ -13,15 +13,18 @@
 // effectively go untested. This host fixes that by:
 //
 //   1. Reserving every MEM_FREE region below 0x80000000 with
-//      VirtualAlloc(MEM_RESERVE, PAGE_NOACCESS) BEFORE touching coreclr,
+//      VirtualAlloc(MEM_RESERVE, PAGE_NOACCESS) BEFORE touching any CLR,
 //      so subsequent CLR heap allocations land in the upper 2 GB.
-//   2. Loading hostfxr.dll via the standard nethost discovery path, then
-//      invoking hostfxr_run_app to run the managed target DLL in-process.
-//   3. Relying on CoreCLR's createdump integration (DOTNET_DbgEnableMiniDump
-//      env vars set by the parent test process) to capture a dump when the
-//      managed target throws.
+//   2. Loading the requested runtime (Core via hostfxr, Framework v4 via
+//      mscoree) and invoking the managed target's entry point in-process.
+//   3. Relying on the runtime's crash-dump integration (DOTNET_DbgEnableMiniDump
+//      for Core, DbgEng from the parent for Framework) to capture a dump
+//      when the managed target throws.
 //
-// Usage:  HighBitHost.exe <target.dll> [args...]
+// Usage:
+//   HighBitHost.exe [--mode=core|framework] <target> [args...]
+//     core      (default) runs <target.dll> via hostfxr_run_app
+//     framework runs <target.exe> via ICorRuntimeHost + _AppDomain::ExecuteAssembly
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -32,6 +35,22 @@
 
 #include <nethost.h>
 #include <hostfxr.h>
+
+// Framework hosting.
+#include <metahost.h>
+#include <mscoree.h>
+#include <comdef.h>
+
+#pragma comment(lib, "mscoree.lib")
+
+// Pull in _AppDomain from mscorlib.tlb. Paths differ between 32- and 64-bit OS;
+// the standard system32/SysWOW64 mscorlib.tlb is the canonical location.
+#import "libid:BED7F4EA-1A96-11D2-8F08-00A0C9A6186D" \
+    raw_interfaces_only                             \
+    high_property_prefixes("_get","_put","_putref") \
+    rename("ReportEvent", "InteropServices_ReportEvent") \
+    auto_rename
+using namespace mscorlib;
 
 namespace
 {
@@ -182,6 +201,98 @@ namespace
         ep.close(handle);
         return appRc;
     }
+
+    // Hosts desktop .NET Framework v4 via mscoree and runs the managed target .exe's
+    // entry point. Any unhandled managed exception propagates via DbgEng-driven
+    // dump capture (set up by DumpGenerator on the parent side), so we don't
+    // install our own crash handler here.
+    int RunFrameworkApp(const wchar_t* targetExePath)
+    {
+        ICLRMetaHost* pMetaHost = nullptr;
+        HRESULT hr = CLRCreateInstance(CLSID_CLRMetaHost, IID_PPV_ARGS(&pMetaHost));
+        if (FAILED(hr) || pMetaHost == nullptr)
+        {
+            fprintf(stderr, "HighBitHost(framework): CLRCreateInstance failed (0x%08X)\n", (unsigned)hr);
+            return 10;
+        }
+
+        ICLRRuntimeInfo* pRuntimeInfo = nullptr;
+        hr = pMetaHost->GetRuntime(L"v4.0.30319", IID_PPV_ARGS(&pRuntimeInfo));
+        if (FAILED(hr) || pRuntimeInfo == nullptr)
+        {
+            fprintf(stderr, "HighBitHost(framework): GetRuntime(v4.0.30319) failed (0x%08X)\n", (unsigned)hr);
+            pMetaHost->Release();
+            return 11;
+        }
+
+        ICorRuntimeHost* pHost = nullptr;
+        hr = pRuntimeInfo->GetInterface(CLSID_CorRuntimeHost, IID_PPV_ARGS(&pHost));
+        if (FAILED(hr) || pHost == nullptr)
+        {
+            fprintf(stderr, "HighBitHost(framework): GetInterface(CorRuntimeHost) failed (0x%08X)\n", (unsigned)hr);
+            pRuntimeInfo->Release();
+            pMetaHost->Release();
+            return 12;
+        }
+
+        hr = pHost->Start();
+        if (FAILED(hr))
+        {
+            fprintf(stderr, "HighBitHost(framework): ICorRuntimeHost::Start failed (0x%08X)\n", (unsigned)hr);
+            pHost->Release();
+            pRuntimeInfo->Release();
+            pMetaHost->Release();
+            return 13;
+        }
+
+        IUnknown* pAppDomainThunk = nullptr;
+        hr = pHost->GetDefaultDomain(&pAppDomainThunk);
+        if (FAILED(hr) || pAppDomainThunk == nullptr)
+        {
+            fprintf(stderr, "HighBitHost(framework): GetDefaultDomain failed (0x%08X)\n", (unsigned)hr);
+            pHost->Stop();
+            pHost->Release();
+            pRuntimeInfo->Release();
+            pMetaHost->Release();
+            return 14;
+        }
+
+        _AppDomain* pDefaultDomain = nullptr;
+        hr = pAppDomainThunk->QueryInterface(__uuidof(_AppDomain), (void**)&pDefaultDomain);
+        pAppDomainThunk->Release();
+        if (FAILED(hr) || pDefaultDomain == nullptr)
+        {
+            fprintf(stderr, "HighBitHost(framework): QI(_AppDomain) failed (0x%08X)\n", (unsigned)hr);
+            pHost->Stop();
+            pHost->Release();
+            pRuntimeInfo->Release();
+            pMetaHost->Release();
+            return 15;
+        }
+
+        _bstr_t assemblyPath(targetExePath);
+        long retVal = 0;
+
+        // ExecuteAssembly_2(BSTR AssemblyFile, long* pRetVal) runs the static Main
+        // of the assembly's entry point in the default AppDomain. Any unhandled
+        // managed exception is re-raised as a Win32 exception, triggering the
+        // configured JIT/crash-dump behavior — which is what our tests rely on.
+        hr = pDefaultDomain->ExecuteAssembly_2(assemblyPath, &retVal);
+
+        pDefaultDomain->Release();
+        pHost->Stop();
+        pHost->Release();
+        pRuntimeInfo->Release();
+        pMetaHost->Release();
+
+        if (FAILED(hr))
+        {
+            fprintf(stderr, "HighBitHost(framework): ExecuteAssembly failed (0x%08X)\n", (unsigned)hr);
+            return 16;
+        }
+
+        return (int)retVal;
+    }
 }
 
 int wmain(int argc, wchar_t** argv)
@@ -191,9 +302,30 @@ int wmain(int argc, wchar_t** argv)
     setvbuf(stdout, nullptr, _IONBF, 0);
     setvbuf(stderr, nullptr, _IONBF, 0);
 
-    if (argc < 2)
+    // Parse --mode={core,framework} (optional, default core). Remaining args are
+    // forwarded to the selected host.
+    enum class Mode { Core, Framework };
+    Mode mode = Mode::Core;
+
+    int firstPositional = 1;
+    if (argc >= 2 && argv[1] != nullptr)
     {
-        fprintf(stderr, "Usage: HighBitHost.exe <target.dll> [args...]\n");
+        const wchar_t* a = argv[1];
+        if (_wcsicmp(a, L"--mode=core") == 0)
+        {
+            mode = Mode::Core;
+            firstPositional = 2;
+        }
+        else if (_wcsicmp(a, L"--mode=framework") == 0)
+        {
+            mode = Mode::Framework;
+            firstPositional = 2;
+        }
+    }
+
+    if (argc - firstPositional < 1)
+    {
+        fprintf(stderr, "Usage: HighBitHost.exe [--mode=core|framework] <target> [args...]\n");
         return 2;
     }
 
@@ -211,20 +343,40 @@ int wmain(int argc, wchar_t** argv)
                (unsigned long long)summary.largestFreeHoleSize);
     }
 
+    if (mode == Mode::Framework)
+    {
+        // Framework path: initialize COM (STA matches the default for managed
+        // [STAThread] Main entry points), then host CLR v4 in-process.
+        HRESULT hrCo = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+        if (FAILED(hrCo) && hrCo != RPC_E_CHANGED_MODE)
+        {
+            fprintf(stderr, "HighBitHost(framework): CoInitializeEx failed (0x%08X)\n", (unsigned)hrCo);
+            return 4;
+        }
+
+        wprintf(L"HighBitHost(framework): running %ls\n", argv[firstPositional]);
+        int rc = RunFrameworkApp(argv[firstPositional]);
+
+        if (SUCCEEDED(hrCo))
+            CoUninitialize();
+        return rc;
+    }
+
+    // Core path.
     std::wstring hostfxrPath;
     HostFxrEntryPoints ep;
     if (!LoadHostFxr(hostfxrPath, ep))
         return 3;
 
-    wprintf(L"HighBitHost: loaded hostfxr from %ls\n", hostfxrPath.c_str());
-    wprintf(L"HighBitHost: running %ls\n", argv[1]);
+    wprintf(L"HighBitHost(core): loaded hostfxr from %ls\n", hostfxrPath.c_str());
+    wprintf(L"HighBitHost(core): running %ls\n", argv[firstPositional]);
 
-    // Forward argv[1..] to hostfxr: it treats argv[0] as the managed DLL and
-    // the rest as arguments to the managed entry point, matching the
-    // behaviour of `dotnet <target.dll> [args...]`.
+    // Forward positional args [firstPositional..) to hostfxr: it treats the
+    // first as the managed DLL and the rest as arguments, matching the
+    // behavior of `dotnet <target.dll> [args...]`.
     std::vector<const wchar_t*> forwarded;
-    forwarded.reserve(argc - 1);
-    for (int i = 1; i < argc; ++i)
+    forwarded.reserve(argc - firstPositional);
+    for (int i = firstPositional; i < argc; ++i)
         forwarded.push_back(argv[i]);
 
     int rc = RunManagedApp(ep, static_cast<int>(forwarded.size()), forwarded.data());

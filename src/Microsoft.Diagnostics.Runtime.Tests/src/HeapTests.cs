@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
@@ -8,13 +9,30 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class HeapTests
     {
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void HeapEnumeration(bool singleFile)
+        public static IEnumerable<object[]> TypesWithSingleFile => TestVariants.WithSingleFile(TestTargets.Types);
+        public static IEnumerable<object[]> GCRootWithSingleFile => TestVariants.WithSingleFile(TestTargets.GCRoot);
+        public static IEnumerable<object[]> TypesHighBitOnly => TestVariants.HighBitOnly(TestTargets.Types);
+
+        /// <summary>
+        /// Sanity check: when running under the HighBit harness on 32-bit Windows, at least one
+        /// managed object must live above the 0x80000000 boundary. If this fires, the low-memory
+        /// reservation in HighBitHost failed and subsequent HighBit coverage is meaningless.
+        /// </summary>
+        [Theory, MemberData(nameof(TypesHighBitOnly))]
+        public void HighBit_HeapHasObjectsAbove2Gb(DumpVariant variant)
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant);
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            bool any = runtime.Heap.EnumerateObjects().Any(o => o.Address >= 0x80000000UL);
+            Assert.True(any, "HighBit dump contained no objects at addresses >= 0x80000000.");
+        }
+
+        [Theory, MemberData(nameof(TypesWithSingleFile))]
+        public void HeapEnumeration(DumpVariant variant, bool singleFile)
         {
             // Simply test that we can enumerate the heap.
-            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -41,13 +59,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.True(encounteredFoo);
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void AllocationContextLocation(bool singleFile)
+        [Theory, MemberData(nameof(TypesWithSingleFile))]
+        public void AllocationContextLocation(DumpVariant variant, bool singleFile)
         {
             // Simply test that we can enumerate the heap.
-            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -67,13 +83,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void SegmentEnumeration(bool singleFile)
+        [Theory, MemberData(nameof(TypesWithSingleFile))]
+        public void SegmentEnumeration(DumpVariant variant, bool singleFile)
         {
             // Simply test that we can enumerate the heap.
-            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -94,12 +108,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(objs.Length, index);
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void NextObject(bool singleFile)
+        [Theory, MemberData(nameof(TypesWithSingleFile))]
+        public void NextObject(DumpVariant variant, bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -126,12 +138,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void PrevObject(bool singleFile)
+        [Theory, MemberData(nameof(TypesWithSingleFile))]
+        public void PrevObject(DumpVariant variant, bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -154,12 +164,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void EnumerateRange(bool singleFile)
+        [Theory, MemberData(nameof(TypesWithSingleFile))]
+        public void EnumerateRange(DumpVariant variant, bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -196,13 +204,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void HeapEnumerationWhileClearingCache(bool singleFile)
+        [Theory, MemberData(nameof(TypesWithSingleFile))]
+        public void HeapEnumerationWhileClearingCache(DumpVariant variant, bool singleFile)
         {
             // Simply test that we can enumerate the heap.
-            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
             ClrObject[] objects = heap.EnumerateObjects().ToArray();
@@ -221,12 +227,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void ServerSegmentTests(bool singleFile)
+        [Theory, MemberData(nameof(TypesWithSingleFile))]
+        public void ServerSegmentTests(DumpVariant variant, bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile, gc: GCMode.Server);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile, gc: GCMode.Server);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -235,12 +239,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             CheckSegments(heap);
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void WorkstationSegmentTests(bool singleFile)
+        [Theory, MemberData(nameof(TypesWithSingleFile))]
+        public void WorkstationSegmentTests(DumpVariant variant, bool singleFile)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile, gc: GCMode.Workstation);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile, gc: GCMode.Workstation);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -309,12 +311,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void MarkerCreation(bool singleFile)
+        [Theory, MemberData(nameof(GCRootWithSingleFile))]
+        public void MarkerCreation(DumpVariant variant, bool singleFile)
         {
-            using DataTarget dt = TestTargets.GCRoot.LoadFullDump(singleFile, gc: GCMode.Workstation);
+            using DataTarget dt = TestTargets.GCRoot.LoadFullDump(variant, singleFile, gc: GCMode.Workstation);
             using ClrRuntime rt = dt.ClrVersions.Single().CreateRuntime();
 
             foreach (ClrSegment seg in rt.Heap.Segments)

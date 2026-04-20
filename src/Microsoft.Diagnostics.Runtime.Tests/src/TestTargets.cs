@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private static readonly Lazy<TestTarget> _nestedTypes = new(() => new TestTarget("NestedTypes"));
         private static readonly Lazy<TestTarget> _gcHandles = new(() => new TestTarget("GCHandles"));
         private static readonly Lazy<TestTarget> _types = new(() => new TestTarget("Types"));
-        private static readonly Lazy<TestTarget> _appDomains = new(() => new TestTarget("AppDomains", frameworkOnly: true, companionTargets: ["NestedException"]));
+        private static readonly Lazy<TestTarget> _appDomains = new(() => new TestTarget("AppDomains", supportedFlavors: TargetFlavors.Framework, companionTargets: ["NestedException"]));
         private static readonly Lazy<TestTarget> _finalizationQueue = new(() => new TestTarget("FinalizationQueue"));
         private static readonly Lazy<TestTarget> _byReference = new(() => new TestTarget("ByReference"));
 
@@ -63,9 +63,44 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public string Name { get; }
 
         /// <summary>
-        /// Whether this target only supports .NET Framework (e.g. AppDomains).
+        /// The flavors (Core, Framework) this target can be built and dumped for.
         /// </summary>
-        public bool FrameworkOnly { get; }
+        public TargetFlavors SupportedFlavors { get; }
+
+        /// <summary>
+        /// Whether this target only supports .NET Framework (e.g. AppDomains).
+        /// Preserved for backward compatibility; derived from <see cref="SupportedFlavors"/>.
+        /// </summary>
+        public bool FrameworkOnly => SupportedFlavors == TargetFlavors.Framework;
+
+        /// <summary>
+        /// Whether this target can be captured under the HighBitHost harness.
+        /// Defaults to true; set to false to exclude a target from the HighBit matrix
+        /// (e.g. targets known to be incompatible with forced low-memory reservation).
+        /// </summary>
+        public bool SupportsHighBit { get; }
+
+        /// <summary>
+        /// Returns whether this target supports a given <see cref="DumpFlavor"/> and
+        /// optionally the HighBit harness.
+        /// </summary>
+        public bool Supports(DumpFlavor flavor, bool highBit = false)
+        {
+            TargetFlavors bit = flavor switch
+            {
+                DumpFlavor.Core => TargetFlavors.Core,
+                DumpFlavor.Framework => TargetFlavors.Framework,
+                _ => TargetFlavors.None,
+            };
+
+            if ((SupportedFlavors & bit) == 0)
+                return false;
+
+            if (highBit && !SupportsHighBit)
+                return false;
+
+            return true;
+        }
 
         private static string TestRoot { get; }
 
@@ -79,9 +114,18 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         public TestTarget(string name, bool frameworkOnly = false, string[]? companionTargets = null)
+            : this(name, frameworkOnly ? TargetFlavors.Framework : TargetFlavors.Any, supportsHighBit: true, companionTargets)
         {
+        }
+
+        public TestTarget(string name, TargetFlavors supportedFlavors, bool supportsHighBit = true, string[]? companionTargets = null)
+        {
+            if (supportedFlavors == TargetFlavors.None)
+                throw new ArgumentException("A test target must support at least one flavor.", nameof(supportedFlavors));
+
             Name = name;
-            FrameworkOnly = frameworkOnly;
+            SupportedFlavors = supportedFlavors;
+            SupportsHighBit = supportsHighBit;
             CompanionTargets = companionTargets ?? Array.Empty<string>();
 
             Source = Path.Combine(TestRoot, name, name + ".cs");
@@ -106,11 +150,19 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private static string GetOutputDir(string architecture) => Path.Combine(TestRoot, "bin", architecture);
 
         /// <summary>
+        /// Gets the directory that built binaries land in for a given architecture/flavor.
+        /// Builds are segregated per TFM so .NET Core and .NET Framework outputs of the
+        /// same target don't overwrite each other.
+        /// </summary>
+        private static string GetBuildDir(string architecture, bool isFramework)
+            => DumpGenerator.GetBuildOutputDir(GetOutputDir(architecture), isFramework);
+
+        /// <summary>
         /// Gets the path to the executable for a given architecture and framework.
         /// </summary>
         public string GetExecutable(string architecture, bool isFramework)
         {
-            string dir = GetOutputDir(architecture);
+            string dir = GetBuildDir(architecture, isFramework);
             return Path.Combine(dir, RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? Name + ".exe" : Name);
         }
 
@@ -119,7 +171,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// </summary>
         public string GetPdb(string architecture)
         {
-            string dir = GetOutputDir(architecture);
+            // Default to the Core build directory for the convenience overload.
+            string dir = GetBuildDir(architecture, isFramework: FrameworkOnly);
+            return Path.Combine(dir, Name + ".pdb");
+        }
+
+        /// <summary>
+        /// Gets the PDB path for a given architecture and flavor.
+        /// </summary>
+        public string GetPdb(string architecture, bool isFramework)
+        {
+            string dir = GetBuildDir(architecture, isFramework);
             return Path.Combine(dir, Name + ".pdb");
         }
 
@@ -127,7 +189,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// Legacy properties for backward compatibility.
         /// </summary>
         public string Executable => GetExecutable(DumpGenerator.GetArchitecture(), FrameworkOnly);
-        public string Pdb => GetPdb(DumpGenerator.GetArchitecture());
+        public string Pdb => GetPdb(DumpGenerator.GetArchitecture(), FrameworkOnly);
 
         /// <summary>
         /// Builds the dump file name for a given configuration.
@@ -185,21 +247,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return LoadDump(dumpPath, options);
         }
 
-        /// <summary>
-        /// Loads a full dump captured under the high-bit host, forcing the CLR heap into the
-        /// upper 2 GB of a 32-bit address space. Windows x86 only; callers must gate via
-        /// <see cref="HighBitFactAttribute"/>.
-        /// </summary>
-        public DataTarget LoadFullDumpHighBit(GCMode gc = GCMode.Workstation, DataTargetOptions? options = null)
-        {
-            if (FrameworkOnly)
-                throw new InvalidOperationException($"Target {Name} is .NET Framework-only; high-bit host requires .NET Core.");
-
-            string architecture = DumpGenerator.GetArchitecture();
-            string dumpPath = BuildDumpName(gc, full: true, architecture: architecture, isFramework: false, highBit: true);
-            DumpGenerator.EnsureDump(Name, ProjectDir, dumpPath, architecture, isFramework: false, gc, full: true, highBit: true, companionTargets: CompanionTargets);
-            return LoadDump(dumpPath, options);
-        }
 
         /// <summary>
         /// Loads a mini dump, generating it on-demand if it doesn't exist.
@@ -236,6 +283,66 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Utilities.DbgEng.DbgEngIDataReader dbgengReader = new(dumpPath);
             return new DataTarget(dbgengReader, options ?? new DataTargetOptions());
+        }
+
+        // ---------------------------------------------------------------------
+        // Variant-based dump loading (primary API used by matrixed [Theory] tests).
+        // ---------------------------------------------------------------------
+
+        /// <summary>
+        /// Loads a full dump for the given <see cref="DumpVariant"/> with an optional
+        /// single-file (self-contained Core publish) override. Single-file is only
+        /// valid for the plain Core variant.
+        /// </summary>
+        public DataTarget LoadFullDump(DumpVariant variant, bool singleFile, GCMode gc = GCMode.Workstation, DataTargetOptions? options = null)
+        {
+            if (!singleFile)
+                return LoadFullDump(variant, gc, options);
+
+            if (variant.Flavor != DumpFlavor.Core)
+                throw new InvalidOperationException($"Single-file dumps are only supported for the Core variant (got {variant}).");
+            if (variant.HighBit)
+                throw new InvalidOperationException("Single-file dumps are not supported in combination with the HighBit host.");
+
+            string architecture = DumpGenerator.GetArchitecture();
+            string dumpPath = BuildDumpName(gc, full: true, architecture: architecture, isFramework: false, singleFile: true);
+            DumpGenerator.EnsureDump(Name, ProjectDir, dumpPath, architecture, isFramework: false, gc, full: true, singleFile: true);
+            return LoadDump(dumpPath, options);
+        }
+
+        /// <summary>
+        /// Loads a full dump for the given <see cref="DumpVariant"/>, generating it on-demand.
+        /// </summary>
+        public DataTarget LoadFullDump(DumpVariant variant, GCMode gc = GCMode.Workstation, DataTargetOptions? options = null)
+            => LoadDumpForVariant(variant, gc, full: true, options);
+
+        /// <summary>
+        /// Loads a minidump for the given <see cref="DumpVariant"/>, generating it on-demand.
+        /// </summary>
+        public DataTarget LoadMinidump(DumpVariant variant, GCMode gc = GCMode.Workstation, DataTargetOptions? options = null)
+            => LoadDumpForVariant(variant, gc, full: false, options);
+
+        private DataTarget LoadDumpForVariant(DumpVariant variant, GCMode gc, bool full, DataTargetOptions? options)
+        {
+            if (!Supports(variant.Flavor, variant.HighBit))
+                throw new InvalidOperationException($"Target {Name} does not support variant {variant}.");
+
+            string architecture = DumpGenerator.GetArchitecture();
+            bool isFramework = variant.Flavor == DumpFlavor.Framework;
+            string dumpPath = BuildDumpName(gc, full: full, architecture: architecture, isFramework: isFramework, highBit: variant.HighBit);
+
+            DumpGenerator.EnsureDump(
+                Name,
+                ProjectDir,
+                dumpPath,
+                architecture,
+                isFramework: isFramework,
+                gc,
+                full: full,
+                highBit: variant.HighBit,
+                companionTargets: CompanionTargets);
+
+            return LoadDump(dumpPath, options);
         }
     }
 }

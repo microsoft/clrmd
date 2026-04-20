@@ -24,6 +24,30 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// Ensures a dump file exists for the given test target. If the dump doesn't exist,
         /// builds the target and generates the dump.
         /// </summary>
+        /// <summary>
+        /// Target Framework Moniker used for .NET Core test targets. Kept in sync with
+        /// TestTargets project TargetFramework.
+        /// </summary>
+        public const string CoreTfm = "net10.0";
+
+        /// <summary>
+        /// Target Framework Moniker used for .NET Framework test targets.
+        /// </summary>
+        public const string FrameworkTfm = "net48";
+
+        /// <summary>
+        /// Selects the TFM used for a given flavor.
+        /// </summary>
+        public static string GetTfm(bool isFramework) => isFramework ? FrameworkTfm : CoreTfm;
+
+        /// <summary>
+        /// Returns the per-TFM output directory beneath the shared architecture bin
+        /// directory. Each TFM gets its own subdirectory so .NET Core and .NET Framework
+        /// builds of the same target don't overwrite each other.
+        /// </summary>
+        public static string GetBuildOutputDir(string binDir, bool isFramework)
+            => Path.Combine(binDir, GetTfm(isFramework));
+
         public static void EnsureDump(string name, string projectDir, string dumpPath, string architecture, bool isFramework, GCMode gcMode, bool full, bool singleFile = false, bool highBit = false, string[] companionTargets = null)
         {
             if (File.Exists(dumpPath))
@@ -38,6 +62,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 string outputDir = Path.GetDirectoryName(dumpPath);
                 Directory.CreateDirectory(outputDir);
 
+                // Build outputs live in a per-TFM subdirectory so Core and Framework
+                // builds of the same target don't overwrite each other's binaries.
+                string buildDir = singleFile ? outputDir : GetBuildOutputDir(outputDir, isFramework);
+                if (!singleFile)
+                    Directory.CreateDirectory(buildDir);
+
                 string exePath;
                 if (singleFile)
                 {
@@ -45,11 +75,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 }
                 else
                 {
-                    exePath = BuildTarget(name, projectDir, outputDir, architecture, isFramework, companionTargets);
+                    exePath = BuildTarget(name, projectDir, buildDir, architecture, isFramework, companionTargets);
                 }
 
                 string processOutput = null;
-                if (highBit)
+                if (highBit && isFramework)
+                {
+                    GenerateHighBitFrameworkDump(exePath, dumpPath, gcMode, full, architecture);
+                }
+                else if (highBit)
                 {
                     processOutput = GenerateHighBitCoreDump(exePath, dumpPath, gcMode, full, architecture);
                 }
@@ -277,6 +311,35 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             if (process.ExitCode != 0)
                 throw new InvalidOperationException($"dotnet build failed for {csprojPath}:\n{output}\n{error}");
+        }
+
+        /// <summary>
+        /// Generates a dump under the high-bit host for a .NET Framework target. DbgEng
+        /// launches HighBitHost.exe, which reserves low memory, then hosts CLR v4 and
+        /// runs the target .exe's entry point. When the target throws, DbgEng captures
+        /// the dump just as it does in the non-HighBit Framework path.
+        /// </summary>
+        private static void GenerateHighBitFrameworkDump(string exePath, string dumpPath, GCMode gcMode, bool full, string architecture)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                throw new PlatformNotSupportedException("High-bit dump generation is only supported on Windows.");
+            if (architecture != "x86" && architecture != "x64")
+                throw new PlatformNotSupportedException($"High-bit dump generation requires x86 (or x64 for parity); got {architecture}.");
+            if (!exePath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException($"High-bit framework host requires a .NET Framework .exe, got {exePath}");
+
+            string host = BuildHighBitHost(architecture);
+
+            const uint ClrExceptionCode = 0xe0434352;
+
+            DebuggerStartInfo info = new();
+            if (gcMode == GCMode.Server)
+            {
+                info.SetEnvironmentVariable("COMPlus_BuildFlavor", "SVR");
+            }
+
+            string commandLine = $"\"{host}\" --mode=framework \"{exePath}\"";
+            LaunchAndCaptureDump(info, commandLine, dumpPath, full, ClrExceptionCode);
         }
 
         /// <summary>
