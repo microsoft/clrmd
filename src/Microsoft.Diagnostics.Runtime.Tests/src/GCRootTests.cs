@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -140,13 +140,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal("DoubleRef", obj.Type.Name);
         }
 
-        [Fact]
+        [WindowsOrNet11Fact]
         public void GCRoots()
         {
-            // Runtime bug: DAC crashes (SIGSEGV) in EnumerateStackRoots on .NET 10.
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Environment.Version.Major < 11)
-                return;
-
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
@@ -155,12 +151,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ContainsPathsToTarget(heap, 0, target);
         }
 
-        [Fact]
+        [WindowsOrNet11Fact]
         public void GCRootsPredicate()
         {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Environment.Version.Major < 11)
-                return;
-
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
@@ -168,12 +161,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ContainsPathsToTarget(heap, 0, (obj) => obj.Type?.Name == "TargetType");
         }
 
-        [Fact]
+        [WindowsOrNet11Fact]
         public void GCRootsDirectHandles()
         {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Environment.Version.Major < 11)
-                return;
-
             using DataTarget dataTarget = TestTargets.GCRoot2.LoadFullDump();
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
@@ -183,12 +173,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ContainsPathsToTarget(heap, 0, target);
         }
 
-        [Fact]
+        [WindowsOrNet11Fact]
         public void GCRootsIndirectHandles()
         {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Environment.Version.Major < 11)
-                return;
-
             using DataTarget dataTarget = TestTargets.GCRoot2.LoadFullDump();
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
@@ -197,19 +184,114 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ContainsPathsToTarget(heap, 0, target);
         }
 
-        [Fact]
+        [WindowsOrNet11Fact]
         public void FindAllPaths()
         {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Environment.Version.Major < 11)
-                return;
-
             using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             GetKnownSourceAndTarget(heap, out ulong source, out ulong target);
             int totalPath = ContainsPathsToTarget(heap, source, target);
-            Assert.True(totalPath >= 3);
+            Assert.True(totalPath >= 3, $"Expected at least 3 paths, got {totalPath}");
+        }
+
+        /// <summary>
+        /// Regression test: verifies that a shared GCRoot instance finds the same set of
+        /// paths as individual fresh instances.  Before the fix, successful searches left
+        /// unwalked children in _seen, blocking later FindPathFrom calls.
+        /// </summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void FindPathFromDoesNotPoisonSeenAcrossCalls(bool singleFile)
+        {
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(singleFile);
+            using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+
+            ulong target = heap.GetObjectsOfType("TargetType").Single();
+
+            // Collect test-graph objects that can individually reach the target.
+            string[] relevantTypes = { "TripleRef", "DoubleRef", "SingleRef" };
+            List<ulong> candidates = heap.EnumerateObjects()
+                .Where(o => o.IsValid && o.Type is not null && relevantTypes.Contains(o.Type.Name))
+                .Select(o => o.Address)
+                .ToList();
+
+            Assert.True(candidates.Count >= 3, $"Expected at least 3 test objects, found {candidates.Count}");
+
+            // Ground truth: each object gets a fresh GCRoot (clean _seen).
+            List<ulong> objectsWithPaths = new();
+            foreach (ulong addr in candidates)
+            {
+                GCRoot fresh = new(heap, new ulong[] { target });
+                var path = fresh.FindPathFrom(heap.GetObject(addr));
+                if (path is not null)
+                    objectsWithPaths.Add(addr);
+            }
+
+            Assert.NotEmpty(objectsWithPaths);
+
+            // Shared GCRoot: every object that found a path individually
+            // must also find one when _seen state is shared across calls.
+            GCRoot shared = new(heap, new ulong[] { target });
+            foreach (ulong addr in objectsWithPaths)
+            {
+                var path = shared.FindPathFrom(heap.GetObject(addr));
+                Assert.True(path is not null,
+                    $"FindPathFrom({addr:x}) returned null with shared GCRoot but succeeded with a fresh one");
+                VerifyPath(heap, (obj) => target == obj, path);
+            }
+        }
+
+        /// <summary>
+        /// Stress test: repeats the shared-vs-fresh GCRoot comparison many times
+        /// to catch order-dependent flakiness.
+        /// </summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void FindPathFromSeenStressTest(bool singleFile)
+        {
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(singleFile);
+            using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+
+            ulong target = heap.GetObjectsOfType("TargetType").Single();
+
+            string[] relevantTypes = { "TripleRef", "DoubleRef", "SingleRef" };
+            List<ulong> candidates = heap.EnumerateObjects()
+                .Where(o => o.IsValid && o.Type is not null && relevantTypes.Contains(o.Type.Name))
+                .Select(o => o.Address)
+                .ToList();
+
+            // Build ground truth once.
+            List<ulong> objectsWithPaths = new();
+            foreach (ulong addr in candidates)
+            {
+                GCRoot fresh = new(heap, new ulong[] { target });
+                if (fresh.FindPathFrom(heap.GetObject(addr)) is not null)
+                    objectsWithPaths.Add(addr);
+            }
+
+            Assert.NotEmpty(objectsWithPaths);
+
+            // Run 100 iterations with different traversal orders.
+            Random rng = new(42);
+            for (int iteration = 0; iteration < 100; iteration++)
+            {
+                // Shuffle to vary which search poisons _seen first.
+                List<ulong> shuffled = objectsWithPaths.OrderBy(_ => rng.Next()).ToList();
+
+                GCRoot shared = new(heap, new ulong[] { target });
+                foreach (ulong addr in shuffled)
+                {
+                    var path = shared.FindPathFrom(heap.GetObject(addr));
+                    Assert.True(path is not null,
+                        $"Iteration {iteration}: FindPathFrom({addr:x}) returned null with shared GCRoot");
+                }
+            }
         }
 
         private static void GetKnownSourceAndTarget(ClrHeap heap, out ulong source, out ulong target)
@@ -239,8 +321,18 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             foreach (var item in gcroot.EnumerateRootPaths())
             {
-                if (item.Path.Object == source)
-                    source = 0;
+                // Check if source appears anywhere in the chain, not just at
+                // the start.  On .NET 10+ statics are stored in an Object[]
+                // strong handle, so TheRoot may be one level deeper than the
+                // actual GC root.
+                for (GCRoot.ChainLink? link = item.Path; link is not null; link = link.Next)
+                {
+                    if (link.Object == source)
+                    {
+                        source = 0;
+                        break;
+                    }
+                }
 
                 Assert.Equal(item.Root.Object.Address, item.Path.Object);
                 GCRoot.ChainLink curr = item.Path;

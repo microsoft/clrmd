@@ -117,7 +117,10 @@ namespace Microsoft.Diagnostics.Runtime
             List<byte[]> stack = new();
             link = WalkObject(stack, 0, start, cancellation);
             if (link is not null)
+            {
+                DrainUnwalkedFromSeen(stack);
                 return link;
+            }
 
             while (stack.Count > 0)
             {
@@ -171,7 +174,28 @@ namespace Microsoft.Diagnostics.Runtime
                 }
             }
 
+            // Remove unwalked children from _seen.  When a search succeeds early,
+            // WalkObject may have added children to _seen that were never themselves
+            // walked.  Leaving them would prevent future searches from finding paths
+            // through those objects.
+            DrainUnwalkedFromSeen(stack);
+
             return link;
+        }
+
+        private void DrainUnwalkedFromSeen(List<byte[]> stack)
+        {
+            foreach (byte[] data in stack)
+            {
+                ReferenceList storage = data;
+                ulong child;
+                while ((child = storage.Next()) != 0)
+                    _seen.Remove(child);
+
+                storage.Dispose();
+            }
+
+            stack.Clear();
         }
 
         private ChainLink AddLink(ChainLink curr, ulong obj)
@@ -233,6 +257,13 @@ namespace Microsoft.Diagnostics.Runtime
                         TraceFound(reference, link);
 
                         _found[curr] = result;
+
+                        // Push pending references to stack so the caller can
+                        // drain them from _seen during cleanup.
+                        byte[]? pending = refList.Complete();
+                        if (pending is not null)
+                            stack.Add(pending);
+
                         return result;
                     }
                     else if (!_seen.Add(reference))

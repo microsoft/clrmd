@@ -4,6 +4,7 @@
 #pragma warning disable 0162
 using System;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 //                                              object
 //                                            /
@@ -38,11 +39,23 @@ class GCRootTarget
         t.Item2 = s;
         t.Item3 = new object(); // dead path
 
-
         _dependent.Add(s, target);
-        //s.Item1 = target;
+
+        // Create explicit strong roots so that EnumerateRootPaths finds multiple
+        // independent GC roots reaching the target.  On .NET 10+ statics live in
+        // a single Object[] handle and stack roots may not include locals, so
+        // without these handles only 1 root path would exist.
+        AllocRoots(target, s, t);
+
         throw new Exception();
-        GC.KeepAlive(target);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void AllocRoots(TargetType target, SingleRef s, TripleRef t)
+    {
+        GCHandle.Alloc(target);  // root → target (direct)
+        GCHandle.Alloc(s);       // root → s → target (via dependent handle)
+        GCHandle.Alloc(t);       // root → t → ... → s → target
     }
 }
 
