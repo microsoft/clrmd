@@ -243,6 +243,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Environment.Version.Major < 11)
                 return;
 
+            // The Framework-HighBit harness (HighBitHost.exe hosting mscoree) re-raises
+            // the unhandled managed exception as a synthetic 0xe0434352 SEH from native
+            // code after ExecuteAssembly_2 has already returned, so the target's managed
+            // Main/Inner frames are gone by the time the dump is captured.
+            if (variant.Flavor == DumpFlavor.Framework && variant.HighBit)
+                return;
+
             // Test to make sure that a specific static and local variable exist.
 
             using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile);
