@@ -9,13 +9,13 @@
     <CoverletId />
   </PropertyGroup>
 
-  <Target Name="BeforeCollectCodeCoverage" BeforeTargets="RunTests">
+  <Target Name="BeforeCollectCodeCoverage" BeforeTargets="RunTests" Condition="'@(TestToRun)' != ''">
     <BeforeCollectCodeCoverageTask TestAssembly="%(TestToRun.Identity)" PipeName="%(TestToRun.Filename)">
       <Output TaskParameter="CoverletId" PropertyName="CoverletId" />
     </BeforeCollectCodeCoverageTask>
   </Target>
 
-  <Target Name="AfterCollectCodeCoverage" AfterTargets="RunTests">
+  <Target Name="AfterCollectCodeCoverage" AfterTargets="RunTests" Condition="'@(TestToRun)' != ''">
     <AfterCollectCodeCoverageTask PipeName="%(TestToRun.Filename)" CoverletId="$(CoverletId)" />
     <!-- <Exec Command="$(DotNetTool) tool run codecov -f '$(CoverageOutputPath)'" /> -->
   </Target>
