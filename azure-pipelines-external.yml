@@ -45,13 +45,20 @@ stages:
               -configuration $(_BuildConfig)
               -prepareMachine
               -verbosity normal
-            name: Build
-            displayName: Build
+            displayName: Build / Test
             condition: succeeded()
 
-          - script: Test.cmd x64
-            displayName: Test (x64)
-            condition: succeeded()
+          - task: PublishTestResults@2
+            displayName: Publish Test Results
+            condition: always()
+            continueOnError: true
+            inputs:
+              testResultsFormat: xUnit
+              testResultsFiles: '**/*.xml'
+              searchFolder: $(Build.SourcesDirectory)/artifacts/TestResults
+              testRunTitle: Windows_x64_$(_BuildConfig)
+              mergeTestResults: true
+              failTaskOnFailedTests: false
 
         - job: Windows_x86
           displayName: Windows (x86 high-bit)
@@ -70,14 +77,13 @@ stages:
                 _BuildConfig: Release
 
           steps:
-          # Install the 32-bit .NET runtime so the x86 test host can start.
-          # The image ships only 64-bit dotnet by default. The Arcade wrapper
-          # installs to $(repo)/.dotnet/x86; we add that to PATH and set
-          # DOTNET_ROOT(x86) so testhost locates the 32-bit shared framework.
+          # Arcade doesn't auto-provision an x86 SDK, and the agent image only
+          # ships 64-bit dotnet. Install the x86 SDK matching global.json so the
+          # x86 testhost can start.
           - powershell: |
               $global = Get-Content "$env:BUILD_SOURCESDIRECTORY\global.json" | ConvertFrom-Json
               $sdkVersion = $global.sdk.version
-              Write-Host "Installing x86 .NET runtime matching SDK $sdkVersion"
+              Write-Host "Installing x86 .NET SDK $sdkVersion"
               & "$env:BUILD_SOURCESDIRECTORY\eng\common\dotnet-install.ps1" `
                   -architecture x86 `
                   -version $sdkVersion
@@ -87,19 +93,14 @@ stages:
               Write-Host "##vso[task.setvariable variable=DOTNET_ROOT(x86)]$installDir"
             displayName: Install .NET (x86)
 
-          # Build the solution (no tests). cibuild.cmd hardcodes -test so we invoke
-          # build.cmd directly with the same flags minus -test.
-          - script: eng\common\build.cmd
-              -restore
-              -build
-              -sign
-              -pack
-              -publish
-              -ci
+          # Build and run the x64 side of Arcade's test target is not what we want
+          # here -- skip tests during build so we can invoke Test.cmd x86 next.
+          - script: eng\common\cibuild.cmd
               -configuration $(_BuildConfig)
               -prepareMachine
               -verbosity normal
-            displayName: Build (no tests)
+              /p:SkipTests=true
+            displayName: Build
             condition: succeeded()
 
           # Run the test suite in a 32-bit test host. The HighBitHost C++ harness is
@@ -108,6 +109,18 @@ stages:
           - script: Test.cmd x86
             displayName: Test (x86)
             condition: succeeded()
+
+          - task: PublishTestResults@2
+            displayName: Publish Test Results
+            condition: always()
+            continueOnError: true
+            inputs:
+              testResultsFormat: VSTest
+              testResultsFiles: '**/*.trx'
+              searchFolder: $(Build.SourcesDirectory)/artifacts
+              testRunTitle: Windows_x86_$(_BuildConfig)
+              mergeTestResults: true
+              failTaskOnFailedTests: false
 
         - job: Linux
           pool:
@@ -124,13 +137,20 @@ stages:
           - script: eng/common/cibuild.sh
               --configuration $(_BuildConfig)
               --prepareMachine
-            name: Build
-            displayName: Build
+            displayName: Build / Test
             condition: succeeded()
 
-          - script: ./test.sh x64
-            displayName: Test (x64)
-            condition: succeeded()
+          - task: PublishTestResults@2
+            displayName: Publish Test Results
+            condition: always()
+            continueOnError: true
+            inputs:
+              testResultsFormat: xUnit
+              testResultsFiles: '**/*.xml'
+              searchFolder: $(Build.SourcesDirectory)/artifacts/TestResults
+              testRunTitle: Linux_$(_BuildConfig)
+              mergeTestResults: true
+              failTaskOnFailedTests: false
 
         - job: MacOS
           pool:
@@ -147,10 +167,17 @@ stages:
           - script: eng/common/cibuild.sh
               --configuration $(_BuildConfig)
               --prepareMachine
-            name: Build
-            displayName: Build
+            displayName: Build / Test
             condition: succeeded()
 
-          - script: ./test.sh x64
-            displayName: Test (x64)
-            condition: succeeded()
+          - task: PublishTestResults@2
+            displayName: Publish Test Results
+            condition: always()
+            continueOnError: true
+            inputs:
+              testResultsFormat: xUnit
+              testResultsFiles: '**/*.xml'
+              searchFolder: $(Build.SourcesDirectory)/artifacts/TestResults
+              testRunTitle: MacOS_$(_BuildConfig)
+              mergeTestResults: true
+              failTaskOnFailedTests: false
