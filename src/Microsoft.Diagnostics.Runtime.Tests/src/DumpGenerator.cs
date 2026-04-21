@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
 using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -288,19 +290,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             ProcessStartInfo psi = new("dotnet")
             {
-                Arguments = $"publish \"{csprojPath}\" --nologo -f {tfm} -r {rid} -p:PublishSingleFile=true -p:SelfContained=true -p:IsPublishable=true -o \"{outputDir}\" -v:q",
+                Arguments = $"publish \"{csprojPath}\" --nologo --disable-build-servers -f {tfm} -r {rid} -p:PublishSingleFile=true -p:SelfContained=true -p:IsPublishable=true -p:UseSharedCompilation=false -o \"{outputDir}\" -v:q",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
 
-            using Process process = Process.Start(psi);
-            string output = process.StandardOutput.ReadToEnd();
-            string error = process.StandardError.ReadToEnd();
-            process.WaitForExit();
-
-            if (process.ExitCode != 0)
+            int exitCode = RunAndCapture(psi, out string output, out string error);
+            if (exitCode != 0)
                 throw new InvalidOperationException($"dotnet publish (single-file) failed for {csprojPath}:\n{output}\n{error}");
         }
 
@@ -308,20 +306,65 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             ProcessStartInfo psi = new("dotnet")
             {
-                Arguments = $"build \"{csprojPath}\" --nologo -f {tfm} -p:PlatformTarget={platform} -v:q",
+                Arguments = $"build \"{csprojPath}\" --nologo --disable-build-servers -f {tfm} -p:PlatformTarget={platform} -p:UseSharedCompilation=false -v:q",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
 
-            using Process process = Process.Start(psi);
-            string output = process.StandardOutput.ReadToEnd();
-            string error = process.StandardError.ReadToEnd();
-            process.WaitForExit();
-
-            if (process.ExitCode != 0)
+            int exitCode = RunAndCapture(psi, out string output, out string error);
+            if (exitCode != 0)
                 throw new InvalidOperationException($"dotnet build failed for {csprojPath}:\n{output}\n{error}");
+        }
+
+        /// <summary>
+        /// Runs a process and captures stdout/stderr without deadlocking when child
+        /// processes (e.g., MSBuild/Roslyn build servers) inherit pipe handles and keep
+        /// them open past the parent's exit. Synchronous ReadToEnd() blocks forever in
+        /// that case; we drain both pipes asynchronously and wait for EOF explicitly.
+        /// </summary>
+        private static int RunAndCapture(ProcessStartInfo psi, out string stdout, out string stderr)
+        {
+            psi.RedirectStandardOutput = true;
+            psi.RedirectStandardError = true;
+            psi.UseShellExecute = false;
+
+            StringBuilder outBuf = new();
+            StringBuilder errBuf = new();
+            using ManualResetEventSlim outDone = new(false);
+            using ManualResetEventSlim errDone = new(false);
+
+            using Process process = new() { StartInfo = psi };
+            process.OutputDataReceived += (_, e) =>
+            {
+                if (e.Data is null)
+                    outDone.Set();
+                else
+                    lock (outBuf) outBuf.AppendLine(e.Data);
+            };
+            process.ErrorDataReceived += (_, e) =>
+            {
+                if (e.Data is null)
+                    errDone.Set();
+                else
+                    lock (errBuf) errBuf.AppendLine(e.Data);
+            };
+
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+
+            // Wait for process exit, then for both pipes to signal EOF. If a child
+            // process inherits the pipes and lingers, WaitForExit returns promptly but
+            // the EOF callback may be delayed; bound the wait so we never hang forever.
+            process.WaitForExit();
+            outDone.Wait(TimeSpan.FromSeconds(30));
+            errDone.Wait(TimeSpan.FromSeconds(30));
+
+            lock (outBuf) stdout = outBuf.ToString();
+            lock (errBuf) stderr = errBuf.ToString();
+            return process.ExitCode;
         }
 
         /// <summary>
@@ -620,19 +663,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ProcessStartInfo psi = new(msbuild)
             {
-                Arguments = $"\"{projectPath}\" /p:Configuration=Debug /p:Platform={platform} /p:PlatformToolset={toolset} /nologo /v:minimal",
+                Arguments = $"\"{projectPath}\" /p:Configuration=Debug /p:Platform={platform} /p:PlatformToolset={toolset} /nologo /v:minimal /nodeReuse:false /p:UseSharedCompilation=false",
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true
             };
 
-            using Process process = Process.Start(psi);
-            string stdout = process.StandardOutput.ReadToEnd();
-            string stderr = process.StandardError.ReadToEnd();
-            process.WaitForExit();
+            int exitCode = RunAndCapture(psi, out string stdout, out string stderr);
 
-            if (process.ExitCode != 0 || !File.Exists(hostExe))
+            if (exitCode != 0 || !File.Exists(hostExe))
                 throw new InvalidOperationException($"Failed to build HighBitHost ({platform}):\n{stdout}\n{stderr}");
 
             return hostExe;
@@ -661,9 +701,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 RedirectStandardError = true
             };
 
-            using Process process = Process.Start(psi);
-            string installDir = process.StandardOutput.ReadToEnd().Trim();
-            process.WaitForExit();
+            RunAndCapture(psi, out string installDir, out _);
+            installDir = installDir.Trim();
 
             if (string.IsNullOrEmpty(installDir))
                 throw new InvalidOperationException("vswhere found no Visual Studio installation with the C++ toolset.");
