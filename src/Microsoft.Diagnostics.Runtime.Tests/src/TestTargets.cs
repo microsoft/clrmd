@@ -210,13 +210,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private static DataTarget LoadDump(string path, DataTargetOptions? options = null)
         {
-            if (options is not null)
-                return DataTarget.LoadDump(path, options);
-
-            options = new DataTargetOptions()
+            // Always disable DAC Authenticode verification in tests.  The DAC is loaded
+            // either from the machine's system directories (for .NET Framework) or from
+            // a locally-built runtime, both of which we trust.  WinVerifyTrust can fail
+            // on CI agents that can't reach CRL endpoints, so signature verification
+            // would spuriously fail tests.
+            options ??= new DataTargetOptions()
             {
                 SymbolPaths = [],
                 FileLocator = InstalledRuntimeLocator.Instance,
+                VerifyDacOnWindows = false,
             };
 
             return DataTarget.LoadDump(path, options);
@@ -282,7 +285,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             DumpGenerator.EnsureDump(Name, ProjectDir, dumpPath, architecture, framework, gc, full: true, companionTargets: CompanionTargets);
 
             Utilities.DbgEng.DbgEngIDataReader dbgengReader = new(dumpPath);
-            return new DataTarget(dbgengReader, options ?? new DataTargetOptions());
+            return new DataTarget(dbgengReader, options ?? new DataTargetOptions() { VerifyDacOnWindows = false });
         }
 
         // ---------------------------------------------------------------------

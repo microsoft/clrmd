@@ -80,7 +80,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             var options = new DataTargetOptions()
             {
-                FileLocator = new NullBinaryLocator()
+                FileLocator = new NullBinaryLocator(),
+                VerifyDacOnWindows = false,
             };
 
             using DataTarget dt = TestTargets.NestedException.LoadMinidump(singleFile, options);
