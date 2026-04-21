@@ -385,6 +385,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             psi.Environment["DOTNET_DbgEnableMiniDump"] = "1";
             psi.Environment["COMPlus_DbgEnableMiniDump"] = "1";
 
+            // See SetDotNetRoot; HighBitHost uses hostfxr to load the managed DLL and
+            // therefore also needs to find the shared framework via DOTNET_ROOT.
+            SetDotNetRoot(psi);
+
             string dumpType = full ? "4" : "1";
             psi.Environment["DOTNET_DbgMiniDumpType"] = dumpType;
             psi.Environment["COMPlus_DbgMiniDumpType"] = dumpType;
@@ -412,6 +416,36 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
 
             return $"exit={process.ExitCode}\nhost: {host}\nstdout: {stdout}\nstderr: {stderr}";
+        }
+
+        /// <summary>
+        /// Points the spawned process at the same .NET install that's hosting the test
+        /// runner by setting DOTNET_ROOT (and the arch-specific variants).
+        /// Environment.ProcessPath is the dotnet.exe that started the test host, so
+        /// its directory is exactly the DOTNET_ROOT we want child apphosts to use.
+        /// </summary>
+        private static void SetDotNetRoot(ProcessStartInfo psi)
+        {
+            string hostPath = Environment.ProcessPath;
+            if (string.IsNullOrEmpty(hostPath))
+                return;
+
+            string dotnetRoot = Path.GetDirectoryName(hostPath);
+            if (string.IsNullOrEmpty(dotnetRoot))
+                return;
+
+            // Generic fallback read by all apphosts.
+            psi.Environment["DOTNET_ROOT"] = dotnetRoot;
+
+            // Arch-specific overrides (the apphost consults these before DOTNET_ROOT).
+            // When running an x86 test host, hostPath points at .dotnet\x86\dotnet.exe;
+            // when running x64 it points at .dotnet\dotnet.exe.  Either way, setting the
+            // variable matching the test host's architecture is correct for in-arch child
+            // processes, which is the only case our test targets use.
+            if (RuntimeInformation.ProcessArchitecture == Architecture.X86)
+                psi.Environment["DOTNET_ROOT(x86)"] = dotnetRoot;
+            else if (RuntimeInformation.ProcessArchitecture == Architecture.X64)
+                psi.Environment["DOTNET_ROOT_X64"] = dotnetRoot;
         }
 
         /// <summary>
@@ -529,6 +563,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     RedirectStandardError = true
                 };
             }
+
+            // Point the spawned apphost at the same .NET install that's hosting the test
+            // runner.  Hosted CI agents often only have older runtimes in
+            // C:\Program Files\dotnet\, so we rely on the repo-local SDK that Arcade
+            // installed in .dotnet\ (or .dotnet\x86\).  Environment.ProcessPath is the
+            // dotnet.exe that started the test host, so its directory is exactly the
+            // DOTNET_ROOT we want the child to use.
+            SetDotNetRoot(psi);
 
             // Configure crash dump collection via environment variables
             psi.Environment["DOTNET_DbgEnableMiniDump"] = "1";
