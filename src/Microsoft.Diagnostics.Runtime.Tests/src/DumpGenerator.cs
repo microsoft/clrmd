@@ -109,6 +109,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         msg += $"\n  exePath: {exePath}\n  exists: {File.Exists(exePath)}";
                     if (processOutput != null)
                         msg += $"\n  process: {processOutput}";
+                    else
+                        msg += $"\n  exePath: {exePath}\n  highBit: {highBit}\n  isFramework: {isFramework}";
                     throw new InvalidOperationException(msg);
                 }
             }
@@ -420,32 +422,141 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         /// <summary>
         /// Points the spawned process at the same .NET install that's hosting the test
-        /// runner by setting DOTNET_ROOT (and the arch-specific variants).
-        /// Environment.ProcessPath is the dotnet.exe that started the test host, so
-        /// its directory is exactly the DOTNET_ROOT we want child apphosts to use.
+        /// runner by setting DOTNET_ROOT (and the arch-specific variants).  Prefers
+        /// DOTNET_HOST_PATH / already-set DOTNET_ROOT variables forwarded from the
+        /// test host's environment so hostfxr probes a real shared-framework layout.
+        /// Environment.ProcessPath (typically the vstest testhost.exe) is only a fallback.
         /// </summary>
         private static void SetDotNetRoot(ProcessStartInfo psi)
         {
-            string hostPath = Environment.ProcessPath;
-            if (string.IsNullOrEmpty(hostPath))
-                return;
-
-            string dotnetRoot = Path.GetDirectoryName(hostPath);
+            string dotnetRoot = ResolveDotNetRoot();
             if (string.IsNullOrEmpty(dotnetRoot))
                 return;
 
             // Generic fallback read by all apphosts.
             psi.Environment["DOTNET_ROOT"] = dotnetRoot;
 
-            // Arch-specific overrides (the apphost consults these before DOTNET_ROOT).
-            // When running an x86 test host, hostPath points at .dotnet\x86\dotnet.exe;
-            // when running x64 it points at .dotnet\dotnet.exe.  Either way, setting the
-            // variable matching the test host's architecture is correct for in-arch child
-            // processes, which is the only case our test targets use.
+            // Arch-specific overrides (the apphost and nethost consult these before DOTNET_ROOT).
+            // When running an x86 test host, we want DOTNET_ROOT(x86); x64 gets DOTNET_ROOT_X64.
             if (RuntimeInformation.ProcessArchitecture == Architecture.X86)
                 psi.Environment["DOTNET_ROOT(x86)"] = dotnetRoot;
             else if (RuntimeInformation.ProcessArchitecture == Architecture.X64)
                 psi.Environment["DOTNET_ROOT_X64"] = dotnetRoot;
+        }
+
+        private static string ResolveDotNetRoot()
+        {
+            // Arch-specific env var set by the launching dotnet.exe.
+            string archVar = RuntimeInformation.ProcessArchitecture switch
+            {
+                Architecture.X86 => "DOTNET_ROOT(x86)",
+                Architecture.X64 => "DOTNET_ROOT_X64",
+                _ => "DOTNET_ROOT"
+            };
+
+            foreach (string var in new[] { archVar, "DOTNET_ROOT" })
+            {
+                string v = Environment.GetEnvironmentVariable(var);
+                if (!string.IsNullOrEmpty(v) && HasSharedFramework(v))
+                    return v;
+            }
+
+            // DOTNET_HOST_PATH is set by `dotnet exec/test` and points at the dotnet.exe
+            // used to launch the test host. On mixed-arch runs (x64 dotnet launching an
+            // x86 testhost) this is the wrong arch, so we only trust it if the arch
+            // matches our process.
+            string hostPath = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH");
+            if (!string.IsNullOrEmpty(hostPath))
+            {
+                string dir = Path.GetDirectoryName(hostPath);
+                if (HasSharedFramework(dir) && DotNetRootMatchesArch(dir))
+                    return dir;
+            }
+
+            // Standard install locations. Windows: Program Files (x86)\dotnet (x86),
+            // Program Files\dotnet (x64).
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                string candidate = RuntimeInformation.ProcessArchitecture switch
+                {
+                    Architecture.X86 => Environment.GetEnvironmentVariable("ProgramFiles(x86)"),
+                    Architecture.X64 => Environment.GetEnvironmentVariable("ProgramW6432") ?? Environment.GetEnvironmentVariable("ProgramFiles"),
+                    _ => null
+                };
+                if (!string.IsNullOrEmpty(candidate))
+                {
+                    string root = Path.Combine(candidate, "dotnet");
+                    if (HasSharedFramework(root))
+                        return root;
+                }
+            }
+
+            // Last resort: ProcessPath's directory. Only useful when the test host is
+            // literally dotnet.exe (e.g., `dotnet exec xunit.console.dll`).
+            string processPath = Environment.ProcessPath;
+            if (!string.IsNullOrEmpty(processPath))
+            {
+                string dir = Path.GetDirectoryName(processPath);
+                if (HasSharedFramework(dir))
+                    return dir;
+            }
+
+            return null;
+        }
+
+        private static bool HasSharedFramework(string root)
+        {
+            if (string.IsNullOrEmpty(root))
+                return false;
+
+            string shared = Path.Combine(root, "shared", "Microsoft.NETCore.App");
+            return Directory.Exists(shared);
+        }
+
+        /// <summary>
+        /// Sanity-check that the given dotnet root hosts a runtime matching our process
+        /// architecture by opening one of the hostfxr.dll binaries and reading the PE
+        /// machine field. This avoids picking an x64 install when spawning an x86 child.
+        /// </summary>
+        private static bool DotNetRootMatchesArch(string root)
+        {
+            try
+            {
+                string hostfxrRoot = Path.Combine(root, "host", "fxr");
+                if (!Directory.Exists(hostfxrRoot))
+                    return true; // can't verify; assume it's fine
+
+                string[] matches = Directory.GetFiles(hostfxrRoot, "hostfxr.dll", SearchOption.AllDirectories);
+                string hostfxr = matches.Length > 0 ? matches[0] : null;
+                if (hostfxr is null)
+                    return true;
+
+                ushort machine = ReadPEMachine(hostfxr);
+                return RuntimeInformation.ProcessArchitecture switch
+                {
+                    Architecture.X86 => machine == 0x014c,
+                    Architecture.X64 => machine == 0x8664,
+                    Architecture.Arm => machine == 0x01c4,
+                    Architecture.Arm64 => machine == 0xAA64,
+                    _ => true
+                };
+            }
+            catch
+            {
+                return true;
+            }
+        }
+
+        private static ushort ReadPEMachine(string path)
+        {
+            using FileStream fs = File.OpenRead(path);
+            using BinaryReader br = new(fs);
+            fs.Seek(0x3C, SeekOrigin.Begin);
+            int peOffset = br.ReadInt32();
+            fs.Seek(peOffset, SeekOrigin.Begin);
+            if (br.ReadUInt32() != 0x00004550) // "PE\0\0"
+                return 0;
+            return br.ReadUInt16();
         }
 
         /// <summary>
@@ -453,6 +564,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// toolset. The built executable lives at src/TestTargets/bin/HighBitHost/{Platform}/.
         /// Requires Visual Studio with the C++ workload on PATH via vswhere.
         /// </summary>
+        private static readonly Dictionary<string, Exception> s_highBitHostBuildFailures = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly object s_highBitHostBuildLock = new();
+
         private static string BuildHighBitHost(string architecture)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -460,6 +574,28 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             string platform = architecture == "x86" ? "Win32" : "x64";
 
+            lock (s_highBitHostBuildLock)
+            {
+                // Cache negative results: MSBuild can take many minutes to fail on CI when the
+                // required toolset is missing. Without this cache every highbit test repeats
+                // the slow failure, which will eventually exceed the CI job timeout.
+                if (s_highBitHostBuildFailures.TryGetValue(platform, out Exception cached))
+                    throw new InvalidOperationException("HighBitHost previously failed to build; see inner exception.", cached);
+
+                try
+                {
+                    return BuildHighBitHostCore(platform);
+                }
+                catch (Exception ex)
+                {
+                    s_highBitHostBuildFailures[platform] = ex;
+                    throw;
+                }
+            }
+        }
+
+        private static string BuildHighBitHostCore(string platform)
+        {
             // Walk up to the repo root (marker: .gitignore) so we can locate the host project.
             DirectoryInfo info = new(Environment.CurrentDirectory);
             while (info != null && info.GetFiles(".gitignore").Length != 1)
@@ -474,11 +610,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             if (File.Exists(hostExe))
                 return hostExe;
 
-            string msbuild = FindMsBuild();
+            string msbuild = FindMsBuild(out string vsInstallPath);
+
+            // Select a platform toolset that's actually installed under this VS.
+            // Microsoft.Cpp.Default.props will pick DefaultPlatformToolset automatically,
+            // but CI images sometimes advertise a VS without the matching toolset folder,
+            // so we probe the installation and pass the answer through explicitly.
+            string toolset = ResolvePlatformToolset(vsInstallPath);
 
             ProcessStartInfo psi = new(msbuild)
             {
-                Arguments = $"\"{projectPath}\" /p:Configuration=Debug /p:Platform={platform} /nologo /v:minimal",
+                Arguments = $"\"{projectPath}\" /p:Configuration=Debug /p:Platform={platform} /p:PlatformToolset={toolset} /nologo /v:minimal",
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
@@ -500,7 +642,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// Locates MSBuild.exe using vswhere. Required for the C++ HighBitHost build, since
         /// 'dotnet build' does not drive vcxproj.
         /// </summary>
-        private static string FindMsBuild()
+        private static string FindMsBuild() => FindMsBuild(out _);
+
+        private static string FindMsBuild(out string vsInstallPath)
         {
             string programFiles = Environment.GetEnvironmentVariable("ProgramFiles(x86)")
                                   ?? Environment.GetEnvironmentVariable("ProgramFiles");
@@ -530,7 +674,37 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             if (!File.Exists(msbuild))
                 throw new FileNotFoundException($"MSBuild.exe not found at {msbuild}.");
 
+            vsInstallPath = firstLine;
             return msbuild;
+        }
+
+        /// <summary>
+        /// Picks the newest platform toolset actually installed under the given VS instance
+        /// by probing VC\Auxiliary\Build\Microsoft.VCToolsVersion.v14X.default.txt.
+        /// </summary>
+        private static string ResolvePlatformToolset(string vsInstallPath)
+        {
+            string auxBuild = Path.Combine(vsInstallPath, "VC", "Auxiliary", "Build");
+            foreach (string toolset in new[] { "v143", "v142" })
+            {
+                if (File.Exists(Path.Combine(auxBuild, $"Microsoft.VCToolsVersion.{toolset}.default.txt")))
+                    return toolset;
+            }
+
+            // Fallback: directory-based check under VC\Tools\MSVC\<version>.
+            if (Directory.Exists(auxBuild))
+            {
+                foreach (string file in Directory.EnumerateFiles(auxBuild, "Microsoft.VCToolsVersion.v14*.default.txt"))
+                {
+                    string name = Path.GetFileName(file);
+                    // name = Microsoft.VCToolsVersion.v14X.default.txt
+                    string[] parts = name.Split('.');
+                    if (parts.Length >= 3)
+                        return parts[2];
+                }
+            }
+
+            throw new InvalidOperationException($"No v142/v143 C++ toolset found under '{auxBuild}'.");
         }
 
         /// <summary>
