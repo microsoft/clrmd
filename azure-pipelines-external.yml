@@ -84,9 +84,12 @@ stages:
               $global = Get-Content "$env:BUILD_SOURCESDIRECTORY\global.json" | ConvertFrom-Json
               $sdkVersion = $global.sdk.version
               Write-Host "Installing x86 .NET SDK $sdkVersion"
+              # -runtime '' selects SDK install (the wrapper defaults to 'dotnet'
+              # which would treat $sdkVersion as a runtime version and 404).
               & "$env:BUILD_SOURCESDIRECTORY\eng\common\dotnet-install.ps1" `
                   -architecture x86 `
-                  -version $sdkVersion
+                  -version $sdkVersion `
+                  -runtime ''
               if ($LASTEXITCODE -ne 0) { throw "x86 dotnet install failed" }
               $installDir = "$env:BUILD_SOURCESDIRECTORY\.dotnet\x86"
               Write-Host "##vso[task.prependpath]$installDir"
