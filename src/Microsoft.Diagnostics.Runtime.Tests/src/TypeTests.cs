@@ -592,7 +592,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ClrType[] types = heap.EnumerateObjects().Select(obj => obj.Type).ToArray();
 
-            ClrType collectibleType = types.Single(type => type?.Name == typeof(CollectibleUnmanagedStruct).FullName);
+            // Filter by IsCollectible: newer runtimes may also create a boxed static for
+            // the default-ALC's copy of this struct (triggered by various reflection paths
+            // in the xunit runner).  The scenario we're validating is specifically the
+            // one in the collectible ALC, so match that explicitly.
+            ClrType collectibleType = types.Single(type => type?.Name == typeof(CollectibleUnmanagedStruct).FullName && type.IsCollectible);
 
             Assert.False(collectibleType.ContainsPointers);
             Assert.True(collectibleType.IsCollectible);
