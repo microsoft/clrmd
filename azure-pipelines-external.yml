@@ -71,15 +71,18 @@ stages:
 
           steps:
           # Install the 32-bit .NET runtime so the x86 test host can start.
-          # The image ships only 64-bit dotnet by default.
+          # The image ships only 64-bit dotnet by default. The Arcade wrapper
+          # installs to $(repo)/.dotnet/x86; we add that to PATH and set
+          # DOTNET_ROOT(x86) so testhost locates the 32-bit shared framework.
           - powershell: |
-              $installDir = "$env:AGENT_TOOLSDIRECTORY\dotnet-x86"
-              New-Item -ItemType Directory -Force -Path $installDir | Out-Null
+              $global = Get-Content "$env:BUILD_SOURCESDIRECTORY\global.json" | ConvertFrom-Json
+              $sdkVersion = $global.sdk.version
+              Write-Host "Installing x86 .NET runtime matching SDK $sdkVersion"
               & "$env:BUILD_SOURCESDIRECTORY\eng\common\dotnet-install.ps1" `
-                  -Architecture x86 `
-                  -JSonFile "$env:BUILD_SOURCESDIRECTORY\global.json" `
-                  -InstallDir $installDir
+                  -architecture x86 `
+                  -version $sdkVersion
               if ($LASTEXITCODE -ne 0) { throw "x86 dotnet install failed" }
+              $installDir = "$env:BUILD_SOURCESDIRECTORY\.dotnet\x86"
               Write-Host "##vso[task.prependpath]$installDir"
               Write-Host "##vso[task.setvariable variable=DOTNET_ROOT(x86)]$installDir"
             displayName: Install .NET (x86)
