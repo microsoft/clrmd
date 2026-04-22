@@ -325,7 +325,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 // the start.  On .NET 10+ statics are stored in an Object[]
                 // strong handle, so TheRoot may be one level deeper than the
                 // actual GC root.
-                for (GCRoot.ChainLink? link = item.Path; link is not null; link = link.Next)
+                for (GCRoot.ChainLink link = item.Path; link is not null; link = link.Next)
                 {
                     if (link.Object == source)
                     {
