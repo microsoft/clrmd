@@ -11,6 +11,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class RuntimeTests
     {
+        public static IEnumerable<object[]> NestedExceptionVariants => TestVariants.For(TestTargets.NestedException);
+        public static IEnumerable<object[]> NestedExceptionVariantsWithSingleFile => TestVariants.WithSingleFile(TestTargets.NestedException);
+
         [WindowsFact]
         public void CreationSpecificDacNegativeTest()
         {
@@ -25,10 +28,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Throws<ClrDiagnosticsException>(() => dt.ClrVersions.Single().CreateRuntime(badDac));
         }
 
-        [Fact]
-        public void CreationSpecificDac()
+        [Theory, MemberData(nameof(NestedExceptionVariants))]
+        public void CreationSpecificDac(DumpVariant variant)
         {
-            using DataTarget dt = TestTargets.NestedException.LoadFullDump();
+            using DataTarget dt = TestTargets.NestedException.LoadFullDump(variant);
             ClrInfo info = dt.ClrVersions.Single();
             foreach (DebugLibraryInfo dac in info.DebuggingLibraries.Where(r => Path.GetFileName(r.FileName) != r.FileName && File.Exists(r.FileName) && r.Kind == DebugLibraryKind.Dac))
             {
@@ -37,10 +40,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Fact]
-        public void RuntimeClrInfo()
+        [Theory, MemberData(nameof(NestedExceptionVariants))]
+        public void RuntimeClrInfo(DumpVariant variant)
         {
-            using DataTarget dt = TestTargets.NestedException.LoadFullDump();
+            using DataTarget dt = TestTargets.NestedException.LoadFullDump(variant);
             ClrInfo info = dt.ClrVersions.Single();
             using ClrRuntime runtime = info.CreateRuntime();
 
@@ -71,12 +74,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void EnsureFlushClearsData(bool singleFile)
+        [Theory, MemberData(nameof(NestedExceptionVariantsWithSingleFile))]
+        public void EnsureFlushClearsData(DumpVariant variant, bool singleFile)
         {
-            using DataTarget dt = TestTargets.NestedException.LoadFullDump(singleFile);
+            using DataTarget dt = TestTargets.NestedException.LoadFullDump(variant, singleFile);
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
             ClrAppDomain oldShared = runtime.SharedDomain;

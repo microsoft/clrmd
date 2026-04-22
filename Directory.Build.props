@@ -3,7 +3,13 @@
   <Import Project="Sdk.props" Sdk="Microsoft.DotNet.Arcade.Sdk" />
 
   <PropertyGroup Condition="'$(ContinuousIntegrationBuild)' == 'true'">
-    <Coverage>true</Coverage>
+    <!-- Coverage collection is currently unwired (no dotnet-tools.json manifest
+         for coverlet, and the codecov upload is commented out in
+         eng/Coverage.targets).  Leaving Coverage on in CI hangs the Test target
+         because BeforeCollectCodeCoverageTask waits indefinitely on a named
+         pipe that a never-started coverlet was supposed to open.  Turn it off
+         until the coverage pipeline is actually set up. -->
+    <Coverage>false</Coverage>
     <!-- Workaround for tonerdo/coverlet#363 -->
     <DeterministicSourcePaths>false</DeterministicSourcePaths>
   </PropertyGroup>

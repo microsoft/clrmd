@@ -1,283 +1,235 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Diagnostics.Runtime.Tests.Fixtures;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
-    public class ClrObjectTests : IClassFixture<ClrObjectConnection>
+    public class ClrObjectTests
     {
-        private readonly ClrObjectConnection _connection;
+        public static IEnumerable<object[]> Variants => TestVariants.WithSingleFile(TestTargets.ClrObjects);
 
-        private ClrObject _primitiveCarrier => _connection.TestDataClrObject;
-
-        public ClrObjectTests(ClrObjectConnection connection)
-            => _connection = connection;
-
-        [Fact]
-        public void GetField_WhenBool_ReturnsExpected()
+        // Per-test scope: load the ClrObjects dump for the given variant and locate
+        // the primitive carrier object on the heap. The original fixture-based flow
+        // (IClassFixture<ClrObjectConnection>) shared a single dump across the whole
+        // class, which is fundamentally incompatible with a per-test variant matrix.
+        private sealed class Scope : IDisposable
         {
-            // Arrange
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
+            public DataTarget DataTarget { get; }
+            public ClrRuntime Runtime { get; }
+            public ClrObject PrimitiveCarrier { get; }
+            public ClrObjectConnection.PrimitiveTypeCarrier Prototype { get; } = new();
 
-            // Act
-            bool actual = _primitiveCarrier.ReadField<bool>(nameof(prototype.TrueBool));
+            public Scope(DumpVariant variant, bool singleFile)
+            {
+                DataTarget = TestTargets.ClrObjects.LoadFullDump(variant, singleFile);
+                Runtime = DataTarget.ClrVersions.Single().CreateRuntime();
+                string typeName = nameof(ClrObjectConnection.PrimitiveTypeCarrier);
+                PrimitiveCarrier = Runtime.Heap.EnumerateObjects().FirstOrDefault(o => o.Type?.Name == typeName);
+                if (PrimitiveCarrier.IsNull)
+                    throw new InvalidOperationException($"Could not find {typeName} on heap.");
+            }
 
-            // Assert
+            public void Dispose() => DataTarget.Dispose();
+        }
+
+        [Theory, MemberData(nameof(Variants))]
+        public void GetField_WhenBool_ReturnsExpected(DumpVariant variant, bool singleFile)
+        {
+            using Scope s = new(variant, singleFile);
+            bool actual = s.PrimitiveCarrier.ReadField<bool>(nameof(s.Prototype.TrueBool));
             Assert.True(actual);
         }
 
-        [Fact]
-        public void GetField_WhenLong_ReturnsExpected()
+        [Theory, MemberData(nameof(Variants))]
+        public void GetField_WhenLong_ReturnsExpected(DumpVariant variant, bool singleFile)
         {
-            // Arrange
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
-
-            // Act
-            long actual = _primitiveCarrier.ReadField<long>(nameof(prototype.OneLargerMaxInt));
-
-            // Assert
-            Assert.Equal(prototype.OneLargerMaxInt, actual);
+            using Scope s = new(variant, singleFile);
+            long actual = s.PrimitiveCarrier.ReadField<long>(nameof(s.Prototype.OneLargerMaxInt));
+            Assert.Equal(s.Prototype.OneLargerMaxInt, actual);
         }
 
-        [Fact]
-        public void GetField_WhenEnum_ReturnsExpected()
+        [Theory, MemberData(nameof(Variants))]
+        public void GetField_WhenEnum_ReturnsExpected(DumpVariant variant, bool singleFile)
         {
-            // Arrange
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
-
-            // Act
-            ClrObjectConnection.EnumType enumValue = _primitiveCarrier.ReadField<ClrObjectConnection.EnumType>(nameof(prototype.SomeEnum));
-
-            // Assert
-            Assert.Equal(prototype.SomeEnum, enumValue);
+            using Scope s = new(variant, singleFile);
+            ClrObjectConnection.EnumType enumValue = s.PrimitiveCarrier.ReadField<ClrObjectConnection.EnumType>(nameof(s.Prototype.SomeEnum));
+            Assert.Equal(s.Prototype.SomeEnum, enumValue);
         }
 
-        [Fact]
-        public void GetStringField_WhenStringField_ReturnsPointerToObject()
+        [Theory, MemberData(nameof(Variants))]
+        public void GetStringField_WhenStringField_ReturnsPointerToObject(DumpVariant variant, bool singleFile)
         {
-            // Arrange
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
-
-            // Act
-            string text = _primitiveCarrier.ReadStringField(nameof(prototype.HelloWorldString));
-
-            // Assert
-            Assert.Equal(prototype.HelloWorldString, text);
+            using Scope s = new(variant, singleFile);
+            string text = s.PrimitiveCarrier.ReadStringField(nameof(s.Prototype.HelloWorldString));
+            Assert.Equal(s.Prototype.HelloWorldString, text);
         }
 
-        [Fact]
-        public void GetStringField_WhenTypeMismatch_ThrowsInvalidOperation()
+        [Theory, MemberData(nameof(Variants))]
+        public void GetStringField_WhenTypeMismatch_ThrowsInvalidOperation(DumpVariant variant, bool singleFile)
         {
-            // Arrange
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
-
-            // Act
-            void readDifferentFieldTypeAsString() => _primitiveCarrier.ReadStringField(nameof(prototype.SomeEnum));
-
-            // Assert
-            Assert.Throws<InvalidOperationException>(readDifferentFieldTypeAsString);
+            using Scope s = new(variant, singleFile);
+            Assert.Throws<InvalidOperationException>(() => s.PrimitiveCarrier.ReadStringField(nameof(s.Prototype.SomeEnum)));
         }
 
-        [Fact]
-        public void GetObjectField_WhenStringField_ReturnsPointerToObject()
+        [Theory, MemberData(nameof(Variants))]
+        public void GetObjectField_WhenStringField_ReturnsPointerToObject(DumpVariant variant, bool singleFile)
         {
-            // Arrange
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
-
-            // Act
-            ClrObject textPointer = _primitiveCarrier.ReadObjectField(nameof(prototype.HelloWorldString));
-
-            // Assert
-            Assert.Equal(prototype.HelloWorldString, (string)textPointer);
+            using Scope s = new(variant, singleFile);
+            ClrObject textPointer = s.PrimitiveCarrier.ReadObjectField(nameof(s.Prototype.HelloWorldString));
+            Assert.Equal(s.Prototype.HelloWorldString, (string)textPointer);
         }
 
-        [Fact]
-        public void GetObjectField_WhenReferenceField_ReturnsPointerToObject()
+        [Theory, MemberData(nameof(Variants))]
+        public void GetObjectField_WhenReferenceField_ReturnsPointerToObject(DumpVariant variant, bool singleFile)
         {
-            // Arrange
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
-
-            // Act
-            ClrObject referenceFieldValue = _primitiveCarrier.ReadObjectField(nameof(prototype.SamplePointer));
-
-            // Assert
+            using Scope s = new(variant, singleFile);
+            ClrObject referenceFieldValue = s.PrimitiveCarrier.ReadObjectField(nameof(s.Prototype.SamplePointer));
             Assert.Equal("SamplePointerType", referenceFieldValue.Type.Name);
         }
 
-        [Fact]
-        public void GetObjectField_WhenNonExistingField_ThrowsArgumentException()
+        [Theory, MemberData(nameof(Variants))]
+        public void GetObjectField_WhenNonExistingField_ThrowsArgumentException(DumpVariant variant, bool singleFile)
         {
-            // Arrange
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
-
-            // Act
-            void readNonExistingField() => _primitiveCarrier.ReadObjectField("nonExistingField");
-
-            // Assert
-            Assert.Throws<ArgumentException>(readNonExistingField);
+            using Scope s = new(variant, singleFile);
+            Assert.Throws<ArgumentException>(() => s.PrimitiveCarrier.ReadObjectField("nonExistingField"));
         }
 
-        [Fact]
-        public void GetObjectField_WhenNull_ReturnsFieldType()
+        [Theory, MemberData(nameof(Variants))]
+        public void GetObjectField_WhenNull_ReturnsFieldType(DumpVariant variant, bool singleFile)
         {
-            // Arrange
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
-
-            // Act
-            ClrObject nullRef = _primitiveCarrier.ReadObjectField(nameof(prototype.NullReference));
-
-            // Assert
+            using Scope s = new(variant, singleFile);
+            ClrObject nullRef = s.PrimitiveCarrier.ReadObjectField(nameof(s.Prototype.NullReference));
             Assert.True(nullRef.IsNull);
             Assert.NotNull(nullRef.Type);
             Assert.Equal("SamplePointerType", nullRef.Type.Name);
         }
 
-        [Fact]
-        public void GetValueTypeField_WhenDateTime_ThrowsException()
+        [Theory, MemberData(nameof(Variants))]
+        public void GetValueTypeField_WhenDateTime_ThrowsException(DumpVariant variant, bool singleFile)
         {
-            // Arrange
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
-
-            // Act
-            ClrValueType birthday = _primitiveCarrier.ReadValueTypeField(nameof(prototype.Birthday));
-
-            // Assert
+            using Scope s = new(variant, singleFile);
+            ClrValueType birthday = s.PrimitiveCarrier.ReadValueTypeField(nameof(s.Prototype.Birthday));
             Assert.Equal(typeof(DateTime).FullName, birthday.Type.Name);
         }
 
-        [Fact]
-        public void GetValueTypeField_WhenGuid_ThrowsException()
+        [Theory, MemberData(nameof(Variants))]
+        public void GetValueTypeField_WhenGuid_ThrowsException(DumpVariant variant, bool singleFile)
         {
-            // Arrange
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
-
-            // Act
-            ClrValueType sampleGuid = _primitiveCarrier.ReadValueTypeField(nameof(prototype.SampleGuid));
-
-            // Assert
+            using Scope s = new(variant, singleFile);
+            ClrValueType sampleGuid = s.PrimitiveCarrier.ReadValueTypeField(nameof(s.Prototype.SampleGuid));
             Assert.Equal(typeof(Guid).FullName, sampleGuid.Type.Name);
         }
 
-        [Fact]
-        public void ReadFieldByInstance_WhenBool_ReturnsExpected()
+        [Theory, MemberData(nameof(Variants))]
+        public void ReadFieldByInstance_WhenBool_ReturnsExpected(DumpVariant variant, bool singleFile)
         {
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
-            ClrInstanceField field = _primitiveCarrier.Type.GetFieldByName(nameof(prototype.TrueBool));
-
-            bool actual = _primitiveCarrier.ReadField<bool>(field);
-
+            using Scope s = new(variant, singleFile);
+            ClrInstanceField field = s.PrimitiveCarrier.Type.GetFieldByName(nameof(s.Prototype.TrueBool));
+            bool actual = s.PrimitiveCarrier.ReadField<bool>(field);
             Assert.True(actual);
         }
 
-        [Fact]
-        public void ReadFieldByInstance_WhenLong_ReturnsExpected()
+        [Theory, MemberData(nameof(Variants))]
+        public void ReadFieldByInstance_WhenLong_ReturnsExpected(DumpVariant variant, bool singleFile)
         {
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
-            ClrInstanceField field = _primitiveCarrier.Type.GetFieldByName(nameof(prototype.OneLargerMaxInt));
-
-            long actual = _primitiveCarrier.ReadField<long>(field);
-
-            Assert.Equal(prototype.OneLargerMaxInt, actual);
+            using Scope s = new(variant, singleFile);
+            ClrInstanceField field = s.PrimitiveCarrier.Type.GetFieldByName(nameof(s.Prototype.OneLargerMaxInt));
+            long actual = s.PrimitiveCarrier.ReadField<long>(field);
+            Assert.Equal(s.Prototype.OneLargerMaxInt, actual);
         }
 
-        [Fact]
-        public void ReadObjectFieldByInstance_WhenStringField_ReturnsExpected()
+        [Theory, MemberData(nameof(Variants))]
+        public void ReadObjectFieldByInstance_WhenStringField_ReturnsExpected(DumpVariant variant, bool singleFile)
         {
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
-            ClrInstanceField field = _primitiveCarrier.Type.GetFieldByName(nameof(prototype.HelloWorldString));
-
-            ClrObject textPointer = _primitiveCarrier.ReadObjectField(field);
-
-            Assert.Equal(prototype.HelloWorldString, (string)textPointer);
+            using Scope s = new(variant, singleFile);
+            ClrInstanceField field = s.PrimitiveCarrier.Type.GetFieldByName(nameof(s.Prototype.HelloWorldString));
+            ClrObject textPointer = s.PrimitiveCarrier.ReadObjectField(field);
+            Assert.Equal(s.Prototype.HelloWorldString, (string)textPointer);
         }
 
-        [Fact]
-        public void ReadObjectFieldByInstance_WhenReferenceField_ReturnsExpected()
+        [Theory, MemberData(nameof(Variants))]
+        public void ReadObjectFieldByInstance_WhenReferenceField_ReturnsExpected(DumpVariant variant, bool singleFile)
         {
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
-            ClrInstanceField field = _primitiveCarrier.Type.GetFieldByName(nameof(prototype.SamplePointer));
-
-            ClrObject referenceFieldValue = _primitiveCarrier.ReadObjectField(field);
-
+            using Scope s = new(variant, singleFile);
+            ClrInstanceField field = s.PrimitiveCarrier.Type.GetFieldByName(nameof(s.Prototype.SamplePointer));
+            ClrObject referenceFieldValue = s.PrimitiveCarrier.ReadObjectField(field);
             Assert.Equal("SamplePointerType", referenceFieldValue.Type.Name);
         }
 
-        [Fact]
-        public void ReadStringFieldByInstance_ReturnsExpected()
+        [Theory, MemberData(nameof(Variants))]
+        public void ReadStringFieldByInstance_ReturnsExpected(DumpVariant variant, bool singleFile)
         {
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
-            ClrInstanceField field = _primitiveCarrier.Type.GetFieldByName(nameof(prototype.HelloWorldString));
-
-            string text = _primitiveCarrier.ReadStringField(field);
-
-            Assert.Equal(prototype.HelloWorldString, text);
+            using Scope s = new(variant, singleFile);
+            ClrInstanceField field = s.PrimitiveCarrier.Type.GetFieldByName(nameof(s.Prototype.HelloWorldString));
+            string text = s.PrimitiveCarrier.ReadStringField(field);
+            Assert.Equal(s.Prototype.HelloWorldString, text);
         }
 
-        [Fact]
-        public void ReadValueTypeFieldByInstance_WhenDateTime_ReturnsExpected()
+        [Theory, MemberData(nameof(Variants))]
+        public void ReadValueTypeFieldByInstance_WhenDateTime_ReturnsExpected(DumpVariant variant, bool singleFile)
         {
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
-            ClrInstanceField field = _primitiveCarrier.Type.GetFieldByName(nameof(prototype.Birthday));
-
-            ClrValueType birthday = _primitiveCarrier.ReadValueTypeField(field);
-
+            using Scope s = new(variant, singleFile);
+            ClrInstanceField field = s.PrimitiveCarrier.Type.GetFieldByName(nameof(s.Prototype.Birthday));
+            ClrValueType birthday = s.PrimitiveCarrier.ReadValueTypeField(field);
             Assert.Equal(typeof(DateTime).FullName, birthday.Type.Name);
         }
 
-        [Fact]
-        public void ReadValueTypeFieldByInstance_WhenGuid_ReturnsExpected()
+        [Theory, MemberData(nameof(Variants))]
+        public void ReadValueTypeFieldByInstance_WhenGuid_ReturnsExpected(DumpVariant variant, bool singleFile)
         {
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
-            ClrInstanceField field = _primitiveCarrier.Type.GetFieldByName(nameof(prototype.SampleGuid));
-
-            ClrValueType sampleGuid = _primitiveCarrier.ReadValueTypeField(field);
-
+            using Scope s = new(variant, singleFile);
+            ClrInstanceField field = s.PrimitiveCarrier.Type.GetFieldByName(nameof(s.Prototype.SampleGuid));
+            ClrValueType sampleGuid = s.PrimitiveCarrier.ReadValueTypeField(field);
             Assert.Equal(typeof(Guid).FullName, sampleGuid.Type.Name);
         }
 
-        [Fact]
-        public void ReadObjectFieldByInstance_WhenNull_ThrowsArgumentNull()
+        [Theory, MemberData(nameof(Variants))]
+        public void ReadObjectFieldByInstance_WhenNull_ThrowsArgumentNull(DumpVariant variant, bool singleFile)
         {
-            Assert.Throws<ArgumentNullException>(() => _primitiveCarrier.ReadObjectField((ClrInstanceField)null));
+            using Scope s = new(variant, singleFile);
+            Assert.Throws<ArgumentNullException>(() => s.PrimitiveCarrier.ReadObjectField((ClrInstanceField)null));
         }
 
-        [Fact]
-        public void ReadFieldByInstance_WhenNull_ThrowsArgumentNull()
+        [Theory, MemberData(nameof(Variants))]
+        public void ReadFieldByInstance_WhenNull_ThrowsArgumentNull(DumpVariant variant, bool singleFile)
         {
-            Assert.Throws<ArgumentNullException>(() => _primitiveCarrier.ReadField<int>((ClrInstanceField)null));
+            using Scope s = new(variant, singleFile);
+            Assert.Throws<ArgumentNullException>(() => s.PrimitiveCarrier.ReadField<int>((ClrInstanceField)null));
         }
 
-        [Fact]
-        public void ReadStringFieldByInstance_WhenNull_ThrowsArgumentNull()
+        [Theory, MemberData(nameof(Variants))]
+        public void ReadStringFieldByInstance_WhenNull_ThrowsArgumentNull(DumpVariant variant, bool singleFile)
         {
-            Assert.Throws<ArgumentNullException>(() => _primitiveCarrier.ReadStringField((ClrInstanceField)null));
+            using Scope s = new(variant, singleFile);
+            Assert.Throws<ArgumentNullException>(() => s.PrimitiveCarrier.ReadStringField((ClrInstanceField)null));
         }
 
-        [Fact]
-        public void ReadValueTypeFieldByInstance_WhenNull_ThrowsArgumentNull()
+        [Theory, MemberData(nameof(Variants))]
+        public void ReadValueTypeFieldByInstance_WhenNull_ThrowsArgumentNull(DumpVariant variant, bool singleFile)
         {
-            Assert.Throws<ArgumentNullException>(() => _primitiveCarrier.ReadValueTypeField((ClrInstanceField)null));
+            using Scope s = new(variant, singleFile);
+            Assert.Throws<ArgumentNullException>(() => s.PrimitiveCarrier.ReadValueTypeField((ClrInstanceField)null));
         }
 
-        [Fact]
-        public void ReadStringFieldByInstance_WhenTypeMismatch_ThrowsInvalidOperation()
+        [Theory, MemberData(nameof(Variants))]
+        public void ReadStringFieldByInstance_WhenTypeMismatch_ThrowsInvalidOperation(DumpVariant variant, bool singleFile)
         {
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
-            ClrInstanceField field = _primitiveCarrier.Type.GetFieldByName(nameof(prototype.SomeEnum));
-
-            Assert.Throws<InvalidOperationException>(() => _primitiveCarrier.ReadStringField(field));
+            using Scope s = new(variant, singleFile);
+            ClrInstanceField field = s.PrimitiveCarrier.Type.GetFieldByName(nameof(s.Prototype.SomeEnum));
+            Assert.Throws<InvalidOperationException>(() => s.PrimitiveCarrier.ReadStringField(field));
         }
 
-        [Fact]
-        public void ReadObjectFieldByInstance_WhenNotObjectRef_ThrowsArgumentException()
+        [Theory, MemberData(nameof(Variants))]
+        public void ReadObjectFieldByInstance_WhenNotObjectRef_ThrowsArgumentException(DumpVariant variant, bool singleFile)
         {
-            ClrObjectConnection.PrimitiveTypeCarrier prototype = _connection.Prototype;
-            ClrInstanceField field = _primitiveCarrier.Type.GetFieldByName(nameof(prototype.TrueBool));
-
-            Assert.Throws<ArgumentException>(() => _primitiveCarrier.ReadObjectField(field));
+            using Scope s = new(variant, singleFile);
+            ClrInstanceField field = s.PrimitiveCarrier.Type.GetFieldByName(nameof(s.Prototype.TrueBool));
+            Assert.Throws<ArgumentException>(() => s.PrimitiveCarrier.ReadObjectField(field));
         }
     }
 }

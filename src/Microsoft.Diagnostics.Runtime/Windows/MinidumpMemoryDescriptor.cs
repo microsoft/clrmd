@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
@@ -10,11 +9,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
     internal readonly struct MinidumpMemoryDescriptor
     {
         [FieldOffset(0)]
-        public readonly ClrDataAddress StartAddress;
+        public readonly ulong StartAddress;
 
         // MINIDUMP_MEMORY_DESCRIPTOR64
         [FieldOffset(8)]
-        public readonly ClrDataAddress DataSize64;
+        public readonly ulong DataSize64;
 
         // MINIDUMP_MEMORY_DESCRIPTOR
         [FieldOffset(8)]

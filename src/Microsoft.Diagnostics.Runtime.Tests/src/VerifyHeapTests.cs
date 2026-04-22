@@ -260,7 +260,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     Assert.Equal((int)offset, result.Offset);
                 });
 
-                WriteAndRun(spaces, obj + offset, 0xcccccc, () => {
+                // Use an odd value so it's unaligned on both 4-byte (x86) and 8-byte (x64) pointer boundaries.
+                WriteAndRun(spaces, obj + offset, 0xcccccdu, () => {
                     Assert.True(heap.IsObjectCorrupted(obj, out ObjectCorruption result));
                     Assert.NotNull(result);
 

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!--
+    HighBitHost.vcxproj — native launcher for ClrMD high-bit 32-bit dump tests.
+
+    Not built by the solution; invoked on demand by
+    Microsoft.Diagnostics.Runtime.Tests/DumpGenerator.BuildHighBitHost.
+
+    Supported configurations:  Debug|Win32, Debug|x64
+    Primary target is Win32 (x86). x64 is built for local debugging parity.
+  -->
+
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <ProjectGuid>{D1000001-0000-0000-0000-00000000000D}</ProjectGuid>
+    <RootNamespace>HighBitHost</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset Condition="'$(PlatformToolset)' == ''">$(DefaultPlatformToolset)</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+
+  <PropertyGroup>
+    <OutDir>$(MSBuildThisFileDirectory)..\bin\HighBitHost\$(Platform)\</OutDir>
+    <IntDir>$(MSBuildThisFileDirectory)..\bin\HighBitHost\obj\$(Platform)\</IntDir>
+    <TargetName>HighBitHost</TargetName>
+  </PropertyGroup>
+
+  <!--
+    Resolve the .NET SDK host pack for nethost.h / nethost.lib / hostfxr.h.
+    We pick the last (highest-sorted) pack directory present for the target
+    architecture (Win32 -> win-x86, x64 -> win-x64). GetDirectories returns
+    entries in NTFS order, which is alphabetic; the SDK host pack directory
+    names are semver strings that sort high-version-last within a major,
+    and the last major present is always the newest installed.
+    All property functions here are in MSBuild's whitelist.
+  -->
+  <PropertyGroup>
+    <NetCoreHostArch Condition="'$(Platform)' == 'Win32'">x86</NetCoreHostArch>
+    <NetCoreHostArch Condition="'$(Platform)' == 'x64'">x64</NetCoreHostArch>
+    <NetCoreHostPacksRoot Condition="'$(NetCoreHostPacksRoot)' == ''">$(ProgramW6432)\dotnet\packs\Microsoft.NETCore.App.Host.win-$(NetCoreHostArch)</NetCoreHostPacksRoot>
+    <_HostPackList Condition="Exists('$(NetCoreHostPacksRoot)')">$([System.IO.Directory]::GetDirectories('$(NetCoreHostPacksRoot)'))</_HostPackList>
+    <_HostPackLastSep>$([System.String]::new('$(_HostPackList)').LastIndexOf(';'))</_HostPackLastSep>
+    <ResolvedNetCoreHostPackDir Condition="'$(_HostPackList)' != '' And '$(_HostPackLastSep)' != '-1'">$([System.String]::new('$(_HostPackList)').Substring($([MSBuild]::Add($(_HostPackLastSep), 1))))</ResolvedNetCoreHostPackDir>
+    <ResolvedNetCoreHostPackDir Condition="'$(_HostPackList)' != '' And '$(_HostPackLastSep)' == '-1'">$(_HostPackList)</ResolvedNetCoreHostPackDir>
+    <NetCoreHostNativeDir Condition="'$(ResolvedNetCoreHostPackDir)' != ''">$(ResolvedNetCoreHostPackDir)\runtimes\win-$(NetCoreHostArch)\native</NetCoreHostNativeDir>
+  </PropertyGroup>
+
+  <Target Name="_VerifyHostPack" BeforeTargets="ClCompile;Link">
+    <Error Condition="!Exists('$(NetCoreHostPacksRoot)')"
+           Text="Could not find .NET host pack root '$(NetCoreHostPacksRoot)'. Install the .NET SDK (which bundles Microsoft.NETCore.App.Host.win-$(NetCoreHostArch))." />
+    <Error Condition="'$(NetCoreHostNativeDir)' == '' Or !Exists('$(NetCoreHostNativeDir)\nethost.h')"
+           Text="nethost.h not found under '$(NetCoreHostPacksRoot)'. Looked at '$(NetCoreHostNativeDir)'." />
+    <!-- Copy nethost.dll next to the output exe so PATH is irrelevant. -->
+    <Copy SourceFiles="$(NetCoreHostNativeDir)\nethost.dll"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(NetCoreHostNativeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <LargeAddressAware>true</LargeAddressAware>
+      <EntryPointSymbol>wmainCRTStartup</EntryPointSymbol>
+      <AdditionalLibraryDirectories>$(NetCoreHostNativeDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>nethost.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <ItemGroup>
+    <ClCompile Include="HighBitHost.cpp" />
+  </ItemGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+
+</Project>

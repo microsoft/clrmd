@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
 using Microsoft.Diagnostics.Runtime.Utilities.DbgEng;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -24,7 +26,31 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// Ensures a dump file exists for the given test target. If the dump doesn't exist,
         /// builds the target and generates the dump.
         /// </summary>
-        public static void EnsureDump(string name, string projectDir, string dumpPath, string architecture, bool isFramework, GCMode gcMode, bool full, bool singleFile = false, string[] companionTargets = null)
+        /// <summary>
+        /// Target Framework Moniker used for .NET Core test targets. Kept in sync with
+        /// TestTargets project TargetFramework.
+        /// </summary>
+        public const string CoreTfm = "net10.0";
+
+        /// <summary>
+        /// Target Framework Moniker used for .NET Framework test targets.
+        /// </summary>
+        public const string FrameworkTfm = "net48";
+
+        /// <summary>
+        /// Selects the TFM used for a given flavor.
+        /// </summary>
+        public static string GetTfm(bool isFramework) => isFramework ? FrameworkTfm : CoreTfm;
+
+        /// <summary>
+        /// Returns the per-TFM output directory beneath the shared architecture bin
+        /// directory. Each TFM gets its own subdirectory so .NET Core and .NET Framework
+        /// builds of the same target don't overwrite each other.
+        /// </summary>
+        public static string GetBuildOutputDir(string binDir, bool isFramework)
+            => Path.Combine(binDir, GetTfm(isFramework));
+
+        public static void EnsureDump(string name, string projectDir, string dumpPath, string architecture, bool isFramework, GCMode gcMode, bool full, bool singleFile = false, bool highBit = false, string[] companionTargets = null)
         {
             if (File.Exists(dumpPath))
                 return;
@@ -38,6 +64,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 string outputDir = Path.GetDirectoryName(dumpPath);
                 Directory.CreateDirectory(outputDir);
 
+                // Build outputs live in a per-TFM subdirectory so Core and Framework
+                // builds of the same target don't overwrite each other's binaries.
+                string buildDir = singleFile ? outputDir : GetBuildOutputDir(outputDir, isFramework);
+                if (!singleFile)
+                    Directory.CreateDirectory(buildDir);
+
                 string exePath;
                 if (singleFile)
                 {
@@ -45,11 +77,19 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 }
                 else
                 {
-                    exePath = BuildTarget(name, projectDir, outputDir, architecture, isFramework, companionTargets);
+                    exePath = BuildTarget(name, projectDir, buildDir, architecture, isFramework, companionTargets);
                 }
 
                 string processOutput = null;
-                if (isFramework && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                if (highBit && isFramework)
+                {
+                    GenerateHighBitFrameworkDump(exePath, dumpPath, gcMode, full, architecture);
+                }
+                else if (highBit)
+                {
+                    processOutput = GenerateHighBitCoreDump(exePath, dumpPath, gcMode, full, architecture);
+                }
+                else if (isFramework && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     GenerateFrameworkDump(exePath, dumpPath, gcMode, full);
                 }
@@ -71,6 +111,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         msg += $"\n  exePath: {exePath}\n  exists: {File.Exists(exePath)}";
                     if (processOutput != null)
                         msg += $"\n  process: {processOutput}";
+                    else
+                        msg += $"\n  exePath: {exePath}\n  highBit: {highBit}\n  isFramework: {isFramework}";
                     throw new InvalidOperationException(msg);
                 }
             }
@@ -185,9 +227,18 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     File.Copy(src, dest, overwrite: true);
                     return;
                 }
-                catch (IOException) when (attempt < 3)
+                catch (IOException) when (attempt < 5)
                 {
-                    System.Threading.Thread.Sleep(100 * (attempt + 1));
+                    System.Threading.Thread.Sleep(200 * (attempt + 1));
+                }
+                catch (IOException) when (File.Exists(dest))
+                {
+                    // Destination already exists and is locked (commonly because another
+                    // ClrMD DataTarget has memory-mapped it for module metadata). Since
+                    // SharedLibrary.dll and companion binaries are byte-identical between
+                    // builds within the same TFM/arch, a stale copy is equivalent. Tolerate
+                    // the collision rather than failing the test that triggered the build.
+                    return;
                 }
             }
         }
@@ -239,19 +290,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             ProcessStartInfo psi = new("dotnet")
             {
-                Arguments = $"publish \"{csprojPath}\" --nologo -f {tfm} -r {rid} -p:PublishSingleFile=true -p:SelfContained=true -p:IsPublishable=true -o \"{outputDir}\" -v:q",
+                Arguments = $"publish \"{csprojPath}\" --nologo --disable-build-servers -f {tfm} -r {rid} -p:PublishSingleFile=true -p:SelfContained=true -p:IsPublishable=true -p:UseSharedCompilation=false -o \"{outputDir}\" -v:q",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
 
-            using Process process = Process.Start(psi);
-            string output = process.StandardOutput.ReadToEnd();
-            string error = process.StandardError.ReadToEnd();
-            process.WaitForExit();
-
-            if (process.ExitCode != 0)
+            int exitCode = RunAndCapture(psi, out string output, out string error);
+            if (exitCode != 0)
                 throw new InvalidOperationException($"dotnet publish (single-file) failed for {csprojPath}:\n{output}\n{error}");
         }
 
@@ -259,20 +306,444 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             ProcessStartInfo psi = new("dotnet")
             {
-                Arguments = $"build \"{csprojPath}\" --nologo -f {tfm} -p:PlatformTarget={platform} -v:q",
+                Arguments = $"build \"{csprojPath}\" --nologo --disable-build-servers -f {tfm} -p:PlatformTarget={platform} -p:UseSharedCompilation=false -v:q",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
 
-            using Process process = Process.Start(psi);
-            string output = process.StandardOutput.ReadToEnd();
-            string error = process.StandardError.ReadToEnd();
-            process.WaitForExit();
-
-            if (process.ExitCode != 0)
+            int exitCode = RunAndCapture(psi, out string output, out string error);
+            if (exitCode != 0)
                 throw new InvalidOperationException($"dotnet build failed for {csprojPath}:\n{output}\n{error}");
+        }
+
+        /// <summary>
+        /// Runs a process and captures stdout/stderr without deadlocking when child
+        /// processes (e.g., MSBuild/Roslyn build servers) inherit pipe handles and keep
+        /// them open past the parent's exit. Synchronous ReadToEnd() blocks forever in
+        /// that case; we drain both pipes asynchronously and wait for EOF explicitly.
+        /// </summary>
+        private static int RunAndCapture(ProcessStartInfo psi, out string stdout, out string stderr)
+        {
+            psi.RedirectStandardOutput = true;
+            psi.RedirectStandardError = true;
+            psi.UseShellExecute = false;
+
+            StringBuilder outBuf = new();
+            StringBuilder errBuf = new();
+            using ManualResetEventSlim outDone = new(false);
+            using ManualResetEventSlim errDone = new(false);
+
+            using Process process = new() { StartInfo = psi };
+            process.OutputDataReceived += (_, e) =>
+            {
+                if (e.Data is null)
+                    outDone.Set();
+                else
+                    lock (outBuf) outBuf.AppendLine(e.Data);
+            };
+            process.ErrorDataReceived += (_, e) =>
+            {
+                if (e.Data is null)
+                    errDone.Set();
+                else
+                    lock (errBuf) errBuf.AppendLine(e.Data);
+            };
+
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+
+            // Wait for process exit, then for both pipes to signal EOF. If a child
+            // process inherits the pipes and lingers, WaitForExit returns promptly but
+            // the EOF callback may be delayed; bound the wait so we never hang forever.
+            process.WaitForExit();
+            outDone.Wait(TimeSpan.FromSeconds(30));
+            errDone.Wait(TimeSpan.FromSeconds(30));
+
+            lock (outBuf) stdout = outBuf.ToString();
+            lock (errBuf) stderr = errBuf.ToString();
+            return process.ExitCode;
+        }
+
+        /// <summary>
+        /// Generates a dump under the high-bit host for a .NET Framework target. DbgEng
+        /// launches HighBitHost.exe, which reserves low memory, then hosts CLR v4 and
+        /// runs the target .exe's entry point. When the target throws, DbgEng captures
+        /// the dump just as it does in the non-HighBit Framework path.
+        /// </summary>
+        private static void GenerateHighBitFrameworkDump(string exePath, string dumpPath, GCMode gcMode, bool full, string architecture)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                throw new PlatformNotSupportedException("High-bit dump generation is only supported on Windows.");
+            if (architecture != "x86" && architecture != "x64")
+                throw new PlatformNotSupportedException($"High-bit dump generation requires x86 (or x64 for parity); got {architecture}.");
+            if (!exePath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException($"High-bit framework host requires a .NET Framework .exe, got {exePath}");
+
+            string host = BuildHighBitHost(architecture);
+
+            const uint ClrExceptionCode = 0xe0434352;
+
+            DebuggerStartInfo info = new();
+            if (gcMode == GCMode.Server)
+            {
+                info.SetEnvironmentVariable("COMPlus_BuildFlavor", "SVR");
+            }
+
+            string commandLine = $"\"{host}\" --mode=framework \"{exePath}\"";
+            LaunchAndCaptureDump(info, commandLine, workingDirectory: Path.GetDirectoryName(exePath), dumpPath, full, ClrExceptionCode);
+        }
+
+        /// <summary>
+        /// Generates a dump under the high-bit host. The host reserves memory below 0x80000000
+        /// before starting the CLR, forcing heap allocations into the upper 2 GB of the 32-bit
+        /// address space. Windows x86 only.
+        /// </summary>
+        private static string GenerateHighBitCoreDump(string exePath, string dumpPath, GCMode gcMode, bool full, string architecture)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                throw new PlatformNotSupportedException("High-bit dump generation is only supported on Windows.");
+            if (architecture != "x86" && architecture != "x64")
+                throw new PlatformNotSupportedException($"High-bit dump generation requires x86 (or x64 for parity); got {architecture}.");
+
+            // The high-bit host loads and runs a managed DLL via hostfxr. Prefer the .dll; if only
+            // the .exe exists, swap the extension.
+            string dllPath = exePath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+                ? Path.ChangeExtension(exePath, ".dll")
+                : exePath;
+            if (!File.Exists(dllPath))
+                throw new FileNotFoundException($"High-bit host requires a managed DLL, not found: {dllPath}");
+
+            string host = BuildHighBitHost(architecture);
+
+            ProcessStartInfo psi = new(host)
+            {
+                Arguments = $"\"{dllPath}\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            psi.Environment["DOTNET_DbgEnableMiniDump"] = "1";
+            psi.Environment["COMPlus_DbgEnableMiniDump"] = "1";
+
+            // See SetDotNetRoot; HighBitHost uses hostfxr to load the managed DLL and
+            // therefore also needs to find the shared framework via DOTNET_ROOT.
+            SetDotNetRoot(psi);
+
+            string dumpType = full ? "4" : "1";
+            psi.Environment["DOTNET_DbgMiniDumpType"] = dumpType;
+            psi.Environment["COMPlus_DbgMiniDumpType"] = dumpType;
+
+            psi.Environment["DOTNET_DbgMiniDumpName"] = dumpPath;
+            psi.Environment["COMPlus_DbgMiniDumpName"] = dumpPath;
+
+            psi.Environment["DOTNET_EnableCrashReport"] = "1";
+            psi.Environment["COMPlus_EnableCrashReport"] = "1";
+
+            if (gcMode == GCMode.Server)
+            {
+                psi.Environment["DOTNET_gcServer"] = "1";
+                psi.Environment["COMPlus_gcServer"] = "1";
+            }
+
+            using Process process = Process.Start(psi);
+            string stdout = process.StandardOutput.ReadToEnd();
+            string stderr = process.StandardError.ReadToEnd();
+
+            if (!process.WaitForExit(120_000))
+            {
+                process.Kill();
+                throw new TimeoutException($"HighBitHost for {dllPath} did not exit within 120 seconds.\nstdout: {stdout}\nstderr: {stderr}");
+            }
+
+            return $"exit={process.ExitCode}\nhost: {host}\nstdout: {stdout}\nstderr: {stderr}";
+        }
+
+        /// <summary>
+        /// Points the spawned process at the same .NET install that's hosting the test
+        /// runner by setting DOTNET_ROOT (and the arch-specific variants).  Prefers
+        /// DOTNET_HOST_PATH / already-set DOTNET_ROOT variables forwarded from the
+        /// test host's environment so hostfxr probes a real shared-framework layout.
+        /// Environment.ProcessPath (typically the vstest testhost.exe) is only a fallback.
+        /// </summary>
+        private static void SetDotNetRoot(ProcessStartInfo psi)
+        {
+            string dotnetRoot = ResolveDotNetRoot();
+            if (string.IsNullOrEmpty(dotnetRoot))
+                return;
+
+            // Generic fallback read by all apphosts.
+            psi.Environment["DOTNET_ROOT"] = dotnetRoot;
+
+            // Arch-specific overrides (the apphost and nethost consult these before DOTNET_ROOT).
+            // When running an x86 test host, we want DOTNET_ROOT(x86); x64 gets DOTNET_ROOT_X64.
+            if (RuntimeInformation.ProcessArchitecture == Architecture.X86)
+                psi.Environment["DOTNET_ROOT(x86)"] = dotnetRoot;
+            else if (RuntimeInformation.ProcessArchitecture == Architecture.X64)
+                psi.Environment["DOTNET_ROOT_X64"] = dotnetRoot;
+        }
+
+        private static string ResolveDotNetRoot()
+        {
+            // Arch-specific env var set by the launching dotnet.exe.
+            string archVar = RuntimeInformation.ProcessArchitecture switch
+            {
+                Architecture.X86 => "DOTNET_ROOT(x86)",
+                Architecture.X64 => "DOTNET_ROOT_X64",
+                _ => "DOTNET_ROOT"
+            };
+
+            foreach (string var in new[] { archVar, "DOTNET_ROOT" })
+            {
+                string v = Environment.GetEnvironmentVariable(var);
+                if (!string.IsNullOrEmpty(v) && HasSharedFramework(v))
+                    return v;
+            }
+
+            // DOTNET_HOST_PATH is set by `dotnet exec/test` and points at the dotnet.exe
+            // used to launch the test host. On mixed-arch runs (x64 dotnet launching an
+            // x86 testhost) this is the wrong arch, so we only trust it if the arch
+            // matches our process.
+            string hostPath = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH");
+            if (!string.IsNullOrEmpty(hostPath))
+            {
+                string dir = Path.GetDirectoryName(hostPath);
+                if (HasSharedFramework(dir) && DotNetRootMatchesArch(dir))
+                    return dir;
+            }
+
+            // Standard install locations. Windows: Program Files (x86)\dotnet (x86),
+            // Program Files\dotnet (x64).
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                string candidate = RuntimeInformation.ProcessArchitecture switch
+                {
+                    Architecture.X86 => Environment.GetEnvironmentVariable("ProgramFiles(x86)"),
+                    Architecture.X64 => Environment.GetEnvironmentVariable("ProgramW6432") ?? Environment.GetEnvironmentVariable("ProgramFiles"),
+                    _ => null
+                };
+                if (!string.IsNullOrEmpty(candidate))
+                {
+                    string root = Path.Combine(candidate, "dotnet");
+                    if (HasSharedFramework(root))
+                        return root;
+                }
+            }
+
+            // Last resort: ProcessPath's directory. Only useful when the test host is
+            // literally dotnet.exe (e.g., `dotnet exec xunit.console.dll`).
+            string processPath = Environment.ProcessPath;
+            if (!string.IsNullOrEmpty(processPath))
+            {
+                string dir = Path.GetDirectoryName(processPath);
+                if (HasSharedFramework(dir))
+                    return dir;
+            }
+
+            return null;
+        }
+
+        private static bool HasSharedFramework(string root)
+        {
+            if (string.IsNullOrEmpty(root))
+                return false;
+
+            string shared = Path.Combine(root, "shared", "Microsoft.NETCore.App");
+            return Directory.Exists(shared);
+        }
+
+        /// <summary>
+        /// Sanity-check that the given dotnet root hosts a runtime matching our process
+        /// architecture by opening one of the hostfxr.dll binaries and reading the PE
+        /// machine field. This avoids picking an x64 install when spawning an x86 child.
+        /// </summary>
+        private static bool DotNetRootMatchesArch(string root)
+        {
+            try
+            {
+                string hostfxrRoot = Path.Combine(root, "host", "fxr");
+                if (!Directory.Exists(hostfxrRoot))
+                    return true; // can't verify; assume it's fine
+
+                string[] matches = Directory.GetFiles(hostfxrRoot, "hostfxr.dll", SearchOption.AllDirectories);
+                string hostfxr = matches.Length > 0 ? matches[0] : null;
+                if (hostfxr is null)
+                    return true;
+
+                ushort machine = ReadPEMachine(hostfxr);
+                return RuntimeInformation.ProcessArchitecture switch
+                {
+                    Architecture.X86 => machine == 0x014c,
+                    Architecture.X64 => machine == 0x8664,
+                    Architecture.Arm => machine == 0x01c4,
+                    Architecture.Arm64 => machine == 0xAA64,
+                    _ => true
+                };
+            }
+            catch
+            {
+                return true;
+            }
+        }
+
+        private static ushort ReadPEMachine(string path)
+        {
+            using FileStream fs = File.OpenRead(path);
+            using BinaryReader br = new(fs);
+            fs.Seek(0x3C, SeekOrigin.Begin);
+            int peOffset = br.ReadInt32();
+            fs.Seek(peOffset, SeekOrigin.Begin);
+            if (br.ReadUInt32() != 0x00004550) // "PE\0\0"
+                return 0;
+            return br.ReadUInt16();
+        }
+
+        /// <summary>
+        /// Lazily builds HighBitHost.exe for the given architecture using MSBuild with the C++
+        /// toolset. The built executable lives at src/TestTargets/bin/HighBitHost/{Platform}/.
+        /// Requires Visual Studio with the C++ workload on PATH via vswhere.
+        /// </summary>
+        private static readonly Dictionary<string, Exception> s_highBitHostBuildFailures = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly object s_highBitHostBuildLock = new();
+
+        private static string BuildHighBitHost(string architecture)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                throw new PlatformNotSupportedException("HighBitHost is only supported on Windows.");
+
+            string platform = architecture == "x86" ? "Win32" : "x64";
+
+            lock (s_highBitHostBuildLock)
+            {
+                // Cache negative results: MSBuild can take many minutes to fail on CI when the
+                // required toolset is missing. Without this cache every highbit test repeats
+                // the slow failure, which will eventually exceed the CI job timeout.
+                if (s_highBitHostBuildFailures.TryGetValue(platform, out Exception cached))
+                    throw new InvalidOperationException("HighBitHost previously failed to build; see inner exception.", cached);
+
+                try
+                {
+                    return BuildHighBitHostCore(platform);
+                }
+                catch (Exception ex)
+                {
+                    s_highBitHostBuildFailures[platform] = ex;
+                    throw;
+                }
+            }
+        }
+
+        private static string BuildHighBitHostCore(string platform)
+        {
+            // Walk up to the repo root (marker: .gitignore) so we can locate the host project.
+            DirectoryInfo info = new(Environment.CurrentDirectory);
+            while (info != null && info.GetFiles(".gitignore").Length != 1)
+                info = info.Parent;
+            if (info is null)
+                throw new InvalidOperationException("Could not locate repository root for HighBitHost build.");
+
+            string repoRoot = info.FullName;
+            string projectPath = Path.Combine(repoRoot, "src", "TestTargets", "HighBitHost", "HighBitHost.vcxproj");
+            string hostExe = Path.Combine(repoRoot, "src", "TestTargets", "bin", "HighBitHost", platform, "HighBitHost.exe");
+
+            if (File.Exists(hostExe))
+                return hostExe;
+
+            string msbuild = FindMsBuild(out string vsInstallPath);
+
+            // Select a platform toolset that's actually installed under this VS.
+            // Microsoft.Cpp.Default.props will pick DefaultPlatformToolset automatically,
+            // but CI images sometimes advertise a VS without the matching toolset folder,
+            // so we probe the installation and pass the answer through explicitly.
+            string toolset = ResolvePlatformToolset(vsInstallPath);
+
+            ProcessStartInfo psi = new(msbuild)
+            {
+                Arguments = $"\"{projectPath}\" /p:Configuration=Debug /p:Platform={platform} /p:PlatformToolset={toolset} /nologo /v:minimal /nodeReuse:false /p:UseSharedCompilation=false",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            int exitCode = RunAndCapture(psi, out string stdout, out string stderr);
+
+            if (exitCode != 0 || !File.Exists(hostExe))
+                throw new InvalidOperationException($"Failed to build HighBitHost ({platform}):\n{stdout}\n{stderr}");
+
+            return hostExe;
+        }
+
+        /// <summary>
+        /// Locates MSBuild.exe using vswhere. Required for the C++ HighBitHost build, since
+        /// 'dotnet build' does not drive vcxproj.
+        /// </summary>
+        private static string FindMsBuild() => FindMsBuild(out _);
+
+        private static string FindMsBuild(out string vsInstallPath)
+        {
+            string programFiles = Environment.GetEnvironmentVariable("ProgramFiles(x86)")
+                                  ?? Environment.GetEnvironmentVariable("ProgramFiles");
+            string vswhere = Path.Combine(programFiles ?? string.Empty, "Microsoft Visual Studio", "Installer", "vswhere.exe");
+            if (!File.Exists(vswhere))
+                throw new FileNotFoundException($"vswhere.exe not found at {vswhere}. Install Visual Studio with the C++ workload.");
+
+            ProcessStartInfo psi = new(vswhere)
+            {
+                Arguments = "-latest -prerelease -products * -requires Microsoft.Component.MSBuild Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            RunAndCapture(psi, out string installDir, out _);
+            installDir = installDir.Trim();
+
+            if (string.IsNullOrEmpty(installDir))
+                throw new InvalidOperationException("vswhere found no Visual Studio installation with the C++ toolset.");
+
+            // vswhere may return multiple lines if -latest is ignored; take the first.
+            string firstLine = installDir.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim();
+            string msbuild = Path.Combine(firstLine, "MSBuild", "Current", "Bin", "MSBuild.exe");
+            if (!File.Exists(msbuild))
+                throw new FileNotFoundException($"MSBuild.exe not found at {msbuild}.");
+
+            vsInstallPath = firstLine;
+            return msbuild;
+        }
+
+        /// <summary>
+        /// Picks the newest platform toolset actually installed under the given VS instance
+        /// by probing VC\Auxiliary\Build\Microsoft.VCToolsVersion.v14X.default.txt.
+        /// </summary>
+        private static string ResolvePlatformToolset(string vsInstallPath)
+        {
+            string auxBuild = Path.Combine(vsInstallPath, "VC", "Auxiliary", "Build");
+            foreach (string toolset in new[] { "v143", "v142" })
+            {
+                if (File.Exists(Path.Combine(auxBuild, $"Microsoft.VCToolsVersion.{toolset}.default.txt")))
+                    return toolset;
+            }
+
+            // Fallback: directory-based check under VC\Tools\MSVC\<version>.
+            if (Directory.Exists(auxBuild))
+            {
+                foreach (string file in Directory.EnumerateFiles(auxBuild, "Microsoft.VCToolsVersion.v14*.default.txt"))
+                {
+                    string name = Path.GetFileName(file);
+                    // name = Microsoft.VCToolsVersion.v14X.default.txt
+                    string[] parts = name.Split('.');
+                    if (parts.Length >= 3)
+                        return parts[2];
+                }
+            }
+
+            throw new InvalidOperationException($"No v142/v143 C++ toolset found under '{auxBuild}'.");
         }
 
         /// <summary>
@@ -305,6 +776,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     RedirectStandardError = true
                 };
             }
+
+            // Point the spawned apphost at the same .NET install that's hosting the test
+            // runner.  Hosted CI agents often only have older runtimes in
+            // C:\Program Files\dotnet\, so we rely on the repo-local SDK that Arcade
+            // installed in .dotnet\ (or .dotnet\x86\).  Environment.ProcessPath is the
+            // dotnet.exe that started the test host, so its directory is exactly the
+            // DOTNET_ROOT we want the child to use.
+            SetDotNetRoot(psi);
 
             // Configure crash dump collection via environment variables
             psi.Environment["DOTNET_DbgEnableMiniDump"] = "1";
@@ -391,8 +870,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         private static void LaunchAndCaptureDump(DebuggerStartInfo info, string exePath, string dumpPath, bool full, uint exceptionCode)
+            => LaunchAndCaptureDump(info, exePath, workingDirectory: Path.GetDirectoryName(exePath), dumpPath, full, exceptionCode);
+
+        private static void LaunchAndCaptureDump(DebuggerStartInfo info, string commandLine, string workingDirectory, string dumpPath, bool full, uint exceptionCode)
         {
-            using Debugger debugger = info.LaunchProcess(exePath, Path.GetDirectoryName(exePath));
+            using Debugger debugger = info.LaunchProcess(commandLine, workingDirectory);
 
             string miniDumpPath = full ? null : dumpPath;
             string fullDumpPath = full ? dumpPath : null;
@@ -492,18 +974,30 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public Debugger(string dbgEngDirectory, string commandLine, string workingDirectory, IEnumerable<KeyValuePair<string, string>> env)
         {
             _dbgeng = IDebugClient.Create(dbgEngDirectory);
-            _client = (IDebugClient)_dbgeng;
-            _control = (IDebugControl)_client;
+            try
+            {
+                _client = (IDebugClient)_dbgeng;
+                _control = (IDebugControl)_client;
 
-            DEBUG_CREATE_PROCESS_OPTIONS options = default;
-            options.CreateFlags = DEBUG_CREATE_PROCESS.DEBUG_PROCESS;
-            int hr = _client.CreateProcessAndAttach(commandLine, workingDirectory, env, DEBUG_ATTACH.DEFAULT, options);
+                DEBUG_CREATE_PROCESS_OPTIONS options = default;
+                options.CreateFlags = DEBUG_CREATE_PROCESS.DEBUG_PROCESS;
+                int hr = _client.CreateProcessAndAttach(commandLine, workingDirectory, env, DEBUG_ATTACH.DEFAULT, options);
 
-            if (hr < 0)
-                throw new Exception($"IDebugClient::CreateProcessAndAttach failed with hresult={hr:X8}");
+                if (hr < 0)
+                    throw new Exception($"IDebugClient::CreateProcessAndAttach failed with hresult={hr:X8}");
 
-            _client.SetEventCallbacks(this);
-            _client.SetOutputCallbacks(this);
+                _client.SetEventCallbacks(this);
+                _client.SetOutputCallbacks(this);
+            }
+            catch
+            {
+                // DbgEng only tolerates one live instance per process. If construction fails
+                // (e.g., bad command line or working directory) we must dispose the wrapper
+                // here or every subsequent DbgEng-using test in this run will fault with
+                // "DbgEng doesn't properly handle multiple instances simultaneously".
+                _dbgeng.Dispose();
+                throw;
+            }
         }
 
         public DEBUG_STATUS ProcessEvents(TimeSpan timeout)
