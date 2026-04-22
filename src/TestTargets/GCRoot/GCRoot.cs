@@ -48,6 +48,7 @@ class GCRootTarget
         AllocRoots(target, s, t);
 
         throw new Exception();
+        GC.KeepAlive(target);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
