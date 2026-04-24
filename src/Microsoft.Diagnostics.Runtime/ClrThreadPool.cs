@@ -76,8 +76,8 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public int RetiredWorkerThreads { get; }
 
-        private readonly ClrDataAddress _firstLegacyWorkRequest;
-        private readonly ClrDataAddress _asyncTimerFunction;
+        private readonly ulong _firstLegacyWorkRequest;
+        private readonly ulong _asyncTimerFunction;
 
         internal ClrThreadPool(ClrRuntime runtime, IAbstractLegacyThreadPool? helpers)
         {

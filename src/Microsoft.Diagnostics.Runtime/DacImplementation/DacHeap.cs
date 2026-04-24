@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -20,6 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly SosDac12? _sos12;
         private readonly ISOSDac16? _sos16;
         private readonly IMemoryReader _memoryReader;
+        private readonly TargetProperties _target;
         private readonly GCState _gcState;
         private HashSet<ulong>? _validMethodTables;
 
@@ -29,23 +30,25 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private const uint SyncBlockSpinLock = 0x10000000;
         private const uint SyncBlockHashOrSyncBlockIndex = 0x08000000;
 
-        public DacHeap(SOSDac sos, SOSDac8? sos8, SosDac12? sos12, ISOSDac16? sos16, IMemoryReader reader, in GCInfo gcInfo, in CommonMethodTables commonMethodTables)
+        public DacHeap(SOSDac sos, SOSDac8? sos8, SosDac12? sos12, ISOSDac16? sos16, IMemoryReader reader, TargetProperties target, in GCInfo gcInfo, in CommonMethodTables commonMethodTables)
         {
             _sos = sos;
             _sos8 = sos8;
             _sos12 = sos12;
             _sos16 = sos16;
             _memoryReader = reader;
+            _target = target;
+
             _gcState = new()
             {
                 Kind = gcInfo.ServerMode != 0 ? GCKind.Server : GCKind.Workstation,
                 AreGCStructuresValid = gcInfo.GCStructuresValid != 0,
                 HeapCount = gcInfo.HeapCount,
                 MaxGeneration = gcInfo.MaxGeneration,
-                ExceptionMethodTable = commonMethodTables.ExceptionMethodTable,
-                FreeMethodTable = commonMethodTables.FreeMethodTable,
-                ObjectMethodTable = commonMethodTables.ObjectMethodTable,
-                StringMethodTable = commonMethodTables.StringMethodTable,
+                ExceptionMethodTable = commonMethodTables.ExceptionMethodTable.ToAddress(target),
+                FreeMethodTable = commonMethodTables.FreeMethodTable.ToAddress(target),
+                ObjectMethodTable = commonMethodTables.ObjectMethodTable.ToAddress(target),
+                StringMethodTable = commonMethodTables.StringMethodTable.ToAddress(target),
             };
         }
 
@@ -62,16 +65,16 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             if (!_sos.GetThreadStoreData(out ThreadStoreData threadStore))
                 yield break;
 
-            ulong address = threadStore.FirstThread;
+            ulong address = threadStore.FirstThread.ToAddress(_target);
             for (int i = 0; i < threadStore.ThreadCount && address != 0; i++)
             {
-                if (!_sos.GetThreadData(address, out ThreadData thread))
+                if (!_sos.GetThreadData(ClrDataAddress.FromAddress(address, _target), out ThreadData thread))
                     break;
 
-                if (thread.AllocationContextPointer < thread.AllocationContextLimit)
-                    yield return new(thread.AllocationContextPointer, thread.AllocationContextLimit);
+                if (thread.AllocationContextPointer.ToAddress(_target) < thread.AllocationContextLimit.ToAddress(_target))
+                    yield return new(thread.AllocationContextPointer.ToAddress(_target), thread.AllocationContextLimit.ToAddress(_target));
 
-                address = thread.NextThread;
+                address = thread.NextThread.ToAddress(_target);
             }
         }
 
@@ -85,9 +88,9 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             {
                 if (handle.Type == (int)ClrHandleKind.Dependent)
                 {
-                    ulong obj = _memoryReader.ReadPointer(handle.Handle);
+                    ulong obj = _memoryReader.ReadPointer(handle.Handle.ToAddress(_target));
                     if (obj != 0)
-                        yield return (obj, handle.Secondary);
+                        yield return (obj, handle.Secondary.ToAddress(_target));
                 }
             }
         }
@@ -108,12 +111,12 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     yield return new()
                     {
                         Index = curr,
-                        Address = data.Address,
-                        Object = data.Object,
-                        AppDomain = data.AppDomain,
+                        Address = data.Address.ToAddress(_target),
+                        Object = data.Object.ToAddress(_target),
+                        AppDomain = data.AppDomain.ToAddress(_target),
                         AdditionalThreadCount = data.AdditionalThreadCount.ToSigned(),
                         COMFlags = (SyncBlockComFlags)data.COMFlags,
-                        HoldingThread = data.HoldingThread,
+                        HoldingThread = data.HoldingThread.ToAddress(_target),
                         MonitorHeldCount = data.MonitorHeld.ToSigned(),
                         Recursion = data.Recursion.ToSigned()
                     };
@@ -136,7 +139,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 {
                     if (_sos.GetServerHeapDetails(heapAddresses[i], out HeapDetails heapData))
                     {
-                        SubHeapInfo subHeapInfo = CreateSubHeapInfo(heapAddresses[i], i, heapData);
+                        ulong heapAddr = heapAddresses[i].ToAddress(_target);
+                        SubHeapInfo subHeapInfo = CreateSubHeapInfo(heapAddr, i, heapData);
                         yield return subHeapInfo;
                     }
                 }
@@ -158,47 +162,47 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
             if (_sos8 is not null)
             {
-                genData = (address != 0 ? _sos8.GetGenerationTable(address) : _sos8.GetGenerationTable()) ?? genData;
-                finalization = (address != 0 ? _sos8.GetFinalizationFillPointers(address) : _sos8.GetFinalizationFillPointers()) ?? finalization;
+                genData = (address != 0 ? _sos8.GetGenerationTable(ClrDataAddress.FromAddress(address, _target)) : _sos8.GetGenerationTable()) ?? genData;
+                finalization = (address != 0 ? _sos8.GetFinalizationFillPointers(ClrDataAddress.FromAddress(address, _target)) : _sos8.GetFinalizationFillPointers()) ?? finalization;
             }
 
             SubHeapInfo subHeapInfo = new()
             {
                 Address = address,
                 HeapIndex = i,
-                Allocated = heapData.Allocated,
-                MarkArray = heapData.MarkArray,
-                State = (HeapMarkState)(ulong)heapData.CurrentGCState,
-                CurrentSweepPosition = heapData.NextSweepObj,
-                SavedSweepEphemeralSegment = heapData.SavedSweepEphemeralSeg,
-                SavedSweepEphemeralStart = heapData.SavedSweepEphemeralStart,
-                BackgroundSavedLowestAddress = heapData.BackgroundSavedLowestAddress,
-                BackgroundSavedHighestAddress = heapData.BackgroundSavedHighestAddress,
-                EphemeralHeapSegment = heapData.EphemeralHeapSegment,
-                LowestAddress = heapData.LowestAddress,
-                HighestAddress = heapData.HighestAddress,
-                CardTable = heapData.CardTable,
-                EphemeralAllocContextPointer = heapData.EphemeralAllocContextPtr,
-                EphemeralAllocContextLimit = heapData.EphemeralAllocContextLimit,
+                Allocated = heapData.Allocated.ToAddress(_target),
+                MarkArray = heapData.MarkArray.ToAddress(_target),
+                State = (HeapMarkState)heapData.CurrentGCState.ToAddress(_target),
+                CurrentSweepPosition = heapData.NextSweepObj.ToAddress(_target),
+                SavedSweepEphemeralSegment = heapData.SavedSweepEphemeralSeg.ToAddress(_target),
+                SavedSweepEphemeralStart = heapData.SavedSweepEphemeralStart.ToAddress(_target),
+                BackgroundSavedLowestAddress = heapData.BackgroundSavedLowestAddress.ToAddress(_target),
+                BackgroundSavedHighestAddress = heapData.BackgroundSavedHighestAddress.ToAddress(_target),
+                EphemeralHeapSegment = heapData.EphemeralHeapSegment.ToAddress(_target),
+                LowestAddress = heapData.LowestAddress.ToAddress(_target),
+                HighestAddress = heapData.HighestAddress.ToAddress(_target),
+                CardTable = heapData.CardTable.ToAddress(_target),
+                EphemeralAllocContextPointer = heapData.EphemeralAllocContextPtr.ToAddress(_target),
+                EphemeralAllocContextLimit = heapData.EphemeralAllocContextLimit.ToAddress(_target),
 
-                FinalizationPointers = finalization.Select(r => (ulong)r).ToArray(),
-                Generations = ConvertGenerations(genData),
+                FinalizationPointers = finalization.Select(r => r.ToAddress(_target)).ToArray(),
+                Generations = ConvertGenerations(genData, _target),
             };
 
             subHeapInfo.Segments = EnumerateSegments(subHeapInfo).ToArray();
             return subHeapInfo;
         }
 
-        private static GenerationInfo[] ConvertGenerations(GenerationData[] genData)
+        private static GenerationInfo[] ConvertGenerations(GenerationData[] genData, TargetProperties target)
         {
             var result = new GenerationInfo[genData.Length];
             for (int i = 0; i < result.Length; i++)
                 result[i] = new()
                 {
-                    AllocationStart = genData[i].AllocationStart,
-                    StartSegment = genData[i].StartSegment,
-                    AllocationContextLimit = genData[i].AllocationContextLimit,
-                    AllocationContextPointer = genData[i].AllocationContextPointer,
+                    AllocationStart = genData[i].AllocationStart.ToAddress(target),
+                    StartSegment = genData[i].StartSegment.ToAddress(target),
+                    AllocationContextLimit = genData[i].AllocationContextLimit.ToAddress(target),
+                    AllocationContextPointer = genData[i].AllocationContextPointer.ToAddress(target),
                 };
 
             return result;
@@ -237,7 +241,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         private bool TryCreateSegment(SubHeapInfo subHeap, ulong address, int generation, out SegmentInfo segInfo)
         {
-            if (!_sos.GetSegmentData(address, out SegmentData data))
+            if (!_sos.GetSegmentData(ClrDataAddress.FromAddress(address, _target), out SegmentData data))
             {
                 segInfo = default;
                 return false;
@@ -279,7 +283,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             }
 
             // The range of memory occupied by allocated objects
-            MemoryRange allocated = new(data.Start, subHeap.EphemeralHeapSegment == address ? subHeap.Allocated : (ulong)data.Allocated);
+            MemoryRange allocated = new(data.Start.ToAddress(_target), subHeap.EphemeralHeapSegment == address ? subHeap.Allocated : data.Allocated.ToAddress(_target));
 
             // There's a bit of calculation involved with finding the committed start.
             // For regions, it's "allocated.Start - sizeof(aligned_plug_and_gap)".
@@ -299,7 +303,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             MemoryRange committed, gen0, gen1, gen2;
             if (subHeap.HasRegions)
             {
-                committed = new(committedStart, data.Committed);
+                committed = new(committedStart, data.Committed.ToAddress(_target));
                 gen0 = default;
                 gen1 = default;
                 gen2 = default;
@@ -321,7 +325,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             }
             else
             {
-                committed = new(committedStart, data.Committed);
+                committed = new(committedStart, data.Committed.ToAddress(_target));
                 if (kind == GCSegmentKind.Ephemeral)
                 {
                     gen0 = new(subHeap.Generations[0].AllocationStart, allocated.End);
@@ -337,11 +341,11 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             }
 
             // The range of memory reserved
-            MemoryRange reserved = new(committed.End, data.Reserved);
+            MemoryRange reserved = new(committed.End, data.Reserved.ToAddress(_target));
 
             segInfo = new()
             {
-                Address = data.Address,
+                Address = data.Address.ToAddress(_target),
                 Kind = kind,
                 ObjectRange = allocated,
                 CommittedMemory = committed,
@@ -350,8 +354,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 Generation1 = gen1,
                 Generation2 = gen2,
                 Flags = flags,
-                Next = data.Next,
-                BackgroundAllocated = data.BackgroundAllocated,
+                Next = data.Next.ToAddress(_target),
+                BackgroundAllocated = data.BackgroundAllocated.ToAddress(_target),
             };
             return true;
         }
@@ -362,7 +366,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 return default;
 
             (uint threadId, uint recursion) = GetThinlockData(header);
-            ulong threadAddress = _sos.GetThreadFromThinlockId(threadId);
+            ulong threadAddress = _sos.GetThreadFromThinlockId(threadId).ToAddress(_target);
 
             if (threadAddress == 0)
                 return default;
@@ -393,7 +397,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (validMts.Contains(mt))
                     return true;
 
-            bool verified = _sos.GetMethodTableData(mt, out _);
+            bool verified = _sos.GetMethodTableData(ClrDataAddress.FromAddress(mt, _target), out _);
             if (verified)
             {
                 lock (validMts)
@@ -407,15 +411,16 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         {
             DacHeapAnalyzeData analyzeData;
             if (subHeapAddress != 0)
-                _sos.GetHeapAnalyzeData(subHeapAddress, out analyzeData);
+                _sos.GetHeapAnalyzeData(ClrDataAddress.FromAddress(subHeapAddress, _target), out analyzeData);
             else
                 _sos.GetHeapAnalyzeData(out analyzeData);
 
-            if (analyzeData.InternalRootArray == 0 || analyzeData.InternalRootArrayIndex == 0)
+            if (analyzeData.InternalRootArray.IsNull || analyzeData.InternalRootArrayIndex == 0)
                 return default;
 
-            ulong end = analyzeData.InternalRootArray + (uint)_memoryReader.PointerSize * analyzeData.InternalRootArrayIndex;
-            return new(analyzeData.InternalRootArray, end);
+            ulong rootArray = analyzeData.InternalRootArray.ToAddress(_target);
+            ulong end = rootArray + (uint)_target.PointerSize * analyzeData.InternalRootArrayIndex;
+            return new(rootArray, end);
         }
 
         public bool GetOOMInfo(ulong subHeapAddress, out OomInfo oomInfo)
@@ -423,7 +428,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             DacOOMData oomData;
             if (subHeapAddress != 0)
             {
-                if (!_sos.GetOOMData(subHeapAddress, out oomData) || oomData.Reason == OutOfMemoryReason.None && oomData.GetMemoryFailure == GetMemoryFailureReason.None)
+                if (!_sos.GetOOMData(ClrDataAddress.FromAddress(subHeapAddress, _target), out oomData) || oomData.Reason == OutOfMemoryReason.None && oomData.GetMemoryFailure == GetMemoryFailureReason.None)
                 {
                     oomInfo = default;
                     return false;

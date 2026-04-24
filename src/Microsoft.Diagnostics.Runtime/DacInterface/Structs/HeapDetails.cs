@@ -28,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly ClrDataAddress HighestAddress;
         public readonly ClrDataAddress CardTable;
 
-        public ulong EphemeralAllocContextPtr => GenerationTable[0].AllocationContextPointer;
-        public ulong EphemeralAllocContextLimit => GenerationTable[0].AllocationContextLimit;
+        public ClrDataAddress EphemeralAllocContextPtr => GenerationTable[0].AllocationContextPointer;
+        public ClrDataAddress EphemeralAllocContextLimit => GenerationTable[0].AllocationContextLimit;
     }
 }

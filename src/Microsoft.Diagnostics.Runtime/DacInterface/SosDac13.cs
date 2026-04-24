@@ -27,20 +27,20 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private ref readonly ISOSDac13VTable VTable => ref Unsafe.AsRef<ISOSDac13VTable>(_vtable);
 
-        public HResult TraverseLoaderHeap(ulong heap, LoaderHeapKind kind, LoaderHeapTraverse callback)
+        public HResult TraverseLoaderHeap(ClrDataAddress heap, LoaderHeapKind kind, LoaderHeapTraverse callback)
         {
-            HResult hr = VTable.TraverseLoaderHeap(Self, heap, kind, Marshal.GetFunctionPointerForDelegate(callback));
+            HResult hr = VTable.TraverseLoaderHeap(Self, heap.ToInteropAddress(), kind, Marshal.GetFunctionPointerForDelegate(callback));
             GC.KeepAlive(callback);
             return hr;
         }
 
         public ClrDataAddress GetDomainLoaderAllocator(ClrDataAddress domainAddress)
         {
-            if (domainAddress == 0)
-                return 0;
+            if (domainAddress.IsNull)
+                return default;
 
-            HResult hr = VTable.GetDomainLoaderAllocator(Self, domainAddress, out ClrDataAddress loaderAllocator);
-            return hr ? loaderAllocator : 0;
+            HResult hr = VTable.GetDomainLoaderAllocator(Self, domainAddress.ToInteropAddress(), out ClrDataAddress loaderAllocator);
+            return hr ? loaderAllocator : default;
         }
 
         public string[] GetLoaderAllocatorHeapNames()
@@ -67,9 +67,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public (ClrDataAddress Address, LoaderHeapKind Kind)[] GetLoaderAllocatorHeaps(ClrDataAddress loaderAllocator)
         {
-            if (loaderAllocator != 0)
+            if (!loaderAllocator.IsNull)
             {
-                HResult hr = VTable.GetLoaderAllocatorHeaps(Self, loaderAllocator, 0, null, null, out int needed);
+                HResult hr = VTable.GetLoaderAllocatorHeaps(Self, loaderAllocator.ToInteropAddress(), 0, null, null, out int needed);
 
                 if (hr && needed > 0)
                 {
@@ -79,7 +79,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     fixed (ClrDataAddress* ptrAddresses = addresses)
                     fixed (LoaderHeapKind* ptrKinds = kinds)
                     {
-                        if (hr = VTable.GetLoaderAllocatorHeaps(Self, loaderAllocator, addresses.Length, ptrAddresses, ptrKinds, out _))
+                        if (hr = VTable.GetLoaderAllocatorHeaps(Self, loaderAllocator.ToInteropAddress(), addresses.Length, ptrAddresses, ptrKinds, out _))
                         {
                             (ClrDataAddress, LoaderHeapKind)[] result = new (ClrDataAddress, LoaderHeapKind)[needed];
                             for (int i = 0; i < needed; i++)
@@ -142,10 +142,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         [StructLayout(LayoutKind.Sequential)]
         private readonly unsafe struct ISOSDac13VTable
         {
-            public readonly delegate* unmanaged[Stdcall]<nint, ClrDataAddress, LoaderHeapKind, nint, int> TraverseLoaderHeap;
-            public readonly delegate* unmanaged[Stdcall]<nint, ClrDataAddress, out ClrDataAddress, int> GetDomainLoaderAllocator;
+            public readonly delegate* unmanaged[Stdcall]<nint, ulong /*ClrDataAddress*/, LoaderHeapKind, nint, int> TraverseLoaderHeap;
+            public readonly delegate* unmanaged[Stdcall]<nint, ulong /*ClrDataAddress*/, out ClrDataAddress, int> GetDomainLoaderAllocator;
             public readonly delegate* unmanaged[Stdcall]<nint, int, nint*, out int, int> GetLoaderAllocatorHeapNames;
-            public readonly delegate* unmanaged[Stdcall]<nint, ClrDataAddress, int, ClrDataAddress*, LoaderHeapKind*, out int, int> GetLoaderAllocatorHeaps;
+            public readonly delegate* unmanaged[Stdcall]<nint, ulong /*ClrDataAddress*/, int, ClrDataAddress*, LoaderHeapKind*, out int, int> GetLoaderAllocatorHeaps;
 
             public readonly delegate* unmanaged[Stdcall]<nint, out nint, int> GetHandleTableMemoryRegions;
             public readonly delegate* unmanaged[Stdcall]<nint, out nint, int> GetGCBookkeepingMemoryRegions;

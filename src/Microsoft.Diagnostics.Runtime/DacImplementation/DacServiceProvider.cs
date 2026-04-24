@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -76,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         public object? GetService(Type serviceType)
         {
             if (serviceType == typeof(IAbstractRuntime))
-                return _runtime ??= new DacRuntime(_clrInfo, _process, _sos, _sos13);
+                return _runtime ??= new DacRuntime(_clrInfo, _process, _sos, _sos13, _dac.TargetProperties);
 
             if (serviceType == typeof(IAbstractHeap))
             {
@@ -84,35 +84,35 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (heap is not null)
                     return heap;
 
-                if (_sos.GetGCHeapData(out GCInfo data) && _sos.GetCommonMethodTables(out CommonMethodTables mts) && mts.ObjectMethodTable != 0)
-                    return _heapHelper = new DacHeap(_sos, _sos8, _sos12, _sos16, _dataReader, data, mts);
+                if (_sos.GetGCHeapData(out GCInfo data) && _sos.GetCommonMethodTables(out CommonMethodTables mts) && !mts.ObjectMethodTable.IsNull)
+                    return _heapHelper = new DacHeap(_sos, _sos8, _sos12, _sos16, _dataReader, _dac.TargetProperties, data, mts);
 
                 return null;
             }
 
             if (serviceType == typeof(IAbstractTypeHelpers))
             {
-                _moduleHelper ??= new(_sos);
-                return _typeHelper ??= new DacTypeHelpers(_process, _sos, _sos6, _sos8, _sos14, _dataReader, _moduleHelper);
+                _moduleHelper ??= new(_sos, _dac.TargetProperties);
+                return _typeHelper ??= new DacTypeHelpers(_process, _sos, _sos6, _sos8, _sos14, _dataReader, _moduleHelper, _dac.TargetProperties);
             }
 
             if (serviceType == typeof(IAbstractClrNativeHeaps))
-                return _nativeHeaps ??= new DacNativeHeaps(_clrInfo, _sos, _sos13, _dataReader);
+                return _nativeHeaps ??= new DacNativeHeaps(_clrInfo, _sos, _sos13, _dataReader, _dac.TargetProperties);
 
             if (serviceType == typeof(IAbstractModuleHelpers))
-                return _moduleHelper ??= new DacModuleHelpers(_sos);
+                return _moduleHelper ??= new DacModuleHelpers(_sos, _dac.TargetProperties);
 
             if (serviceType == typeof(IAbstractComHelpers))
-                return _com ??= new DacComHelpers(_sos);
+                return _com ??= new DacComHelpers(_sos, _dac.TargetProperties);
 
             if (serviceType == typeof(IAbstractLegacyThreadPool))
-                return _threadPool ??= new DacLegacyThreadPool(_sos);
+                return _threadPool ??= new DacLegacyThreadPool(_sos, _dac.TargetProperties);
 
             if (serviceType == typeof(IAbstractMethodLocator))
-                return _methodLocator ??= new DacMethodLocator(_sos);
+                return _methodLocator ??= new DacMethodLocator(_sos, _dataReader, _dac.TargetProperties);
 
             if (serviceType == typeof(IAbstractThreadHelpers))
-                return _threadHelper ??= new DacThreadHelpers(_process, _sos, _dataReader);
+                return _threadHelper ??= new DacThreadHelpers(_process, _sos, _dataReader, _dac.TargetProperties);
 
             if (serviceType == typeof(IAbstractDacController))
                 return this;
@@ -154,7 +154,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 _dac.DacDataTarget.EnterMagicCallbackContext();
                 try
                 {
-                    _sos.GetWorkRequestData(DacDataTarget.MagicCallbackConstant, out _);
+                    _sos.GetWorkRequestData(ClrDataAddress.FromAddress(DacDataTarget.MagicCallbackConstant, _dac.TargetProperties), out _);
                 }
                 finally
                 {

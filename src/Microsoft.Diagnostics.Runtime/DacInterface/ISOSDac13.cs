@@ -15,6 +15,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         string[] GetLoaderAllocatorHeapNames();
         (ClrDataAddress Address, SOSDac13.LoaderHeapKind Kind)[] GetLoaderAllocatorHeaps(ClrDataAddress loaderAllocator);
         bool LockedFlush();
-        HResult TraverseLoaderHeap(ulong heap, SOSDac13.LoaderHeapKind kind, SOSDac.LoaderHeapTraverse callback);
+        HResult TraverseLoaderHeap(ClrDataAddress heap, SOSDac13.LoaderHeapKind kind, SOSDac.LoaderHeapTraverse callback);
     }
 }

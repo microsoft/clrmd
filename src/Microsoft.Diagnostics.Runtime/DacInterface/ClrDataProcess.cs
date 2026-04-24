@@ -194,7 +194,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             List<ClrDataMethod> result = new(1);
 
-            HResult hr = VTable.StartEnumMethodInstancesByAddress(Self, addr, IntPtr.Zero, out ClrDataAddress handle);
+            HResult hr = VTable.StartEnumMethodInstancesByAddress(Self, addr.ToInteropAddress(), IntPtr.Zero, out ulong handle);
             if (!hr)
                 return result;
 
@@ -244,13 +244,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr GetModuleByAddress;
 
         // (ulong address, [In, MarshalAs(UnmanagedType.Interface)] object appDomain, out ulong handle);
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, IntPtr, out ClrDataAddress, int> StartEnumMethodInstancesByAddress;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, IntPtr, out ulong, int> StartEnumMethodInstancesByAddress;
 
         // (ref ulong handle, [Out, MarshalAs(UnmanagedType.Interface)] out object method);
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref ClrDataAddress, out IntPtr, int> EnumMethodInstanceByAddress;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ref ulong, out IntPtr, int> EnumMethodInstanceByAddress;
 
         // (ulong handle);
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int> EndEnumMethodInstancesByAddress;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, int> EndEnumMethodInstancesByAddress;
         private readonly IntPtr GetDataByAddress;
         private readonly IntPtr GetExceptionStateByExceptionRecord;
         private readonly IntPtr TranslateExceptionRecordToNotification;

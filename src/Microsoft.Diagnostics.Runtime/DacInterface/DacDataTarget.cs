@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -60,6 +60,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public int PointerSize => _dataTarget.DataReader.PointerSize;
 
+        public TargetProperties TargetProperties => _targetProperties ??= new TargetProperties(pointerSize: PointerSize);
+        private TargetProperties? _targetProperties;
+
         public void Flush()
         {
             _modules = null;
@@ -117,7 +120,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public bool ReadVirtual(ClrDataAddress cda, IntPtr buffer, int bytesRequested, out int bytesRead)
         {
-            ulong address = cda;
+            ulong address = cda.ToAddress(TargetProperties);
             Span<byte> span = new(buffer.ToPointer(), bytesRequested);
 
             if (address == MagicCallbackConstant && _callbackContext > 0)

@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #if NET6_0_OR_GREATER
@@ -91,9 +91,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 vtblRaw[2] = release;
                 vtblRaw[3] = (IntPtr)(delegate* unmanaged<IntPtr, IMAGE_FILE_MACHINE*, int>)&GetMachineType;
                 vtblRaw[4] = (IntPtr)(delegate* unmanaged<IntPtr, int*, int>)&GetPointerSize;
-                vtblRaw[5] = (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, ulong*, int>)&GetImageBase;
-                vtblRaw[6] = (IntPtr)(delegate* unmanaged<IntPtr, ulong, IntPtr, int, int*, int>)&ReadVirtual;
-                vtblRaw[7] = (IntPtr)(delegate* unmanaged<IntPtr, ulong, IntPtr, uint, uint*, int>)&WriteVirtual;
+                vtblRaw[5] = (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, ulong* /*ClrDataAddress*/, int>)&GetImageBase;
+                vtblRaw[6] = (IntPtr)(delegate* unmanaged<IntPtr, ulong /*ClrDataAddress*/, IntPtr, int, int*, int>)&ReadVirtual;
+                vtblRaw[7] = (IntPtr)(delegate* unmanaged<IntPtr, ulong /*ClrDataAddress*/, IntPtr, uint, uint*, int>)&WriteVirtual;
                 vtblRaw[8] = (IntPtr)(delegate* unmanaged<IntPtr, uint, uint, ulong*, int>)&GetTLSValue;
                 vtblRaw[9] = (IntPtr)(delegate* unmanaged<IntPtr, uint, uint, ulong, int>)&SetTLSValue;
                 vtblRaw[10] = (IntPtr)(delegate* unmanaged<IntPtr, uint*, int>)&GetCurrentThreadID;
@@ -140,7 +140,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             {
                 DacDataTarget dacDataTarget = ComInterfaceDispatch.GetInstance<DacDataTarget>((ComInterfaceDispatch*)self);
 
-                bool result = dacDataTarget.ReadVirtual(address, buffer, bytesRequested, out int bytesRead);
+                bool result = dacDataTarget.ReadVirtual(ClrDataAddress.FromInteropAddress(address), buffer, bytesRequested, out int bytesRead);
                 *pBytesRead = bytesRead;
                 return result ? HResult.S_OK : HResult.E_FAIL;
             }
@@ -227,7 +227,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 vtblRaw[0] = qi;
                 vtblRaw[1] = addRef;
                 vtblRaw[2] = release;
-                vtblRaw[3] = (IntPtr)(delegate* unmanaged<IntPtr, ulong*, int>)&GetRuntimeBase;
+                vtblRaw[3] = (IntPtr)(delegate* unmanaged<IntPtr, ulong* /*ClrDataAddress*/, int>)&GetRuntimeBase;
 
                 return (IntPtr)vtblRaw;
             }
@@ -253,7 +253,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 vtblRaw[0] = qi;
                 vtblRaw[1] = addRef;
                 vtblRaw[2] = release;
-                vtblRaw[3] = (IntPtr)(delegate* unmanaged<IntPtr, ulong*, int>)&GetContractDescriptor;
+                vtblRaw[3] = (IntPtr)(delegate* unmanaged<IntPtr, ulong* /*ClrDataAddress*/, int>)&GetContractDescriptor;
 
                 return (IntPtr)vtblRaw;
             }

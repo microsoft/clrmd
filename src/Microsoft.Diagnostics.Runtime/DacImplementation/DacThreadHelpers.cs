@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -18,12 +18,14 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly ClrDataProcess _dac;
         private readonly SOSDac _sos;
         private readonly IDataReader _dataReader;
+        private readonly TargetProperties _target;
 
-        public DacThreadHelpers(ClrDataProcess dac, SOSDac sos, IDataReader reader)
+        public DacThreadHelpers(ClrDataProcess dac, SOSDac sos, IDataReader reader, TargetProperties target)
         {
             _dac = dac;
             _sos = sos;
             _dataReader = reader;
+            _target = target;
         }
 
         // IClrThreadHelpers
@@ -39,10 +41,10 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             const int SOS_StackSourceFrame = 1;
             foreach (StackRefData stackRef in stackRefEnum.ReadStackRefs())
             {
-                if (stackRef.Object == 0)
+                if (stackRef.Object.IsNull)
                 {
                     if (traceErrors)
-                        Debug.WriteLine($"EnumerateStackRoots found an unexpected entry with Object == 0, addr:{(ulong)stackRef.Address:x} srcType:{stackRef.SourceType:x}");
+                        Debug.WriteLine($"EnumerateStackRoots found an unexpected entry with Object == 0, addr:{stackRef.Address.ToAddress(_target):x} srcType:{stackRef.SourceType:x}");
                     continue;
                 }
 
@@ -59,21 +61,21 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 ulong ip = 0;
                 ulong frame = 0;
                 if (stackRef.SourceType == SOS_StackSourceIP)
-                    ip = stackRef.Source;
+                    ip = stackRef.Source.ToAddress(_target);
                 else if (stackRef.SourceType == SOS_StackSourceFrame)
-                    frame = stackRef.Source;
+                    frame = stackRef.Source.ToAddress(_target);
 
                 yield return new StackRootInfo()
                 {
                     InstructionPointer = ip,
-                    StackPointer = stackRef.StackPointer,
+                    StackPointer = stackRef.StackPointer.ToAddress(_target),
                     InternalFrame = frame,
 
                     IsInterior = interior,
                     IsPinned = isPinned,
 
-                    Address = stackRef.Address,
-                    Object = stackRef.Object,
+                    Address = stackRef.Address.ToAddress(_target),
+                    Object = stackRef.Object.ToAddress(_target),
 
                     IsEnregistered = stackRef.HasRegisterInformation != 0,
                     RegisterName = regName,
@@ -147,15 +149,15 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 ulong ip = context.AsSpan().AsPointer(_dataReader.PointerSize, ipOffset);
                 ulong sp = context.AsSpan().AsPointer(_dataReader.PointerSize, spOffset);
 
-                ulong frameVtbl = stackwalk.GetFrameVtable();
+                ulong frameVtbl = stackwalk.GetFrameVtable().ToAddress(_target);
                 string? frameName = null;
                 ulong frameMethod = 0;
                 if (frameVtbl != 0)
                 {
                     sp = frameVtbl;
                     frameVtbl = _dataReader.ReadPointer(sp);
-                    frameName = _sos.GetFrameName(frameVtbl);
-                    frameMethod = _sos.GetMethodDescPtrFromFrame(sp);
+                    frameName = _sos.GetFrameName(ClrDataAddress.FromAddress(frameVtbl, _target));
+                    frameMethod = _sos.GetMethodDescPtrFromFrame(ClrDataAddress.FromAddress(sp, _target)).ToAddress(_target);
                 }
 
                 byte[]? contextCopy = null;

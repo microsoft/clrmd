@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrDataAddress GetFrameVtable()
         {
-            long ptr = 0xcccccccc;
+            ulong ptr = 0xcccccccc;
 
             HResult hr = VTable.Request(Self, 0xf0000000, 0, null, 8u, (byte*)&ptr);
             return hr ? new ClrDataAddress(ptr) : default;

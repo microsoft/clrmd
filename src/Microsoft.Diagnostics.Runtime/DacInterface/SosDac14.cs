@@ -26,24 +26,24 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private ref readonly ISOSDac14VTable VTable => ref Unsafe.AsRef<ISOSDac14VTable>(_vtable);
 
-        public (ulong NonGCStaticsBase, ulong GCStaticsBase) GetStaticBaseAddress(ClrDataAddress methodTable)
+        public (ClrDataAddress NonGCStaticsBase, ClrDataAddress GCStaticsBase) GetStaticBaseAddress(ClrDataAddress methodTable)
         {
-            HResult hr = VTable.GetStaticBaseAddress(Self, methodTable, out ClrDataAddress nonGCStaticsBase, out ClrDataAddress gcStaticsBase);
-            return hr ? (nonGCStaticsBase, gcStaticsBase) : (0, 0);
+            HResult hr = VTable.GetStaticBaseAddress(Self, methodTable.ToInteropAddress(), out ClrDataAddress nonGCStaticsBase, out ClrDataAddress gcStaticsBase);
+            return hr ? (nonGCStaticsBase, gcStaticsBase) : (default, default);
         }
 
-        public (ulong NonGCThreadStaticsBase, ulong GCThreadStaticsBase) GetThreadStaticBaseAddress(ClrDataAddress methodTable, ClrDataAddress thread)
+        public (ClrDataAddress NonGCThreadStaticsBase, ClrDataAddress GCThreadStaticsBase) GetThreadStaticBaseAddress(ClrDataAddress methodTable, ClrDataAddress thread)
         {
-            HResult hr = VTable.GetThreadStaticBaseAddress(Self, methodTable, thread, out ClrDataAddress nonGCThreadStaticsBase, out ClrDataAddress gcThreadStaticsBase);
-            return hr ? (nonGCThreadStaticsBase, gcThreadStaticsBase) : (0, 0);
+            HResult hr = VTable.GetThreadStaticBaseAddress(Self, methodTable.ToInteropAddress(), thread.ToInteropAddress(), out ClrDataAddress nonGCThreadStaticsBase, out ClrDataAddress gcThreadStaticsBase);
+            return hr ? (nonGCThreadStaticsBase, gcThreadStaticsBase) : (default, default);
         }
 
         [StructLayout(LayoutKind.Sequential)]
         private readonly unsafe struct ISOSDac14VTable
         {
-            public readonly delegate* unmanaged[Stdcall]<nint, ClrDataAddress, out ClrDataAddress, out ClrDataAddress, int> GetStaticBaseAddress;
-            public readonly delegate* unmanaged[Stdcall]<nint, ClrDataAddress, ClrDataAddress, out ClrDataAddress, out ClrDataAddress, int> GetThreadStaticBaseAddress;
-            public readonly delegate* unmanaged[Stdcall]<nint, ClrDataAddress, out MethodTableInitializationFlags, int> GetMethodTableInitializationFlags;
+            public readonly delegate* unmanaged[Stdcall]<nint, ulong /*ClrDataAddress*/, out ClrDataAddress, out ClrDataAddress, int> GetStaticBaseAddress;
+            public readonly delegate* unmanaged[Stdcall]<nint, ulong /*ClrDataAddress*/, ulong /*ClrDataAddress*/, out ClrDataAddress, out ClrDataAddress, int> GetThreadStaticBaseAddress;
+            public readonly delegate* unmanaged[Stdcall]<nint, ulong /*ClrDataAddress*/, out MethodTableInitializationFlags, int> GetMethodTableInitializationFlags;
         }
     }
 
