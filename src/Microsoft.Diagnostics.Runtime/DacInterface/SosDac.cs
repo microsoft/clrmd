@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -111,7 +111,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (hr)
                 return thread;
 
-            return default;
+            return ClrDataAddress.Null;
         }
 
         public string? GetMethodDescName(ClrDataAddress md)
@@ -161,13 +161,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public ClrDataAddress GetMethodTableSlot(ClrDataAddress mt, uint slot)
         {
             if (mt.IsNull)
-                return default;
+                return ClrDataAddress.Null;
 
             HResult hr = VTable.GetMethodTableSlot(Self, mt.ToInteropAddress(), slot, out ClrDataAddress ip);
             if (hr)
                 return ip;
 
-            return default;
+            return ClrDataAddress.Null;
         }
 
         public HResult GetThreadLocalModuleData(ClrDataAddress thread, uint index, out ThreadLocalModuleData data)
@@ -181,7 +181,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (hr)
                 return result;
 
-            return default;
+            return ClrDataAddress.Null;
         }
 
         public COMInterfacePointerData[]? GetCCWInterfaces(ClrDataAddress ccw, int count)
@@ -261,7 +261,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (hr)
                 return data;
 
-            return default;
+            return ClrDataAddress.Null;
         }
 
         public ClrDataAddress GetMethodDescPtrFromIP(ClrDataAddress frame)
@@ -270,7 +270,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (hr)
                 return data;
 
-            return default;
+            return ClrDataAddress.Null;
         }
 
         public string GetFrameName(ClrDataAddress vtable)
@@ -545,7 +545,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (hr)
                 return data;
 
-            return default;
+            return ClrDataAddress.Null;
         }
 
         public HResult GetModuleData(ClrDataAddress module, out ModuleData data)
@@ -782,7 +782,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (hr)
                 return md;
 
-            return default;
+            return ClrDataAddress.Null;
         }
         private delegate HResult DacGetJitManagerInfo(IntPtr self, ClrDataAddress addr, out JitManagerData data);
     }

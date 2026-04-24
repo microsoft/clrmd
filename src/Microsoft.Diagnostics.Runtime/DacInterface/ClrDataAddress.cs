@@ -44,6 +44,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         /// <summary>Returns true if this address is zero/null.</summary>
         public bool IsNull => _value == 0;
 
+        /// <summary>A null (zero) ClrDataAddress.</summary>
+        public static ClrDataAddress Null => default;
+
         public bool Equals(ClrDataAddress other) => _value == other._value;
         public override bool Equals(object? obj) => obj is ClrDataAddress other && Equals(other);
         public override int GetHashCode() => _value.GetHashCode();

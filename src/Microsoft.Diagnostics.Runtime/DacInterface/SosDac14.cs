@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -29,13 +29,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public (ClrDataAddress NonGCStaticsBase, ClrDataAddress GCStaticsBase) GetStaticBaseAddress(ClrDataAddress methodTable)
         {
             HResult hr = VTable.GetStaticBaseAddress(Self, methodTable.ToInteropAddress(), out ClrDataAddress nonGCStaticsBase, out ClrDataAddress gcStaticsBase);
-            return hr ? (nonGCStaticsBase, gcStaticsBase) : (default, default);
+            return hr ? (nonGCStaticsBase, gcStaticsBase) : (ClrDataAddress.Null, ClrDataAddress.Null);
         }
 
         public (ClrDataAddress NonGCThreadStaticsBase, ClrDataAddress GCThreadStaticsBase) GetThreadStaticBaseAddress(ClrDataAddress methodTable, ClrDataAddress thread)
         {
             HResult hr = VTable.GetThreadStaticBaseAddress(Self, methodTable.ToInteropAddress(), thread.ToInteropAddress(), out ClrDataAddress nonGCThreadStaticsBase, out ClrDataAddress gcThreadStaticsBase);
-            return hr ? (nonGCThreadStaticsBase, gcThreadStaticsBase) : (default, default);
+            return hr ? (nonGCThreadStaticsBase, gcThreadStaticsBase) : (ClrDataAddress.Null, ClrDataAddress.Null);
         }
 
         [StructLayout(LayoutKind.Sequential)]

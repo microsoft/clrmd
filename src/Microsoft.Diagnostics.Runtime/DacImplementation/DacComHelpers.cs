@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -23,7 +23,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData()
         {
-            return _sos.EnumerateRCWCleanup(default).Select(r => new ClrRcwCleanupData(r.Rcw.ToAddress(_target), r.Context.ToAddress(_target), r.Thread.ToAddress(_target), r.IsFreeThreaded));
+            return _sos.EnumerateRCWCleanup(ClrDataAddress.Null).Select(r => new ClrRcwCleanupData(r.Rcw.ToAddress(_target), r.Context.ToAddress(_target), r.Thread.ToAddress(_target), r.IsFreeThreaded));
         }
 
         public bool GetCcwInfo(ulong obj, out CcwInfo info)

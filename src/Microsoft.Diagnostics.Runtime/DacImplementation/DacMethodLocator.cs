@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Diagnostics.Runtime.AbstractDac;
@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public ulong GetMethodHandleContainingType(ulong methodDesc)
         {
-            if (!_sos.GetMethodDescData(ClrDataAddress.FromAddress(methodDesc, _target), default, out MethodDescData mdData))
+            if (!_sos.GetMethodDescData(ClrDataAddress.FromAddress(methodDesc, _target), ClrDataAddress.Null, out MethodDescData mdData))
                 return 0;
 
             return mdData.MethodTable.ToAddress(_target);
@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public bool GetMethodInfo(ulong methodDesc, out MethodInfo methodInfo)
         {
-            if (!_sos.GetMethodDescData(ClrDataAddress.FromAddress(methodDesc, _target), default, out MethodDescData mdd))
+            if (!_sos.GetMethodDescData(ClrDataAddress.FromAddress(methodDesc, _target), ClrDataAddress.Null, out MethodDescData mdd))
             {
                 methodInfo = default;
                 return false;

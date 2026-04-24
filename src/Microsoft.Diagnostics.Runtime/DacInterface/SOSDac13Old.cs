@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -34,10 +34,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public ClrDataAddress GetDomainLoaderAllocator(ClrDataAddress domainAddress)
         {
             if (domainAddress.IsNull)
-                return default;
+                return ClrDataAddress.Null;
 
             HResult hr = VTable.GetDomainLoaderAllocator(Self, domainAddress.ToInteropAddress(), out ClrDataAddress loaderAllocator);
-            return hr ? loaderAllocator : default;
+            return hr ? loaderAllocator : ClrDataAddress.Null;
         }
 
         public string[] GetLoaderAllocatorHeapNames()
