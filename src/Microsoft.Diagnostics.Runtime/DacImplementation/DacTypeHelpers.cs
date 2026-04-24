@@ -164,7 +164,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 ClrDataAddress slot = _sos.GetMethodTableSlot(ClrDataAddress.FromTargetAddress(methodTable, _target), i);
                 if (_sos.GetCodeHeaderData(slot, out CodeHeaderData chd))
                 {
-                    if (_sos.GetMethodDescData(chd.MethodDesc, default, out MethodDescData mdd))
+                    if (_sos.GetMethodDescData(chd.MethodDesc, ClrDataAddress.Null, out MethodDescData mdd))
                     {
                         ulong md = chd.MethodDesc.ToAddress(_target);
                         uint compilation = chd.JITType;

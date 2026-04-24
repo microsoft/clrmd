@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private static readonly Guid IID_IXCLRDataStackWalk = new("E59D8D22-ADA7-49a2-89B5-A415AFCFC95F");
 
         public ClrStackWalk(DacLibrary library, IntPtr pUnk)
-            : base(library?.OwningLibrary, IID_IXCLRDataStackWalk, pUnk)
+            : base(library.OwningLibrary, IID_IXCLRDataStackWalk, pUnk)
         {
         }
 
