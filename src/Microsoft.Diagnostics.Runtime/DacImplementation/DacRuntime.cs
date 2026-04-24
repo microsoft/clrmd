@@ -125,16 +125,16 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 Kind = kind,
                 Name = name,
                 Id = int.MinValue,
-                ConfigFile = _sos.GetConfigFile(ClrDataAddress.FromAddress(address, _target)),
-                ApplicationBase = _sos.GetAppBase(ClrDataAddress.FromAddress(address, _target)),
+                ConfigFile = _sos.GetConfigFile(ClrDataAddress.FromTargetAddress(address, _target)),
+                ApplicationBase = _sos.GetAppBase(ClrDataAddress.FromTargetAddress(address, _target)),
             };
 
-            if (_sos.GetAppDomainData(ClrDataAddress.FromAddress(address, _target), out AppDomainData data))
+            if (_sos.GetAppDomainData(ClrDataAddress.FromTargetAddress(address, _target), out AppDomainData data))
                 result.Id = data.Id;
 
             if (_sos13 is not null)
             {
-                result.LoaderAllocator = _sos13.GetDomainLoaderAllocator(ClrDataAddress.FromAddress(address, _target)).ToAddress(_target);
+                result.LoaderAllocator = _sos13.GetDomainLoaderAllocator(ClrDataAddress.FromTargetAddress(address, _target)).ToAddress(_target);
             }
 
             return result;
@@ -142,7 +142,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public IEnumerable<ulong> GetModuleList(ulong domain)
         {
-            return _sos.GetAssemblyList(ClrDataAddress.FromAddress(domain, _target))
+            return _sos.GetAssemblyList(ClrDataAddress.FromTargetAddress(domain, _target))
                 .SelectMany(assembly => _sos.GetModuleList(assembly))
                 .Select(module => module.ToAddress(_target));
         }
@@ -179,6 +179,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 };
         }
 
-        public string? GetJitHelperFunctionName(ulong address) => _sos.GetJitHelperFunctionName(ClrDataAddress.FromAddress(address, _target));
+        public string? GetJitHelperFunctionName(ulong address) => _sos.GetJitHelperFunctionName(ClrDataAddress.FromTargetAddress(address, _target));
     }
 }

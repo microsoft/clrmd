@@ -156,8 +156,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 {
                     sp = frameVtbl;
                     frameVtbl = _dataReader.ReadPointer(sp);
-                    frameName = _sos.GetFrameName(ClrDataAddress.FromAddress(frameVtbl, _target));
-                    frameMethod = _sos.GetMethodDescPtrFromFrame(ClrDataAddress.FromAddress(sp, _target)).ToAddress(_target);
+                    frameName = _sos.GetFrameName(ClrDataAddress.FromTargetAddress(frameVtbl, _target));
+                    frameMethod = _sos.GetMethodDescPtrFromFrame(ClrDataAddress.FromTargetAddress(sp, _target)).ToAddress(_target);
                 }
 
                 byte[]? contextCopy = null;

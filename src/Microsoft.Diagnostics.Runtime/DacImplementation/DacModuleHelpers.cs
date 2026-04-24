@@ -26,14 +26,14 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public ClrModuleInfo GetModuleInfo(ulong moduleAddress)
         {
-            _sos.GetModuleData(ClrDataAddress.FromAddress(moduleAddress, _target), out ModuleData data);
+            _sos.GetModuleData(ClrDataAddress.FromTargetAddress(moduleAddress, _target), out ModuleData data);
 
             ulong assemblyAddr = data.Assembly.ToAddress(_target);
             ClrModuleInfo result = new()
             {
                 Address = moduleAddress,
                 Assembly = assemblyAddr,
-                AssemblyName = assemblyAddr != 0 ? _sos.GetAssemblyName(ClrDataAddress.FromAddress(assemblyAddr, _target)) : null,
+                AssemblyName = assemblyAddr != 0 ? _sos.GetAssemblyName(ClrDataAddress.FromTargetAddress(assemblyAddr, _target)) : null,
                 Id = data.ModuleID,
                 Index = data.ModuleIndex,
                 IsPEFile = data.IsPEFile != 0,
@@ -65,7 +65,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         {
             int tokenType = kind == SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable ? mdtTypeDef : mdtTypeRef;
             List<(ulong MethodTable, int Token)> result = new();
-            _sos.TraverseModuleMap(kind, ClrDataAddress.FromAddress(module, _target), (token, mt, _) => { result.Add((mt, token | tokenType)); });
+            _sos.TraverseModuleMap(kind, ClrDataAddress.FromTargetAddress(module, _target), (token, mt, _) => { result.Add((mt, token | tokenType)); });
 
             return result;
         }
@@ -115,7 +115,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (_modules.TryGetValue(moduleAddress, out ClrDataModule? dataModule))
                     return dataModule;
 
-            ClrDataModule? result = _sos.GetClrDataModule(ClrDataAddress.FromAddress(moduleAddress, _target));
+            ClrDataModule? result = _sos.GetClrDataModule(ClrDataAddress.FromTargetAddress(moduleAddress, _target));
 
             lock (_modules)
             {

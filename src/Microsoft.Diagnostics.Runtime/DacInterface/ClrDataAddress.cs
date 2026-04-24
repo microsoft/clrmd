@@ -22,11 +22,11 @@
 //
 // ---- ClrMD (C#) equivalents ----
 //
-//   FromAddress(addr, target):  (ulong)(long)(int)(uint)addr    // sign-extend
+//   FromTargetAddress(addr, target):  (ulong)(long)(int)(uint)addr    // sign-extend
 //   ToAddress(target):          (ulong)(uint)_value             // strip sign-ext
 //
 // The cast chains mirror the C++ macros exactly:
-//   - FromAddress: uint→int (signed reinterpret) →long (sign-extend) →ulong
+//   - FromTargetAddress: uint→int (signed reinterpret) →long (sign-extend) →ulong
 //   - ToAddress:   uint (truncate to 32 bits) →ulong (zero-extend)
 //
 // ---- ABI boundary: why we marshal as ulong, not ClrDataAddress ----
@@ -45,7 +45,7 @@
 // ---- Data flow ----
 //
 //   DacImplementation (ulong)
-//       │ FromAddress(addr, _target)
+//       │ FromTargetAddress(addr, _target)
 //       ▼
 //   SosDac wrapper (ClrDataAddress)
 //       │ .ToInteropAddress()
@@ -101,7 +101,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         /// <summary>
         /// Creates an instance of ClrDataAddress that wraps a raw wire value.
         /// Most callers should build <see cref="ClrDataAddress"/> values through
-        /// <see cref="FromAddress(ulong, TargetProperties)"/> instead of this constructor.
+        /// <see cref="FromTargetAddress(ulong, TargetProperties)"/> instead of this constructor.
         /// </summary>
         internal ClrDataAddress(ulong rawValue) => _value = rawValue;
 
@@ -132,7 +132,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         /// the legacy DAC expects addresses to be sign-extended (CLRDATA_ADDRESS_TO_TADDR
         /// validates that signed(addr) is in [INT_MIN, INT_MAX]).
         /// </summary>
-        public static ClrDataAddress FromAddress(ulong address, TargetProperties target)
+        public static ClrDataAddress FromTargetAddress(ulong address, TargetProperties target)
         {
             if (target.PointerSize == 4)
                 return new ClrDataAddress(unchecked((ulong)(long)(int)(uint)address));

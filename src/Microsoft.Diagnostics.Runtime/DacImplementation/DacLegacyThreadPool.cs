@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public bool GetLegacyWorkRequestData(ulong workRequest, out LegacyWorkRequestInfo workRequestInfo)
         {
-            bool res = _sos.GetWorkRequestData(ClrDataAddress.FromAddress(workRequest, _target), out WorkRequestData workRequestData);
+            bool res = _sos.GetWorkRequestData(ClrDataAddress.FromTargetAddress(workRequest, _target), out WorkRequestData workRequestData);
             workRequestInfo = new()
             {
                 Function = workRequestData.Function.ToAddress(_target),

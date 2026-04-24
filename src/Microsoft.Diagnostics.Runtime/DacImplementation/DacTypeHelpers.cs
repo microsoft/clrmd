@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public bool GetTypeInfo(ulong methodTable, out TypeInfo info)
         {
-            if (!_sos.GetMethodTableData(ClrDataAddress.FromAddress(methodTable, _target), out MethodTableData data))
+            if (!_sos.GetMethodTableData(ClrDataAddress.FromTargetAddress(methodTable, _target), out MethodTableData data))
             {
                 info = default;
                 return false;
@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public string? GetTypeName(ulong module, ulong methodTable, int token)
         {
-            string? name = _sos.GetMethodTableName(ClrDataAddress.FromAddress(methodTable, _target));
+            string? name = _sos.GetMethodTableName(ClrDataAddress.FromTargetAddress(methodTable, _target));
             if (string.IsNullOrWhiteSpace(name) || name == UnloadedTypeName)
                 return GetTypeByToken(module, token);
 
@@ -122,7 +122,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public ulong GetLoaderAllocatorHandle(ulong mt)
         {
-            if (_sos6 != null && _sos6.GetMethodTableCollectibleData(ClrDataAddress.FromAddress(mt, _target), out MethodTableCollectibleData data) && data.Collectible != 0)
+            if (_sos6 != null && _sos6.GetMethodTableCollectibleData(ClrDataAddress.FromTargetAddress(mt, _target), out MethodTableCollectibleData data) && data.Collectible != 0)
                 return data.LoaderAllocatorObjectHandle.ToAddress(_target);
 
             return 0;
@@ -130,7 +130,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public ulong GetAssemblyLoadContextAddress(ulong mt)
         {
-            if (_sos8 != null && _sos8.GetAssemblyLoadContext(ClrDataAddress.FromAddress(mt, _target), out ClrDataAddress assemblyLoadContext))
+            if (_sos8 != null && _sos8.GetAssemblyLoadContext(ClrDataAddress.FromTargetAddress(mt, _target), out ClrDataAddress assemblyLoadContext))
                 return assemblyLoadContext.ToAddress(_target);
 
             return 0;
@@ -138,7 +138,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public bool GetObjectArrayInformation(ulong objRef, out ObjectArrayInformation data)
         {
-            if (!_sos.GetObjectData(ClrDataAddress.FromAddress(objRef, _target), out ObjectData objData))
+            if (!_sos.GetObjectData(ClrDataAddress.FromTargetAddress(objRef, _target), out ObjectData objData))
             {
                 data = default;
                 return false;
@@ -156,12 +156,12 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public IEnumerable<MethodInfo> EnumerateMethodsForType(ulong methodTable)
         {
-            if (!_sos.GetMethodTableData(ClrDataAddress.FromAddress(methodTable, _target), out MethodTableData data))
+            if (!_sos.GetMethodTableData(ClrDataAddress.FromTargetAddress(methodTable, _target), out MethodTableData data))
                 yield break;
 
             for (uint i = 0; i < data.NumMethods; i++)
             {
-                ClrDataAddress slot = _sos.GetMethodTableSlot(ClrDataAddress.FromAddress(methodTable, _target), i);
+                ClrDataAddress slot = _sos.GetMethodTableSlot(ClrDataAddress.FromTargetAddress(methodTable, _target), i);
                 if (_sos.GetCodeHeaderData(slot, out CodeHeaderData chd))
                 {
                     if (_sos.GetMethodDescData(chd.MethodDesc, default, out MethodDescData mdd))
@@ -195,13 +195,13 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public IEnumerable<FieldInfo> EnumerateFields(TypeInfo type, int baseFieldCount)
         {
-            if (!_sos.GetFieldInfo(ClrDataAddress.FromAddress(type.MethodTable, _target), out MethodTableFieldInfo fieldInfo) || fieldInfo.FirstFieldAddress.IsNull)
+            if (!_sos.GetFieldInfo(ClrDataAddress.FromTargetAddress(type.MethodTable, _target), out MethodTableFieldInfo fieldInfo) || fieldInfo.FirstFieldAddress.IsNull)
                 yield break;
 
             ulong nextField = fieldInfo.FirstFieldAddress.ToAddress(_target);
             for (int i = baseFieldCount; i < fieldInfo.NumInstanceFields + fieldInfo.NumStaticFields; i++)
             {
-                if (!_sos.GetFieldData(ClrDataAddress.FromAddress(nextField, _target), out FieldData dacFieldData))
+                if (!_sos.GetFieldData(ClrDataAddress.FromTargetAddress(nextField, _target), out FieldData dacFieldData))
                     break;
 
                 if (dacFieldData.IsContextLocal == 0)
@@ -235,7 +235,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         {
             if (_sos14 is not null)
             {
-                (ClrDataAddress nonGcBase, ClrDataAddress gcBase) = _sos14.GetStaticBaseAddress(ClrDataAddress.FromAddress(type.MethodTable, _target));
+                (ClrDataAddress nonGcBase, ClrDataAddress gcBase) = _sos14.GetStaticBaseAddress(ClrDataAddress.FromTargetAddress(type.MethodTable, _target));
                 if (field.ElementType.IsPrimitive())
                     return !nonGcBase.IsNull ? nonGcBase.ToAddress(_target) + (uint)field.Offset : 0;
 
@@ -247,7 +247,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
             if (type.IsShared)
             {
-                if (!_sos.GetDomainLocalModuleDataFromAppDomain(ClrDataAddress.FromAddress(appDomain.Address, _target), (int)module.Id, out DomainLocalModuleData dlmd))
+                if (!_sos.GetDomainLocalModuleDataFromAppDomain(ClrDataAddress.FromTargetAddress(appDomain.Address, _target), (int)module.Id, out DomainLocalModuleData dlmd))
                     return 0;
 
                 if (field.ElementType.IsPrimitive())
@@ -257,7 +257,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             }
             else
             {
-                if (!_sos.GetDomainLocalModuleDataFromModule(ClrDataAddress.FromAddress(module.Address, _target), out DomainLocalModuleData dlmd))
+                if (!_sos.GetDomainLocalModuleDataFromModule(ClrDataAddress.FromTargetAddress(module.Address, _target), out DomainLocalModuleData dlmd))
                     return 0;
 
                 if (!IsInitialized(dlmd, type.MetadataToken))
@@ -277,14 +277,14 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
             if (_sos14 is not null)
             {
-                (ClrDataAddress nonGcBase, ClrDataAddress gcBase) = _sos14.GetThreadStaticBaseAddress(ClrDataAddress.FromAddress(type.MethodTable, _target), ClrDataAddress.FromAddress(threadAddress, _target));
+                (ClrDataAddress nonGcBase, ClrDataAddress gcBase) = _sos14.GetThreadStaticBaseAddress(ClrDataAddress.FromTargetAddress(type.MethodTable, _target), ClrDataAddress.FromTargetAddress(threadAddress, _target));
                 if (field.ElementType.IsPrimitive())
                     return !nonGcBase.IsNull ? nonGcBase.ToAddress(_target) + (uint)field.Offset : 0;
 
                 return !gcBase.IsNull ? gcBase.ToAddress(_target) + (uint)field.Offset : 0;
             }
 
-            if (!_sos.GetThreadLocalModuleData(ClrDataAddress.FromAddress(threadAddress, _target), (uint)module.Index, out ThreadLocalModuleData threadData))
+            if (!_sos.GetThreadLocalModuleData(ClrDataAddress.FromTargetAddress(threadAddress, _target), (uint)module.Index, out ThreadLocalModuleData threadData))
                 return 0;
 
             if (field.ElementType.IsPrimitive())
@@ -304,15 +304,15 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         // Method helpers
 
-        public string? GetMethodSignature(ulong methodDesc) => _sos.GetMethodDescName(ClrDataAddress.FromAddress(methodDesc, _target));
+        public string? GetMethodSignature(ulong methodDesc) => _sos.GetMethodDescName(ClrDataAddress.FromTargetAddress(methodDesc, _target));
 
-        public ulong GetILForModule(ulong address, uint rva) => _sos.GetILForModule(ClrDataAddress.FromAddress(address, _target), rva).ToAddress(_target);
+        public ulong GetILForModule(ulong address, uint rva) => _sos.GetILForModule(ClrDataAddress.FromTargetAddress(address, _target), rva).ToAddress(_target);
 
         public ImmutableArray<ILToNativeMap> GetILMap(ulong ip, in HotColdRegions hotCold)
         {
             ImmutableArray<ILToNativeMap>.Builder result = ImmutableArray.CreateBuilder<ILToNativeMap>();
 
-            foreach (ClrDataMethod method in _clrDataProcess.EnumerateMethodInstancesByAddress(ClrDataAddress.FromAddress(ip, _target)))
+            foreach (ClrDataMethod method in _clrDataProcess.EnumerateMethodInstancesByAddress(ClrDataAddress.FromTargetAddress(ip, _target)))
             {
                 ILToNativeMap[]? map = method.GetILToNativeMap();
                 if (map != null)

@@ -154,7 +154,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 _dac.DacDataTarget.EnterMagicCallbackContext();
                 try
                 {
-                    _sos.GetWorkRequestData(ClrDataAddress.FromAddress(DacDataTarget.MagicCallbackConstant, _dac.TargetProperties), out _);
+                    _sos.GetWorkRequestData(ClrDataAddress.FromTargetAddress(DacDataTarget.MagicCallbackConstant, _dac.TargetProperties), out _);
                 }
                 finally
                 {

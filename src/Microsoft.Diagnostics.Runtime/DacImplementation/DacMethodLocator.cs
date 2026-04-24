@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public ulong GetMethodHandleContainingType(ulong methodDesc)
         {
-            if (!_sos.GetMethodDescData(ClrDataAddress.FromAddress(methodDesc, _target), ClrDataAddress.Null, out MethodDescData mdData))
+            if (!_sos.GetMethodDescData(ClrDataAddress.FromTargetAddress(methodDesc, _target), ClrDataAddress.Null, out MethodDescData mdData))
                 return 0;
 
             return mdData.MethodTable.ToAddress(_target);
@@ -30,10 +30,10 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public ulong GetMethodHandleByInstructionPointer(ulong ip)
         {
-            ulong md = _sos.GetMethodDescPtrFromIP(ClrDataAddress.FromAddress(ip, _target)).ToAddress(_target);
+            ulong md = _sos.GetMethodDescPtrFromIP(ClrDataAddress.FromTargetAddress(ip, _target)).ToAddress(_target);
             if (md == 0)
             {
-                if (_sos.GetCodeHeaderData(ClrDataAddress.FromAddress(ip, _target), out CodeHeaderData codeHeaderData))
+                if (_sos.GetCodeHeaderData(ClrDataAddress.FromTargetAddress(ip, _target), out CodeHeaderData codeHeaderData))
                     md = codeHeaderData.MethodDesc.ToAddress(_target);
             }
 
@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public bool GetMethodInfo(ulong methodDesc, out MethodInfo methodInfo)
         {
-            if (!_sos.GetMethodDescData(ClrDataAddress.FromAddress(methodDesc, _target), ClrDataAddress.Null, out MethodDescData mdd))
+            if (!_sos.GetMethodDescData(ClrDataAddress.FromTargetAddress(methodDesc, _target), ClrDataAddress.Null, out MethodDescData mdd))
             {
                 methodInfo = default;
                 return false;

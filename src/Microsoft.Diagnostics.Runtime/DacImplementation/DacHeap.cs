@@ -68,7 +68,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             ulong address = threadStore.FirstThread.ToAddress(_target);
             for (int i = 0; i < threadStore.ThreadCount && address != 0; i++)
             {
-                if (!_sos.GetThreadData(ClrDataAddress.FromAddress(address, _target), out ThreadData thread))
+                if (!_sos.GetThreadData(ClrDataAddress.FromTargetAddress(address, _target), out ThreadData thread))
                     break;
 
                 if (thread.AllocationContextPointer.ToAddress(_target) < thread.AllocationContextLimit.ToAddress(_target))
@@ -162,8 +162,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
             if (_sos8 is not null)
             {
-                genData = (address != 0 ? _sos8.GetGenerationTable(ClrDataAddress.FromAddress(address, _target)) : _sos8.GetGenerationTable()) ?? genData;
-                finalization = (address != 0 ? _sos8.GetFinalizationFillPointers(ClrDataAddress.FromAddress(address, _target)) : _sos8.GetFinalizationFillPointers()) ?? finalization;
+                genData = (address != 0 ? _sos8.GetGenerationTable(ClrDataAddress.FromTargetAddress(address, _target)) : _sos8.GetGenerationTable()) ?? genData;
+                finalization = (address != 0 ? _sos8.GetFinalizationFillPointers(ClrDataAddress.FromTargetAddress(address, _target)) : _sos8.GetFinalizationFillPointers()) ?? finalization;
             }
 
             SubHeapInfo subHeapInfo = new()
@@ -241,7 +241,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         private bool TryCreateSegment(SubHeapInfo subHeap, ulong address, int generation, out SegmentInfo segInfo)
         {
-            if (!_sos.GetSegmentData(ClrDataAddress.FromAddress(address, _target), out SegmentData data))
+            if (!_sos.GetSegmentData(ClrDataAddress.FromTargetAddress(address, _target), out SegmentData data))
             {
                 segInfo = default;
                 return false;
@@ -397,7 +397,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (validMts.Contains(mt))
                     return true;
 
-            bool verified = _sos.GetMethodTableData(ClrDataAddress.FromAddress(mt, _target), out _);
+            bool verified = _sos.GetMethodTableData(ClrDataAddress.FromTargetAddress(mt, _target), out _);
             if (verified)
             {
                 lock (validMts)
@@ -411,7 +411,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         {
             DacHeapAnalyzeData analyzeData;
             if (subHeapAddress != 0)
-                _sos.GetHeapAnalyzeData(ClrDataAddress.FromAddress(subHeapAddress, _target), out analyzeData);
+                _sos.GetHeapAnalyzeData(ClrDataAddress.FromTargetAddress(subHeapAddress, _target), out analyzeData);
             else
                 _sos.GetHeapAnalyzeData(out analyzeData);
 
@@ -428,7 +428,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             DacOOMData oomData;
             if (subHeapAddress != 0)
             {
-                if (!_sos.GetOOMData(ClrDataAddress.FromAddress(subHeapAddress, _target), out oomData) || oomData.Reason == OutOfMemoryReason.None && oomData.GetMemoryFailure == GetMemoryFailureReason.None)
+                if (!_sos.GetOOMData(ClrDataAddress.FromTargetAddress(subHeapAddress, _target), out oomData) || oomData.Reason == OutOfMemoryReason.None && oomData.GetMemoryFailure == GetMemoryFailureReason.None)
                 {
                     oomInfo = default;
                     return false;

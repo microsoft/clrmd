@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         public bool GetCcwInfo(ulong obj, out CcwInfo info)
         {
             info = default;
-            if (_sos.GetObjectData(ClrDataAddress.FromAddress(obj, _target), out ObjectData objData) &&
+            if (_sos.GetObjectData(ClrDataAddress.FromTargetAddress(obj, _target), out ObjectData objData) &&
                 !objData.CCW.IsNull &&
                 _sos.GetCCWData(objData.CCW, out CcwData ccwData))
             {
@@ -53,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         public bool GetRcwInfo(ulong obj, out RcwInfo info)
         {
             info = default;
-            if (_sos.GetObjectData(ClrDataAddress.FromAddress(obj, _target), out ObjectData objData) &&
+            if (_sos.GetObjectData(ClrDataAddress.FromTargetAddress(obj, _target), out ObjectData objData) &&
                 !objData.RCW.IsNull &&
                 _sos.GetRCWData(objData.RCW, out RcwData rcwData))
             {

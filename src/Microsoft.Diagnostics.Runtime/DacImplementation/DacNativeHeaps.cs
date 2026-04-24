@@ -89,7 +89,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             HResult hr = default;
             // For back-compat with older versions of CLRMD, SOS returns E_INVALIDARG if you pass in 0 for the sync block.
             // So we will continue on E_INVALIDARG if it is this special case of passing 0 to start enumerating.
-            while ((hr = _sos.GetSyncBlockCleanupData(ClrDataAddress.FromAddress(syncBlock, _target), out SyncBlockCleanupData data)) || (hr == HResult.E_INVALIDARG && syncBlock == 0))
+            while ((hr = _sos.GetSyncBlockCleanupData(ClrDataAddress.FromTargetAddress(syncBlock, _target), out SyncBlockCleanupData data)) || (hr == HResult.E_INVALIDARG && syncBlock == 0))
             {
                 yield return new(data.SyncBlockPointer.ToAddress(_target), data.BlockRCW.ToAddress(_target), data.BlockCCW.ToAddress(_target), data.BlockClassFactory.ToAddress(_target));
 
@@ -129,7 +129,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         {
             List<ClrNativeHeapInfo>? codeLoaderHeaps = null;
 
-            foreach (JitCodeHeapInfo mem in _sos.GetCodeHeapList(ClrDataAddress.FromAddress(jitManager, _target)))
+            foreach (JitCodeHeapInfo mem in _sos.GetCodeHeapList(ClrDataAddress.FromTargetAddress(jitManager, _target)))
             {
                 if (mem.Kind == CodeHeapKind.Loader)
                 {
@@ -157,13 +157,13 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
             ulong loaderAllocator;
             if (_sos13 is not null
-                && (loaderAllocator = _sos13.GetDomainLoaderAllocator(ClrDataAddress.FromAddress(domain, _target)).ToAddress(_target)) != 0
+                && (loaderAllocator = _sos13.GetDomainLoaderAllocator(ClrDataAddress.FromTargetAddress(domain, _target)).ToAddress(_target)) != 0
                 && GetNativeHeaps().Length > 0)
             {
                 foreach (ClrNativeHeapInfo heap in EnumerateLoaderAllocatorNativeHeaps(loaderAllocator))
                     yield return heap;
             }
-            else if (_sos.GetAppDomainData(ClrDataAddress.FromAddress(domain, _target), out AppDomainData data))
+            else if (_sos.GetAppDomainData(ClrDataAddress.FromTargetAddress(domain, _target), out AppDomainData data))
             {
                 foreach (ClrNativeHeapInfo heapInfo in LegacyEnumerateLoaderAllocatorHeaps(data.StubHeap.ToAddress(_target), LoaderHeapKind.LoaderHeapKindNormal, NativeHeapKind.StubHeap))
                     yield return heapInfo;
@@ -191,7 +191,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
             List<ClrNativeHeapInfo>? result = null;
 
-            (ClrDataAddress Address, LoaderHeapKind Kind)[] heaps = _sos13.GetLoaderAllocatorHeaps(ClrDataAddress.FromAddress(loaderAllocator, _target));
+            (ClrDataAddress Address, LoaderHeapKind Kind)[] heaps = _sos13.GetLoaderAllocatorHeaps(ClrDataAddress.FromTargetAddress(loaderAllocator, _target));
             for (int i = 0; i < heaps.Length; i++)
             {
                 HResult hr = _sos13.TraverseLoaderHeap(heaps[i].Address, heaps[i].Kind, (address, size, current) => {
@@ -241,7 +241,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private void TraverseOneStubKind(ulong domain, List<ClrNativeHeapInfo> result, SOSDac.VCSHeapType vcsType, NativeHeapKind heapKind)
         {
             result.Clear();
-            HResult hr = _sos.TraverseStubHeap(ClrDataAddress.FromAddress(domain, _target), vcsType, (address, size, current) => {
+            HResult hr = _sos.TraverseStubHeap(ClrDataAddress.FromTargetAddress(domain, _target), vcsType, (address, size, current) => {
                 result.Add(new(MemoryRange.CreateFromLength(address, SanitizeSize(size)), heapKind, current != 0 ? ClrNativeHeapState.Active : ClrNativeHeapState.Inactive));
             });
 
@@ -272,7 +272,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
                 ulong fixedHeapAddress = FixupHeapAddress(loaderHeap, loaderHeapKind, normalNeedsAdjustment, explicitDoesNotNeedAdjustment);
 
-                HResult hr = _sos.TraverseLoaderHeap(ClrDataAddress.FromAddress(fixedHeapAddress, _target), (address, size, current) => {
+                HResult hr = _sos.TraverseLoaderHeap(ClrDataAddress.FromTargetAddress(fixedHeapAddress, _target), (address, size, current) => {
                     result ??= new(8);
                     result.Add(new(MemoryRange.CreateFromLength(address, SanitizeSize(size)), nativeHeapKind, current != 0 ? ClrNativeHeapState.Active : ClrNativeHeapState.Inactive));
                 });
@@ -295,7 +295,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (retry)
                 {
                     fixedHeapAddress = FixupHeapAddress(loaderHeap, loaderHeapKind, !normalNeedsAdjustment, !explicitDoesNotNeedAdjustment);
-                    hr = _sos.TraverseLoaderHeap(ClrDataAddress.FromAddress(fixedHeapAddress, _target), (address, size, current) => {
+                    hr = _sos.TraverseLoaderHeap(ClrDataAddress.FromTargetAddress(fixedHeapAddress, _target), (address, size, current) => {
                         result ??= new(8);
                         result.Add(new(MemoryRange.CreateFromLength(address, SanitizeSize(size)), nativeHeapKind, current != 0 ? ClrNativeHeapState.Active : ClrNativeHeapState.Inactive));
                     });
@@ -368,7 +368,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 // ISOSDacInterface13 understands how to walk LoaderHeaps properly, but it's only implemented in
                 // .Net 8 and beyond.
 
-                hr = sos13.TraverseLoaderHeap(ClrDataAddress.FromAddress(address, target), kind, callback);
+                hr = sos13.TraverseLoaderHeap(ClrDataAddress.FromTargetAddress(address, target), kind, callback);
             }
             else if (clrInfo.Flavor == ClrFlavor.Core && clrInfo.Version.Major == 7)
             {
@@ -377,7 +377,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (kind == LoaderHeapKind.LoaderHeapKindNormal)
                     address += (uint)target.PointerSize;
 
-                hr = sos.TraverseLoaderHeap(ClrDataAddress.FromAddress(address, target), callback);
+                hr = sos.TraverseLoaderHeap(ClrDataAddress.FromTargetAddress(address, target), callback);
             }
             else
             {
@@ -390,7 +390,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (kind == LoaderHeapKind.LoaderHeapKindExplicitControl)
                     address -= (uint)target.PointerSize;
 
-                hr = sos.TraverseLoaderHeap(ClrDataAddress.FromAddress(address, target), callback);
+                hr = sos.TraverseLoaderHeap(ClrDataAddress.FromTargetAddress(address, target), callback);
             }
 
             GC.KeepAlive(callback);
