@@ -1,6 +1,70 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+//
+// ===== ClrDataAddress: Sign Extension and Marshalling Design =====
+//
+// The CLR DAC uses CLRDATA_ADDRESS (typedef ULONG64) for target-process addresses
+// on the COM wire. On 32-bit targets, the legacy DAC sign-extends addresses with
+// bit 31 set. For example:
+//
+//   32-bit address:       0x80123456
+//   Wire (CLRDATA_ADDRESS): 0xFFFFFFFF_80123456
+//
+// This convention exists for compatibility with WinDbg and OS debugging APIs.
+// The sign extension must be stripped to recover the actual 32-bit address, and
+// re-applied when passing addresses back to the DAC.
+//
+// ---- Runtime (C++) conversion macros (dacimpl.h) ----
+//
+//   TO_CDADDR(taddr):   (CLRDATA_ADDRESS)(LONG_PTR)(taddr)     // sign-extend
+//   CLRDATA_ADDRESS_TO_TADDR(cda):  validates range, then (TADDR)cda  // truncate
+//
+// ---- ClrMD (C#) equivalents ----
+//
+//   FromAddress(addr, target):  (ulong)(long)(int)(uint)addr    // sign-extend
+//   ToAddress(target):          (ulong)(uint)_value             // strip sign-ext
+//
+// The cast chains mirror the C++ macros exactly:
+//   - FromAddress: uint→int (signed reinterpret) →long (sign-extend) →ulong
+//   - ToAddress:   uint (truncate to 32 bits) →ulong (zero-extend)
+//
+// ---- ABI boundary: why we marshal as ulong, not ClrDataAddress ----
+//
+// ClrDataAddress is a readonly struct wrapping a single ulong. On the wire, the
+// DAC's COM vtable declares CLRDATA_ADDRESS params as ULONG64 — a primitive.
+// Different platform ABIs classify single-field structs differently for register
+// passing. Since ClrMD targets netstandard2.0 (no source-generated COM), we can't
+// guarantee a C# struct will be passed identically to a bare ulong.
+//
+// Solution: every vtable slot carrying a CLRDATA_ADDRESS is typed as plain ulong
+// (annotated /*ClrDataAddress*/). Managed wrappers accept ClrDataAddress and call
+// .ToInteropAddress() (a no-op unwrap) before passing to the vtable. Pointer forms
+// (ref/out/ClrDataAddress*) are safe as-is — the ABI sees them as plain pointers.
+//
+// ---- Data flow ----
+//
+//   DacImplementation (ulong)
+//       │ FromAddress(addr, _target)
+//       ▼
+//   SosDac wrapper (ClrDataAddress)
+//       │ .ToInteropAddress()
+//       ▼
+//   Vtable call (ulong on the wire)
+//       │
+//   Native DAC processes request
+//       │
+//   Returns via out struct fields (ClrDataAddress, binary-compatible with ULONG64)
+//       │ .ToAddress(_target)
+//       ▼
+//   DacImplementation (ulong — clean target address)
+//       │
+//   Public API (ulong — ClrObject.Address, ClrType.MethodTable, etc.)
+//
+// ClrDataAddress is confined to DacInterface/ and DacImplementation/. It never
+// leaks into AbstractDac/, Implementation/, or the public API surface.
+//
+
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
