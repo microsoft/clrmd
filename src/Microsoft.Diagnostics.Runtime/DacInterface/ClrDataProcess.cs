@@ -19,11 +19,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly DacLibrary _library;
 
         public ClrDataProcess(DacLibrary library, IntPtr pUnknown)
-            : base(library?.OwningLibrary, IID_IXCLRDataProcess, pUnknown)
+            : base(library.OwningLibrary, IID_IXCLRDataProcess, pUnknown)
         {
-            if (library is null)
-                throw new ArgumentNullException(nameof(library));
-
             _library = library;
         }
 

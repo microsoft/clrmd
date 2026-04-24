@@ -14,14 +14,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     /// </summary>
     internal sealed unsafe class SosDac14 : CallableCOMWrapper
     {
-        private readonly DacLibrary _library;
-
         internal static readonly Guid IID_ISOSDac14 = new("9aa22aca-6dc6-4a0c-b4e0-70d2416b9837");
 
         public SosDac14(DacLibrary library, IntPtr ptr)
-            : base(library?.OwningLibrary, IID_ISOSDac14, ptr)
+            : base(library.OwningLibrary, IID_ISOSDac14, ptr)
         {
-            _library = library ?? throw new ArgumentNullException(nameof(library));
         }
 
         private ref readonly ISOSDac14VTable VTable => ref Unsafe.AsRef<ISOSDac14VTable>(_vtable);

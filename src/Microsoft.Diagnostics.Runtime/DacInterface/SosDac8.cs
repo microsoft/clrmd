@@ -15,12 +15,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         internal static readonly Guid IID_ISOSDac8 = new("c12f35a9-e55c-4520-a894-b3dc5165dfce");
 
-        private readonly DacLibrary _library;
-
         public SOSDac8(DacLibrary library, IntPtr ptr)
-            : base(library?.OwningLibrary, IID_ISOSDac8, ptr)
+            : base(library.OwningLibrary, IID_ISOSDac8, ptr)
         {
-            _library = library ?? throw new ArgumentNullException(nameof(library));
         }
 
         private ref readonly ISOSDac8VTable VTable => ref Unsafe.AsRef<ISOSDac8VTable>(_vtable);

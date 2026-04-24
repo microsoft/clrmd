@@ -28,10 +28,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         // CLRDATA_REQUEST_REVISION version from the DAC
         public int DacVersion { get; set; }
 
-        public SOSDac(DacLibrary? library, IntPtr ptr)
-            : base(library?.OwningLibrary, IID_ISOSDac, ptr)
+        public SOSDac(DacLibrary library, IntPtr ptr)
+            : base(library.OwningLibrary, IID_ISOSDac, ptr)
         {
-            _library = library ?? throw new ArgumentNullException(nameof(library));
+            _library = library;
         }
 
         private ref readonly ISOSDacVTable VTable => ref Unsafe.AsRef<ISOSDacVTable>(_vtable);

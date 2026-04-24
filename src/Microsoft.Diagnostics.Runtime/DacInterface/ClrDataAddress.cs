@@ -125,7 +125,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         /// pointer, un-sign-extending the high 32 bits on 32-bit targets.
         /// </summary>
         public ulong ToAddress(TargetProperties target) =>
-            target.PointerSize == 4 ? (ulong)(uint)_value : _value;
+            target.PointerSize == 4 ? unchecked((ulong)(uint)_value) : _value;
 
         /// <summary>
         /// Creates a <see cref="ClrDataAddress"/> for passing into the DAC. On 32-bit targets

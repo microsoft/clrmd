@@ -20,9 +20,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         internal static readonly Guid IID_ISOSDac13 = new("3176a8ed-597b-4f54-a71f-83695c6a8c5e");
 
         public SOSDac13(DacLibrary library, IntPtr ptr)
-            : base(library?.OwningLibrary, IID_ISOSDac13, ptr)
+            : base(library.OwningLibrary, IID_ISOSDac13, ptr)
         {
-            _library = library ?? throw new ArgumentNullException(nameof(library));
+            _library = library;
         }
 
         private ref readonly ISOSDac13VTable VTable => ref Unsafe.AsRef<ISOSDac13VTable>(_vtable);

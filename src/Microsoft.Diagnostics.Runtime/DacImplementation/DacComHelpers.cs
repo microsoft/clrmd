@@ -33,11 +33,10 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 !objData.CCW.IsNull &&
                 _sos.GetCCWData(objData.CCW, out CcwData ccwData))
             {
-                ulong ccwAddr = objData.CCW.ToAddress(_target);
                 COMInterfacePointerData[]? pointers = _sos.GetCCWInterfaces(objData.CCW, ccwData.InterfaceCount);
                 info = new()
                 {
-                    Address = ccwAddr,
+                    Address = objData.CCW.ToAddress(_target),
                     IUnknown = ccwData.OuterIUnknown.ToAddress(_target),
                     Object = ccwData.ManagedObject.ToAddress(_target),
                     Handle = ccwData.Handle.ToAddress(_target),
@@ -57,11 +56,10 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 !objData.RCW.IsNull &&
                 _sos.GetRCWData(objData.RCW, out RcwData rcwData))
             {
-                ulong rcwAddr = objData.RCW.ToAddress(_target);
                 COMInterfacePointerData[]? pointers = _sos.GetRCWInterfaces(objData.RCW, rcwData.InterfaceCount);
                 info = new()
                 {
-                    Address = rcwAddr,
+                    Address = objData.RCW.ToAddress(_target),
                     IUnknown = rcwData.IUnknownPointer.ToAddress(_target),
                     Object = rcwData.ManagedObject.ToAddress(_target),
                     RefCount = rcwData.RefCount,
