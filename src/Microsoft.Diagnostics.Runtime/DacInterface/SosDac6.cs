@@ -16,7 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         internal static readonly Guid IID_ISOSDac6 = new("11206399-4B66-4EDB-98EA-85654E59AD45");
 
         public SOSDac6(DacLibrary library, IntPtr ptr)
-            : base(library?.OwningLibrary, IID_ISOSDac6, ptr)
+            : base(library.OwningLibrary, IID_ISOSDac6, ptr)
         {
         }
 
@@ -26,15 +26,15 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
         }
 
-        public HResult GetMethodTableCollectibleData(ulong mt, out MethodTableCollectibleData data)
+        public HResult GetMethodTableCollectibleData(ClrDataAddress mt, out MethodTableCollectibleData data)
         {
-            return VTable.GetMethodTableCollectibleData(Self, mt, out data);
+            return VTable.GetMethodTableCollectibleData(Self, mt.ToInteropAddress(), out data);
         }
     }
 
     [StructLayout(LayoutKind.Sequential)]
     internal readonly unsafe struct ISOSDac6VTable
     {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out MethodTableCollectibleData, int> GetMethodTableCollectibleData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out MethodTableCollectibleData, int> GetMethodTableCollectibleData;
     }
 }

@@ -19,6 +19,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         public RefCountedFreeLibrary? OwningLibrary { get; }
 
+        public TargetProperties TargetProperties { get; }
+
         public ClrDataProcess CreateClrDataProcess() => new(this, _clrDataProcess);
 
         public unsafe DacLibrary(DataTarget dataTarget, string dacPath, ulong runtimeBaseAddress, ulong contractDescriptor, bool verifySignature)
@@ -28,6 +30,8 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (dataTarget.ClrVersions.Length == 0)
                 throw new ClrDiagnosticsException("Process is not a CLR process!");
+
+            TargetProperties = new TargetProperties(pointerSize: dataTarget.DataReader.PointerSize);
 
             IDisposable? fileLock = null;
             IntPtr dacLibrary;

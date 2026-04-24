@@ -13,10 +13,12 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
     internal class DacLegacyThreadPool : IAbstractLegacyThreadPool
     {
         private readonly SOSDac _sos;
+        private readonly TargetProperties _target;
 
-        public DacLegacyThreadPool(SOSDac sos)
+        public DacLegacyThreadPool(SOSDac sos, TargetProperties target)
         {
             _sos = sos;
+            _target = target;
         }
 
         public bool GetLegacyThreadPoolData(out LegacyThreadPoolInfo result)
@@ -24,11 +26,11 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             HResult hr = _sos.GetThreadPoolData(out ThreadPoolData data);
             result = new()
             {
-                AsyncTimerCallbackCompletionFPtr = data.AsyncTimerCallbackCompletionFPtr,
+                AsyncTimerCallbackCompletionFPtr = data.AsyncTimerCallbackCompletionFPtr.ToAddress(_target),
                 CpuUtilization = data.CpuUtilization,
                 CurrentLimitTotalCPThreads = data.CurrentLimitTotalCPThreads,
-                FirstUnmanagedWorkRequest = data.FirstUnmanagedWorkRequest,
-                HillClimbingLog = data.HillClimbingLog,
+                FirstUnmanagedWorkRequest = data.FirstUnmanagedWorkRequest.ToAddress(_target),
+                HillClimbingLog = data.HillClimbingLog.ToAddress(_target),
                 HillClimbingLogFirstIndex = data.HillClimbingLogFirstIndex,
                 HillClimbingLogSize = data.HillClimbingLogSize,
                 MaxFreeCPThreads = data.MaxFreeCPThreads,
@@ -50,12 +52,12 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public bool GetLegacyWorkRequestData(ulong workRequest, out LegacyWorkRequestInfo workRequestInfo)
         {
-            bool res = _sos.GetWorkRequestData(workRequest, out WorkRequestData workRequestData);
+            bool res = _sos.GetWorkRequestData(ClrDataAddress.FromTargetAddress(workRequest, _target), out WorkRequestData workRequestData);
             workRequestInfo = new()
             {
-                Function = workRequestData.Function,
-                Context = workRequestData.Context,
-                NextWorkRequest = workRequestData.NextWorkRequest,
+                Function = workRequestData.Function.ToAddress(_target),
+                Context = workRequestData.Context.ToAddress(_target),
+                NextWorkRequest = workRequestData.NextWorkRequest.ToAddress(_target),
             };
 
             return res;

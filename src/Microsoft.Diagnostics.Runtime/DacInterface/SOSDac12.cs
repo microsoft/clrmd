@@ -15,22 +15,28 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         internal static readonly Guid IID_ISOSDac12 = new("1b93bacc-8ca4-432d-943a-3e6e7ec0b0a3");
 
+        private readonly TargetProperties _target;
+
         public SosDac12(DacLibrary library, IntPtr ptr)
-            : base(library?.OwningLibrary, IID_ISOSDac12, ptr)
+            : base(library.OwningLibrary, IID_ISOSDac12, ptr)
         {
+            _target = library.TargetProperties;
         }
 
         private ref readonly ISOSDac12VTable VTable => ref Unsafe.AsRef<ISOSDac12VTable>(_vtable);
 
         public HResult GetGlobalAllocationContext(out ulong allocPtr, out ulong allocLimit)
         {
-            return VTable.GetGlobalAllocationContext(Self, out allocPtr, out allocLimit);
+            HResult hr = VTable.GetGlobalAllocationContext(Self, out ClrDataAddress allocPtrCda, out ClrDataAddress allocLimitCda);
+            allocPtr = allocPtrCda.ToAddress(_target);
+            allocLimit = allocLimitCda.ToAddress(_target);
+            return hr;
         }
 
         [StructLayout(LayoutKind.Sequential)]
         private readonly unsafe struct ISOSDac12VTable
         {
-            public readonly delegate* unmanaged[Stdcall]<IntPtr, out ulong, out ulong, int> GetGlobalAllocationContext;
+            public readonly delegate* unmanaged[Stdcall]<IntPtr, out ClrDataAddress, out ClrDataAddress, int> GetGlobalAllocationContext;
         }
     }
 }

@@ -13,7 +13,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private static readonly Guid IID_IXCLRDataStackWalk = new("E59D8D22-ADA7-49a2-89B5-A415AFCFC95F");
 
         public ClrStackWalk(DacLibrary library, IntPtr pUnk)
-            : base(library?.OwningLibrary, IID_IXCLRDataStackWalk, pUnk)
+            : base(library.OwningLibrary, IID_IXCLRDataStackWalk, pUnk)
         {
         }
 
@@ -21,10 +21,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public ClrDataAddress GetFrameVtable()
         {
-            long ptr = 0xcccccccc;
+            ulong ptr = 0xcccccccc;
 
             HResult hr = VTable.Request(Self, 0xf0000000, 0, null, 8u, (byte*)&ptr);
-            return hr ? new ClrDataAddress(ptr) : default;
+            return hr ? new ClrDataAddress(ptr) : ClrDataAddress.Null;
         }
 
         public HResult Next()

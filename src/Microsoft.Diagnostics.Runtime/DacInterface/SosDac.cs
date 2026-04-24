@@ -23,15 +23,15 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private readonly DacLibrary _library;
         private volatile Dictionary<int, string>? _regNames;
-        private volatile Dictionary<ulong, string>? _frameNames;
+        private volatile Dictionary<ClrDataAddress, string>? _frameNames;
 
         // CLRDATA_REQUEST_REVISION version from the DAC
         public int DacVersion { get; set; }
 
-        public SOSDac(DacLibrary? library, IntPtr ptr)
-            : base(library?.OwningLibrary, IID_ISOSDac, ptr)
+        public SOSDac(DacLibrary library, IntPtr ptr)
+            : base(library.OwningLibrary, IID_ISOSDac, ptr)
         {
-            _library = library ?? throw new ArgumentNullException(nameof(library));
+            _library = library;
         }
 
         private ref readonly ISOSDacVTable VTable => ref Unsafe.AsRef<ISOSDacVTable>(_vtable);
@@ -41,13 +41,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             _library = lib;
         }
 
-        public RejitData[] GetRejitData(ulong md, ulong ip = 0)
+        public RejitData[] GetRejitData(ClrDataAddress md, ClrDataAddress ip = default)
         {
-            HResult hr = VTable.GetMethodDescData(Self, md, ip, out _, 0, null, out int needed);
+            HResult hr = VTable.GetMethodDescData(Self, md.ToInteropAddress(), ip.ToInteropAddress(), out _, 0, null, out int needed);
             if (hr && needed >= 1)
             {
                 RejitData[] result = new RejitData[needed];
-                hr = VTable.GetMethodDescData(Self, md, ip, out _, result.Length, result, out _);
+                hr = VTable.GetMethodDescData(Self, md.ToInteropAddress(), ip.ToInteropAddress(), out _, result.Length, result, out _);
                 if (hr)
                     return result;
             }
@@ -55,9 +55,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return Array.Empty<RejitData>();
         }
 
-        public HResult GetMethodDescData(ulong md, ulong ip, out MethodDescData data)
+        public HResult GetMethodDescData(ClrDataAddress md, ClrDataAddress ip, out MethodDescData data)
         {
-            return VTable.GetMethodDescData(Self, md, ip, out data, 0, null, out _);
+            return VTable.GetMethodDescData(Self, md.ToInteropAddress(), ip.ToInteropAddress(), out data, 0, null, out _);
         }
 
         public HResult GetThreadStoreData(out ThreadStoreData data)
@@ -111,15 +111,15 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (hr)
                 return thread;
 
-            return default;
+            return ClrDataAddress.Null;
         }
 
-        public string? GetMethodDescName(ulong md)
+        public string? GetMethodDescName(ClrDataAddress md)
         {
-            if (md == 0)
+            if (md.IsNull)
                 return null;
 
-            HResult hr = VTable.GetMethodDescName(Self, md, 0, null, out int needed);
+            HResult hr = VTable.GetMethodDescName(Self, md.ToInteropAddress(), 0, null, out int needed);
             if (!hr)
                 return null;
 
@@ -129,7 +129,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 int actuallyNeeded;
                 fixed (byte* bufferPtr = buffer)
                 {
-                    hr = VTable.GetMethodDescName(Self, md, needed, bufferPtr, out actuallyNeeded);
+                    hr = VTable.GetMethodDescName(Self, md.ToInteropAddress(), needed, bufferPtr, out actuallyNeeded);
                     if (!hr)
                         return null;
                 }
@@ -144,7 +144,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     buffer = ArrayPool<byte>.Shared.Rent(actuallyNeeded * sizeof(char));
                     fixed (byte* bufferPtr = buffer)
                     {
-                        hr = VTable.GetMethodDescName(Self, md, actuallyNeeded, bufferPtr, out actuallyNeeded);
+                        hr = VTable.GetMethodDescName(Self, md.ToInteropAddress(), actuallyNeeded, bufferPtr, out actuallyNeeded);
                         if (!hr)
                             return null;
                     }
@@ -158,38 +158,38 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        public ulong GetMethodTableSlot(ulong mt, uint slot)
+        public ClrDataAddress GetMethodTableSlot(ClrDataAddress mt, uint slot)
         {
-            if (mt == 0)
-                return 0;
+            if (mt.IsNull)
+                return ClrDataAddress.Null;
 
-            HResult hr = VTable.GetMethodTableSlot(Self, mt, slot, out ClrDataAddress ip);
+            HResult hr = VTable.GetMethodTableSlot(Self, mt.ToInteropAddress(), slot, out ClrDataAddress ip);
             if (hr)
                 return ip;
 
-            return 0;
+            return ClrDataAddress.Null;
         }
 
-        public HResult GetThreadLocalModuleData(ulong thread, uint index, out ThreadLocalModuleData data)
+        public HResult GetThreadLocalModuleData(ClrDataAddress thread, uint index, out ThreadLocalModuleData data)
         {
-            return VTable.GetThreadLocalModuleData(Self, thread, index, out data);
+            return VTable.GetThreadLocalModuleData(Self, thread.ToInteropAddress(), index, out data);
         }
 
-        public ulong GetILForModule(ulong moduleAddr, uint rva)
+        public ClrDataAddress GetILForModule(ClrDataAddress moduleAddr, uint rva)
         {
-            HResult hr = VTable.GetILForModule(Self, moduleAddr, rva, out ClrDataAddress result);
+            HResult hr = VTable.GetILForModule(Self, moduleAddr.ToInteropAddress(), rva, out ClrDataAddress result);
             if (hr)
                 return result;
 
-            return 0;
+            return ClrDataAddress.Null;
         }
 
-        public COMInterfacePointerData[]? GetCCWInterfaces(ulong ccw, int count)
+        public COMInterfacePointerData[]? GetCCWInterfaces(ClrDataAddress ccw, int count)
         {
             COMInterfacePointerData[] data = new COMInterfacePointerData[count];
             fixed (COMInterfacePointerData* ptr = data)
             {
-                HResult hr = VTable.GetCCWInterfaces(Self, ccw, count, ptr, out int pNeeded);
+                HResult hr = VTable.GetCCWInterfaces(Self, ccw.ToInteropAddress(), count, ptr, out int pNeeded);
                 if (hr)
                     return data;
             }
@@ -197,12 +197,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return null;
         }
 
-        public COMInterfacePointerData[]? GetRCWInterfaces(ulong ccw, int count)
+        public COMInterfacePointerData[]? GetRCWInterfaces(ClrDataAddress ccw, int count)
         {
             COMInterfacePointerData[] data = new COMInterfacePointerData[count];
             fixed (COMInterfacePointerData* ptr = data)
             {
-                HResult hr = VTable.GetRCWInterfaces(Self, ccw, count, ptr, out int pNeeded);
+                HResult hr = VTable.GetRCWInterfaces(Self, ccw.ToInteropAddress(), count, ptr, out int pNeeded);
                 if (hr)
                     return data;
             }
@@ -210,19 +210,19 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return null;
         }
 
-        public HResult GetDomainLocalModuleDataFromModule(ulong module, out DomainLocalModuleData data)
+        public HResult GetDomainLocalModuleDataFromModule(ClrDataAddress module, out DomainLocalModuleData data)
         {
-            return VTable.GetDomainLocalModuleDataFromModule(Self, module, out data);
+            return VTable.GetDomainLocalModuleDataFromModule(Self, module.ToInteropAddress(), out data);
         }
 
-        public HResult GetDomainLocalModuleDataFromAppDomain(ulong appDomain, int id, out DomainLocalModuleData data)
+        public HResult GetDomainLocalModuleDataFromAppDomain(ClrDataAddress appDomain, int id, out DomainLocalModuleData data)
         {
-            return VTable.GetDomainLocalModuleDataFromAppDomain(Self, appDomain, id, out data);
+            return VTable.GetDomainLocalModuleDataFromAppDomain(Self, appDomain.ToInteropAddress(), id, out data);
         }
 
-        public HResult GetWorkRequestData(ulong request, out WorkRequestData data)
+        public HResult GetWorkRequestData(ClrDataAddress request, out WorkRequestData data)
         {
-            return VTable.GetWorkRequestData(Self, request, out data);
+            return VTable.GetWorkRequestData(Self, request.ToInteropAddress(), out data);
         }
 
         public HResult GetThreadPoolData(out ThreadPoolData data)
@@ -235,47 +235,47 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return VTable.GetSyncBlockData(Self, index, out data);
         }
 
-        public string? GetAppBase(ulong domain)
+        public string? GetAppBase(ClrDataAddress domain)
         {
             return GetString(VTable.GetApplicationBase, domain);
         }
 
-        public string? GetConfigFile(ulong domain)
+        public string? GetConfigFile(ClrDataAddress domain)
         {
             return GetString(VTable.GetAppDomainConfigFile, domain);
         }
 
-        public HResult GetCodeHeaderData(ulong ip, out CodeHeaderData codeHeaderData)
+        public HResult GetCodeHeaderData(ClrDataAddress ip, out CodeHeaderData codeHeaderData)
         {
-            if (ip == 0)
+            if (ip.IsNull)
             {
                 codeHeaderData = default;
                 return HResult.E_INVALIDARG;
             }
-            return VTable.GetCodeHeaderData(Self, ip, out codeHeaderData);
+            return VTable.GetCodeHeaderData(Self, ip.ToInteropAddress(), out codeHeaderData);
         }
 
-        public ClrDataAddress GetMethodDescPtrFromFrame(ulong frame)
+        public ClrDataAddress GetMethodDescPtrFromFrame(ClrDataAddress frame)
         {
-            HResult hr = VTable.GetMethodDescPtrFromFrame(Self, frame, out ClrDataAddress data);
+            HResult hr = VTable.GetMethodDescPtrFromFrame(Self, frame.ToInteropAddress(), out ClrDataAddress data);
             if (hr)
                 return data;
 
-            return default;
+            return ClrDataAddress.Null;
         }
 
-        public ClrDataAddress GetMethodDescPtrFromIP(ulong frame)
+        public ClrDataAddress GetMethodDescPtrFromIP(ClrDataAddress frame)
         {
-            HResult hr = VTable.GetMethodDescPtrFromIP(Self, frame, out ClrDataAddress data);
+            HResult hr = VTable.GetMethodDescPtrFromIP(Self, frame.ToInteropAddress(), out ClrDataAddress data);
             if (hr)
                 return data;
 
-            return default;
+            return ClrDataAddress.Null;
         }
 
-        public string GetFrameName(ulong vtable)
+        public string GetFrameName(ClrDataAddress vtable)
         {
-            Dictionary<ulong, string> frameNames = _frameNames ??= new();
+            Dictionary<ClrDataAddress, string> frameNames = _frameNames ??= new();
             lock (frameNames)
             {
                 if (_frameNames.TryGetValue(vtable, out string? cached))
@@ -296,40 +296,40 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return "Unknown Frame";
         }
 
-        public HResult GetFieldInfo(ulong mt, out MethodTableFieldInfo data)
+        public HResult GetFieldInfo(ClrDataAddress mt, out MethodTableFieldInfo data)
         {
-            if (mt == 0)
+            if (mt.IsNull)
             {
                 data = default;
                 return HResult.E_INVALIDARG;
             }
 
-            return VTable.GetMethodTableFieldData(Self, mt, out data);
+            return VTable.GetMethodTableFieldData(Self, mt.ToInteropAddress(), out data);
         }
 
-        public HResult GetFieldData(ulong fieldDesc, out FieldData data)
+        public HResult GetFieldData(ClrDataAddress fieldDesc, out FieldData data)
         {
-            return VTable.GetFieldDescData(Self, fieldDesc, out data);
+            return VTable.GetFieldDescData(Self, fieldDesc.ToInteropAddress(), out data);
         }
 
-        public HResult GetObjectData(ulong obj, out ObjectData data)
+        public HResult GetObjectData(ClrDataAddress obj, out ObjectData data)
         {
-            return VTable.GetObjectData(Self, obj, out data);
+            return VTable.GetObjectData(Self, obj.ToInteropAddress(), out data);
         }
 
-        public HResult GetCCWData(ulong ccw, out CcwData data)
+        public HResult GetCCWData(ClrDataAddress ccw, out CcwData data)
         {
-            return VTable.GetCCWData(Self, ccw, out data);
+            return VTable.GetCCWData(Self, ccw.ToInteropAddress(), out data);
         }
 
-        public HResult GetRCWData(ulong rcw, out RcwData data)
+        public HResult GetRCWData(ClrDataAddress rcw, out RcwData data)
         {
-            return VTable.GetRCWData(Self, rcw, out data);
+            return VTable.GetRCWData(Self, rcw.ToInteropAddress(), out data);
         }
 
-        public IEnumerable<(ulong Rcw, ulong Context, ulong Thread, bool IsFreeThreaded)> EnumerateRCWCleanup(ulong cleanupList)
+        public IEnumerable<(ClrDataAddress Rcw, ClrDataAddress Context, ClrDataAddress Thread, bool IsFreeThreaded)> EnumerateRCWCleanup(ClrDataAddress cleanupList)
         {
-            List<(ulong, ulong, ulong, bool)> result = new();
+            List<(ClrDataAddress, ClrDataAddress, ClrDataAddress, bool)> result = new();
             RcwCleanupTraverse traverse = (rcw, context, thread, freeThreaded, token) =>
             {
                 result.Add((rcw, context, thread, freeThreaded != 0));
@@ -337,37 +337,37 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return result.Count > 16384 ? 0 : 1u;
             };
 
-            VTable.TraverseRCWCleanupList(Self, cleanupList, Marshal.GetFunctionPointerForDelegate(traverse), 0);
+            VTable.TraverseRCWCleanupList(Self, cleanupList.ToInteropAddress(), Marshal.GetFunctionPointerForDelegate(traverse), 0);
 
             GC.KeepAlive(traverse);
             return result;
         }
 
-        public HResult GetSyncBlockCleanupData(ulong syncBlockCleanupPointer, out SyncBlockCleanupData data)
+        public HResult GetSyncBlockCleanupData(ClrDataAddress syncBlockCleanupPointer, out SyncBlockCleanupData data)
         {
-            return VTable.GetSyncBlockCleanupData(Self, syncBlockCleanupPointer, out data);
+            return VTable.GetSyncBlockCleanupData(Self, syncBlockCleanupPointer.ToInteropAddress(), out data);
         }
 
         public delegate uint RcwCleanupTraverse(ClrDataAddress rcw, ClrDataAddress context, ClrDataAddress thread, uint isFreeThreaded, IntPtr token);
 
-        public ClrDataModule? GetClrDataModule(ulong module)
+        public ClrDataModule? GetClrDataModule(ClrDataAddress module)
         {
-            if (module == 0)
+            if (module.IsNull)
                 return null;
 
-            HResult hr = VTable.GetModule(Self, module, out IntPtr iunk);
+            HResult hr = VTable.GetModule(Self, module.ToInteropAddress(), out IntPtr iunk);
             if (hr)
                 return new ClrDataModule(_library, iunk);
 
             return null;
         }
 
-        public MetadataImport? GetMetadataImport(ulong module)
+        public MetadataImport? GetMetadataImport(ClrDataAddress module)
         {
-            if (module == 0)
+            if (module.IsNull)
                 return null;
 
-            HResult hr = VTable.GetModule(Self, module, out IntPtr iunk);
+            HResult hr = VTable.GetModule(Self, module.ToInteropAddress(), out IntPtr iunk);
             if (!hr)
                 return null;
 
@@ -394,42 +394,42 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return VTable.GetUsefulGlobals(Self, out commonMTs);
         }
 
-        public ClrDataAddress[] GetAssemblyList(ulong appDomain) => GetAssemblyList(appDomain, 0);
+        public ClrDataAddress[] GetAssemblyList(ClrDataAddress appDomain) => GetAssemblyList(appDomain, 0);
 
-        public ClrDataAddress[] GetAssemblyList(ulong appDomain, int count) => GetModuleOrAssembly(appDomain, count, VTable.GetAssemblyList);
+        public ClrDataAddress[] GetAssemblyList(ClrDataAddress appDomain, int count) => GetModuleOrAssembly(appDomain, count, VTable.GetAssemblyList);
 
-        public ClrDataAddress[] GetModuleList(ulong assembly) => GetModuleList(assembly, 0);
+        public ClrDataAddress[] GetModuleList(ClrDataAddress assembly) => GetModuleList(assembly, 0);
 
-        public ClrDataAddress[] GetModuleList(ulong assembly, int count) => GetModuleOrAssembly(assembly, count, VTable.GetAssemblyModuleList);
+        public ClrDataAddress[] GetModuleList(ClrDataAddress assembly, int count) => GetModuleOrAssembly(assembly, count, VTable.GetAssemblyModuleList);
 
-        public HResult GetAssemblyData(ulong domain, ulong assembly, out AssemblyData data)
+        public HResult GetAssemblyData(ClrDataAddress domain, ClrDataAddress assembly, out AssemblyData data)
         {
             // The dac seems to have an issue where the assembly data can be filled in for a minidump.
             // If the data is partially filled in, we'll use it.
 
-            HResult hr = VTable.GetAssemblyData(Self, domain, assembly, out data);
+            HResult hr = VTable.GetAssemblyData(Self, domain.ToInteropAddress(), assembly.ToInteropAddress(), out data);
             if (!hr && data.Address == assembly)
                 return HResult.S_FALSE;
 
             return hr;
         }
 
-        public HResult GetAppDomainData(ulong addr, out AppDomainData data)
+        public HResult GetAppDomainData(ClrDataAddress addr, out AppDomainData data)
         {
             // We can face an exception while walking domain data if we catch the process
             // at a bad state.  As a workaround we will return partial data if data.Address
             // and data.StubHeap are set.
 
-            HResult hr = VTable.GetAppDomainData(Self, addr, out data);
-            if (!hr && data.Address == addr && data.StubHeap != 0)
+            HResult hr = VTable.GetAppDomainData(Self, addr.ToInteropAddress(), out data);
+            if (!hr && data.Address == addr && !data.StubHeap.IsNull)
                 return HResult.S_FALSE;
 
             return hr;
         }
 
-        public string? GetAppDomainName(ulong appDomain)
+        public string? GetAppDomainName(ClrDataAddress appDomain)
         {
-            if (appDomain == 0)
+            if (appDomain.IsNull)
             {
                 return null;
             }
@@ -437,7 +437,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return GetString(VTable.GetAppDomainName, appDomain);
         }
 
-        public string? GetAssemblyName(ulong assembly)
+        public string? GetAssemblyName(ClrDataAddress assembly)
         {
             return GetString(VTable.GetAssemblyName, assembly);
         }
@@ -447,35 +447,35 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return VTable.GetAppDomainStoreData(Self, out data);
         }
 
-        public HResult GetMethodTableData(ulong addr, out MethodTableData data)
+        public HResult GetMethodTableData(ClrDataAddress addr, out MethodTableData data)
         {
             // If the 2nd bit is set it means addr is actually a TypeHandle (which GetMethodTable does not support).
-            if (addr == 0 || (addr & 2) == 2)
+            if (addr.IsNull || (addr.ToInteropAddress() & 2) == 2)
             {
                 data = default;
                 return HResult.E_INVALIDARG;
             }
-            return VTable.GetMethodTableData(Self, addr, out data);
+            return VTable.GetMethodTableData(Self, addr.ToInteropAddress(), out data);
         }
 
-        public string? GetMethodTableName(ulong mt)
+        public string? GetMethodTableName(ClrDataAddress mt)
         {
             return GetString(VTable.GetMethodTableName, mt);
         }
 
-        public string? GetJitHelperFunctionName(ulong addr)
+        public string? GetJitHelperFunctionName(ClrDataAddress addr)
         {
             return GetAsciiString(VTable.GetJitHelperFunctionName, addr);
         }
 
-        public string? GetPEFileName(ulong pefile)
+        public string? GetPEFileName(ClrDataAddress pefile)
         {
             return GetString(VTable.GetPEFileName, pefile);
         }
 
-        private string? GetString(delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, int> func, ulong addr, bool skipNull = true)
+        private string? GetString(delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, byte*, out int, int> func, ClrDataAddress addr, bool skipNull = true)
         {
-            HResult hr = func(Self, addr, 0, null, out int needed);
+            HResult hr = func(Self, addr.ToInteropAddress(), 0, null, out int needed);
             if (!hr)
                 return null;
 
@@ -489,7 +489,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             try
             {
                 fixed (byte* bufferPtr = buffer)
-                    hr = func(Self, addr, needed, bufferPtr, out needed);
+                    hr = func(Self, addr.ToInteropAddress(), needed, bufferPtr, out needed);
 
                 if (!hr)
                     return null;
@@ -506,9 +506,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        private string? GetAsciiString(delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, int> func, ulong addr)
+        private string? GetAsciiString(delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, byte*, out int, int> func, ClrDataAddress addr)
         {
-            HResult hr = func(Self, addr, 0, null, out int needed);
+            HResult hr = func(Self, addr.ToInteropAddress(), 0, null, out int needed);
             if (!hr)
                 return null;
 
@@ -521,7 +521,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             try
             {
                 fixed (byte* bufferPtr = buffer)
-                    hr = func(Self, addr, needed, bufferPtr, out needed);
+                    hr = func(Self, addr.ToInteropAddress(), needed, bufferPtr, out needed);
 
                 if (!hr)
                     return null;
@@ -539,26 +539,26 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        public ClrDataAddress GetMethodTableByEEClass(ulong eeclass)
+        public ClrDataAddress GetMethodTableByEEClass(ClrDataAddress eeclass)
         {
-            HResult hr = VTable.GetMethodTableForEEClass(Self, eeclass, out ClrDataAddress data);
+            HResult hr = VTable.GetMethodTableForEEClass(Self, eeclass.ToInteropAddress(), out ClrDataAddress data);
             if (hr)
                 return data;
 
-            return default;
+            return ClrDataAddress.Null;
         }
 
-        public HResult GetModuleData(ulong module, out ModuleData data)
+        public HResult GetModuleData(ClrDataAddress module, out ModuleData data)
         {
-            return VTable.GetModuleData(Self, module, out data);
+            return VTable.GetModuleData(Self, module.ToInteropAddress(), out data);
         }
 
-        private ClrDataAddress[] GetModuleOrAssembly(ulong address, int count, delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, ClrDataAddress*, out int, int> func)
+        private ClrDataAddress[] GetModuleOrAssembly(ClrDataAddress address, int count, delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, ClrDataAddress*, out int, int> func)
         {
             int needed;
             if (count <= 0)
             {
-                if (func(Self, address, 0, null, out needed) < 0)
+                if (func(Self, address.ToInteropAddress(), 0, null, out needed) < 0)
                     return Array.Empty<ClrDataAddress>();
 
                 count = needed;
@@ -567,7 +567,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             // We ignore the return value here since the list may be partially filled
             ClrDataAddress[] modules = new ClrDataAddress[count];
             fixed (ClrDataAddress* ptr = modules)
-                func(Self, address, modules.Length, ptr, out needed);
+                func(Self, address.ToInteropAddress(), modules.Length, ptr, out needed);
 
             return modules;
         }
@@ -590,14 +590,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        public HResult GetThreadData(ulong address, out ThreadData data)
+        public HResult GetThreadData(ClrDataAddress address, out ThreadData data)
         {
-            if (address == 0)
+            if (address.IsNull)
             {
                 data = default;
                 return HResult.E_INVALIDARG;
             }
-            return VTable.GetThreadData(Self, address, out data);
+            return VTable.GetThreadData(Self, address.ToInteropAddress(), out data);
         }
 
         public HResult GetGCHeapData(out GCInfo data)
@@ -607,15 +607,15 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public HResult GetOOMData(out DacOOMData oomData) => VTable.GetOOMStaticData(Self, out oomData);
 
-        public HResult GetOOMData(ulong address, out DacOOMData oomData) => VTable.GetOOMData(Self, address, out oomData);
+        public HResult GetOOMData(ClrDataAddress address, out DacOOMData oomData) => VTable.GetOOMData(Self, address.ToInteropAddress(), out oomData);
 
         public HResult GetHeapAnalyzeData(out DacHeapAnalyzeData analyzeData) => VTable.GetHeapAnalyzeStaticData(Self, out analyzeData);
 
-        public HResult GetHeapAnalyzeData(ulong address, out DacHeapAnalyzeData analyzeData) => VTable.GetHeapAnalyzeData(Self, address, out analyzeData);
+        public HResult GetHeapAnalyzeData(ClrDataAddress address, out DacHeapAnalyzeData analyzeData) => VTable.GetHeapAnalyzeData(Self, address.ToInteropAddress(), out analyzeData);
 
-        public HResult GetSegmentData(ulong addr, out SegmentData data)
+        public HResult GetSegmentData(ClrDataAddress addr, out SegmentData data)
         {
-            return VTable.GetHeapSegmentData(Self, addr, out data);
+            return VTable.GetHeapSegmentData(Self, addr.ToInteropAddress(), out data);
         }
 
         public ClrDataAddress[] GetHeapList(int heapCount)
@@ -628,9 +628,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        public HResult GetServerHeapDetails(ulong addr, out HeapDetails data)
+        public HResult GetServerHeapDetails(ClrDataAddress addr, out HeapDetails data)
         {
-            return VTable.GetGCHeapDetails(Self, addr, out data);
+            return VTable.GetGCHeapDetails(Self, addr.ToInteropAddress(), out data);
         }
 
         public HResult GetWksHeapDetails(out HeapDetails data)
@@ -652,16 +652,16 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        public JitCodeHeapInfo[] GetCodeHeapList(ulong jitManager)
+        public JitCodeHeapInfo[] GetCodeHeapList(ClrDataAddress jitManager)
         {
-            HResult hr = VTable.GetCodeHeapList(Self, jitManager, 0, null, out int needed);
+            HResult hr = VTable.GetCodeHeapList(Self, jitManager.ToInteropAddress(), 0, null, out int needed);
             if (!hr || needed == 0)
                 return Array.Empty<JitCodeHeapInfo>();
 
             JitCodeHeapInfo[] result = new JitCodeHeapInfo[needed];
             fixed (JitCodeHeapInfo* ptr = result)
             {
-                hr = VTable.GetCodeHeapList(Self, jitManager, result.Length, ptr, out needed);
+                hr = VTable.GetCodeHeapList(Self, jitManager.ToInteropAddress(), result.Length, ptr, out needed);
                 return hr ? result : Array.Empty<JitCodeHeapInfo>();
             }
         }
@@ -674,21 +674,21 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public delegate void ModuleMapTraverse(int index, ulong methodTable, IntPtr token);
 
-        public HResult TraverseModuleMap(ModuleMapTraverseKind mt, ulong module, ModuleMapTraverse traverse)
+        public HResult TraverseModuleMap(ModuleMapTraverseKind mt, ClrDataAddress module, ModuleMapTraverse traverse)
         {
-            if (module == 0)
+            if (module.IsNull)
                 return HResult.E_INVALIDARG;
 
-            HResult hr = VTable.TraverseModuleMap(Self, mt, module, Marshal.GetFunctionPointerForDelegate(traverse), IntPtr.Zero);
+            HResult hr = VTable.TraverseModuleMap(Self, mt, module.ToInteropAddress(), Marshal.GetFunctionPointerForDelegate(traverse), IntPtr.Zero);
             GC.KeepAlive(traverse);
             return hr;
         }
 
         public delegate void LoaderHeapTraverse(ulong address, IntPtr size, int isCurrent);
 
-        public HResult TraverseLoaderHeap(ulong heap, LoaderHeapTraverse callback)
+        public HResult TraverseLoaderHeap(ClrDataAddress heap, LoaderHeapTraverse callback)
         {
-            HResult hr = VTable.TraverseLoaderHeap(Self, heap, Marshal.GetFunctionPointerForDelegate(callback));
+            HResult hr = VTable.TraverseLoaderHeap(Self, heap.ToInteropAddress(), Marshal.GetFunctionPointerForDelegate(callback));
             GC.KeepAlive(callback);
             return hr;
         }
@@ -703,12 +703,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             VtableHeap
         }
 
-        public HResult TraverseStubHeap(ulong heap, VCSHeapType type, LoaderHeapTraverse callback)
+        public HResult TraverseStubHeap(ClrDataAddress heap, VCSHeapType type, LoaderHeapTraverse callback)
         {
-            if (heap == 0)
+            if (heap.IsNull)
                 return HResult.E_INVALIDARG;
 
-            HResult hr = VTable.TraverseVirtCallStubHeap(Self, heap, type, Marshal.GetFunctionPointerForDelegate(callback));
+            HResult hr = VTable.TraverseVirtCallStubHeap(Self, heap.ToInteropAddress(), type, Marshal.GetFunctionPointerForDelegate(callback));
             GC.KeepAlive(callback);
             return hr;
         }
@@ -776,13 +776,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return null;
         }
 
-        public ulong GetMethodDescFromToken(ulong module, int token)
+        public ClrDataAddress GetMethodDescFromToken(ClrDataAddress module, int token)
         {
-            HResult hr = VTable.GetMethodDescFromToken(Self, module, token, out ClrDataAddress md);
+            HResult hr = VTable.GetMethodDescFromToken(Self, module.ToInteropAddress(), token, out ClrDataAddress md);
             if (hr)
                 return md;
 
-            return 0;
+            return ClrDataAddress.Null;
         }
         private delegate HResult DacGetJitManagerInfo(IntPtr self, ClrDataAddress addr, out JitManagerData data);
     }
@@ -796,96 +796,96 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         // AppDomains
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out AppDomainStoreData, int> GetAppDomainStoreData;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, int, ClrDataAddress*, out int, int> GetAppDomainList;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out AppDomainData, int> GetAppDomainData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, int> GetAppDomainName;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out AppDomainData, int> GetAppDomainData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, byte*, out int, int> GetAppDomainName;
         public readonly IntPtr GetDomainFromContext;
 
         // Assemblies
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, ClrDataAddress*, out int, int> GetAssemblyList;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, ClrDataAddress, out AssemblyData, int> GetAssemblyData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, int> GetAssemblyName;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, ClrDataAddress*, out int, int> GetAssemblyList;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, ulong /*ClrDataAddress*/, out AssemblyData, int> GetAssemblyData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, byte*, out int, int> GetAssemblyName;
 
         // Modules
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out IntPtr, int> GetModule;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out ModuleData, int> GetModuleData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, SOSDac.ModuleMapTraverseKind, ClrDataAddress, IntPtr, IntPtr, int> TraverseModuleMap;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, ClrDataAddress*, out int, int> GetAssemblyModuleList;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, uint, out ClrDataAddress, int> GetILForModule;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out IntPtr, int> GetModule;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out ModuleData, int> GetModuleData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, SOSDac.ModuleMapTraverseKind, ulong /*ClrDataAddress*/, IntPtr, IntPtr, int> TraverseModuleMap;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, ClrDataAddress*, out int, int> GetAssemblyModuleList;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, uint, out ClrDataAddress, int> GetILForModule;
 
         // Threads
 
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out ThreadData, int> GetThreadData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out ThreadData, int> GetThreadData;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, out ClrDataAddress, int> GetThreadFromThinlockID;
         public readonly IntPtr GetStackLimits;
 
         // MethodDescs
 
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, ulong, out MethodDescData, int, RejitData[]?, out int, int> GetMethodDescData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out ClrDataAddress, int> GetMethodDescPtrFromIP;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, int> GetMethodDescName;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out ClrDataAddress, int> GetMethodDescPtrFromFrame;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, out ClrDataAddress, int> GetMethodDescFromToken;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, ulong /*ClrDataAddress*/, out MethodDescData, int, RejitData[]?, out int, int> GetMethodDescData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out ClrDataAddress, int> GetMethodDescPtrFromIP;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, byte*, out int, int> GetMethodDescName;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out ClrDataAddress, int> GetMethodDescPtrFromFrame;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, out ClrDataAddress, int> GetMethodDescFromToken;
         private readonly IntPtr GetMethodDescTransparencyData;
 
         // JIT Data
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out CodeHeaderData, int> GetCodeHeaderData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out CodeHeaderData, int> GetCodeHeaderData;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, int, JitManagerData*, out int, int> GetJitManagerList;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, int> GetJitHelperFunctionName;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, byte*, out int, int> GetJitHelperFunctionName;
         private readonly IntPtr GetJumpThunkTarget;
 
         // ThreadPool
 
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out ThreadPoolData, int> GetThreadpoolData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out WorkRequestData, int> GetWorkRequestData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out WorkRequestData, int> GetWorkRequestData;
         private readonly IntPtr GetHillClimbingLogEntry;
 
         // Objects
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out ObjectData, int> GetObjectData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out ObjectData, int> GetObjectData;
         public readonly IntPtr GetObjectStringData;
         public readonly IntPtr GetObjectClassName;
 
         // MethodTable
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, int> GetMethodTableName;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out MethodTableData, int> GetMethodTableData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, uint, out ClrDataAddress, int> GetMethodTableSlot;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out MethodTableFieldInfo, int> GetMethodTableFieldData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, byte*, out int, int> GetMethodTableName;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out MethodTableData, int> GetMethodTableData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, uint, out ClrDataAddress, int> GetMethodTableSlot;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out MethodTableFieldInfo, int> GetMethodTableFieldData;
         private readonly IntPtr GetMethodTableTransparencyData;
 
         // EEClass
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out ClrDataAddress, int> GetMethodTableForEEClass;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out ClrDataAddress, int> GetMethodTableForEEClass;
 
         // FieldDesc
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out FieldData, int> GetFieldDescData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out FieldData, int> GetFieldDescData;
 
         // Frames
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, int> GetFrameName;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, byte*, out int, int> GetFrameName;
 
         // PEFiles
         public readonly IntPtr GetPEFileBase;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, int> GetPEFileName;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, byte*, out int, int> GetPEFileName;
 
         // GC
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out GCInfo, int> GetGCHeapData;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, int, ClrDataAddress*, out int, int> GetGCHeapList; // svr only
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out HeapDetails, int> GetGCHeapDetails; // wks only
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out HeapDetails, int> GetGCHeapDetails; // wks only
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out HeapDetails, int> GetGCHeapStaticData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out SegmentData, int> GetHeapSegmentData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out DacOOMData, int> GetOOMData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out SegmentData, int> GetHeapSegmentData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out DacOOMData, int> GetOOMData;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out DacOOMData, int> GetOOMStaticData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out DacHeapAnalyzeData, int> GetHeapAnalyzeData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out DacHeapAnalyzeData, int> GetHeapAnalyzeData;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out DacHeapAnalyzeData, int> GetHeapAnalyzeStaticData;
 
         // DomainLocal
         private readonly IntPtr GetDomainLocalModuleData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, out DomainLocalModuleData, int> GetDomainLocalModuleDataFromAppDomain;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out DomainLocalModuleData, int> GetDomainLocalModuleDataFromModule;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, out DomainLocalModuleData, int> GetDomainLocalModuleDataFromAppDomain;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out DomainLocalModuleData, int> GetDomainLocalModuleDataFromModule;
 
         // ThreadLocal
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, uint, out ThreadLocalModuleData, int> GetThreadLocalModuleData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, uint, out ThreadLocalModuleData, int> GetThreadLocalModuleData;
 
         // SyncBlock
         public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out SyncBlockData, int> GetSyncBlockData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, out SyncBlockCleanupData, int> GetSyncBlockCleanupData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out SyncBlockCleanupData, int> GetSyncBlockCleanupData;
 
         // Handles
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, int> GetHandleEnum;
@@ -900,9 +900,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly IntPtr GetStressLogAddress;
 
         // Heaps
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, IntPtr, int> TraverseLoaderHeap;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, JitCodeHeapInfo*, out int, int> GetCodeHeapList;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, SOSDac.VCSHeapType, IntPtr, int> TraverseVirtCallStubHeap;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, IntPtr, int> TraverseLoaderHeap;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, JitCodeHeapInfo*, out int, int> GetCodeHeapList;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, SOSDac.VCSHeapType, IntPtr, int> TraverseVirtCallStubHeap;
 
         // Other
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out CommonMethodTables, int> GetUsefulGlobals;
@@ -911,11 +911,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly IntPtr GetDacModuleHandle;
 
         // COM
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out RcwData, int> GetRCWData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, COMInterfacePointerData*, out int, int> GetRCWInterfaces;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, out CcwData, int> GetCCWData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, COMInterfacePointerData*, out int, int> GetCCWInterfaces;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, nint, nint, int> TraverseRCWCleanupList;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out RcwData, int> GetRCWData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, COMInterfacePointerData*, out int, int> GetRCWInterfaces;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out CcwData, int> GetCCWData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, COMInterfacePointerData*, out int, int> GetCCWInterfaces;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, nint, nint, int> TraverseRCWCleanupList;
 
         // GC Reference Functions
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint, out IntPtr, int> GetStackReferences;
@@ -928,8 +928,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public readonly IntPtr GetFailedAssemblyList;
         public readonly IntPtr GetPrivateBinPaths;
         public readonly IntPtr GetAssemblyLocation;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, int> GetAppDomainConfigFile;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ClrDataAddress, int, byte*, out int, int> GetApplicationBase;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, byte*, out int, int> GetAppDomainConfigFile;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, byte*, out int, int> GetApplicationBase;
         public readonly IntPtr GetFailedAssemblyData;
         public readonly IntPtr GetFailedAssemblyLocation;
         public readonly IntPtr GetFailedAssemblyDisplayName;

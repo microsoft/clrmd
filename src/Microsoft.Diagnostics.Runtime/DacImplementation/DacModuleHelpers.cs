@@ -16,30 +16,33 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly Dictionary<ulong, DacMetadataReader?> _imports = new();
         private readonly Dictionary<ulong, ClrDataModule?> _modules = new();
         private readonly SOSDac _sos;
+        private readonly TargetProperties _target;
 
-        public DacModuleHelpers(SOSDac sos)
+        public DacModuleHelpers(SOSDac sos, TargetProperties target)
         {
             _sos = sos;
+            _target = target;
         }
 
         public ClrModuleInfo GetModuleInfo(ulong moduleAddress)
         {
-            _sos.GetModuleData(moduleAddress, out ModuleData data);
+            _sos.GetModuleData(ClrDataAddress.FromTargetAddress(moduleAddress, _target), out ModuleData data);
 
+            ulong assemblyAddr = data.Assembly.ToAddress(_target);
             ClrModuleInfo result = new()
             {
                 Address = moduleAddress,
-                Assembly = data.Assembly,
-                AssemblyName = data.Assembly != 0 ? _sos.GetAssemblyName(data.Assembly) : null,
+                Assembly = assemblyAddr,
+                AssemblyName = assemblyAddr != 0 ? _sos.GetAssemblyName(ClrDataAddress.FromTargetAddress(assemblyAddr, _target)) : null,
                 Id = data.ModuleID,
                 Index = data.ModuleIndex,
                 IsPEFile = data.IsPEFile != 0,
-                ImageBase = data.ILBase,
-                MetadataAddress = data.MetadataStart,
+                ImageBase = data.ILBase.ToAddress(_target),
+                MetadataAddress = data.MetadataStart.ToAddress(_target),
                 MetadataSize = data.MetadataSize,
                 IsDynamic = data.IsReflection != 0,
-                ThunkHeap = data.ThunkHeap,
-                LoaderAllocator = data.LoaderAllocator,
+                ThunkHeap = data.ThunkHeap.ToAddress(_target),
+                LoaderAllocator = data.LoaderAllocator.ToAddress(_target),
             };
 
             ClrDataModule? dataModule = GetClrDataModule(moduleAddress);
@@ -62,7 +65,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         {
             int tokenType = kind == SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable ? mdtTypeDef : mdtTypeRef;
             List<(ulong MethodTable, int Token)> result = new();
-            _sos.TraverseModuleMap(kind, module, (token, mt, _) => { result.Add((mt, token | tokenType)); });
+            _sos.TraverseModuleMap(kind, ClrDataAddress.FromTargetAddress(module, _target), (token, mt, _) => { result.Add((mt, token | tokenType)); });
 
             return result;
         }
@@ -112,7 +115,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (_modules.TryGetValue(moduleAddress, out ClrDataModule? dataModule))
                     return dataModule;
 
-            ClrDataModule? result = _sos.GetClrDataModule(moduleAddress);
+            ClrDataModule? result = _sos.GetClrDataModule(ClrDataAddress.FromTargetAddress(moduleAddress, _target));
 
             lock (_modules)
             {

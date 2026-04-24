@@ -19,13 +19,15 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly ClrDataProcess _dac;
         private readonly SOSDac _sos;
         private readonly ISOSDac13? _sos13;
+        private readonly TargetProperties _target;
 
-        public DacRuntime(ClrInfo clrInfo, ClrDataProcess dac, SOSDac sos, ISOSDac13? sos13)
+        public DacRuntime(ClrInfo clrInfo, ClrDataProcess dac, SOSDac sos, ISOSDac13? sos13, TargetProperties target)
         {
             _dataReader = clrInfo.DataTarget.DataReader;
             _dac = dac;
             _sos = sos;
             _sos13 = sos13;
+            _target = target;
 
             int version = 0;
             if (!_dac.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))))
@@ -43,18 +45,17 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 yield break;
 
             HashSet<ulong> seen = new() { 0 };
-            ulong threadAddress = threadStore.FirstThread;
-
-            uint pointerSize = (uint)_dataReader.PointerSize;
+            ClrDataAddress currentThread = threadStore.FirstThread;
+            ulong threadAddress = currentThread.ToAddress(_target);
 
             for (int i = 0; i < threadStore.ThreadCount && seen.Add(threadAddress); i++)
             {
-                if (!_sos.GetThreadData(threadAddress, out ThreadData threadData))
+                if (!_sos.GetThreadData(currentThread, out ThreadData threadData))
                     break;
 
                 ulong ex = 0;
-                if (threadData.LastThrownObjectHandle != 0)
-                    ex = _dataReader.ReadPointer(threadData.LastThrownObjectHandle);
+                if (!threadData.LastThrownObjectHandle.IsNull)
+                    ex = _dataReader.ReadPointer(threadData.LastThrownObjectHandle.ToAddress(_target));
 
                 ulong stackBase = 0;
                 ulong stackLimit = 0;
@@ -67,22 +68,22 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     teb = threadReader.GetThreadTeb(threadData.OSThreadId);
 
                 if (teb == 0)
-                    teb = threadData.Teb;
+                    teb = threadData.Teb.ToAddress(_target);
 
                 if (teb != 0)
                 {
-                    stackBase = _dataReader.ReadPointer(teb + pointerSize);
-                    stackLimit = _dataReader.ReadPointer(teb + pointerSize * 2);
+                    stackBase = _dataReader.ReadPointer(teb + (uint)_target.PointerSize);
+                    stackLimit = _dataReader.ReadPointer(teb + (uint)_target.PointerSize * 2);
                 }
 
                 yield return new()
                 {
                     Address = threadAddress,
-                    AppDomain = threadData.Domain,
+                    AppDomain = threadData.Domain.ToAddress(_target),
                     ExceptionInFlight = ex,
                     GCMode = threadData.PreemptiveGCDisabled == 0 ? GCMode.Preemptive : GCMode.Cooperative,
-                    IsFinalizer = threadStore.FinalizerThread == threadAddress,
-                    IsGC = threadStore.GCThread == threadAddress,
+                    IsFinalizer = threadStore.FinalizerThread.ToAddress(_target) == threadAddress,
+                    IsGC = threadStore.GCThread.ToAddress(_target) == threadAddress,
                     LockCount = threadData.LockCount,
                     ManagedThreadId = threadData.ManagedThreadId < int.MaxValue ? (int)threadData.ManagedThreadId : int.MaxValue,
                     OSThreadId = threadData.OSThreadId,
@@ -92,7 +93,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     Teb = teb,
                 };
 
-                threadAddress = threadData.NextThread;
+                currentThread = threadData.NextThread;
+                threadAddress = currentThread.ToAddress(_target);
             }
         }
 
@@ -101,16 +103,17 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             if (!_sos.GetAppDomainStoreData(out AppDomainStoreData domainStore))
                 throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data. This may indicate the dump was taken before the CLR was fully initialized, or the dump is corrupt or truncated. Failed to request AppDomainStoreData.");
 
-            if (domainStore.SharedDomain != 0)
-                yield return CreateAppDomainInfo(domainStore.SharedDomain, AppDomainKind.Shared, "Shared Domain");
+            if (!domainStore.SharedDomain.IsNull)
+                yield return CreateAppDomainInfo(domainStore.SharedDomain.ToAddress(_target), AppDomainKind.Shared, "Shared Domain");
 
-            if (domainStore.SystemDomain != 0)
-                yield return CreateAppDomainInfo(domainStore.SystemDomain, AppDomainKind.System, "System Domain");
+            if (!domainStore.SystemDomain.IsNull)
+                yield return CreateAppDomainInfo(domainStore.SystemDomain.ToAddress(_target), AppDomainKind.System, "System Domain");
 
-            foreach (ulong domain in _sos.GetAppDomainList())
+            foreach (ClrDataAddress domain in _sos.GetAppDomainList())
             {
+                ulong domainAddr = domain.ToAddress(_target);
                 string name = _sos.GetAppDomainName(domain) ?? "";
-                yield return CreateAppDomainInfo(domain, AppDomainKind.Normal, name);
+                yield return CreateAppDomainInfo(domainAddr, AppDomainKind.Normal, name);
             }
         }
 
@@ -122,20 +125,27 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 Kind = kind,
                 Name = name,
                 Id = int.MinValue,
-                ConfigFile = _sos.GetConfigFile(address),
-                ApplicationBase = _sos.GetAppBase(address),
+                ConfigFile = _sos.GetConfigFile(ClrDataAddress.FromTargetAddress(address, _target)),
+                ApplicationBase = _sos.GetAppBase(ClrDataAddress.FromTargetAddress(address, _target)),
             };
 
-            if (_sos.GetAppDomainData(address, out AppDomainData data))
+            if (_sos.GetAppDomainData(ClrDataAddress.FromTargetAddress(address, _target), out AppDomainData data))
                 result.Id = data.Id;
 
             if (_sos13 is not null)
-                result.LoaderAllocator = _sos13.GetDomainLoaderAllocator(address);
+            {
+                result.LoaderAllocator = _sos13.GetDomainLoaderAllocator(ClrDataAddress.FromTargetAddress(address, _target)).ToAddress(_target);
+            }
 
             return result;
         }
 
-        public IEnumerable<ulong> GetModuleList(ulong domain) => _sos.GetAssemblyList(domain).SelectMany(assembly => _sos.GetModuleList(assembly)).Select(module => (ulong)module);
+        public IEnumerable<ulong> GetModuleList(ulong domain)
+        {
+            return _sos.GetAssemblyList(ClrDataAddress.FromTargetAddress(domain, _target))
+                .SelectMany(assembly => _sos.GetModuleList(assembly))
+                .Select(module => module.ToAddress(_target));
+        }
 
         public IEnumerable<ClrHandleInfo> EnumerateHandles()
         {
@@ -145,13 +155,14 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
             foreach (HandleData handle in handleEnum.ReadHandles())
             {
+                ulong handleAddr = handle.Handle.ToAddress(_target);
                 yield return new ClrHandleInfo()
                 {
-                    Address = handle.Handle,
-                    Object = _dataReader.ReadPointer(handle.Handle),
+                    Address = handleAddr,
+                    Object = _dataReader.ReadPointer(handleAddr),
                     Kind = (ClrHandleKind)handle.Type,
-                    AppDomain = handle.AppDomain,
-                    DependentTarget = handle.Secondary,
+                    AppDomain = handle.AppDomain.ToAddress(_target),
+                    DependentTarget = handle.Secondary.ToAddress(_target),
                     RefCount = handle.IsPegged != 0 ? handle.JupiterRefCount : handle.RefCount,
                 };
             }
@@ -162,12 +173,12 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             foreach (JitManagerData jitMgr in _sos.GetJitManagers())
                 yield return new()
                 {
-                    Address = jitMgr.Address,
+                    Address = jitMgr.Address.ToAddress(_target),
                     Kind = jitMgr.Kind,
-                    HeapList = jitMgr.HeapList,
+                    HeapList = jitMgr.HeapList.ToAddress(_target),
                 };
         }
 
-        public string? GetJitHelperFunctionName(ulong address) => _sos.GetJitHelperFunctionName(address);
+        public string? GetJitHelperFunctionName(ulong address) => _sos.GetJitHelperFunctionName(ClrDataAddress.FromTargetAddress(address, _target));
     }
 }
