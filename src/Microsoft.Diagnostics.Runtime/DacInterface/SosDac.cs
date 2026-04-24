@@ -820,7 +820,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         // MethodDescs
 
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, ulong, out MethodDescData, int, RejitData[]?, out int, int> GetMethodDescData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, ulong /*ClrDataAddress*/, out MethodDescData, int, RejitData[]?, out int, int> GetMethodDescData;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out ClrDataAddress, int> GetMethodDescPtrFromIP;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, int, byte*, out int, int> GetMethodDescName;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out ClrDataAddress, int> GetMethodDescPtrFromFrame;
@@ -885,7 +885,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         // SyncBlock
         public readonly delegate* unmanaged[Stdcall]<IntPtr, int, out SyncBlockData, int> GetSyncBlockData;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, out SyncBlockCleanupData, int> GetSyncBlockCleanupData;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, out SyncBlockCleanupData, int> GetSyncBlockCleanupData;
 
         // Handles
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, int> GetHandleEnum;
