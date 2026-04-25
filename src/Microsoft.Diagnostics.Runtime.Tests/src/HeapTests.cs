@@ -9,8 +9,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class HeapTests
     {
-        public static IEnumerable<object[]> TypesWithSingleFile => TestVariants.WithSingleFile(TestTargets.Types);
-        public static IEnumerable<object[]> GCRootWithSingleFile => TestVariants.WithSingleFile(TestTargets.GCRoot);
+        public static IEnumerable<object[]> TypesWithSingleFile => TestVariants.WithSingleFileAndDataReader(TestTargets.Types);
+        public static IEnumerable<object[]> GCRootWithSingleFile => TestVariants.WithSingleFileAndDataReader(TestTargets.GCRoot);
 
         /// <summary>
         /// Sanity check: when running under the HighBit harness on 32-bit Windows, at least one
@@ -29,10 +29,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Theory, MemberData(nameof(TypesWithSingleFile))]
-        public void HeapEnumeration(DumpVariant variant, bool singleFile)
+        public void HeapEnumeration(DumpVariant variant, bool singleFile, DataReaderKind reader)
         {
             // Simply test that we can enumerate the heap.
-            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile, options: reader.ToOptions());
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -60,10 +60,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Theory, MemberData(nameof(TypesWithSingleFile))]
-        public void AllocationContextLocation(DumpVariant variant, bool singleFile)
+        public void AllocationContextLocation(DumpVariant variant, bool singleFile, DataReaderKind reader)
         {
             // Simply test that we can enumerate the heap.
-            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile, options: reader.ToOptions());
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -84,10 +84,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Theory, MemberData(nameof(TypesWithSingleFile))]
-        public void SegmentEnumeration(DumpVariant variant, bool singleFile)
+        public void SegmentEnumeration(DumpVariant variant, bool singleFile, DataReaderKind reader)
         {
             // Simply test that we can enumerate the heap.
-            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile, options: reader.ToOptions());
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -109,9 +109,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Theory, MemberData(nameof(TypesWithSingleFile))]
-        public void NextObject(DumpVariant variant, bool singleFile)
+        public void NextObject(DumpVariant variant, bool singleFile, DataReaderKind reader)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile, options: reader.ToOptions());
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -139,9 +139,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Theory, MemberData(nameof(TypesWithSingleFile))]
-        public void PrevObject(DumpVariant variant, bool singleFile)
+        public void PrevObject(DumpVariant variant, bool singleFile, DataReaderKind reader)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile, options: reader.ToOptions());
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -165,9 +165,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
 
         [Theory, MemberData(nameof(TypesWithSingleFile))]
-        public void EnumerateRange(DumpVariant variant, bool singleFile)
+        public void EnumerateRange(DumpVariant variant, bool singleFile, DataReaderKind reader)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile, options: reader.ToOptions());
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -205,10 +205,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Theory, MemberData(nameof(TypesWithSingleFile))]
-        public void HeapEnumerationWhileClearingCache(DumpVariant variant, bool singleFile)
+        public void HeapEnumerationWhileClearingCache(DumpVariant variant, bool singleFile, DataReaderKind reader)
         {
             // Simply test that we can enumerate the heap.
-            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile, options: reader.ToOptions());
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
             ClrObject[] objects = heap.EnumerateObjects().ToArray();
@@ -228,9 +228,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Theory, MemberData(nameof(TypesWithSingleFile))]
-        public void ServerSegmentTests(DumpVariant variant, bool singleFile)
+        public void ServerSegmentTests(DumpVariant variant, bool singleFile, DataReaderKind reader)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile, gc: GCMode.Server);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile, gc: GCMode.Server, options: reader.ToOptions());
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -240,9 +240,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Theory, MemberData(nameof(TypesWithSingleFile))]
-        public void WorkstationSegmentTests(DumpVariant variant, bool singleFile)
+        public void WorkstationSegmentTests(DumpVariant variant, bool singleFile, DataReaderKind reader)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile, gc: GCMode.Workstation);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant, singleFile, gc: GCMode.Workstation, options: reader.ToOptions());
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -312,9 +312,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Theory, MemberData(nameof(GCRootWithSingleFile))]
-        public void MarkerCreation(DumpVariant variant, bool singleFile)
+        public void MarkerCreation(DumpVariant variant, bool singleFile, DataReaderKind reader)
         {
-            using DataTarget dt = TestTargets.GCRoot.LoadFullDump(variant, singleFile, gc: GCMode.Workstation);
+            using DataTarget dt = TestTargets.GCRoot.LoadFullDump(variant, singleFile, gc: GCMode.Workstation, options: reader.ToOptions());
             using ClrRuntime rt = dt.ClrVersions.Single().CreateRuntime();
 
             foreach (ClrSegment seg in rt.Heap.Segments)

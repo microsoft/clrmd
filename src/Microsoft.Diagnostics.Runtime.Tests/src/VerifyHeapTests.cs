@@ -14,23 +14,24 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class VerifyHeapTests
     {
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void ServerNoCorruption(bool singleFile)
+        public static IEnumerable<object[]> SingleFileWithReader =>
+            from singleFile in new[] { false, true }
+            from reader in new[] { DataReaderKind.Standard, DataReaderKind.LockFreeMmf }
+            select new object[] { singleFile, reader };
+
+        [Theory, MemberData(nameof(SingleFileWithReader))]
+        public void ServerNoCorruption(bool singleFile, DataReaderKind reader)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile, gc: GCMode.Server);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile, gc: GCMode.Server, options: reader.ToOptions());
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
             Assert.Empty(heap.VerifyHeap());
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void WorkstationNoCorruption(bool singleFile)
+        [Theory, MemberData(nameof(SingleFileWithReader))]
+        public void WorkstationNoCorruption(bool singleFile, DataReaderKind reader)
         {
-            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile, gc: GCMode.Workstation);
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile, gc: GCMode.Workstation, options: reader.ToOptions());
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
             Assert.Empty(heap.VerifyHeap());

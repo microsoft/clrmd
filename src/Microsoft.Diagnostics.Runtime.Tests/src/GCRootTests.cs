@@ -10,12 +10,18 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class GCRootTests
     {
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void TestEnumerateRefsWithFieldsArrayFieldValues(bool singleFile)
+        public static IEnumerable<object[]> SingleFileWithReader =>
+            from singleFile in new[] { false, true }
+            from reader in new[] { DataReaderKind.Standard, DataReaderKind.LockFreeMmf }
+            select new object[] { singleFile, reader };
+
+        public static IEnumerable<object[]> ReaderOnly =>
+            new[] { DataReaderKind.Standard, DataReaderKind.LockFreeMmf }.Select(r => new object[] { r });
+
+        [Theory, MemberData(nameof(SingleFileWithReader))]
+        public void TestEnumerateRefsWithFieldsArrayFieldValues(bool singleFile, DataReaderKind reader)
         {
-            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(singleFile);
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(singleFile, options: reader.ToOptions());
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -43,12 +49,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void TestEnumerateRefsWithFields(bool singleFile)
+        [Theory, MemberData(nameof(SingleFileWithReader))]
+        public void TestEnumerateRefsWithFields(bool singleFile, DataReaderKind reader)
         {
-            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(singleFile);
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(singleFile, options: reader.ToOptions());
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -91,12 +95,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             throw new InvalidOperationException($"Did not find a SingleRef pointing to a {targetTypeName}.");
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void EnumerateGCRefs(bool singleFile)
+        [Theory, MemberData(nameof(SingleFileWithReader))]
+        public void EnumerateGCRefs(bool singleFile, DataReaderKind reader)
         {
-            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(singleFile);
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(singleFile, options: reader.ToOptions());
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -118,12 +120,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void EnumerateGCRefsArray(bool singleFile)
+        [Theory, MemberData(nameof(SingleFileWithReader))]
+        public void EnumerateGCRefsArray(bool singleFile, DataReaderKind reader)
         {
-            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(singleFile);
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(singleFile, options: reader.ToOptions());
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -140,10 +140,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal("DoubleRef", obj.Type.Name);
         }
 
-        [WindowsOrNet11Fact]
-        public void GCRoots()
+        [WindowsOrNet11Theory, MemberData(nameof(ReaderOnly))]
+        public void GCRoots(DataReaderKind reader)
         {
-            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(options: reader.ToOptions());
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -151,20 +151,20 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ContainsPathsToTarget(heap, 0, target);
         }
 
-        [WindowsOrNet11Fact]
-        public void GCRootsPredicate()
+        [WindowsOrNet11Theory, MemberData(nameof(ReaderOnly))]
+        public void GCRootsPredicate(DataReaderKind reader)
         {
-            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(options: reader.ToOptions());
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
             ContainsPathsToTarget(heap, 0, (obj) => obj.Type?.Name == "TargetType");
         }
 
-        [WindowsOrNet11Fact]
-        public void GCRootsDirectHandles()
+        [WindowsOrNet11Theory, MemberData(nameof(ReaderOnly))]
+        public void GCRootsDirectHandles(DataReaderKind reader)
         {
-            using DataTarget dataTarget = TestTargets.GCRoot2.LoadFullDump();
+            using DataTarget dataTarget = TestTargets.GCRoot2.LoadFullDump(options: reader.ToOptions());
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -173,10 +173,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ContainsPathsToTarget(heap, 0, target);
         }
 
-        [WindowsOrNet11Fact]
-        public void GCRootsIndirectHandles()
+        [WindowsOrNet11Theory, MemberData(nameof(ReaderOnly))]
+        public void GCRootsIndirectHandles(DataReaderKind reader)
         {
-            using DataTarget dataTarget = TestTargets.GCRoot2.LoadFullDump();
+            using DataTarget dataTarget = TestTargets.GCRoot2.LoadFullDump(options: reader.ToOptions());
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -184,10 +184,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ContainsPathsToTarget(heap, 0, target);
         }
 
-        [WindowsOrNet11Fact]
-        public void FindAllPaths()
+        [WindowsOrNet11Theory, MemberData(nameof(ReaderOnly))]
+        public void FindAllPaths(DataReaderKind reader)
         {
-            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump();
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(options: reader.ToOptions());
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -201,12 +201,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// paths as individual fresh instances.  Before the fix, successful searches left
         /// unwalked children in _seen, blocking later FindPathFrom calls.
         /// </summary>
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void FindPathFromDoesNotPoisonSeenAcrossCalls(bool singleFile)
+        [Theory, MemberData(nameof(SingleFileWithReader))]
+        public void FindPathFromDoesNotPoisonSeenAcrossCalls(bool singleFile, DataReaderKind reader)
         {
-            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(singleFile);
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(singleFile, options: reader.ToOptions());
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
@@ -249,12 +247,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// Stress test: repeats the shared-vs-fresh GCRoot comparison many times
         /// to catch order-dependent flakiness.
         /// </summary>
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void FindPathFromSeenStressTest(bool singleFile)
+        [Theory, MemberData(nameof(SingleFileWithReader))]
+        public void FindPathFromSeenStressTest(bool singleFile, DataReaderKind reader)
         {
-            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(singleFile);
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(singleFile, options: reader.ToOptions());
             using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
             ClrHeap heap = runtime.Heap;
 
