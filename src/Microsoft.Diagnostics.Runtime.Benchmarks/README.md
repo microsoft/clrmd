@@ -1,7 +1,7 @@
 # Microsoft.Diagnostics.Runtime.Benchmarks
 
 [BenchmarkDotNet][bdn] benchmarks comparing ClrMD's default reader against the
-opt-in lock-free MMF reader (`DataTargetOptions.UseSingleThreadedDataReader`).
+opt-in lock-free MMF reader (`DataTargetOptions.UseLockFreeMemoryMapReader`).
 
 ## What's measured
 

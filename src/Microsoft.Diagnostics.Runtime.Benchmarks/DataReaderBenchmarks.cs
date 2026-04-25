@@ -66,7 +66,7 @@ public class DataReaderBenchmarks
     {
         DataTargetOptions opts = new()
         {
-            UseSingleThreadedDataReader = Reader == DataReaderKind.LockFreeMmf,
+            UseLockFreeMemoryMapReader = Reader == DataReaderKind.LockFreeMmf,
             VerifyDacOnWindows = false,
         };
 

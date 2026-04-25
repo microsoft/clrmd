@@ -335,7 +335,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             // Lock-free MMF data reader is opt-in and only applies when the inner reader can hand
             // us its memory-segment table (Minidump, ELF coredump, Mach-O coredump).
-            if (options.UseSingleThreadedDataReader && reader is IDumpFileMemorySource)
+            if (options.UseLockFreeMemoryMapReader && reader is IDumpFileMemorySource)
                 reader = new LockFreeMmfDataReader(filePath, reader);
 
             return new DataTarget(reader, options);

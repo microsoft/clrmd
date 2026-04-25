@@ -87,15 +87,57 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _innerThreads = inner as IThreadReader;
             _innerInfo = inner as IDumpInfoProvider;
 
-            _mmf = MemoryMappedFile.CreateFromFile(dumpPath, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
-            _accessor = _mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
-            _viewLength = (long)_accessor.SafeMemoryMappedViewHandle.ByteLength;
+            MemoryMappedFile? mmf = null;
+            MemoryMappedViewAccessor? accessor = null;
+            try
+            {
+                mmf = MemoryMappedFile.CreateFromFile(dumpPath, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
+                accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
+                _viewLength = (long)accessor.SafeMemoryMappedViewHandle.ByteLength;
 
-            byte* ptr = null;
-            _accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
-            _basePtr = ptr + _accessor.PointerOffset;
+                byte* ptr = null;
+                accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
+                _basePtr = ptr + accessor.PointerOffset;
+
+                _mmf = mmf;
+                _accessor = accessor;
+            }
+            catch (Exception ex) when (IsAddressSpaceExhaustion(ex))
+            {
+                accessor?.Dispose();
+                mmf?.Dispose();
+                throw new OutOfMemoryException(BuildOomMessage(dumpPath), ex);
+            }
 
             _segments = BuildSegments(segmentSource.EnumerateMemorySegments());
+        }
+
+        private static bool IsAddressSpaceExhaustion(Exception ex)
+            => ex is OutOfMemoryException or IOException;
+
+        private static string BuildOomMessage(string dumpPath)
+        {
+            long fileSize = -1;
+            try { fileSize = new FileInfo(dumpPath).Length; } catch { }
+
+            string sizeNote = fileSize >= 0
+                ? $" (dump file is {fileSize / (1024.0 * 1024.0 * 1024.0):F2} GB)"
+                : string.Empty;
+
+            if (!Environment.Is64BitProcess)
+            {
+                return $"Failed to memory-map dump file{sizeNote}. " +
+                    $"This is most likely caused by 32-bit address space exhaustion: " +
+                    $"{nameof(DataTargetOptions)}.{nameof(DataTargetOptions.UseLockFreeMemoryMapReader)} " +
+                    $"maps the entire dump file into the current process. " +
+                    $"Disable {nameof(DataTargetOptions.UseLockFreeMemoryMapReader)} (the default) " +
+                    $"or run as a 64-bit process to load large dumps.";
+            }
+
+            return $"Failed to memory-map dump file{sizeNote} while initializing the lock-free " +
+                $"memory-mapped data reader ({nameof(DataTargetOptions.UseLockFreeMemoryMapReader)}). " +
+                $"Disable {nameof(DataTargetOptions.UseLockFreeMemoryMapReader)} (the default) to fall back " +
+                $"to the streaming reader.";
         }
 
         private Segment[] BuildSegments(IReadOnlyList<DumpMemorySegment> source)

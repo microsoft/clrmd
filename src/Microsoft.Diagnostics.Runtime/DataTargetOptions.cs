@@ -115,6 +115,13 @@ public class DataTargetOptions
     /// <see cref="IDataReader"/> is NOT thread safe; callers must serialize all access to the
     /// <see cref="DataTarget"/>, <see cref="ClrRuntime"/>, and <see cref="ClrHeap"/>.
     /// </para>
+    ///
+    /// <para>
+    /// <b>32-bit warning:</b> This option memory-maps the entire dump file. On a 32-bit process
+    /// the user-mode address space is ~2 GB, so dumps approaching or exceeding that size will fail
+    /// to map and produce an <see cref="System.OutOfMemoryException"/>. Disable this option (or run
+    /// as a 64-bit process) when loading large dumps from a 32-bit host.
+    /// </para>
     /// </summary>
-    public bool UseSingleThreadedDataReader { get; init; }
+    public bool UseLockFreeMemoryMapReader { get; init; }
 }

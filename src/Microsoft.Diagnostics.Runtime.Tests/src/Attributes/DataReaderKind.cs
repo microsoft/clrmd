@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         Standard,
 
         /// <summary>
-        /// The opt-in <see cref="DataTargetOptions.UseSingleThreadedDataReader"/>
+        /// The opt-in <see cref="DataTargetOptions.UseLockFreeMemoryMapReader"/>
         /// reader: single-threaded, lock-free, memory-mapped over the dump file.
         /// </summary>
         LockFreeMmf,
@@ -32,6 +32,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// Returns a <see cref="DataTargetOptions"/> configured for this reader kind.
         /// </summary>
         public static DataTargetOptions ToOptions(this DataReaderKind kind)
-            => new() { UseSingleThreadedDataReader = kind == DataReaderKind.LockFreeMmf };
+            => new() { UseLockFreeMemoryMapReader = kind == DataReaderKind.LockFreeMmf };
     }
 }
