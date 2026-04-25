@@ -34,6 +34,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private readonly ClrTypeFactory _typeFactory;
         private readonly IMemoryReader _memoryReader;
+        private readonly ISegmentedDirectMemoryAccess? _directMemoryAccess;
         private volatile Dictionary<ulong, ulong>? _allocationContexts;
         private volatile (ulong Source, ulong Target)[]? _dependentHandles;
         private volatile SyncBlockContainer? _syncBlocks;
@@ -45,6 +46,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             Runtime = runtime;
             _memoryReader = memoryReader;
+            _directMemoryAccess = memoryReader as ISegmentedDirectMemoryAccess;
             _firstChar = (uint)memoryReader.PointerSize + 4;
             _stringLength = (uint)memoryReader.PointerSize;
             Helpers = helpers;
@@ -939,16 +941,59 @@ namespace Microsoft.Diagnostics.Runtime
                     }
 
                     int intSize = (int)size;
-                    byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
-                    int read = _memoryReader.Read(obj, new Span<byte>(buffer, 0, intSize));
-                    if (read > _memoryReader.PointerSize)
+                    int max = intSize / _memoryReader.PointerSize + 1;
+                    ulong[] refsBuf = ArrayPool<ulong>.Shared.Rent(max);
+                    int[] offsBuf = ArrayPool<int>.Shared.Rent(max);
+                    int n = WalkObjectRefs(obj, intSize, gcdesc, refsBuf, offsBuf);
+                    for (int i = 0; i < n; i++)
                     {
-                        foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
-                            yield return new(reference, GetObjectType(reference) ?? ErrorType);
+                        ulong reference = refsBuf[i];
+                        yield return new(reference, GetObjectType(reference) ?? ErrorType);
                     }
-
-                    ArrayPool<byte>.Shared.Return(buffer);
+                    ArrayPool<ulong>.Shared.Return(refsBuf);
+                    ArrayPool<int>.Shared.Return(offsBuf);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Materializes <paramref name="gcdesc"/>'s reference walk into the caller-supplied
+        /// pooled buffers. Tries the zero-copy direct-span fast path
+        /// (<see cref="ISegmentedDirectMemoryAccess"/>) and falls back to the legacy
+        /// Read+ArrayPool path when the underlying reader doesn't support direct mapping
+        /// or the object spans a segment boundary.
+        /// </summary>
+        /// <returns>Number of references written into <paramref name="refsBuf"/> /
+        /// <paramref name="offsBuf"/>.</returns>
+        private int WalkObjectRefs(ulong obj, int intSize, GCDesc gcdesc, ulong[] refsBuf, int[] offsBuf)
+        {
+            ISegmentedDirectMemoryAccess? direct = _directMemoryAccess;
+            if (direct is not null && direct.TryGetDirectSpan(obj, intSize, out ReadOnlySpan<byte> span))
+            {
+                return gcdesc.WalkObjectIntoBuffer(span, intSize, refsBuf, offsBuf);
+            }
+
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
+            try
+            {
+                int read = _memoryReader.Read(obj, new Span<byte>(buffer, 0, intSize));
+                if (read <= _memoryReader.PointerSize)
+                    return 0;
+
+                int count = 0;
+                foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
+                {
+                    if (count >= refsBuf.Length)
+                        break;
+                    refsBuf[count] = reference;
+                    offsBuf[count] = offset;
+                    count++;
+                }
+                return count;
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
             }
         }
 
@@ -1009,19 +1054,21 @@ namespace Microsoft.Diagnostics.Runtime
                     }
 
                     int intSize = (int)size;
-                    byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
-                    int read = _memoryReader.Read(obj, new Span<byte>(buffer, 0, intSize));
-                    if (read > _memoryReader.PointerSize)
+                    int max = intSize / _memoryReader.PointerSize + 1;
+                    ulong[] refsBuf = ArrayPool<ulong>.Shared.Rent(max);
+                    int[] offsBuf = ArrayPool<int>.Shared.Rent(max);
+                    int n = WalkObjectRefs(obj, intSize, gcdesc, refsBuf, offsBuf);
+                    for (int i = 0; i < n; i++)
                     {
-                        foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
-                        {
-                            ClrObject target = new(reference, GetObjectType(reference) ?? ErrorType);
+                        ulong reference = refsBuf[i];
+                        int offset = offsBuf[i];
+                        ClrObject target = new(reference, GetObjectType(reference) ?? ErrorType);
 
-                            DebugOnly.Assert(offset >= _memoryReader.PointerSize);
-                            yield return ClrReference.CreateFromFieldOrArray(target, type, offset - _memoryReader.PointerSize);
-                        }
+                        DebugOnly.Assert(offset >= _memoryReader.PointerSize);
+                        yield return ClrReference.CreateFromFieldOrArray(target, type, offset - _memoryReader.PointerSize);
                     }
-                    ArrayPool<byte>.Shared.Return(buffer);
+                    ArrayPool<ulong>.Shared.Return(refsBuf);
+                    ArrayPool<int>.Shared.Return(offsBuf);
                 }
             }
         }
@@ -1079,17 +1126,17 @@ namespace Microsoft.Diagnostics.Runtime
                     }
 
                     int intSize = (int)size;
-                    byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
-                    int read = _memoryReader.Read(obj, new Span<byte>(buffer, 0, intSize));
-                    if (read > _memoryReader.PointerSize)
+                    int max = intSize / _memoryReader.PointerSize + 1;
+                    ulong[] refsBuf = ArrayPool<ulong>.Shared.Rent(max);
+                    int[] offsBuf = ArrayPool<int>.Shared.Rent(max);
+                    int n = WalkObjectRefs(obj, intSize, gcdesc, refsBuf, offsBuf);
+                    for (int i = 0; i < n; i++)
                     {
-                        foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, read))
-                        {
-                            yield return reference;
-                            DebugOnly.Assert(offset >= _memoryReader.PointerSize);
-                        }
+                        yield return refsBuf[i];
+                        DebugOnly.Assert(offsBuf[i] >= _memoryReader.PointerSize);
                     }
-                    ArrayPool<byte>.Shared.Return(buffer);
+                    ArrayPool<ulong>.Shared.Return(refsBuf);
+                    ArrayPool<int>.Shared.Return(offsBuf);
                 }
             }
         }
@@ -1357,14 +1404,47 @@ namespace Microsoft.Diagnostics.Runtime
                         return index;
 
                 ulong freeMt = seg.SubHeap.Heap.FreeType.MethodTable;
-                byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
-                int read = _memoryReader.Read(obj, new Span<byte>(buffer, 0, intSize));
-                if (read != intSize)
-                    if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, read >= 0 ? read : 0, ObjectCorruptionKind.CouldNotReadObject)))
-                        return index;
-
-                foreach ((ulong objRef, int offset) in gcdesc.WalkObject(buffer, intSize))
+                int max = intSize / _memoryReader.PointerSize + 1;
+                ulong[] refsBuf = ArrayPool<ulong>.Shared.Rent(max);
+                int[] offsBuf = ArrayPool<int>.Shared.Rent(max);
+                int n;
+                ISegmentedDirectMemoryAccess? direct = _directMemoryAccess;
+                if (direct is not null && direct.TryGetDirectSpan(obj, intSize, out ReadOnlySpan<byte> span))
                 {
+                    n = gcdesc.WalkObjectIntoBuffer(span, intSize, refsBuf, offsBuf);
+                }
+                else
+                {
+                    byte[] buffer = ArrayPool<byte>.Shared.Rent(intSize);
+                    int read = _memoryReader.Read(obj, new Span<byte>(buffer, 0, intSize));
+                    if (read != intSize)
+                    {
+                        if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, read >= 0 ? read : 0, ObjectCorruptionKind.CouldNotReadObject)))
+                        {
+                            ArrayPool<byte>.Shared.Return(buffer);
+                            ArrayPool<ulong>.Shared.Return(refsBuf);
+                            ArrayPool<int>.Shared.Return(offsBuf);
+                            return index;
+                        }
+                    }
+
+                    n = 0;
+                    foreach ((ulong reference, int offset) in gcdesc.WalkObject(buffer, intSize))
+                    {
+                        if (n >= refsBuf.Length)
+                            break;
+                        refsBuf[n] = reference;
+                        offsBuf[n] = offset;
+                        n++;
+                    }
+                    ArrayPool<byte>.Shared.Return(buffer);
+                }
+
+                for (int i = 0; i < n; i++)
+                {
+                    ulong objRef = refsBuf[i];
+                    int offset = offsBuf[i];
+
                     if ((objRef & ((uint)_memoryReader.PointerSize - 1)) != 0)
                     {
                         if (!AddCorruptionAndContinue(result, ref index, new ObjectCorruption(obj, offset, ObjectCorruptionKind.ObjectReferenceNotPointerAligned)))
@@ -1383,7 +1463,8 @@ namespace Microsoft.Diagnostics.Runtime
                     }
                 }
 
-                ArrayPool<byte>.Shared.Return(buffer);
+                ArrayPool<ulong>.Shared.Return(refsBuf);
+                ArrayPool<int>.Shared.Return(offsBuf);
                 if (index >= result.Length)
                     return index;
             }

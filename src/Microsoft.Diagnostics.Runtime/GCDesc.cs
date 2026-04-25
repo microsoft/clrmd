@@ -3,6 +3,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -74,6 +76,109 @@ namespace Microsoft.Diagnostics.Runtime
                         offset += skip;
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Span-based, allocation-free walker that mirrors <see cref="WalkObject(byte[], int)"/>
+        /// but reads directly from a <see cref="ReadOnlySpan{T}"/> over caller-supplied
+        /// (typically directly-mapped) memory. References and their offsets are written into
+        /// the caller's <paramref name="refsOut"/> and <paramref name="offsetsOut"/> buffers
+        /// in walk order. The two output buffers must be the same length.
+        ///
+        /// <para>
+        /// This shape exists because <see cref="WalkObject(byte[], int)"/> is an iterator and
+        /// C# disallows holding a <see cref="ReadOnlySpan{T}"/> across a <c>yield return</c>;
+        /// callers consume the returned count and walk the output buffers themselves.
+        /// </para>
+        /// </summary>
+        /// <returns>The number of references written. Equal to <c>refsOut.Length</c> when the
+        /// output buffer was too small (caller should fall back to <see cref="WalkObject"/>).</returns>
+        internal int WalkObjectIntoBuffer(ReadOnlySpan<byte> buffer, int size, Span<ulong> refsOut, Span<int> offsetsOut)
+        {
+            DebugOnly.Assert(size >= _pointerSize);
+            DebugOnly.Assert(refsOut.Length == offsetsOut.Length);
+
+            int count = 0;
+            int max = refsOut.Length;
+
+            int series = GetNumSeries();
+            int highest = GetHighestSeries();
+            int curr = highest;
+
+            if (series > 0)
+            {
+                int lowest = GetLowestSeries();
+                do
+                {
+                    long offset = GetSeriesOffset(curr);
+                    long stop = offset + GetSeriesSize(curr) + size;
+
+                    while (offset < stop)
+                    {
+                        ulong ret = ReadPointer(buffer, (int)offset);
+                        if (ret != 0)
+                        {
+                            if (count >= max)
+                                return count;
+                            refsOut[count] = ret;
+                            offsetsOut[count] = (int)offset;
+                            count++;
+                        }
+
+                        offset += _pointerSize;
+                    }
+
+                    curr -= _gcDescSize;
+                } while (curr >= lowest);
+            }
+            else
+            {
+                long offset = GetSeriesOffset(curr);
+
+                while (offset < size - _pointerSize)
+                {
+                    for (int i = 0; i > series; i--)
+                    {
+                        int nptrs = GetPointers(curr, i);
+                        int skip = GetSkip(curr, i);
+
+                        long stop = offset + (nptrs * _pointerSize);
+                        do
+                        {
+                            ulong ret = ReadPointer(buffer, (int)offset);
+                            if (ret != 0)
+                            {
+                                if (count >= max)
+                                    return count;
+                                refsOut[count] = ret;
+                                offsetsOut[count] = (int)offset;
+                                count++;
+                            }
+
+                            offset += _pointerSize;
+                        } while (offset < stop);
+
+                        offset += skip;
+                    }
+                }
+            }
+
+            return count;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private ulong ReadPointer(ReadOnlySpan<byte> span, int offset)
+        {
+            if (_pointerSize == 8)
+            {
+                DebugOnly.Assert(span.Length - offset >= sizeof(ulong));
+                return Unsafe.ReadUnaligned<ulong>(ref Unsafe.AsRef(in span[offset]));
+            }
+            else
+            {
+                DebugOnly.Assert(span.Length - offset >= sizeof(uint));
+                return Unsafe.ReadUnaligned<uint>(ref Unsafe.AsRef(in span[offset]));
             }
         }
 

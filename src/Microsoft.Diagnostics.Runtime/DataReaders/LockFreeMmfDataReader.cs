@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     /// to the inner reader, which retains its own access to the dump.
     /// </para>
     /// </summary>
-    internal sealed unsafe class LockFreeMmfDataReader : IDataReader, IThreadReader, IDumpInfoProvider, IDisposable
+    internal sealed unsafe class LockFreeMmfDataReader : IDataReader, IThreadReader, IDumpInfoProvider, ISegmentedDirectMemoryAccess, IDisposable
     {
         private readonly IDataReader _inner;
         private readonly IThreadReader? _innerThreads;
@@ -256,6 +256,64 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ulong fileOffset = seg.FileOffset + offsetInSeg;
             new ReadOnlySpan<byte>(_basePtr + (long)fileOffset, toRead).CopyTo(buffer);
             return toRead;
+        }
+
+        // ============================================================
+        // ISegmentedDirectMemoryAccess — zero-copy hot path
+        // ============================================================
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetDirectSpan(ulong address, int length, out ReadOnlySpan<byte> span)
+        {
+            if (length == 0)
+            {
+                span = default;
+                return true;
+            }
+
+            if (length < 0)
+            {
+                span = default;
+                return false;
+            }
+
+            int idx;
+            int lastIdx = _lastSegmentIndex;
+            if ((uint)lastIdx < (uint)_segments.Length && _segments[lastIdx].Contains(address))
+            {
+                idx = lastIdx;
+            }
+            else
+            {
+                idx = FindSegment(address);
+                if (idx < 0)
+                {
+                    span = default;
+                    return false;
+                }
+                _lastSegmentIndex = idx;
+            }
+
+            ref Segment seg = ref _segments[idx];
+            ulong offsetInSeg = address - seg.VirtualAddress;
+            ulong availableU = seg.Size - offsetInSeg;
+            if (availableU < (ulong)length)
+            {
+                // Range crosses a segment boundary (or extends past the segment end);
+                // caller falls back to Read which transparently spans adjacent segments.
+                span = default;
+                return false;
+            }
+
+            ulong fileOffset = seg.FileOffset + offsetInSeg;
+            if (fileOffset > (ulong)_viewLength || fileOffset + (ulong)length > (ulong)_viewLength)
+            {
+                span = default;
+                return false;
+            }
+
+            span = new ReadOnlySpan<byte>(_basePtr + (long)fileOffset, length);
+            return true;
         }
 
         private int FindSegment(ulong address)
