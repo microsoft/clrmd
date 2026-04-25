@@ -49,6 +49,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public ImmutableArray<MinidumpModule> Modules { get; }
 
+        /// <summary>
+        /// Sorted (by VirtualAddress) list of every memory range the dump exposes,
+        /// including merged Memory64ListStream + MemoryListStream entries.
+        /// </summary>
+        public ImmutableArray<MinidumpSegment> Segments { get; private set; }
+
         public MinidumpProcessorArchitecture Architecture { get; }
         public int ProcessId { get; } = -1;
 
@@ -120,6 +126,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             // Read segments async.
             ImmutableArray<MinidumpSegment> segments = GetSegments(stream);
+            Segments = segments;
 
             MinidumpMemoryReader memoryReader;
             if (stream is FileStream fs) // we can optimize for FileStreams

@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -12,7 +13,7 @@ using Microsoft.Diagnostics.Runtime.Windows;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class MinidumpReader : IDataReader, IDisposable, IThreadReader, IDumpInfoProvider
+    internal sealed class MinidumpReader : IDataReader, IDisposable, IThreadReader, IDumpInfoProvider, IDumpFileMemorySource
     {
         private readonly Minidump _minidump;
         private readonly DataTargetLimits? _limits;
@@ -104,5 +105,14 @@ namespace Microsoft.Diagnostics.Runtime
         public T Read<T>(ulong address) where T : unmanaged => MemoryReader.Read<T>(address);
         public bool ReadPointer(ulong address, out ulong value) => MemoryReader.ReadPointer(address, out value);
         public ulong ReadPointer(ulong address) => MemoryReader.ReadPointer(address);
+
+        public IReadOnlyList<DumpMemorySegment> EnumerateMemorySegments()
+        {
+            ImmutableArray<MinidumpSegment> segments = _minidump.Segments;
+            DumpMemorySegment[] result = new DumpMemorySegment[segments.Length];
+            for (int i = 0; i < segments.Length; i++)
+                result[i] = new DumpMemorySegment(segments[i].VirtualAddress, segments[i].FileOffset, segments[i].Size);
+            return result;
+        }
     }
 }

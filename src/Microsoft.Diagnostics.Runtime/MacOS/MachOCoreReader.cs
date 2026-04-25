@@ -7,11 +7,12 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
-    internal sealed class MachOCoreReader : CommonMemoryReader, IDataReader, IThreadReader, IDumpInfoProvider, IDisposable
+    internal sealed class MachOCoreReader : CommonMemoryReader, IDataReader, IThreadReader, IDumpInfoProvider, IDumpFileMemorySource, IDisposable
     {
         private readonly MachOCoreDump _core;
         private bool? _isCreatedByDotNetRuntime;
@@ -77,6 +78,21 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         public void Dispose()
         {
             _core.Dispose();
+        }
+
+        public IReadOnlyList<DumpMemorySegment> EnumerateMemorySegments()
+        {
+            var segments = _core.Segments;
+            DumpMemorySegment[] result = new DumpMemorySegment[segments.Count];
+            for (int i = 0; i < segments.Count; i++)
+            {
+                MachOSegment seg = segments[i];
+                // Use FileSize for the available data; VMSize may be larger (zero-fill).
+                result[i] = new DumpMemorySegment(seg.Address, seg.FileOffset, seg.FileSize);
+            }
+            // Already sorted by address in MachOCoreDump, but be defensive.
+            Array.Sort(result, static (a, b) => a.VirtualAddress.CompareTo(b.VirtualAddress));
+            return result;
         }
     }
 }
