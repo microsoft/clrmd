@@ -231,6 +231,20 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public DataTarget LoadFullDump(GCMode gc = GCMode.Workstation, DataTargetOptions? options = null) => LoadFullDump(gc, DumpGenerator.GetArchitecture(), options: options);
 
         /// <summary>
+        /// Returns the full-dump path for this target, generating the dump on-demand
+        /// if it doesn't exist. Useful for callers (e.g. benchmark harnesses) that
+        /// want to open the dump themselves rather than going through <see cref="LoadFullDump()"/>.
+        /// </summary>
+        public string EnsureFullDumpPath(GCMode gc = GCMode.Workstation, bool singleFile = false)
+        {
+            string architecture = DumpGenerator.GetArchitecture();
+            bool framework = FrameworkOnly;
+            string dumpPath = BuildDumpName(gc, full: true, architecture: architecture, isFramework: framework, singleFile: singleFile);
+            DumpGenerator.EnsureDump(Name, ProjectDir, dumpPath, architecture, framework, gc, full: true, singleFile: singleFile, companionTargets: CompanionTargets);
+            return dumpPath;
+        }
+
+        /// <summary>
         /// Loads a full dump with optional single-file variant.
         /// </summary>
         public DataTarget LoadFullDump(bool singleFile, DataTargetOptions? options = null, GCMode gc = GCMode.Workstation)
