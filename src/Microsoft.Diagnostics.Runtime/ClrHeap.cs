@@ -940,6 +940,12 @@ namespace Microsoft.Diagnostics.Runtime
                             yield break;
                     }
 
+                    // Defend against a corrupt object header reporting an absurd size.
+                    // No legitimate managed object has size > int.MaxValue, and a negative
+                    // intSize would crash ArrayPool.Rent below.
+                    if (size > int.MaxValue)
+                        yield break;
+
                     int intSize = (int)size;
                     int max = intSize / _memoryReader.PointerSize + 1;
                     ulong[] refsBuf = ArrayPool<ulong>.Shared.Rent(max);
@@ -1053,6 +1059,12 @@ namespace Microsoft.Diagnostics.Runtime
                             yield break;
                     }
 
+                    // Defend against a corrupt object header reporting an absurd size.
+                    // No legitimate managed object has size > int.MaxValue, and a negative
+                    // intSize would crash ArrayPool.Rent below.
+                    if (size > int.MaxValue)
+                        yield break;
+
                     int intSize = (int)size;
                     int max = intSize / _memoryReader.PointerSize + 1;
                     ulong[] refsBuf = ArrayPool<ulong>.Shared.Rent(max);
@@ -1124,6 +1136,12 @@ namespace Microsoft.Diagnostics.Runtime
                         if (obj + size > seg.End || (!large && size > MaxGen2ObjectSize))
                             yield break;
                     }
+
+                    // Defend against a corrupt object header reporting an absurd size.
+                    // No legitimate managed object has size > int.MaxValue, and a negative
+                    // intSize would crash ArrayPool.Rent below.
+                    if (size > int.MaxValue)
+                        yield break;
 
                     int intSize = (int)size;
                     int max = intSize / _memoryReader.PointerSize + 1;
