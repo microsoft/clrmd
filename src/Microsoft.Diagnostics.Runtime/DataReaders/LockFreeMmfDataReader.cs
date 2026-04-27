@@ -89,9 +89,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             MemoryMappedFile? mmf = null;
             MemoryMappedViewAccessor? accessor = null;
+            FileStream? fs = null;
             try
             {
-                mmf = MemoryMappedFile.CreateFromFile(dumpPath, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
+                // Open the file ourselves with FileShare.Read|Write|Delete so we don't conflict with
+                // the inner reader (which already has the file open with FileShare.Read).
+                // MemoryMappedFile.CreateFromFile(string, ...) opens with FileShare.None internally,
+                // which would throw "file in use" against the inner reader's existing handle.
+                fs = new FileStream(dumpPath, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
+                mmf = MemoryMappedFile.CreateFromFile(fs, mapName: null, capacity: 0, MemoryMappedFileAccess.Read,
+                    HandleInheritability.None, leaveOpen: false);
                 accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
                 _viewLength = (long)accessor.SafeMemoryMappedViewHandle.ByteLength;
 
@@ -106,6 +113,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             {
                 accessor?.Dispose();
                 mmf?.Dispose();
+                fs?.Dispose();
                 throw new OutOfMemoryException(BuildOomMessage(dumpPath), ex);
             }
 
