@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using Microsoft.Diagnostics.Runtime.Implementation;
@@ -11,7 +12,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class CoredumpReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader, IDumpInfoProvider, IDumpFileMemorySource
+    internal sealed class CoredumpReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader, IDumpInfoProvider, IDumpFileMemorySource, IThreadInfoReader, IProcessInfoProvider, IMemoryRegionReader
     {
         private readonly ElfCoreFile _core;
         private readonly DataTargetLimits? _limits;
@@ -173,6 +174,145 @@ namespace Microsoft.Diagnostics.Runtime
 
             result.Sort(static (a, b) => a.VirtualAddress.CompareTo(b.VirtualAddress));
             return result;
+        }
+
+        // -- IThreadInfoReader --
+
+        public bool TryGetThreadInfo(uint osThreadId, out ThreadInfo info)
+        {
+            if (LoadThreads().TryGetValue(osThreadId, out IElfPRStatus? status))
+            {
+                info = BuildThreadInfo(status);
+                return true;
+            }
+
+            info = default;
+            return false;
+        }
+
+        public IEnumerable<ThreadInfo> EnumerateThreadInfo()
+        {
+            foreach (KeyValuePair<uint, IElfPRStatus> kvp in LoadThreads())
+                yield return BuildThreadInfo(kvp.Value);
+        }
+
+        private static ThreadInfo BuildThreadInfo(IElfPRStatus status) => new()
+        {
+            OSThreadId = status.ThreadId,
+            UserTime = status.UserTime,
+            KernelTime = status.KernelTime,
+            // The remaining fields aren't carried by Linux core dumps.
+        };
+
+        // -- IProcessInfoProvider --
+
+        public ProcessInfo GetProcessInfo()
+        {
+            // Aggregate per-thread CPU times into a process-wide total.
+            TimeSpan userTime = TimeSpan.Zero;
+            TimeSpan kernelTime = TimeSpan.Zero;
+            bool anyTimes = false;
+            foreach (KeyValuePair<uint, IElfPRStatus> kvp in LoadThreads())
+            {
+                userTime += kvp.Value.UserTime;
+                kernelTime += kvp.Value.KernelTime;
+                anyTimes = true;
+            }
+
+            // ImagePath: prefer the first non-interpreter loaded image whose path
+            // matches AT_EXECFN's basename when available; otherwise fall back to
+            // the first non-interpreter image.
+            ulong interpreter = _core.GetAuxvValue(ElfAuxvType.Base);
+            string? imagePath = null;
+            foreach (ElfLoadedImage image in _core.LoadedImages.Values)
+            {
+                if (image.BaseAddress == interpreter)
+                    continue;
+                if (image.FileName.StartsWith("/dev", StringComparison.Ordinal))
+                    continue;
+                imagePath = image.FileName.Replace(" (deleted)", "");
+                break;
+            }
+
+            return new ProcessInfo
+            {
+                ProcessId = (uint)ProcessId,
+                ImagePath = imagePath,
+                CommandLine = null,
+                CreateTimeUtc = null,
+                UserTime = anyTimes ? userTime : null,
+                KernelTime = anyTimes ? kernelTime : null,
+                Architecture = Architecture,
+                TargetPlatform = TargetPlatform,
+                OSVersion = null,
+                OSBuildString = null,
+                ProcessorCount = 0,
+                DumpTimestampUtc = null,
+            };
+        }
+
+        // -- IMemoryRegionReader --
+
+        public IEnumerable<MemoryRegion> EnumerateMemoryRegions()
+        {
+            // Map every PT_LOAD program header into a MemoryRegion. PT_LOAD ranges
+            // are the only mappings the kernel records into a core dump; reserved /
+            // free pages are not represented so every region is reported as
+            // committed.
+            //
+            // We classify a region as Image when its base address matches a known
+            // module's base, Private otherwise.
+            HashSet<ulong> imageBases = new();
+            foreach (ElfLoadedImage image in _core.LoadedImages.Values)
+                imageBases.Add(image.BaseAddress);
+
+            // Build a sorted list of (base, end, path) for image lookup.
+            var imageRanges = _core.LoadedImages.Values
+                .Select(img => (Base: img.BaseAddress, End: img.BaseAddress + img.Size))
+                .OrderBy(r => r.Base)
+                .ToArray();
+
+            foreach (ElfProgramHeader header in _core.ElfFile.ProgramHeaders)
+            {
+                if (header.Type != ElfProgramHeaderType.Load)
+                    continue;
+                if (header.VirtualSize == 0)
+                    continue;
+
+                MemoryRegionProtect protect = MemoryRegionProtect.None;
+                if (header.IsReadable) protect |= MemoryRegionProtect.Read;
+                if (header.IsWritable) protect |= MemoryRegionProtect.Write;
+                if (header.IsExecutable) protect |= MemoryRegionProtect.Execute;
+                if (protect == MemoryRegionProtect.None) protect = MemoryRegionProtect.NoAccess;
+
+                ulong va = header.VirtualAddress;
+                ulong end = va + header.VirtualSize;
+
+                ulong allocBase = va;
+                MemoryRegionType regionType = MemoryRegionType.Private;
+                foreach ((ulong imgBase, ulong imgEnd) in imageRanges)
+                {
+                    if (imgBase <= va && end <= imgEnd)
+                    {
+                        regionType = MemoryRegionType.Image;
+                        allocBase = imgBase;
+                        break;
+                    }
+                    if (imgBase > va)
+                        break;
+                }
+
+                yield return new MemoryRegion
+                {
+                    BaseAddress = va,
+                    Size = header.VirtualSize,
+                    State = MemoryRegionState.Commit,
+                    Type = regionType,
+                    Protect = protect,
+                    AllocationBase = allocBase,
+                    AllocationProtect = protect,
+                };
+            }
         }
     }
 }

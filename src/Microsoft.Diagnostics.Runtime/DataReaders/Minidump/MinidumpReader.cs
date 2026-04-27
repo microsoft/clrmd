@@ -13,7 +13,7 @@ using Microsoft.Diagnostics.Runtime.Windows;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class MinidumpReader : IDataReader, IDisposable, IThreadReader, IDumpInfoProvider, IDumpFileMemorySource
+    internal sealed class MinidumpReader : IDataReader, IDisposable, IThreadReader, IDumpInfoProvider, IDumpFileMemorySource, IThreadInfoReader, IProcessInfoProvider, IMemoryRegionReader
     {
         private readonly Minidump _minidump;
         private readonly DataTargetLimits? _limits;
@@ -112,6 +112,215 @@ namespace Microsoft.Diagnostics.Runtime
             DumpMemorySegment[] result = new DumpMemorySegment[segments.Length];
             for (int i = 0; i < segments.Length; i++)
                 result[i] = new DumpMemorySegment(segments[i].VirtualAddress, segments[i].FileOffset, segments[i].Size);
+            return result;
+        }
+
+        // -- IThreadInfoReader --
+
+        public bool TryGetThreadInfo(uint osThreadId, out ThreadInfo info)
+        {
+            bool hasInfo = _minidump.ThreadInfos.ContainsKey(osThreadId);
+            bool hasState = _minidump.ThreadStates.ContainsKey(osThreadId);
+            if (!hasInfo && !hasState)
+            {
+                info = default;
+                return false;
+            }
+
+            info = BuildThreadInfo(osThreadId);
+            return true;
+        }
+
+        public IEnumerable<ThreadInfo> EnumerateThreadInfo()
+        {
+            foreach (uint tid in _minidump.OrderedThreads)
+                yield return BuildThreadInfo(tid);
+        }
+
+        private ThreadInfo BuildThreadInfo(uint osThreadId)
+        {
+            bool hasInfo = _minidump.ThreadInfos.TryGetValue(osThreadId, out MinidumpThreadInfo info);
+            bool hasState = _minidump.ThreadStates.TryGetValue(osThreadId, out MinidumpThread state);
+
+            if (!hasInfo && !hasState)
+                return default;
+
+            DateTime? createTime = hasInfo && info.CreateTime != 0 ? FileTimeToDateTime(info.CreateTime) : null;
+            DateTime? exitTime = hasInfo && info.ExitTime != 0 ? FileTimeToDateTime(info.ExitTime) : null;
+            TimeSpan? userTime = hasInfo ? FileTimeIntervalToTimeSpan(info.UserTime) : null;
+            TimeSpan? kernelTime = hasInfo ? FileTimeIntervalToTimeSpan(info.KernelTime) : null;
+
+            return new ThreadInfo
+            {
+                OSThreadId = osThreadId,
+                CreateTimeUtc = createTime,
+                ExitTimeUtc = exitTime,
+                UserTime = userTime,
+                KernelTime = kernelTime,
+                StartAddress = hasInfo ? info.StartAddress : 0,
+                Affinity = hasInfo ? info.Affinity : 0,
+                SuspendCount = hasState ? state.SuspendCount : 0,
+                PriorityClass = hasState ? state.PriorityClass : 0,
+                Priority = hasState ? state.Priority : 0,
+                StackBase = hasState ? state.Stack.StartAddress + state.Stack.DataSize32 : 0,
+                StackSize = hasState ? state.Stack.DataSize32 : 0,
+                ExitStatus = hasInfo ? info.ExitStatus : 0,
+                DumpFlags = hasInfo ? info.DumpFlags : 0,
+            };
+        }
+
+        private static DateTime FileTimeToDateTime(ulong fileTime)
+        {
+            // FILETIME is 100-ns intervals since 1601-01-01 UTC.
+            try
+            {
+                return DateTime.FromFileTimeUtc((long)fileTime);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return DateTime.MinValue;
+            }
+        }
+
+        private static TimeSpan FileTimeIntervalToTimeSpan(ulong fileTimeInterval)
+        {
+            // 100-ns ticks ≡ TimeSpan ticks.
+            return TimeSpan.FromTicks((long)fileTimeInterval);
+        }
+
+        // -- IProcessInfoProvider --
+
+        public ProcessInfo GetProcessInfo()
+        {
+            string? imagePath = _minidump.EnumerateModuleInfo().FirstOrDefault()?.ModuleName;
+
+            DateTime? createTime = null;
+            TimeSpan? userTime = null;
+            TimeSpan? kernelTime = null;
+
+            if (_minidump.MiscInfo is MinidumpMiscInfo misc
+                && (misc.Flags1 & MinidumpMiscInfo.MINIDUMP_MISC1_PROCESS_TIMES) != 0)
+            {
+                createTime = misc.ProcessCreateTime != 0
+                    ? DateTimeOffset.FromUnixTimeSeconds(misc.ProcessCreateTime).UtcDateTime
+                    : (DateTime?)null;
+                userTime = TimeSpan.FromSeconds(misc.ProcessUserTime);
+                kernelTime = TimeSpan.FromSeconds(misc.ProcessKernelTime);
+            }
+
+            Version? osVersion = null;
+            if (_minidump.SystemInfo.MajorVersion != 0 || _minidump.SystemInfo.MinorVersion != 0 || _minidump.SystemInfo.BuildNumber != 0)
+            {
+                osVersion = new Version(
+                    (int)_minidump.SystemInfo.MajorVersion,
+                    (int)_minidump.SystemInfo.MinorVersion,
+                    (int)_minidump.SystemInfo.BuildNumber);
+            }
+
+            string? osBuild = _minidump.BuildString;
+            if (string.IsNullOrEmpty(osBuild))
+                osBuild = string.IsNullOrEmpty(_minidump.CSDVersion) ? null : _minidump.CSDVersion;
+
+            return new ProcessInfo
+            {
+                ProcessId = (uint)_minidump.ProcessId,
+                ImagePath = imagePath,
+                CommandLine = null,
+                CreateTimeUtc = createTime,
+                UserTime = userTime,
+                KernelTime = kernelTime,
+                Architecture = Architecture,
+                TargetPlatform = TargetPlatform,
+                OSVersion = osVersion,
+                OSBuildString = osBuild,
+                ProcessorCount = _minidump.SystemInfo.NumberOfProcessors,
+                DumpTimestampUtc = _minidump.DumpTimestampUtc,
+            };
+        }
+
+        // -- IMemoryRegionReader --
+
+        public IEnumerable<MemoryRegion> EnumerateMemoryRegions()
+        {
+            ImmutableArray<MinidumpMemoryInfo> regions = _minidump.MemoryInfoRegions;
+            if (!regions.IsDefaultOrEmpty)
+            {
+                foreach (MinidumpMemoryInfo r in regions)
+                {
+                    yield return new MemoryRegion
+                    {
+                        BaseAddress = r.BaseAddress,
+                        Size = r.RegionSize,
+                        State = MapState(r.State),
+                        Type = MapType(r.Type),
+                        Protect = MapProtect(r.Protect),
+                        AllocationBase = r.AllocationBase,
+                        AllocationProtect = MapProtect(r.AllocationProtect),
+                    };
+                }
+
+                yield break;
+            }
+
+            // Fallback: synthesize commit/read regions from the dump's saved-memory list.
+            foreach (MinidumpSegment seg in _minidump.Segments)
+            {
+                yield return new MemoryRegion
+                {
+                    BaseAddress = seg.VirtualAddress,
+                    Size = seg.Size,
+                    State = MemoryRegionState.Commit,
+                    Type = MemoryRegionType.Unknown,
+                    Protect = MemoryRegionProtect.Read,
+                    AllocationBase = seg.VirtualAddress,
+                    AllocationProtect = MemoryRegionProtect.Read,
+                };
+            }
+        }
+
+        private static MemoryRegionState MapState(uint state) => state switch
+        {
+            MinidumpMemoryInfo.MEM_COMMIT => MemoryRegionState.Commit,
+            MinidumpMemoryInfo.MEM_RESERVE => MemoryRegionState.Reserve,
+            MinidumpMemoryInfo.MEM_FREE => MemoryRegionState.Free,
+            _ => MemoryRegionState.Unknown,
+        };
+
+        private static MemoryRegionType MapType(uint type) => type switch
+        {
+            MinidumpMemoryInfo.MEM_PRIVATE => MemoryRegionType.Private,
+            MinidumpMemoryInfo.MEM_MAPPED => MemoryRegionType.Mapped,
+            MinidumpMemoryInfo.MEM_IMAGE => MemoryRegionType.Image,
+            _ => MemoryRegionType.Unknown,
+        };
+
+        private static MemoryRegionProtect MapProtect(uint protect)
+        {
+            if (protect == 0)
+                return MemoryRegionProtect.None;
+
+            MemoryRegionProtect result = MemoryRegionProtect.None;
+
+            // Base RWX classification — exactly one of these bits is meaningful at a time on Windows.
+            switch (protect & 0xFF)
+            {
+                case MinidumpMemoryInfo.PAGE_NOACCESS:          result = MemoryRegionProtect.NoAccess; break;
+                case MinidumpMemoryInfo.PAGE_READONLY:          result = MemoryRegionProtect.Read; break;
+                case MinidumpMemoryInfo.PAGE_READWRITE:         result = MemoryRegionProtect.Read | MemoryRegionProtect.Write; break;
+                case MinidumpMemoryInfo.PAGE_WRITECOPY:         result = MemoryRegionProtect.Read | MemoryRegionProtect.WriteCopy; break;
+                case MinidumpMemoryInfo.PAGE_EXECUTE:           result = MemoryRegionProtect.Execute; break;
+                case MinidumpMemoryInfo.PAGE_EXECUTE_READ:      result = MemoryRegionProtect.Execute | MemoryRegionProtect.Read; break;
+                case MinidumpMemoryInfo.PAGE_EXECUTE_READWRITE: result = MemoryRegionProtect.Execute | MemoryRegionProtect.Read | MemoryRegionProtect.Write; break;
+                case MinidumpMemoryInfo.PAGE_EXECUTE_WRITECOPY: result = MemoryRegionProtect.Execute | MemoryRegionProtect.Read | MemoryRegionProtect.WriteCopy; break;
+            }
+
+            if ((protect & MinidumpMemoryInfo.PAGE_GUARD) != 0)
+                result |= MemoryRegionProtect.Guard;
+            if ((protect & MinidumpMemoryInfo.PAGE_NOCACHE) != 0)
+                result |= MemoryRegionProtect.NoCache;
+            if ((protect & MinidumpMemoryInfo.PAGE_WRITECOMBINE) != 0)
+                result |= MemoryRegionProtect.WriteCombine;
+
             return result;
         }
     }

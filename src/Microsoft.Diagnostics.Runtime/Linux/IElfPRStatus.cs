@@ -21,6 +21,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         uint ThreadId { get; }
 
         /// <summary>
+        /// Aggregate user-mode CPU time consumed by this thread/process.
+        /// </summary>
+        TimeSpan UserTime { get; }
+
+        /// <summary>
+        /// Aggregate kernel-mode CPU time consumed by this thread/process.
+        /// </summary>
+        TimeSpan KernelTime { get; }
+
+        /// <summary>
         /// Copies the registers within this prstatus into the Windows _CONTEXT structure for the specified
         /// architecture.
         ///

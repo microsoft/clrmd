@@ -47,7 +47,49 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public ImmutableDictionary<uint, ulong> Tebs => _threadTask.Result.Tebs;
 
+        /// <summary>
+        /// Per-thread <c>MINIDUMP_THREAD_INFO</c> records (CPU times, create/exit
+        /// times, start address, dump flags) keyed by OS thread id. Empty when the
+        /// dump has no <c>ThreadInfoListStream</c>.
+        /// </summary>
+        public ImmutableDictionary<uint, MinidumpThreadInfo> ThreadInfos => _threadTask.Result.ThreadInfos;
+
+        /// <summary>
+        /// Per-thread <c>MINIDUMP_THREAD</c> records (stack range, suspend count,
+        /// priority) keyed by OS thread id. Available whenever the dump has a
+        /// <c>ThreadListStream</c> or <c>ThreadExListStream</c>.
+        /// </summary>
+        public ImmutableDictionary<uint, MinidumpThread> ThreadStates => _threadTask.Result.ThreadStates;
+
         public ImmutableArray<MinidumpModule> Modules { get; }
+
+        /// <summary>
+        /// Memory regions reported by <c>MemoryInfoListStream</c>. This carries
+        /// every VAD region (committed/reserved/free) and is independent of which
+        /// regions actually have backing data in the dump. Empty when the dump
+        /// does not include the stream.
+        /// </summary>
+        public ImmutableArray<MinidumpMemoryInfo> MemoryInfoRegions { get; private set; }
+
+        /// <summary><c>MINIDUMP_SYSTEM_INFO</c> (OS major/minor/build, processor
+        /// count, etc.) — always present. </summary>
+        public MinidumpSystemInfo SystemInfo { get; private set; }
+
+        /// <summary>OS service-pack / distro string from
+        /// <c>MINIDUMP_SYSTEM_INFO.CSDVersionRva</c>, when present.</summary>
+        public string? CSDVersion { get; private set; }
+
+        /// <summary><c>MINIDUMP_MISC_INFO</c> (process times, integrity level,
+        /// etc.) when the dump contains a <c>MiscInfoStream</c>; otherwise <see langword="null"/>.</summary>
+        public MinidumpMiscInfo? MiscInfo { get; private set; }
+
+        /// <summary>OS build string from <c>MINIDUMP_MISC_INFO_4.BuildString</c>,
+        /// when the dump is a v4+ misc record and the BUILDSTRING flag is set.</summary>
+        public string? BuildString { get; private set; }
+
+        /// <summary>UTC timestamp written into the minidump header at capture
+        /// time.</summary>
+        public DateTime DumpTimestampUtc { get; private set; }
 
         /// <summary>
         /// Sorted (by VirtualAddress) list of every memory range the dump exposes,
@@ -97,16 +139,38 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             if (!Read(stream, _directories))
                 throw new InvalidDataException($"Unable to read directories from minidump '{displayName} offset 0x{header.StreamDirectoryRva:x}");
 
-            (int systemInfoIndex, int moduleListIndex, int miscStream) = FindImportantStreams(displayName);
+            (int systemInfoIndex, int moduleListIndex, int miscStream, int memoryInfoListIndex) = FindImportantStreams(displayName);
+
+            DumpTimestampUtc = DateTimeOffset.FromUnixTimeSeconds(header.TimeDateStamp).UtcDateTime;
 
             // Architecture is the first entry in MINIDUMP_SYSTEM_INFO.  We need nothing else out of that struct,
             // so we only read the first entry.
             // https://docs.microsoft.com/en-us/windows/win32/api/minidumpapiset/ns-minidumpapiset-minidump_system_info
             Architecture = Read<MinidumpProcessorArchitecture>(stream, _directories[systemInfoIndex].Rva);
 
+            SystemInfo = Read<MinidumpSystemInfo>(stream, _directories[systemInfoIndex].Rva);
+            if (SystemInfo.CSDVersionRva != 0)
+                CSDVersion = ReadCountedUnicodeString(stream, SystemInfo.CSDVersionRva);
+
             // ProcessId is the 3rd DWORD in this stream.
             if (miscStream != -1)
+            {
                 ProcessId = Read<int>(stream, _directories[miscStream].Rva + sizeof(uint) * 2);
+                MinidumpMiscInfo misc = Read<MinidumpMiscInfo>(stream, _directories[miscStream].Rva);
+                MiscInfo = misc;
+
+                // BuildString sits at offset 232 inside MISC_INFO_4 (60 bytes of MISC_INFO_3
+                // fields + 172 bytes of TIME_ZONE_INFORMATION). Only valid when the v4 size
+                // is large enough and the BUILDSTRING flag is set.
+                const uint BuildStringOffset = 232;
+                const int BuildStringChars = 260;
+                const uint MinSizeForBuildString = BuildStringOffset + (BuildStringChars * 2u);
+                if (misc.SizeOfInfo >= MinSizeForBuildString
+                    && (misc.Flags1 & MinidumpMiscInfo.MINIDUMP_MISC4_BUILDSTRING) != 0)
+                {
+                    BuildString = ReadFixedWideString(stream, _directories[miscStream].Rva + BuildStringOffset, BuildStringChars);
+                }
+            }
 
             // Initialize modules.  DataTarget will need a module list immediately, so there's no reason to delay
             // filling in the module list.
@@ -156,6 +220,10 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             MemoryReader = memoryReader;
 
+            MemoryInfoRegions = memoryInfoListIndex == -1
+                ? ImmutableArray<MinidumpMemoryInfo>.Empty
+                : ReadMemoryInfoList(stream, _directories[memoryInfoListIndex].Rva);
+
             _threadTask = ReadThreadData(stream);
         }
 
@@ -169,11 +237,12 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         public IEnumerable<MinidumpModuleInfo> EnumerateModuleInfo() => Modules.Select(m => new MinidumpModuleInfo(MemoryReader, m, SanitizeAddress(m.BaseOfImage)));
 
-        private (int systemInfo, int moduleList, int miscInfo) FindImportantStreams(string crashDump)
+        private (int systemInfo, int moduleList, int miscInfo, int memoryInfoList) FindImportantStreams(string crashDump)
         {
             int systemInfo = -1;
             int moduleList = -1;
             int miscInfo = -1;
+            int memoryInfoList = -1;
 
             for (int i = 0; i < _directories.Length; i++)
             {
@@ -196,6 +265,10 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     case MinidumpStreamType.MiscInfoStream:
                         miscInfo = i;
                         break;
+
+                    case MinidumpStreamType.MemoryInfoListStream:
+                        memoryInfoList = i;
+                        break;
                 }
             }
 
@@ -204,13 +277,15 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             if (moduleList == -1)
                 throw new InvalidDataException($"Minidump '{crashDump}' did not contain a module list stream.");
 
-            return (systemInfo, moduleList, miscInfo);
+            return (systemInfo, moduleList, miscInfo, memoryInfoList);
         }
 
         #region ReadThreadData
         private async Task<ThreadReadResult> ReadThreadData(Stream stream)
         {
             Dictionary<uint, (uint Rva, uint Size, ulong Teb)> threadContextLocations = new();
+            Dictionary<uint, MinidumpThreadInfo> threadInfos = new();
+            Dictionary<uint, MinidumpThread> threadStates = new();
 
             // This will select ThreadListStread, ThreadExListStream, and ThreadInfoListStream in that order.
             // We prefer to pull contexts from the *ListStreams but if those don't exist or are missing threads
@@ -227,7 +302,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             byte[] buffer = ArrayPool<byte>.Shared.Rent(1024);
             try
             {
-                foreach (MinidumpDirectory directory in _directories.Where(d => d.StreamType is MinidumpStreamType.ThreadListStream or MinidumpStreamType.ThreadExListStream))
+                foreach (MinidumpDirectory directory in directories)
                 {
                     if (directory.StreamType == MinidumpStreamType.ThreadListStream)
                     {
@@ -249,6 +324,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                                 threadBuilder.Add(thread.ThreadId);
 
                             threadContextLocations[thread.ThreadId] = (thread.ThreadContext.Rva, thread.ThreadContext.DataSize, thread.Teb);
+                            threadStates[thread.ThreadId] = thread;
                         }
                     }
                     else if (directory.StreamType == MinidumpStreamType.ThreadExListStream)
@@ -271,6 +347,10 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                                 threadBuilder.Add(thread.ThreadId);
 
                             threadContextLocations[thread.ThreadId] = (thread.ThreadContext.Rva, thread.ThreadContext.DataSize, thread.Teb);
+
+                            // MinidumpThread and MinidumpThreadEx share the same prefix layout;
+                            // reinterpret the leading bytes so callers see a uniform shape.
+                            threadStates[thread.ThreadId] = Unsafe.As<byte, MinidumpThread>(ref buffer[i]);
                         }
                     }
                     else if (directory.StreamType == MinidumpStreamType.ThreadInfoListStream)
@@ -297,6 +377,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                                 threadContextLocations[thread.ThreadId] = (0, 0, 0);
                                 threadBuilder.Add(thread.ThreadId);
                             }
+
+                            threadInfos[thread.ThreadId] = thread;
                         }
                     }
                 }
@@ -321,7 +403,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             {
                 ContextData = contextBuilder.MoveOrCopyToImmutable(),
                 Tebs = tebBuilder.ToImmutable(),
-                Threads = threadBuilder.ToImmutable()
+                Threads = threadBuilder.ToImmutable(),
+                ThreadInfos = threadInfos.ToImmutableDictionary(),
+                ThreadStates = threadStates.ToImmutableDictionary()
             };
         }
 
@@ -479,6 +563,97 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return read == buffer.Length;
         }
 
+        private static string? ReadCountedUnicodeString(Stream stream, ulong rva)
+        {
+            stream.Position = (long)rva;
+            Span<byte> lenBuf = stackalloc byte[4];
+            if (stream.Read(lenBuf) != 4)
+                return null;
+
+            int byteLen = Unsafe.As<byte, int>(ref lenBuf[0]);
+            if (byteLen <= 0)
+                return null;
+
+            // Cap at a sane value to avoid OOM on malformed dumps.
+            byteLen = Math.Min(byteLen, 64 * 1024);
+
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(byteLen);
+            try
+            {
+                int read = stream.Read(buffer, 0, byteLen);
+                string s = System.Text.Encoding.Unicode.GetString(buffer, 0, read);
+                int nul = s.IndexOf('\0');
+                return nul == -1 ? s : s.Substring(0, nul);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+
+        private static string? ReadFixedWideString(Stream stream, long offset, int charCount)
+        {
+            int byteLen = charCount * 2;
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(byteLen);
+            try
+            {
+                stream.Position = offset;
+                int read = stream.Read(buffer, 0, byteLen);
+                if (read < 2)
+                    return null;
+
+                string s = System.Text.Encoding.Unicode.GetString(buffer, 0, read);
+                int nul = s.IndexOf('\0');
+                if (nul == 0)
+                    return null;
+                return nul == -1 ? s : s.Substring(0, nul);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+
+        private ImmutableArray<MinidumpMemoryInfo> ReadMemoryInfoList(Stream stream, long rva)
+        {
+            MinidumpMemoryInfoList header = Read<MinidumpMemoryInfoList>(stream, rva);
+            if (header.NumberOfEntries == 0)
+                return ImmutableArray<MinidumpMemoryInfo>.Empty;
+
+            // Defensive bounds — a malformed dump should not be able to allocate
+            // arbitrarily large arrays.
+            ulong maxRegions = (ulong)Math.Max(1, _limits.MaxModules) * 1024UL;
+            if (header.NumberOfEntries > maxRegions)
+                throw new InvalidDataException($"Minidump '{_displayName}' reports {header.NumberOfEntries} memory-info regions, which exceeds the safety cap of {maxRegions}.");
+
+            int entrySize = (int)header.SizeOfEntry;
+            if (entrySize < SizeOf<MinidumpMemoryInfo>())
+                throw new InvalidDataException($"Minidump '{_displayName}' reports MemoryInfoList SizeOfEntry={entrySize}, smaller than the documented MINIDUMP_MEMORY_INFO size {SizeOf<MinidumpMemoryInfo>()}.");
+
+            int count = checked((int)header.NumberOfEntries);
+            ImmutableArray<MinidumpMemoryInfo>.Builder builder = ImmutableArray.CreateBuilder<MinidumpMemoryInfo>(count);
+
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(entrySize);
+            try
+            {
+                stream.Position = rva + header.SizeOfHeader;
+                for (int i = 0; i < count; i++)
+                {
+                    int read = stream.Read(buffer, 0, entrySize);
+                    if (read < SizeOf<MinidumpMemoryInfo>())
+                        break;
+
+                    builder.Add(Unsafe.As<byte, MinidumpMemoryInfo>(ref buffer[0]));
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+
+            return builder.MoveOrCopyToImmutable();
+        }
+
         public override string ToString() => _displayName;
 
         private struct ThreadReadResult
@@ -486,6 +661,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             public ImmutableArray<MinidumpContextData> ContextData;
             public ImmutableDictionary<uint, ulong> Tebs;
             public ImmutableArray<uint> Threads;
+            public ImmutableDictionary<uint, MinidumpThreadInfo> ThreadInfos;
+            public ImmutableDictionary<uint, MinidumpThread> ThreadStates;
         }
     }
 
