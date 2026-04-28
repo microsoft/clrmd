@@ -12,8 +12,7 @@ using System.Threading;
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
     /// <summary>
-    /// Represents heap segment cache entries backed by arrays from ArrayPool{byte}.Shared. This technology is less efficient than the <see cref="AWEBasedCacheEntry"/> but it has upsides
-    /// around not requiring special privileges and mapping in a more granular fashion (4k pages vs 64k pages).
+    /// Represents heap segment cache entries backed by arrays from ArrayPool{byte}.Shared.
     /// </summary>
 
     internal sealed class ArrayPoolBasedCacheEntry : CacheEntryBase<byte[]>

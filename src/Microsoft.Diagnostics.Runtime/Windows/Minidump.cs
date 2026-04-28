@@ -139,8 +139,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 }
                 else
                 {
-                    CacheTechnology technology = cacheOptions.UseOSMemoryFeatures ? CacheTechnology.AWE : CacheTechnology.ArrayPool;
-                    memoryReader = new CachedMemoryReader(segments, fs.Name, fs, cacheSize, technology, PointerSize, leaveOpen);
+                    memoryReader = new CachedMemoryReader(segments, fs.Name, fs, cacheSize, PointerSize, leaveOpen);
                 }
             }
             else
