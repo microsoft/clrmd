@@ -66,6 +66,7 @@ The `DataTargetOptions` class provides:
 | `FileLocator` | Custom `IFileLocator` (overrides built-in symbol chain) | Built-in symbol server chain |
 | `ForceCompleteRuntimeEnumeration` | Search all modules for single-file runtimes | `false` |
 | `TraceSymbolRequests` | Emit diagnostic traces for symbol resolution | `false` |
+| `UseLockFreeMemoryMapReader` | Wrap file-based dumps with a lock-free, memory-mapped reader (see below) | `false` |
 | `Limits` | Configurable parsing and network bounds (see below) | Default limits |
 
 ---
@@ -206,6 +207,36 @@ ClrObject obj = heap.GetObject(address);
 The `Command` and `CommandOptions` helper classes for launching external processes have
 been removed from the library.  Use `System.Diagnostics.Process` directly if you need
 this functionality.
+
+---
+
+## New: lock-free memory-mapped data reader (opt-in)
+
+ClrMD 4.0 adds an opt-in, single-threaded data reader that satisfies memory reads
+directly from a memory-mapped view of the dump file. It eliminates per-read locks and
+stream seeks compared to the default minidump readers, which can substantially speed up
+sequential read patterns such as heap walks and GC root traversal.
+
+This feature is **off by default**. Enable it via `DataTargetOptions.UseLockFreeMemoryMapReader`:
+
+```csharp
+using DataTarget dt = DataTarget.LoadDump("crash.dmp", new DataTargetOptions
+{
+    UseLockFreeMemoryMapReader = true,
+});
+```
+
+**Trade-offs:**
+
+- The resulting `IDataReader` is **not thread safe**. `ClrRuntime.IsThreadSafe` will
+  return `false`, and callers must serialize all access to the `DataTarget`,
+  `ClrRuntime`, and `ClrHeap` themselves.
+- Only takes effect when loading a dump from a file path (Minidump, ELF coredump, or
+  Mach-O coredump). Has no effect for stream-based dump loads or live process targets.
+- The entire dump file is memory-mapped into the current process. On a 32-bit host,
+  user-mode address space is ~2 GB, so loading a large dump from a 32-bit process will
+  fail with `OutOfMemoryException`. Run as a 64-bit process for large dumps, or leave
+  this option disabled.
 
 ---
 
