@@ -148,6 +148,59 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Contains("LinkedListNode", nodeType!.Name);
         }
 
+        /// <summary>
+        /// Issue #1428: Accessing field.Name on a generic instantiation must not eagerly
+        /// resolve field.Type. Type resolution calls GetConcreteGenericTypeArguments ->
+        /// GetTypeByName which is expensive; it should only run when Type is actually
+        /// requested. This test verifies the lazy ordering still produces correct results
+        /// when Name is read before Type.
+        /// </summary>
+        [Fact]
+        public void Field_NameBeforeType_StillResolvesTypeCorrectly()
+        {
+            ClrHeap heap = _connection.Runtime.Heap;
+            ClrObject node = heap.EnumerateObjects()
+                .FirstOrDefault(o => o.Type?.Name?.Contains("LinkedListNode<System.String>") == true);
+
+            Assert.True(node.IsValid, "Could not find LinkedListNode<string> on the heap.");
+
+            ClrInstanceField? itemField = node.Type!.Fields.FirstOrDefault(f => f.Name == "item");
+            Assert.NotNull(itemField);
+
+            // Read Name first -- this must not trigger Type resolution side effects that
+            // cause Type to later return null/wrong value.
+            string? name = itemField.Name;
+            Assert.Equal("item", name);
+
+            // Now request Type. It must still resolve to the concrete instantiation.
+            Assert.NotNull(itemField.Type);
+            Assert.Equal("System.String", itemField.Type!.Name);
+        }
+
+        /// <summary>
+        /// Issue #1428: Reading Attributes before Type must not prevent later Type resolution.
+        /// </summary>
+        [Fact]
+        public void Field_AttributesBeforeType_StillResolvesTypeCorrectly()
+        {
+            ClrHeap heap = _connection.Runtime.Heap;
+            ClrObject node = heap.EnumerateObjects()
+                .FirstOrDefault(o => o.Type?.Name?.Contains("LinkedListNode<System.String>") == true);
+
+            Assert.True(node.IsValid, "Could not find LinkedListNode<string> on the heap.");
+
+            ClrInstanceField? itemField = node.Type!.Fields.FirstOrDefault(f => f.Name == "item");
+            Assert.NotNull(itemField);
+
+            // Read Attributes first.
+            System.Reflection.FieldAttributes attrs = itemField.Attributes;
+            Assert.NotEqual(System.Reflection.FieldAttributes.ReservedMask, attrs);
+
+            // Now request Type.
+            Assert.NotNull(itemField.Type);
+            Assert.Equal("System.String", itemField.Type!.Name);
+        }
+
         public class GenericConnection : Fixtures.ObjectConnection<GenericTypeCarrier>
         {
             public GenericConnection() : base(TestTargets.ClrObjects, typeof(GenericTypeCarrier).Name)
