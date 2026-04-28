@@ -35,14 +35,19 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     /// to the inner reader, which retains its own access to the dump.
     /// </para>
     /// </summary>
-    internal sealed unsafe class LockFreeMmfDataReader : IDataReader, IThreadReader, IDumpInfoProvider, ISegmentedDirectMemoryAccess, IDisposable
+    internal sealed class LockFreeMmfDataReader : IDataReader, IThreadReader, IDumpInfoProvider, ISegmentedDirectMemoryAccess, IDisposable
     {
         private readonly IDataReader _inner;
         private readonly IThreadReader? _innerThreads;
         private readonly IDumpInfoProvider? _innerInfo;
         private readonly MemoryMappedFile _mmf;
         private readonly MemoryMappedViewAccessor _accessor;
-        private readonly byte* _basePtr;
+        // Base address of the mapped view, stored as IntPtr so the field itself is not unsafe.
+        // Acquired via SafeMemoryMappedViewHandle.AcquirePointer in the ctor and released in
+        // Dispose. All raw-pointer use is confined to the ViewSpan helper below; the helper
+        // exists because no safe API can materialize a Span<byte> over an MMF view, and zero-copy
+        // spans over the dump file are the entire reason this reader exists.
+        private readonly IntPtr _basePtr;
         private readonly long _viewLength;
         private readonly Segment[] _segments;
         private int _lastSegmentIndex;
@@ -102,9 +107,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
                 _viewLength = (long)accessor.SafeMemoryMappedViewHandle.ByteLength;
 
-                byte* ptr = null;
-                accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
-                _basePtr = ptr + accessor.PointerOffset;
+                unsafe
+                {
+                    byte* ptr = null;
+                    accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
+                    _basePtr = (IntPtr)(ptr + accessor.PointerOffset);
+                }
 
                 _mmf = mmf;
                 _accessor = accessor;
@@ -225,9 +233,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public bool Read<T>(ulong address, out T value) where T : unmanaged
         {
-            value = default;
-            Span<byte> buffer = new(Unsafe.AsPointer(ref value), Unsafe.SizeOf<T>());
-            return Read(address, buffer) == buffer.Length;
+            Span<byte> buffer = stackalloc byte[Unsafe.SizeOf<T>()];
+            if (Read(address, buffer) != buffer.Length)
+            {
+                value = default;
+                return false;
+            }
+            value = MemoryMarshal.Read<T>(buffer);
+            return true;
         }
 
         public T Read<T>(ulong address) where T : unmanaged
@@ -238,9 +251,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public bool ReadPointer(ulong address, out ulong value)
         {
-            value = 0;
-            Span<byte> buffer = new(Unsafe.AsPointer(ref value), PointerSize);
-            return Read(address, buffer) == PointerSize;
+            int ps = PointerSize;
+            Span<byte> buffer = stackalloc byte[sizeof(ulong)];
+            // stackalloc zero-inits, so the upper 4 bytes remain 0 on 32-bit reads.
+            if (Read(address, buffer.Slice(0, ps)) != ps)
+            {
+                value = 0;
+                return false;
+            }
+            value = ps == sizeof(ulong) ? MemoryMarshal.Read<ulong>(buffer) : MemoryMarshal.Read<uint>(buffer);
+            return true;
         }
 
         public ulong ReadPointer(ulong address)
@@ -248,6 +268,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ReadPointer(address, out ulong value);
             return value;
         }
+
+        // Single chokepoint for materializing a Span<byte> over the mapped view.
+        // This is the only method that dereferences _basePtr.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe ReadOnlySpan<byte> ViewSpan(long fileOffset, int length)
+            => new((byte*)_basePtr + fileOffset, length);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int ReadFromSegment(ref Segment seg, ulong address, Span<byte> buffer)
@@ -262,7 +288,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 toRead = (int)availableU;
 
             ulong fileOffset = seg.FileOffset + offsetInSeg;
-            new ReadOnlySpan<byte>(_basePtr + (long)fileOffset, toRead).CopyTo(buffer);
+            ViewSpan((long)fileOffset, toRead).CopyTo(buffer);
             return toRead;
         }
 
@@ -320,7 +346,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return false;
             }
 
-            span = new ReadOnlySpan<byte>(_basePtr + (long)fileOffset, length);
+            span = ViewSpan((long)fileOffset, length);
             return true;
         }
 

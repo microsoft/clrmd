@@ -173,12 +173,12 @@ namespace Microsoft.Diagnostics.Runtime
             if (_pointerSize == 8)
             {
                 DebugOnly.Assert(span.Length - offset >= sizeof(ulong));
-                return Unsafe.ReadUnaligned<ulong>(ref Unsafe.AsRef(in span[offset]));
+                return MemoryMarshal.Read<ulong>(span.Slice(offset));
             }
             else
             {
                 DebugOnly.Assert(span.Length - offset >= sizeof(uint));
-                return Unsafe.ReadUnaligned<uint>(ref Unsafe.AsRef(in span[offset]));
+                return MemoryMarshal.Read<uint>(span.Slice(offset));
             }
         }
 
