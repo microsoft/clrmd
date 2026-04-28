@@ -240,6 +240,24 @@ using DataTarget dt = DataTarget.LoadDump("crash.dmp", new DataTargetOptions
 
 ---
 
+## Removed: `CacheOptions.UseOSMemoryFeatures`
+
+The `CacheOptions.UseOSMemoryFeatures` flag (and its backing AWE-based minidump
+reader) has been removed.  The flag enabled an Address Windowing Extensions (AWE)
+cache that required `SeLockMemoryPrivilege` — a privilege that is not granted by
+default and required specialty machine setup on Windows.  Combined with being
+under-maintained, the AWE path was removed in v4.
+
+The property is still present and marked `[Obsolete]` for source compatibility,
+but it has no effect.  Setting it in v4 will produce a compiler warning.
+
+If you previously set this flag for performance reasons and do not need a thread
+safe `IDataReader`, set `DataTargetOptions.UseLockFreeMemoryMapReader = true`
+instead for a speed improvement on file-based dumps (see the section above for
+details and trade-offs).
+
+---
+
 ## `DataTargetLimits` — configurable parsing and network bounds
 
 ClrMD 4.0 introduces `DataTargetLimits`, a class that centralizes all upper bounds for
@@ -307,3 +325,4 @@ platform-specific DAC in `ClrInfo.DebuggingLibraries`.  No consumer action is re
 | `CreateRuntime(dac, mismatch, verifySignature)` | `CreateRuntime(dac, mismatch)` + `DataTargetOptions.VerifyDacSignature` |
 | `new ClrObject(address, type)` | `heap.GetObject(address)` |
 | `Command` / `CommandOptions` | `System.Diagnostics.Process` |
+| `CacheOptions.UseOSMemoryFeatures` | _(removed — set `DataTargetOptions.UseLockFreeMemoryMapReader = true` for a speed boost if thread safety is not required)_ |

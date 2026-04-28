@@ -23,6 +23,7 @@ namespace Microsoft.Diagnostics.Runtime
         internal readonly IAbstractTypeHelpers _helpers;
         private ClrType? _type;
         private int _attributes = (int)FieldAttributes.ReservedMask;
+        private int _typeInitialized;
 
         internal FieldInfo FieldInfo { get; }
 
@@ -31,6 +32,8 @@ namespace Microsoft.Diagnostics.Runtime
             _helpers = helpers;
             ContainingType = containingType;
             _type = type;
+            if (_type is not null)
+                _typeInitialized = 1;
 
             if (data.ElementType == ClrElementType.Class && _type != null)
                 data.ElementType = _type.ElementType;
@@ -43,6 +46,7 @@ namespace Microsoft.Diagnostics.Runtime
         private void DebugOnlyLoadLazyValues()
         {
             InitData(false);
+            GetClrType();
         }
 
 
@@ -88,17 +92,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the type of the field.  Note this property may return <see langword="null"/> on error.  There is a bug in several versions
         /// of our debugging layer which causes this.  You should always null-check the return value of this field.
         /// </summary>
-        public virtual ClrType? Type
-        {
-            get
-            {
-                if (_type != null)
-                    return _type;
-
-                InitData(false);
-                return _type;
-            }
-        }
+        public virtual ClrType? Type => GetClrType();
 
         private void InitData(bool forName)
         {
@@ -122,25 +116,79 @@ namespace Microsoft.Diagnostics.Runtime
                     _name = info.Name;
             }
 
-            if (_type is null)
-            {
-                SigParser sigParser = new(info.Signature, info.SignatureSize);
-                if (sigParser.GetCallingConvInfo(out int sigType) && sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD)
-                {
-                    sigParser.SkipCustomModifiers();
-                    IReadOnlyList<ClrType?>? concreteTypeArgs = ContainingType.GetConcreteGenericTypeArguments();
-                    _type = ContainingType.Heap.GetOrCreateTypeFromSignature(ContainingType.Module, sigParser, ContainingType.EnumerateGenericParameters(), Array.Empty<ClrGenericParameter>(), concreteTypeArgs);
-                }
+            Interlocked.Exchange(ref _attributes, (int)info.Attributes);
+        }
 
-                // If metadata resolution produced a generic placeholder (e.g. "TStateMachine"
-                // with no fields), fall back to the MethodTable. This handles compiler-generated
-                // types nested inside open generic classes where the name-based lookup fails
-                // due to open vs closed generic name mismatch.
-                if (_type is Implementation.ClrGenericType && FieldInfo.MethodTable != 0)
-                    _type = ContainingType.Heap.GetTypeByMethodTable(FieldInfo.MethodTable) ?? _type;
+        // Returns the field's resolved type, computing it lazily if needed.
+        //
+        // _typeInitialized has three states:
+        //   0 = not yet computed
+        //   1 = computed; _type holds the resolved value
+        //   2 = computed; the field has no resolvable type (don't retry)
+        //
+        // .NET's memory model (including ARM's relaxed ordering) does not guarantee
+        // that another thread observing _typeInitialized == 1 also observes the prior
+        // store to _type. Reference and int reads/writes are atomic, but stores can be
+        // reordered. We tolerate that by re-reading _type after _typeInitialized and,
+        // if we see the "ready" sentinel but _type still reads as null, recomputing.
+        // Recomputation is safe because the result is deterministic for a given field.
+        private ClrType? GetClrType()
+        {
+            int initialized = _typeInitialized;
+            if (initialized == 2)
+                return null;
+
+            ClrType? type = _type;
+            if (initialized == 1 && type is not null)
+                return type;
+
+            return ResolveType();
+        }
+
+        // Resolves the field's type from its metadata signature. This can be expensive for
+        // generic instantiations because GetConcreteGenericTypeArguments calls GetTypeByName,
+        // which performs a module-wide scan and triggers DAC GetMethodTableName calls. This
+        // work is deferred so that callers who only need Name/Attributes don't pay for it.
+        //
+        // May run concurrently on multiple threads. Inputs are immutable for a given field,
+        // so racing threads always compute the same result and double-computation is harmless.
+        private ClrType? ResolveType()
+        {
+            IAbstractMetadataReader? import = ContainingType.Module.MetadataReader;
+            if (import is null || !import.GetFieldDefInfo(Token, out FieldDefInfo info))
+            {
+                _typeInitialized = 2;
+                return null;
             }
 
-            Interlocked.Exchange(ref _attributes, (int)info.Attributes);
+            ClrType? type = null;
+            SigParser sigParser = new(info.Signature, info.SignatureSize);
+            if (sigParser.GetCallingConvInfo(out int sigType) && sigType == SigParser.IMAGE_CEE_CS_CALLCONV_FIELD)
+            {
+                sigParser.SkipCustomModifiers();
+                IReadOnlyList<ClrType?>? concreteTypeArgs = ContainingType.GetConcreteGenericTypeArguments();
+                type = ContainingType.Heap.GetOrCreateTypeFromSignature(ContainingType.Module, sigParser, ContainingType.EnumerateGenericParameters(), Array.Empty<ClrGenericParameter>(), concreteTypeArgs);
+            }
+
+            // If metadata resolution produced a generic placeholder (e.g. "TStateMachine"
+            // with no fields), fall back to the MethodTable. This handles compiler-generated
+            // types nested inside open generic classes where the name-based lookup fails
+            // due to open vs closed generic name mismatch.
+            if (type is Implementation.ClrGenericType && FieldInfo.MethodTable != 0)
+                type = ContainingType.Heap.GetTypeByMethodTable(FieldInfo.MethodTable) ?? type;
+
+            if (type is null)
+            {
+                _typeInitialized = 2;
+                return null;
+            }
+
+            // Publish _type before _typeInitialized so a reader that sees state == 1 is
+            // most likely to also see _type populated. Even if these stores are reordered
+            // (ARM), GetClrType() recomputes when it observes the inconsistency.
+            _type = type;
+            _typeInitialized = 1;
+            return type;
         }
 
         IClrType? IClrField.Type => Type;

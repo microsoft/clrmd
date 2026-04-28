@@ -30,9 +30,9 @@ namespace Microsoft.Diagnostics.Runtime
         public long MaxDumpCacheSize { get; set; } = IntPtr.Size == 8 ? 0x1_0000_0000 : 0x800_0000;
 
         /// <summary>
-        /// Whether or not to attempt to use special OS memory features such as AWE on
-        /// Windows.
+        /// No longer has any effect.  See the v4 migration guide.
         /// </summary>
+        [Obsolete("This no longer has any effect, see the v4 migration guide.")]
         public bool UseOSMemoryFeatures { get; set; }
     }
 }
