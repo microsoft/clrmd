@@ -214,15 +214,25 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // either from the machine's system directories (for .NET Framework) or from
             // a locally-built runtime, both of which we trust.  WinVerifyTrust can fail
             // on CI agents that can't reach CRL endpoints, so signature verification
-            // would spuriously fail tests.
-            options ??= new DataTargetOptions()
+            // would spuriously fail tests.  Properties on DataTargetOptions are init-only,
+            // so we rebuild the options here with the test-only defaults forced on, while
+            // preserving anything the caller provided (e.g. UseLockFreeMemoryMapReader).
+            DataTargetOptions src = options ?? new DataTargetOptions();
+            DataTargetOptions merged = new()
             {
-                SymbolPaths = [],
-                FileLocator = InstalledRuntimeLocator.Instance,
+                CacheOptions = src.CacheOptions,
+                FileLocator = src.FileLocator ?? InstalledRuntimeLocator.Instance,
+                SymbolPaths = src.SymbolPaths ?? [],
+                SymbolCachePath = src.SymbolCachePath,
+                SymbolTokenCredential = src.SymbolTokenCredential,
+                TraceSymbolRequests = src.TraceSymbolRequests,
+                Limits = src.Limits,
                 VerifyDacOnWindows = false,
+                UseLockFreeMemoryMapReader = src.UseLockFreeMemoryMapReader,
+                ForceCompleteRuntimeEnumeration = src.ForceCompleteRuntimeEnumeration,
             };
 
-            return DataTarget.LoadDump(path, options);
+            return DataTarget.LoadDump(path, merged);
         }
 
         /// <summary>
