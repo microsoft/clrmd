@@ -18,10 +18,6 @@ namespace Benchmarks
         [ParamsSource(nameof(CacheSizeSource))]
         public long CacheSize { get; set; }
 
-        [ParamsSource(nameof(OSMemoryFeaturesSource))]
-        public bool UseOSMemoryFeatures { get; set; }
-
-        public IEnumerable<bool> OSMemoryFeaturesSource => BenchmarkSwitches.OSMemoryFeatureFlags;
         public IEnumerable<long> CacheSizeSource => BenchmarkSwitches.RelevantCacheSizes;
 
 
@@ -39,7 +35,6 @@ namespace Benchmarks
                 CacheTypeNames = StringCaching.Cache,
 
                 MaxDumpCacheSize = CacheSize,
-                UseOSMemoryFeatures = UseOSMemoryFeatures,
             };
 
             _dataTarget = DataTarget.LoadDump(Program.CrashDump, options);
