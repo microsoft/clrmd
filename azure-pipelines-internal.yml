@@ -121,28 +121,30 @@ extends:
               displayName: Build
               condition: succeeded()
 
-          - job: MacOS
-            pool:
-              name: Azure Pipelines
-              image: macOS-latest
-              os: macOS
-
-            strategy:
-              matrix:
-                debug:
-                  _BuildConfig: Debug
-                release:
-                  _BuildConfig: Release
-
-            steps:
-            - script: eng/common/build.sh
-                --configuration $(_BuildConfig)
-                --prepareMachine
-                --restore --build --test
-                --ci
-              name: Build
-              displayName: Build
-              condition: succeeded()
+          # MacOS job disabled in internal CI due to build failures.
+          # MacOS builds remain enabled in external (GitHub) CI via azure-pipelines-external.yml.
+          # - job: MacOS
+          #   pool:
+          #     name: Azure Pipelines
+          #     image: macOS-latest
+          #     os: macOS
+          #
+          #   strategy:
+          #     matrix:
+          #       debug:
+          #         _BuildConfig: Debug
+          #       release:
+          #         _BuildConfig: Release
+          #
+          #   steps:
+          #   - script: eng/common/build.sh
+          #       --configuration $(_BuildConfig)
+          #       --prepareMachine
+          #       --restore --build --test
+          #       --ci
+          #     name: Build
+          #     displayName: Build
+          #     condition: succeeded()
 
       - template: /eng/common/templates-official/job/publish-build-assets.yml@self
         parameters:
