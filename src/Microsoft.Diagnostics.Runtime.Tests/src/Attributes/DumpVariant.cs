@@ -92,6 +92,40 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         /// <summary>
+        /// Variants crossed with the data-reader dimension. Use for tests that should
+        /// exercise both ClrMD's default reader and the opt-in lock-free MMF reader.
+        /// </summary>
+        public static IEnumerable<object[]> WithDataReader(TestTarget target)
+        {
+            foreach (DumpVariant v in Enumerate(target))
+                foreach (DataReaderKind reader in s_allReaders)
+                    yield return new object[] { v, reader };
+        }
+
+        /// <summary>
+        /// Variants crossed with both the single-file dimension and the data-reader
+        /// dimension. Same single-file constraints as <see cref="WithSingleFile"/>.
+        /// </summary>
+        public static IEnumerable<object[]> WithSingleFileAndDataReader(TestTarget target)
+        {
+            foreach (DumpVariant v in Enumerate(target))
+            {
+                foreach (DataReaderKind reader in s_allReaders)
+                {
+                    yield return new object[] { v, false, reader };
+                    if (v.Flavor == DumpFlavor.Core && !v.HighBit)
+                        yield return new object[] { v, true, reader };
+                }
+            }
+        }
+
+        private static readonly DataReaderKind[] s_allReaders = new[]
+        {
+            DataReaderKind.Standard,
+            DataReaderKind.LockFreeMmf,
+        };
+
+        /// <summary>
         /// Only the HighBit variants. Empty on non-Windows or non-x86 hosts.
         /// </summary>
         public static IEnumerable<object[]> HighBitOnly(TestTarget target) =>

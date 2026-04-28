@@ -11,7 +11,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class CoredumpReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader, IDumpInfoProvider
+    internal sealed class CoredumpReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader, IDumpInfoProvider, IDumpFileMemorySource
     {
         private readonly ElfCoreFile _core;
         private readonly DataTargetLimits? _limits;
@@ -157,6 +157,22 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             return threads;
+        }
+
+        public IReadOnlyList<DumpMemorySegment> EnumerateMemorySegments()
+        {
+            // Mirror ElfVirtualAddressSpace's filter: only segments backed by file data.
+            var headers = _core.ElfFile.ProgramHeaders;
+            List<DumpMemorySegment> result = new(headers.Length);
+            foreach (var header in headers)
+            {
+                if (header.FileSize == 0)
+                    continue;
+                result.Add(new DumpMemorySegment(header.VirtualAddress, header.FileOffset, header.FileSize));
+            }
+
+            result.Sort(static (a, b) => a.VirtualAddress.CompareTo(b.VirtualAddress));
+            return result;
         }
     }
 }

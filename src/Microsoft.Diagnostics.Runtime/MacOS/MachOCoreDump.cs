@@ -25,6 +25,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         private readonly MachHeader64 _header;
         private readonly MachOSegment[] _segments;
+
+        internal IReadOnlyList<MachOSegment> Segments => _segments;
         private MachOModule? _dylinker;
 
         private volatile Dictionary<ulong, MachOModule>? _modules;

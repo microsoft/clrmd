@@ -99,4 +99,29 @@ public class DataTargetOptions
     /// Note that disabling this option can lead to security risks, so it should only be disabled if you understand the implications.
     /// </summary>
     public bool VerifyDacOnWindows { get; init; } = true;
+
+    /// <summary>
+    /// When true, <see cref="DataTarget.LoadDump(string, DataTargetOptions?)"/> will wrap the underlying
+    /// dump reader with a single-threaded, lock-free, memory-mapped data reader. This trades thread safety
+    /// for significantly faster sequential read patterns (heap walks, GC root traversal).
+    ///
+    /// <para>
+    /// Only takes effect when loading a dump from a file path (Minidump, ELF coredump, or Mach-O coredump).
+    /// Has no effect for stream-based dump loads or for live process targets.
+    /// </para>
+    ///
+    /// <para>
+    /// Default is <c>false</c>. Setting this to <c>true</c> means the resulting
+    /// <see cref="IDataReader"/> is NOT thread safe; callers must serialize all access to the
+    /// <see cref="DataTarget"/>, <see cref="ClrRuntime"/>, and <see cref="ClrHeap"/>.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>32-bit warning:</b> This option memory-maps the entire dump file. On a 32-bit process
+    /// the user-mode address space is ~2 GB, so dumps approaching or exceeding that size will fail
+    /// to map and produce an <see cref="System.OutOfMemoryException"/>. Disable this option (or run
+    /// as a 64-bit process) when loading large dumps from a 32-bit host.
+    /// </para>
+    /// </summary>
+    public bool UseLockFreeMemoryMapReader { get; init; }
 }

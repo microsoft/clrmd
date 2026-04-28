@@ -269,7 +269,12 @@ namespace Microsoft.Diagnostics.Runtime
         public static DataTarget LoadDump(string displayName, Stream stream, bool leaveOpen = false, DataTargetOptions? options = null)
         {
             options ??= new DataTargetOptions();
+            IDataReader reader = CreateDumpReader(displayName, stream, leaveOpen, options);
+            return new DataTarget(reader, options);
+        }
 
+        private static IDataReader CreateDumpReader(string displayName, Stream stream, bool leaveOpen, DataTargetOptions options)
+        {
             bool success = false;
             try
             {
@@ -301,9 +306,8 @@ namespace Microsoft.Diagnostics.Runtime
                     _ => throw new InvalidDataException("The provided stream is in an unknown or unsupported file format."),
                 };
 
-                DataTarget result = new(reader, options);
                 success = true;
-                return result;
+                return reader;
             }
             finally
             {
@@ -325,8 +329,16 @@ namespace Microsoft.Diagnostics.Runtime
             if (!File.Exists(filePath))
                 throw new FileNotFoundException($"Could not open dump file '{filePath}'.", filePath);
 
+            options ??= new DataTargetOptions();
             FileStream stream = File.OpenRead(filePath);
-            return LoadDump(filePath, stream, leaveOpen: false, options);
+            IDataReader reader = CreateDumpReader(filePath, stream, leaveOpen: false, options);
+
+            // Lock-free MMF data reader is opt-in and only applies when the inner reader can hand
+            // us its memory-segment table (Minidump, ELF coredump, Mach-O coredump).
+            if (options.UseLockFreeMemoryMapReader && reader is IDumpFileMemorySource)
+                reader = new LockFreeMmfDataReader(filePath, reader);
+
+            return new DataTarget(reader, options);
         }
 
         private static DumpFileFormat ReadFileFormat(Stream stream)

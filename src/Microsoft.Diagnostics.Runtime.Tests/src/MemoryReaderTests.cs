@@ -1,9 +1,10 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -55,5 +56,63 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 }
             }
         }
+
+        [WindowsFact]
+        public void LockFreeMmfDataReader_TryGetDirectSpan_MatchesRead()
+        {
+            using DataTarget dt = TestTargets.NestedException.LoadFullDump(
+                options: DataReaderKind.LockFreeMmf.ToOptions());
+
+            ISegmentedDirectMemoryAccess direct = Assert.IsAssignableFrom<ISegmentedDirectMemoryAccess>(dt.DataReader);
+
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            int hits = 0;
+            byte[] expected = new byte[8192];
+
+            foreach (ClrObject obj in runtime.Heap.EnumerateObjects())
+            {
+                if (obj.Address == 0)
+                    continue;
+
+                ulong size = obj.Size;
+                if (size == 0 || size > (ulong)expected.Length)
+                    continue;
+
+                int len = (int)size;
+
+                if (!direct.TryGetDirectSpan(obj.Address, len, out ReadOnlySpan<byte> span))
+                    continue;   // segment-boundary case, not what this test exercises
+
+                Assert.Equal(len, span.Length);
+
+                int read = dt.DataReader.Read(obj.Address, expected.AsSpan(0, len));
+                Assert.Equal(len, read);
+                Assert.True(span.SequenceEqual(expected.AsSpan(0, len)),
+                    $"direct span and Read() bytes diverged at object {obj.Address:x}");
+
+                if (++hits >= 50)
+                    break;
+            }
+
+            Assert.True(hits > 0, "fixture exposed no walkable objects (LockFreeMmfDataReader did not satisfy any TryGetDirectSpan)");
+        }
+
+        [WindowsFact]
+        public void LockFreeMmfDataReader_TryGetDirectSpan_BogusAddressFails()
+        {
+            using DataTarget dt = TestTargets.NestedException.LoadFullDump(
+                options: DataReaderKind.LockFreeMmf.ToOptions());
+
+            ISegmentedDirectMemoryAccess direct = Assert.IsAssignableFrom<ISegmentedDirectMemoryAccess>(dt.DataReader);
+
+            Assert.False(direct.TryGetDirectSpan(0xBAADF00DBAADF00D, 8, out ReadOnlySpan<byte> span));
+            Assert.Equal(0, span.Length);
+
+            // Zero-length succeeds even on a bogus address by contract.
+            Assert.True(direct.TryGetDirectSpan(0xBAADF00DBAADF00D, 0, out span));
+            Assert.Equal(0, span.Length);
+        }
     }
 }
+
