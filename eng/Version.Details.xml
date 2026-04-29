@@ -3,34 +3,34 @@
   <ProductDependencies>
   </ProductDependencies>
   <ToolsetDependencies>
-    <Dependency Name="Microsoft.DotNet.Arcade.Sdk" Version="10.0.0-beta.26222.2">
-      <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>58713cb9a664ed67642127fcaf70b8c0c3b55ef2</Sha>
+    <Dependency Name="Microsoft.DotNet.Arcade.Sdk" Version="10.0.0-beta.26228.119">
+      <Uri>https://github.com/dotnet/dotnet</Uri>
+      <Sha>475958725a4f33cf0f91ad4caf162ee95ce9eebb</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.CodeAnalysis" Version="10.0.0-beta.26222.2">
-      <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>58713cb9a664ed67642127fcaf70b8c0c3b55ef2</Sha>
+    <Dependency Name="Microsoft.DotNet.CodeAnalysis" Version="10.0.0-beta.26228.119">
+      <Uri>https://github.com/dotnet/dotnet</Uri>
+      <Sha>475958725a4f33cf0f91ad4caf162ee95ce9eebb</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.CodeAnalysis" Version="4.6.0-1.23073.4">
-      <Uri>https://github.com/dotnet/roslyn</Uri>
-      <Sha>6acaa7b7c0efea8ea292ca26888c0346fbf8b0c1</Sha>
+    <Dependency Name="Microsoft.CodeAnalysis" Version="5.0.0-2.26228.119">
+      <Uri>https://github.com/dotnet/dotnet</Uri>
+      <Sha>475958725a4f33cf0f91ad4caf162ee95ce9eebb</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.CodeAnalysis.CSharp" Version="4.6.0-1.23073.4">
-      <Uri>https://github.com/dotnet/roslyn</Uri>
-      <Sha>6acaa7b7c0efea8ea292ca26888c0346fbf8b0c1</Sha>
+    <Dependency Name="Microsoft.CodeAnalysis.CSharp" Version="5.0.0-2.26228.119">
+      <Uri>https://github.com/dotnet/dotnet</Uri>
+      <Sha>475958725a4f33cf0f91ad4caf162ee95ce9eebb</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.CodeAnalysis.Analyzers" Version="3.3.5-beta1.23124.1">
-      <Uri>https://github.com/dotnet/roslyn-analyzers</Uri>
-      <Sha>c6352bf2e1bd214fce090829de1042000d021497</Sha>
+    <Dependency Name="Microsoft.CodeAnalysis.Analyzers" Version="5.0.0-2.26228.119">
+      <Uri>https://github.com/dotnet/dotnet</Uri>
+      <Sha>475958725a4f33cf0f91ad4caf162ee95ce9eebb</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0-preview1.23124.1">
-      <Uri>https://github.com/dotnet/roslyn-analyzers</Uri>
-      <Sha>c6352bf2e1bd214fce090829de1042000d021497</Sha>
+    <Dependency Name="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.109">
+      <Uri>https://github.com/dotnet/dotnet</Uri>
+      <Sha>475958725a4f33cf0f91ad4caf162ee95ce9eebb</Sha>
     </Dependency>
     <!-- Flows the .NET SDK pin in global.json. Updated automatically by darc. -->
-    <Dependency Name="Microsoft.NET.Sdk" Version="10.0.106">
+    <Dependency Name="Microsoft.NET.Sdk" Version="10.0.109-servicing.26228.119">
       <Uri>https://github.com/dotnet/dotnet</Uri>
-      <Sha></Sha>
+      <Sha>475958725a4f33cf0f91ad4caf162ee95ce9eebb</Sha>
     </Dependency>
   </ToolsetDependencies>
 </Dependencies>
