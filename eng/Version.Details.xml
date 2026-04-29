@@ -26,6 +26,11 @@
     <Dependency Name="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0-preview1.23124.1">
       <Uri>https://github.com/dotnet/roslyn-analyzers</Uri>
       <Sha>c6352bf2e1bd214fce090829de1042000d021497</Sha>
-    </Dependency>s
+    </Dependency>
+    <!-- Flows the .NET SDK pin in global.json. Updated automatically by darc. -->
+    <Dependency Name="Microsoft.NET.Sdk" Version="10.0.106">
+      <Uri>https://github.com/dotnet/dotnet</Uri>
+      <Sha></Sha>
+    </Dependency>
   </ToolsetDependencies>
 </Dependencies>
