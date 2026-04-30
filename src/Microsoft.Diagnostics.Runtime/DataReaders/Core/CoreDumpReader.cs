@@ -262,23 +262,22 @@ namespace Microsoft.Diagnostics.Runtime
             //
             // We classify a region as Image when its base address matches a known
             // module's base, Private otherwise.
-            HashSet<ulong> imageBases = new();
-            foreach (ElfLoadedImage image in _core.LoadedImages.Values)
-                imageBases.Add(image.BaseAddress);
 
-            // Build a sorted list of (base, end, path) for image lookup.
+            // Build a sorted list of (base, end) for image lookup.
             var imageRanges = _core.LoadedImages.Values
                 .Select(img => (Base: img.BaseAddress, End: img.BaseAddress + img.Size))
                 .OrderBy(r => r.Base)
                 .ToArray();
 
-            foreach (ElfProgramHeader header in _core.ElfFile.ProgramHeaders)
-            {
-                if (header.Type != ElfProgramHeaderType.Load)
-                    continue;
-                if (header.VirtualSize == 0)
-                    continue;
+            // IMemoryRegionReader contract requires regions yielded in ascending
+            // base address order. Filter to PT_LOAD with non-zero size, then sort.
+            ElfProgramHeader[] headers = _core.ElfFile.ProgramHeaders
+                .Where(h => h.Type == ElfProgramHeaderType.Load && h.VirtualSize != 0)
+                .OrderBy(h => h.VirtualAddress)
+                .ToArray();
 
+            foreach (ElfProgramHeader header in headers)
+            {
                 MemoryRegionProtect protect = MemoryRegionProtect.None;
                 if (header.IsReadable) protect |= MemoryRegionProtect.Read;
                 if (header.IsWritable) protect |= MemoryRegionProtect.Write;
