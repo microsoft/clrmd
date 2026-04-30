@@ -171,6 +171,20 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return null;
         }
 
+        /// <summary>
+        /// Returns a snapshot of the currently cached types.  Used by closed-generic
+        /// fallback lookups in <see cref="ClrHeap.GetTypeByName(ClrModule, string)"/>
+        /// to find constructed generic instantiations that are not present in any
+        /// module's TypeDef map.
+        /// </summary>
+        public IEnumerable<ClrType> EnumerateCachedTypes()
+        {
+            lock (_types)
+            {
+                return _types.Values.ToArray();
+            }
+        }
+
         public ClrType? GetOrCreateTypeFromSignature(ClrModule module, SigParser parser, IEnumerable<ClrGenericParameter> typeParameters, IEnumerable<ClrGenericParameter> methodParameters, IReadOnlyList<ClrType?>? concreteTypeArgs = null)
         {
             // ECMA 335 - II.23.2.12 - Type
