@@ -137,7 +137,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             stream.Position = header.StreamDirectoryRva;
             if (!Read(stream, _directories))
-                throw new InvalidDataException($"Unable to read directories from minidump '{displayName} offset 0x{header.StreamDirectoryRva:x}");
+                throw new InvalidDataException($"Unable to read directories from minidump '{displayName}' offset 0x{header.StreamDirectoryRva:x}");
 
             (int systemInfoIndex, int moduleListIndex, int miscStream, int memoryInfoListIndex) = FindImportantStreams(displayName);
 
