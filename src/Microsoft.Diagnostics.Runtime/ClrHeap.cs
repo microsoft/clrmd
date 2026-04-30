@@ -1223,6 +1223,20 @@ namespace Microsoft.Diagnostics.Runtime
             // in any module's TypeDef map but were constructed during heap enumeration.
             result ??= _typeFactory.TryGetCachedTypeByName(name);
 
+            // Closed-generic fallback: if the caller passed a reflection-style name like
+            // "Generic`1[[System.Int32, mscorlib, ...]]" (i.e. Type.FullName), normalize
+            // to ClrType.Name format ("Generic<System.Int32>") and try again.
+            if (result is null && LooksLikeClosedGenericName(name))
+            {
+                string? normalized = TryNormalizeReflectionFullName(name);
+                if (normalized != null && normalized != name)
+                {
+                    result = _typeFactory.TryGetCachedTypeByName(normalized);
+                    if (result is null)
+                        result = FindClosedGenericInAnyModule(normalized);
+                }
+            }
+
             return result;
         }
 
@@ -1234,7 +1248,19 @@ namespace Microsoft.Diagnostics.Runtime
             if (name.Length == 0)
                 throw new ArgumentException($"{nameof(name)} cannot be empty");
 
-            return FindTypeName(module.Address, module.EnumerateTypeDefToMethodTableMap(), name);
+            ClrType? result = FindTypeName(module.Address, module.EnumerateTypeDefToMethodTableMap(), name);
+
+            // Closed-generic fallback: closed generic instantiations are not in any module's
+            // TypeDef map (only the open generic typedef is).  If the caller asked for a name
+            // that looks like a closed generic, normalize it and walk the heap for a matching
+            // constructed instantiation in this module.
+            if (result is null && LooksLikeClosedGenericName(name))
+            {
+                string? normalized = TryNormalizeReflectionFullName(name) ?? name;
+                result = FindClosedGenericInModule(module.Address, normalized);
+            }
+
+            return result;
         }
 
         private ClrType? FindTypeName(ulong moduleAddress, IEnumerable<(ulong MethodTable, int Token)> map, string name)
@@ -1261,6 +1287,150 @@ namespace Microsoft.Diagnostics.Runtime
 
             return null;
         }
+
+        /// <summary>
+        /// Heuristic: returns true if <paramref name="name"/> appears to refer to a
+        /// generic instantiation (open or closed).  Used to gate the more expensive
+        /// closed-generic lookup fallback.
+        /// </summary>
+        private static bool LooksLikeClosedGenericName(string name)
+        {
+            // ClrType.Name uses '<' for instantiations (e.g. "Foo<Int32>").
+            // Reflection Type.FullName uses '`' followed by an arity and '[' or '[[' for type args.
+            return name.IndexOf('<') >= 0 || name.IndexOf('[') >= 0 || name.IndexOf('`') >= 0;
+        }
+
+        /// <summary>
+        /// Converts a reflection-style assembly-qualified generic name like
+        /// "Foo`1[[System.Int32, System.Private.CoreLib, Version=...]]" into the
+        /// simplified ClrType.Name format "Foo&lt;System.Int32&gt;".  Returns null if the
+        /// input is not in a recognizable reflection generic form (in which case the
+        /// caller should treat the input as already simplified).
+        /// </summary>
+        internal static string? TryNormalizeReflectionFullName(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+                return null;
+
+            // Already in ClrType.Name format ("Foo<...>") — nothing to do.
+            if (name.IndexOf('<') >= 0 && name.IndexOf('`') < 0)
+                return name;
+
+            int tickIdx = name.IndexOf('`');
+            int bracketIdx = name.IndexOf('[');
+            if (tickIdx < 0 || bracketIdx < 0 || bracketIdx < tickIdx)
+                return null;
+
+            // Base name (everything before the backtick) plus arity (digits between `` ` `` and `[`).
+            string baseName = name.Substring(0, tickIdx);
+            // Arity may include nested generic markers (`Outer`1+Inner`1` for nested), but for
+            // the typical Type.FullName form the arity is just digits.
+
+            // Walk the bracket tree.  The format is `[` then a comma-separated list of either
+            // `[Type, AsmInfo]` or unqualified `Type` entries, then `]`.  The outer `[` may be
+            // doubled (`[[`) for assembly-qualified args.  Handle both.
+            if (!TryParseTypeArgList(name, bracketIdx, out List<string>? args, out _))
+                return null;
+
+            return baseName + "<" + string.Join(", ", args!) + ">";
+        }
+
+        private static bool TryParseTypeArgList(string s, int openIdx, out List<string>? args, out int endIdx)
+        {
+            args = null;
+            endIdx = -1;
+            if (openIdx >= s.Length || s[openIdx] != '[')
+                return false;
+
+            args = new List<string>();
+            int i = openIdx + 1;
+            while (i < s.Length && s[i] != ']')
+            {
+                if (s[i] == ' ' || s[i] == ',') { i++; continue; }
+
+                if (s[i] == '[')
+                {
+                    // Assembly-qualified arg: [Type, Asm, ...]
+                    int depth = 1;
+                    int argStart = i + 1;
+                    int j = argStart;
+                    int firstComma = -1;
+                    while (j < s.Length && depth > 0)
+                    {
+                        if (s[j] == '[') depth++;
+                        else if (s[j] == ']') { depth--; if (depth == 0) break; }
+                        else if (s[j] == ',' && depth == 1 && firstComma < 0) firstComma = j;
+                        j++;
+                    }
+                    if (j >= s.Length) return false;
+
+                    string typePart = firstComma > 0
+                        ? s.Substring(argStart, firstComma - argStart)
+                        : s.Substring(argStart, j - argStart);
+                    typePart = typePart.Trim();
+
+                    // Recursively normalize the type part if it itself is a generic instantiation.
+                    string? normalized = TryNormalizeReflectionFullName(typePart);
+                    args.Add(normalized ?? typePart);
+                    i = j + 1;
+                }
+                else
+                {
+                    // Unqualified arg: just a type name up to ',' or ']'.
+                    int argStart = i;
+                    while (i < s.Length && s[i] != ',' && s[i] != ']') i++;
+                    string typePart = s.Substring(argStart, i - argStart).Trim();
+                    string? normalized = TryNormalizeReflectionFullName(typePart);
+                    args.Add(normalized ?? typePart);
+                }
+            }
+
+            if (i >= s.Length || s[i] != ']')
+                return false;
+
+            endIdx = i;
+            return true;
+        }
+
+        /// <summary>
+        /// Walks the heap looking for a constructed (closed) generic instantiation in the
+        /// given module whose name matches <paramref name="normalizedName"/>.  Used as a
+        /// fallback when the TypeDef map scan fails (because closed generic MTs are not
+        /// recorded in any module's metadata).  This is O(heap size) and should only be
+        /// called when a fast-path lookup has already missed.
+        /// </summary>
+        private ClrType? FindClosedGenericInModule(ulong moduleAddress, string normalizedName)
+        {
+            // Cache check first.
+            foreach (ClrType cached in _typeFactory.EnumerateCachedTypes())
+            {
+                if (cached.Module?.Address == moduleAddress && cached.Name == normalizedName)
+                    return cached;
+            }
+
+            // Heap walk (constructs types on demand into _types).
+            foreach (ClrObject obj in EnumerateObjects())
+            {
+                ClrType? type = obj.Type;
+                if (type != null && type.Module?.Address == moduleAddress && type.Name == normalizedName)
+                    return type;
+            }
+
+            return null;
+        }
+
+        private ClrType? FindClosedGenericInAnyModule(string normalizedName)
+        {
+            foreach (ClrObject obj in EnumerateObjects())
+            {
+                ClrType? type = obj.Type;
+                if (type != null && type.Name == normalizedName)
+                    return type;
+            }
+
+            return null;
+        }
+
 
         internal ClrException? GetExceptionObject(ulong objAddress, ClrThread? thread)
         {

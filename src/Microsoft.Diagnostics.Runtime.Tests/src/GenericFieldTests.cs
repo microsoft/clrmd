@@ -149,6 +149,45 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         /// <summary>
+        /// Issue #1334: GetTypeByName should accept reflection-style assembly-qualified
+        /// FullNames (e.g. "LinkedListNode`1[[System.String, System.Private.CoreLib, ...]]")
+        /// and resolve them to the equivalent closed generic instantiation.  This is the
+        /// format BenchmarkDotNet's ClrMdDisassembler passes when it calls
+        /// `module.GetTypeByName(args.BenchmarkInstance.GetType().FullName!)`.
+        /// </summary>
+        [Fact]
+        public void GetTypeByName_AcceptsReflectionFullNameForClosedGenerics()
+        {
+            ClrHeap heap = _connection.Runtime.Heap;
+
+            // Force heap enumeration so types get constructed and cached.
+            foreach (ClrObject obj in heap.EnumerateObjects())
+                _ = obj.Type;
+
+            // Type.FullName-style assembly-qualified name.
+            const string FullName = "System.Collections.Generic.LinkedListNode`1[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]";
+            ClrType? nodeType = heap.GetTypeByName(FullName);
+            Assert.NotNull(nodeType);
+            Assert.Contains("LinkedListNode<System.String>", nodeType!.Name);
+        }
+
+        /// <summary>
+        /// Issue #1334: TryNormalizeReflectionFullName should produce the simplified
+        /// ClrType.Name format from various reflection-style inputs without requiring
+        /// any runtime state.
+        /// </summary>
+        [Theory]
+        [InlineData("Foo`1[[System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]", "Foo<System.Int32>")]
+        [InlineData("Ns.Foo`2[[System.Int32, mscorlib],[System.String, mscorlib]]", "Ns.Foo<System.Int32, System.String>")]
+        [InlineData("Outer`1[[Inner`1[[System.Int32, mscorlib]], mscorlib]]", "Outer<Inner<System.Int32>>")]
+        [InlineData("Already.Simple<System.Int32>", "Already.Simple<System.Int32>")]
+        public void TryNormalizeReflectionFullName_ProducesClrTypeNameFormat(string input, string expected)
+        {
+            string? actual = ClrHeap.TryNormalizeReflectionFullName(input);
+            Assert.Equal(expected, actual);
+        }
+
+        /// <summary>
         /// Issue #1428: Accessing field.Name on a generic instantiation must not eagerly
         /// resolve field.Type. Type resolution calls GetConcreteGenericTypeArguments ->
         /// GetTypeByName which is expensive; it should only run when Type is actually
