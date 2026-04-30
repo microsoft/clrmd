@@ -386,6 +386,16 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>A <see cref="DataTarget"/> instance.</returns>
         public static DataTarget AttachToProcess(int processId, bool suspend, DataTargetOptions? options = null)
         {
+#if NET6_0_OR_GREATER
+            int currentPid = Environment.ProcessId;
+#else
+            int currentPid;
+            using (Process p = Process.GetCurrentProcess())
+                currentPid = p.Id;
+#endif
+            if (processId == currentPid)
+                throw new InvalidOperationException("Attaching to the current process is not supported. Use CreateSnapshotAndAttach instead.");
+
             options ??= new();
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
