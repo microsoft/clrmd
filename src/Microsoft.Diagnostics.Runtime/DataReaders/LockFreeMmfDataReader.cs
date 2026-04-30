@@ -409,22 +409,27 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public bool TryGetThreadInfo(uint osThreadId, out ThreadInfo info)
         {
             if (_innerThreadInfo is null)
-            {
-                info = default;
-                return false;
-            }
+                throw CreateUnsupportedInterfaceException(nameof(IThreadInfoReader));
+
             return _innerThreadInfo.TryGetThreadInfo(osThreadId, out info);
         }
 
         public IEnumerable<ThreadInfo> EnumerateThreadInfo()
-            => _innerThreadInfo?.EnumerateThreadInfo() ?? Array.Empty<ThreadInfo>();
+            => _innerThreadInfo?.EnumerateThreadInfo()
+               ?? throw CreateUnsupportedInterfaceException(nameof(IThreadInfoReader));
 
         // IProcessInfoProvider passthrough
-        public ProcessInfo GetProcessInfo() => _innerProcessInfo?.GetProcessInfo() ?? default;
+        public ProcessInfo GetProcessInfo()
+            => _innerProcessInfo?.GetProcessInfo()
+               ?? throw CreateUnsupportedInterfaceException(nameof(IProcessInfoProvider));
 
         // IMemoryRegionReader passthrough
         public IEnumerable<MemoryRegion> EnumerateMemoryRegions()
-            => _innerRegions?.EnumerateMemoryRegions() ?? Array.Empty<MemoryRegion>();
+            => _innerRegions?.EnumerateMemoryRegions()
+               ?? throw CreateUnsupportedInterfaceException(nameof(IMemoryRegionReader));
+
+        private static NotSupportedException CreateUnsupportedInterfaceException(string interfaceName)
+            => new($"The inner data reader does not implement {interfaceName}.");
 
         public void Dispose()
         {
