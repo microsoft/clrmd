@@ -171,10 +171,12 @@ namespace Microsoft.Diagnostics.Runtime
             }
 
             // If metadata resolution produced a generic placeholder (e.g. "TStateMachine"
-            // with no fields), fall back to the MethodTable. This handles compiler-generated
-            // types nested inside open generic classes where the name-based lookup fails
-            // due to open vs closed generic name mismatch.
-            if (type is Implementation.ClrGenericType && FieldInfo.MethodTable != 0)
+            // with no fields) or returned null (the open generic type's MethodTable wasn't
+            // materialized in the runtime), fall back to the MethodTable. This handles
+            // compiler-generated types nested inside open generic classes where the
+            // name-based lookup fails due to open vs closed generic name mismatch, and
+            // never-instantiated generic field types.
+            if ((type is null || type is Implementation.ClrGenericType) && FieldInfo.MethodTable != 0)
                 type = ContainingType.Heap.GetTypeByMethodTable(FieldInfo.MethodTable) ?? type;
 
             if (type is null)

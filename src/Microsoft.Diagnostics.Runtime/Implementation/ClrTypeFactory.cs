@@ -270,6 +270,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 }
 
                 ClrType? result = GetOrCreateTypeFromToken(module, token);
+
+                // The open generic type's MethodTable may not be materialized in the runtime
+                // (e.g. a never-instantiated static field of a generic type in net48 mscorlib).
+                // Fall back to a basic type so callers see a non-null Type, matching the
+                // behavior of the simple Class/Struct branch above.
+                result ??= GetOrCreateBasicType(ClrElementType.Class);
+
                 return result;
             }
 
