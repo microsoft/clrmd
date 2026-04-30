@@ -181,6 +181,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [InlineData("Ns.Foo`2[[System.Int32, mscorlib],[System.String, mscorlib]]", "Ns.Foo<System.Int32, System.String>")]
         [InlineData("Outer`1[[Inner`1[[System.Int32, mscorlib]], mscorlib]]", "Outer<Inner<System.Int32>>")]
         [InlineData("Already.Simple<System.Int32>", "Already.Simple<System.Int32>")]
+        // PR #1438 review: trailing array/pointer/byref modifiers must be preserved.
+        [InlineData("System.Collections.Generic.List`1[[System.Int32, mscorlib]][]", "System.Collections.Generic.List<System.Int32>[]")]
+        [InlineData("Ns.Foo`1[[System.Int32, mscorlib]][,]", "Ns.Foo<System.Int32>[,]")]
+        [InlineData("Ns.Foo`1[[System.Int32, mscorlib]][,,,]", "Ns.Foo<System.Int32>[,,,]")]
+        [InlineData("Ns.Foo`1[[System.Int32, mscorlib]][][]", "Ns.Foo<System.Int32>[][]")]
+        [InlineData("Ns.Foo`1[[System.Int32, mscorlib]]*", "Ns.Foo<System.Int32>*")]
+        [InlineData("Ns.Foo`1[[System.Int32, mscorlib]]&", "Ns.Foo<System.Int32>&")]
+        // Nested generic with an array type argument, plus an outer array.
+        [InlineData("Outer`1[[Inner`1[[System.Int32, mscorlib]][], mscorlib]][]", "Outer<Inner<System.Int32>[]>[]")]
         public void TryNormalizeReflectionFullName_ProducesClrTypeNameFormat(string input, string expected)
         {
             string? actual = ClrHeap.TryNormalizeReflectionFullName(input);

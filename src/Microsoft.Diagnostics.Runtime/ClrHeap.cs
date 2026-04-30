@@ -1329,10 +1329,19 @@ namespace Microsoft.Diagnostics.Runtime
             // Walk the bracket tree.  The format is `[` then a comma-separated list of either
             // `[Type, AsmInfo]` or unqualified `Type` entries, then `]`.  The outer `[` may be
             // doubled (`[[`) for assembly-qualified args.  Handle both.
-            if (!TryParseTypeArgList(name, bracketIdx, out List<string>? args, out _))
+            if (!TryParseTypeArgList(name, bracketIdx, out List<string>? args, out int endIdx))
                 return null;
 
-            return baseName + "<" + string.Join(", ", args!) + ">";
+            // Preserve any trailing modifier suffix after the closing `]` of the type arg list.
+            // Reflection FullName encodes array/pointer/byref modifiers AFTER the generic args:
+            //   typeof(List<int>[]).FullName    = "List`1[[Int32, ...]][]"
+            //   typeof(List<int>[,]).FullName   = "List`1[[Int32, ...]][,]"
+            //   typeof(List<int>*).FullName     = "List`1[[Int32, ...]]*"
+            // ClrType.Name uses the same `[]`, `[,]`, `*`, `&` syntax, so we can preserve the
+            // suffix verbatim.
+            string suffix = endIdx + 1 < name.Length ? name.Substring(endIdx + 1) : string.Empty;
+
+            return baseName + "<" + string.Join(", ", args!) + ">" + suffix;
         }
 
         private static bool TryParseTypeArgList(string s, int openIdx, out List<string>? args, out int endIdx)
