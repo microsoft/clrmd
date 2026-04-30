@@ -149,7 +149,6 @@ namespace Microsoft.Diagnostics.Runtime
             DateTime? exitTime = hasInfo && info.ExitTime != 0 ? FileTimeToDateTime(info.ExitTime) : null;
             TimeSpan? userTime = hasInfo ? FileTimeIntervalToTimeSpan(info.UserTime) : null;
             TimeSpan? kernelTime = hasInfo ? FileTimeIntervalToTimeSpan(info.KernelTime) : null;
-
             return new ThreadInfo
             {
                 OSThreadId = osThreadId,
@@ -169,22 +168,28 @@ namespace Microsoft.Diagnostics.Runtime
             };
         }
 
-        private static DateTime FileTimeToDateTime(ulong fileTime)
+        private static DateTime? FileTimeToDateTime(ulong fileTime)
         {
             // FILETIME is 100-ns intervals since 1601-01-01 UTC.
+            if (fileTime > long.MaxValue)
+                return null;
+
             try
             {
                 return DateTime.FromFileTimeUtc((long)fileTime);
             }
             catch (ArgumentOutOfRangeException)
             {
-                return DateTime.MinValue;
+                return null;
             }
         }
 
-        private static TimeSpan FileTimeIntervalToTimeSpan(ulong fileTimeInterval)
+        private static TimeSpan? FileTimeIntervalToTimeSpan(ulong fileTimeInterval)
         {
             // 100-ns ticks ≡ TimeSpan ticks.
+            if (fileTimeInterval > long.MaxValue)
+                return null;
+
             return TimeSpan.FromTicks((long)fileTimeInterval);
         }
 
