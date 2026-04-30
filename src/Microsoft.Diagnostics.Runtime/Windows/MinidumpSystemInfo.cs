@@ -6,9 +6,12 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
     /// <summary>
-    /// Mirrors MINIDUMP_SYSTEM_INFO up to (but not including) the CPU info
-    /// union. The CPU info union is 56 bytes that we currently do not surface
-    /// but the parser reads past it via the documented size when needed.
+    /// Mirrors MINIDUMP_SYSTEM_INFO up to (but not including) the trailing
+    /// <c>CPU_INFORMATION</c> union. The union is 24 bytes (the larger of
+    /// X86CpuInfo's 6 ULONG32 fields vs. OtherCpuInfo's 2 ULONG64 fields),
+    /// bringing the full struct to 56 bytes. We do not currently surface the
+    /// CPU info; the parser uses sizeof(MinidumpSystemInfo) and skips past
+    /// the union when needed.
     /// </summary>
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
     internal readonly struct MinidumpSystemInfo
@@ -25,7 +28,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         public readonly uint CSDVersionRva;
         public readonly ushort SuiteMask;
         public readonly ushort Reserved2;
-        // MINIDUMP_SYSTEM_INFO continues with a 32-byte Cpu union here, which
-        // we do not currently surface. The parser uses sizeof to skip it.
+        // Followed in MINIDUMP_SYSTEM_INFO by a 24-byte CPU_INFORMATION union
+        // (see struct doc comment) which we do not currently surface.
     }
 }
