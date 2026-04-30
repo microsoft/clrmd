@@ -14,6 +14,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         // matching the Linux struct timeval.tv_usec field.
         public int Milliseconds;
 
-        public TimeSpan ToTimeSpan() => TimeSpan.FromTicks(Seconds * TimeSpan.TicksPerSecond + Milliseconds * 10L);
+        public TimeSpan? ToTimeSpan()
+        {
+            try
+            {
+                return TimeSpan.FromTicks(checked(Seconds * TimeSpan.TicksPerSecond + Milliseconds * 10L));
+            }
+            catch (OverflowException)
+            {
+                return null;
+            }
+        }
     }
 }

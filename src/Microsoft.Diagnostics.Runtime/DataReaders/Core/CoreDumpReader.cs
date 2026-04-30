@@ -208,15 +208,23 @@ namespace Microsoft.Diagnostics.Runtime
 
         public ProcessInfo GetProcessInfo()
         {
-            // Aggregate per-thread CPU times into a process-wide total.
+            // Aggregate per-thread CPU times into a process-wide total. Skip
+            // threads whose timeval could not be converted (overflow).
             TimeSpan userTime = TimeSpan.Zero;
             TimeSpan kernelTime = TimeSpan.Zero;
             bool anyTimes = false;
             foreach (KeyValuePair<uint, IElfPRStatus> kvp in LoadThreads())
             {
-                userTime += kvp.Value.UserTime;
-                kernelTime += kvp.Value.KernelTime;
-                anyTimes = true;
+                if (kvp.Value.UserTime is TimeSpan ut)
+                {
+                    userTime += ut;
+                    anyTimes = true;
+                }
+                if (kvp.Value.KernelTime is TimeSpan kt)
+                {
+                    kernelTime += kt;
+                    anyTimes = true;
+                }
             }
 
             // ImagePath: prefer the first non-interpreter loaded image whose path

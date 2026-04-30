@@ -21,14 +21,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         uint ThreadId { get; }
 
         /// <summary>
-        /// Aggregate user-mode CPU time consumed by this thread/process.
+        /// Aggregate user-mode CPU time consumed by this thread/process. Null
+        /// when the underlying timeval cannot be converted (overflow).
         /// </summary>
-        TimeSpan UserTime { get; }
+        TimeSpan? UserTime { get; }
 
         /// <summary>
-        /// Aggregate kernel-mode CPU time consumed by this thread/process.
+        /// Aggregate kernel-mode CPU time consumed by this thread/process. Null
+        /// when the underlying timeval cannot be converted (overflow).
         /// </summary>
-        TimeSpan KernelTime { get; }
+        TimeSpan? KernelTime { get; }
 
         /// <summary>
         /// Copies the registers within this prstatus into the Windows _CONTEXT structure for the specified
