@@ -103,13 +103,19 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             foreach (ClrObject obj in heap.EnumerateObjects())
             {
                 ClrType type = obj.Type;
-                Assert.True(!type.IsArray || type.ComponentType != null);
+                Assert.True(
+                    !type.IsArray || type.ComponentType != null,
+                    $"Array type '{type.Name}' (MT=0x{type.MethodTable:x}, module='{type.Module?.Name}') has null ComponentType. Object=0x{obj.Address:x}.");
 
                 ClrGenericParameter[] generics = type.EnumerateGenericParameters().ToArray();
 
                 foreach (ClrInstanceField field in type.Fields)
                 {
-                    Assert.NotNull(field.Type);
+                    Assert.True(
+                        field.Type is not null,
+                        $"Field '{type.Name}.{field.Name}' has null Type. " +
+                        $"Token=0x{field.Token:x}, ElementType={field.ElementType}, Offset={field.Offset}, " +
+                        $"ContainingType.MethodTable=0x{type.MethodTable:x}, Module='{type.Module?.Name}', Object=0x{obj.Address:x}.");
                     Assert.Same(heap, field.Type.Heap);
                 }
             }
@@ -118,7 +124,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 foreach (ClrType type in module.EnumerateTypes())
                 {
-                    Assert.True(!type.IsArray || type.ComponentType != null);
+                    Assert.True(
+                        !type.IsArray || type.ComponentType != null,
+                        $"Enumerated array type '{type.Name}' (MT=0x{type.MethodTable:x}, module='{module.Name}') has null ComponentType.");
                     Assert.Same(heap, type.Heap);
                 }
             }
