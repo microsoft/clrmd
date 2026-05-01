@@ -21,6 +21,15 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly IntPtr _snapshotHandle;
         private readonly IntPtr _cloneHandle;
         private readonly IntPtr _process;
+        // When attached via a snapshot (VA clone), _process is the clone process handle. The clone
+        // does not inherit anonymous (pagefile-backed) section views from the source -- including the
+        // CoreCLR ExecutableAllocator's W^X double-mapped section that backs precode/MethodDesc storage.
+        // Reads against those addresses fail with ERROR_PARTIAL_COPY, which manifests as DAC iteration
+        // failures (e.g. LoadedMethodDescIterator returning empty for closed-generic instantiations,
+        // see clrmd issue #1334). _liveProcess is an open handle to the original (live) source process
+        // used as a read fallback when the clone returns zero bytes for an address that is committed
+        // in the source. It is IntPtr.Zero outside of snapshot mode.
+        private readonly IntPtr _liveProcess;
 
         private const int PROCESS_VM_READ = 0x10;
         private const int PROCESS_QUERY_INFORMATION = 0x0400;
@@ -55,6 +64,11 @@ namespace Microsoft.Diagnostics.Runtime
                     throw new InvalidOperationException($"Could not create snapshot to process. Error {hr}.");
 
                 ProcessId = GetProcessId(_cloneHandle);
+
+                // Open a handle to the live source process so that Read() can fall back to it when the
+                // clone is missing pages (anonymous section views are not inherited by VA clones).
+                // Failure to open is non-fatal -- we simply lose the fallback for this data target.
+                _liveProcess = WindowsFunctions.NativeMethods.OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, _originalPid);
             }
             else
             {
@@ -105,6 +119,9 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (_process != IntPtr.Zero)
                     WindowsFunctions.NativeMethods.CloseHandle(_process);
+
+                if (_liveProcess != IntPtr.Zero)
+                    WindowsFunctions.NativeMethods.CloseHandle(_liveProcess);
 
                 if (_originalPid != 0)
                 {
@@ -201,6 +218,14 @@ namespace Microsoft.Diagnostics.Runtime
                 fixed (byte* ptr = buffer)
                 {
                     int res = ReadProcessMemory(_process, address.AsIntPtr(), ptr, new IntPtr(buffer.Length), out IntPtr read);
+                    if ((int)read != 0 || _liveProcess == IntPtr.Zero)
+                        return (int)read;
+
+                    // The clone returned zero bytes. This commonly indicates a region that exists in the
+                    // live source process but was not inherited by the snapshot's VA clone (anonymous
+                    // pagefile-backed section views, including the CoreCLR ExecutableAllocator's W^X
+                    // double-mapped section). Fall back to reading directly from the live source.
+                    res = ReadProcessMemory(_liveProcess, address.AsIntPtr(), ptr, new IntPtr(buffer.Length), out read);
                     return (int)read;
                 }
             }
