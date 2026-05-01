@@ -280,7 +280,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         [Theory]
         [InlineData(false)]
-        [InlineData(true)]
+        // Single-file apps only support full dumps (runtime limitation).
         public void MemoryRegionReader_MiniDump_StillEnumeratesSegments(bool singleFile)
         {
             using DataTarget dt = TestTargets.NestedException.LoadMinidump(singleFile);
