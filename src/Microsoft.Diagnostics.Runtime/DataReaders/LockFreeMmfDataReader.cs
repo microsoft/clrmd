@@ -35,11 +35,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     /// to the inner reader, which retains its own access to the dump.
     /// </para>
     /// </summary>
-    internal sealed class LockFreeMmfDataReader : IDataReader, IThreadReader, IDumpInfoProvider, ISegmentedDirectMemoryAccess, IDisposable
+    internal sealed class LockFreeMmfDataReader : IDataReader, IThreadReader, IDumpInfoProvider, ISegmentedDirectMemoryAccess, IDisposable, IThreadInfoReader, IProcessInfoProvider, IMemoryRegionReader
     {
         private readonly IDataReader _inner;
         private readonly IThreadReader? _innerThreads;
         private readonly IDumpInfoProvider? _innerInfo;
+        private readonly IThreadInfoReader? _innerThreadInfo;
+        private readonly IProcessInfoProvider? _innerProcessInfo;
+        private readonly IMemoryRegionReader? _innerRegions;
         private readonly MemoryMappedFile _mmf;
         private readonly MemoryMappedViewAccessor _accessor;
         // Base address of the mapped view, stored as IntPtr so the field itself is not unsafe.
@@ -91,6 +94,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _inner = inner;
             _innerThreads = inner as IThreadReader;
             _innerInfo = inner as IDumpInfoProvider;
+            _innerThreadInfo = inner as IThreadInfoReader;
+            _innerProcessInfo = inner as IProcessInfoProvider;
+            _innerRegions = inner as IMemoryRegionReader;
 
             MemoryMappedFile? mmf = null;
             MemoryMappedViewAccessor? accessor = null;
@@ -398,6 +404,32 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         // IDumpInfoProvider passthrough
         public bool IsMiniOrTriage => _innerInfo?.IsMiniOrTriage ?? false;
         public bool IsCreatedByDotNetRuntime => _innerInfo?.IsCreatedByDotNetRuntime ?? false;
+
+        // IThreadInfoReader passthrough
+        public bool TryGetThreadInfo(uint osThreadId, out ThreadInfo info)
+        {
+            if (_innerThreadInfo is null)
+                throw CreateUnsupportedInterfaceException(nameof(IThreadInfoReader));
+
+            return _innerThreadInfo.TryGetThreadInfo(osThreadId, out info);
+        }
+
+        public IEnumerable<ThreadInfo> EnumerateThreadInfo()
+            => _innerThreadInfo?.EnumerateThreadInfo()
+               ?? throw CreateUnsupportedInterfaceException(nameof(IThreadInfoReader));
+
+        // IProcessInfoProvider passthrough
+        public ProcessInfo GetProcessInfo()
+            => _innerProcessInfo?.GetProcessInfo()
+               ?? throw CreateUnsupportedInterfaceException(nameof(IProcessInfoProvider));
+
+        // IMemoryRegionReader passthrough
+        public IEnumerable<MemoryRegion> EnumerateMemoryRegions()
+            => _innerRegions?.EnumerateMemoryRegions()
+               ?? throw CreateUnsupportedInterfaceException(nameof(IMemoryRegionReader));
+
+        private static NotSupportedException CreateUnsupportedInterfaceException(string interfaceName)
+            => new($"The inner data reader does not implement {interfaceName}.");
 
         public void Dispose()
         {

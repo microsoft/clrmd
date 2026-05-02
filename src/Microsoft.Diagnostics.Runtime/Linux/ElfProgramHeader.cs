@@ -47,6 +47,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// </summary>
         public bool IsWritable => (_attributes & ElfProgramHeaderAttributes.Writable) != 0;
 
+        /// <summary>
+        /// Whether this section of memory is readable.
+        /// </summary>
+        public bool IsReadable => (_attributes & ElfProgramHeaderAttributes.Readable) != 0;
+
         internal ElfProgramHeader(Reader reader, bool is64bit, ulong headerPositon, long loadBias, bool isVirtual = false)
         {
             if (is64bit)

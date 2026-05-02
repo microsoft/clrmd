@@ -33,6 +33,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         public uint ThreadId => Pid;
 
+        TimeSpan? IElfPRStatus.UserTime => UserTime.ToTimeSpan();
+
+        TimeSpan? IElfPRStatus.KernelTime => SystemTime.ToTimeSpan();
+
         public bool CopyRegistersAsContext(Span<byte> context) => RegisterSet.CopyContext(context);
 
     }
