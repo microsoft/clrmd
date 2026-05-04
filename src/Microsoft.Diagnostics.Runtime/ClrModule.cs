@@ -208,6 +208,73 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeRefToMethodTableMap() => _typeRefMap ??= (_helpers?.EnumerateTypeRefMap(Address) ?? Enumerable.Empty<(ulong, int)>()).ToArray();
 
         /// <summary>
+        /// Enumerates the <see cref="ClrType"/>s reachable through this module's
+        /// TypeDef→MethodTable map that have at least one static field — both regular statics
+        /// (<see cref="ClrType.StaticFields"/>) and thread statics
+        /// (<see cref="ClrType.ThreadStaticFields"/>). Types whose metadata declares
+        /// no static FieldDef are skipped without materializing the <see cref="ClrType"/>, which
+        /// avoids the cost of <c>CacheFields</c> (a recursive walk that loads every instance,
+        /// static, and thread-static field, including per-field type resolution that is especially
+        /// expensive for shared generic instantiations). On large processes (hundreds of thousands
+        /// of loaded types) the majority have no statics at all, so this filter is the dominant
+        /// savings; callers that walk static roots should prefer this over manually iterating
+        /// <see cref="EnumerateTypeDefToMethodTableMap"/>.
+        ///
+        /// Note: like <see cref="EnumerateTypeDefToMethodTableMap"/>, this returns one MethodTable
+        /// per typedef defined in this module and therefore does not include closed generic
+        /// instantiations (e.g. <c>Foo&lt;int&gt;</c> and <c>Foo&lt;string&gt;</c> from a generic
+        /// definition <c>Foo&lt;T&gt;</c>). Callers that need static roots from closed generic
+        /// instantiations must enumerate those separately.
+        /// </summary>
+        public IEnumerable<ClrType> EnumerateTypesWithStaticFields()
+        {
+            IAbstractMetadataReader? metadata = MetadataReader;
+
+            foreach ((ulong methodTable, int typeToken) in EnumerateTypeDefToMethodTableMap())
+            {
+                if (methodTable == 0)
+                    continue;
+
+                if (metadata != null && !HasStaticFieldDef(metadata, typeToken))
+                    continue;
+
+                ClrType? type = Heap.GetTypeByMethodTable(methodTable);
+                if (type is null)
+                    continue;
+
+                if (type.StaticFields.Length == 0 && type.ThreadStaticFields.Length == 0)
+                    continue;
+
+                yield return type;
+            }
+        }
+
+        private static bool HasStaticFieldDef(IAbstractMetadataReader metadata, int typeToken)
+        {
+            try
+            {
+                foreach (FieldDefInfo info in metadata.EnumerateFields(typeToken))
+                {
+                    const System.Reflection.FieldAttributes StaticNonStorage =
+                        System.Reflection.FieldAttributes.Static | System.Reflection.FieldAttributes.Literal;
+
+                    // Literal (const) fields have no runtime storage and won't appear in
+                    // ClrType.StaticFields/ThreadStaticFields, so they don't qualify a type for
+                    // the fast path. Require Static set and Literal clear.
+                    if ((info.Attributes & StaticNonStorage) == System.Reflection.FieldAttributes.Static)
+                        return true;
+                }
+            }
+            catch
+            {
+                // Unreadable metadata: fall back to the slow path so the caller still sees the type.
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Attempts to obtain a ClrType based on the name of the type.  Note this is a "best effort" due to
         /// the way that the DAC handles types.  This function will fail for Generics, and types which have
         /// never been constructed in the target process.  Please be sure to null-check the return value of

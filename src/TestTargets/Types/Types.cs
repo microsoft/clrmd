@@ -23,6 +23,17 @@ class ExplicitImpl : IExplicitTest
     public void RegularMethod() { }
 }
 
+// Type that has ONLY thread-static fields (no regular statics, no instance fields).
+// Used to verify ClrModule.EnumerateTypesWithStaticFields includes thread-static-only types.
+class ThreadStaticsOnly
+{
+    [ThreadStatic]
+    public static string ts_marker;
+
+    [ThreadStatic]
+    public static int ts_counter;
+}
+
 class Types
 {
     [ThreadStatic]
@@ -104,6 +115,11 @@ class Types
         // Set thread-static values on the main thread only
         ts_threadId = Environment.CurrentManagedThreadId;
         ts_threadName = "MainThread";
+
+        // Initialize the thread-static-only type's fields on the main thread so the
+        // type is constructed and the per-thread storage is allocated.
+        ThreadStaticsOnly.ts_marker = "ThreadStaticsOnlyMarker";
+        ThreadStaticsOnly.ts_counter = 7;
 
         // Exercise struct interface dispatch to create unboxing stub + JIT the implementation
         IStructTest structTest = new StructWithInterface();
