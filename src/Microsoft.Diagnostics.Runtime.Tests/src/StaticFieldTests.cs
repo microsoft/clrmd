@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Xunit;
@@ -152,6 +153,58 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
 
             Assert.True(foundValue, "No thread had the thread static field initialized");
+        }
+        /// <summary>
+        /// Verifies that <see cref="ClrModule.EnumerateTypesWithStaticFields"/> yields every type
+        /// that has at least one static field according to <c>ClrType.StaticFields</c>, and yields
+        /// only such types. Cross-checked against the slow path of materializing every typedef
+        /// individually so that the metadata pre-filter never drops a real result.
+        /// </summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void EnumerateTypesWithStaticFields_MatchesFullScan(bool singleFile)
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule module = runtime.GetModule("types.dll");
+
+            HashSet<ulong> fast = module.EnumerateTypesWithStaticFields()
+                                        .Select(t => t.MethodTable)
+                                        .ToHashSet();
+
+            HashSet<ulong> slow = new();
+            foreach ((ulong methodTable, _) in module.EnumerateTypeDefToMethodTableMap())
+            {
+                if (methodTable == 0)
+                    continue;
+
+                ClrType type = runtime.Heap.GetTypeByMethodTable(methodTable);
+                if (type is null)
+                    continue;
+
+                if (type.StaticFields.Length > 0)
+                    slow.Add(methodTable);
+            }
+
+            Assert.NotEmpty(fast);
+            Assert.Equal(slow, fast);
+
+            // The Types class has many static fields and must be in the result.
+            ClrType typesClass = module.GetTypeByName("Types");
+            Assert.NotNull(typesClass);
+            Assert.Contains(typesClass.MethodTable, fast);
+
+            // ExplicitImpl has no static fields and must NOT be in the result.
+            ClrType explicitImpl = module.GetTypeByName("ExplicitImpl");
+            Assert.NotNull(explicitImpl);
+            Assert.Empty(explicitImpl.StaticFields);
+            Assert.DoesNotContain(explicitImpl.MethodTable, fast);
+
+            // Every yielded type genuinely has at least one static field.
+            foreach (ClrType type in module.EnumerateTypesWithStaticFields())
+                Assert.NotEmpty(type.StaticFields);
         }
     }
 }

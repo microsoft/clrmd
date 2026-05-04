@@ -208,6 +208,55 @@ namespace Microsoft.Diagnostics.Runtime
         public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeRefToMethodTableMap() => _typeRefMap ??= (_helpers?.EnumerateTypeRefMap(Address) ?? Enumerable.Empty<(ulong, int)>()).ToArray();
 
         /// <summary>
+        /// Enumerates every constructed <see cref="ClrType"/> in this module that has at least one
+        /// static field. Types whose metadata declares no static FieldDef are skipped without
+        /// materializing the <see cref="ClrType"/>, which avoids the cost of <c>CacheFields</c>
+        /// (a recursive walk that loads every instance, static, and thread-static field, including
+        /// per-field type resolution that is especially expensive for shared generic instantiations).
+        /// On large processes (hundreds of thousands of loaded types) the majority have no statics,
+        /// so this filter is the dominant savings; callers that walk static roots should prefer
+        /// this over manually iterating <see cref="EnumerateTypeDefToMethodTableMap"/>.
+        /// </summary>
+        public IEnumerable<ClrType> EnumerateTypesWithStaticFields()
+        {
+            IAbstractMetadataReader? metadata = MetadataReader;
+
+            foreach ((ulong methodTable, int typeToken) in EnumerateTypeDefToMethodTableMap())
+            {
+                if (methodTable == 0)
+                    continue;
+
+                if (metadata != null && !HasStaticFieldDef(metadata, typeToken))
+                    continue;
+
+                ClrType? type = Heap.GetTypeByMethodTable(methodTable);
+                if (type is null || type.StaticFields.Length == 0)
+                    continue;
+
+                yield return type;
+            }
+        }
+
+        private static bool HasStaticFieldDef(IAbstractMetadataReader metadata, int typeToken)
+        {
+            try
+            {
+                foreach (FieldDefInfo info in metadata.EnumerateFields(typeToken))
+                {
+                    if ((info.Attributes & System.Reflection.FieldAttributes.Static) != 0)
+                        return true;
+                }
+            }
+            catch
+            {
+                // Unreadable metadata: fall back to the slow path so the caller still sees the type.
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Attempts to obtain a ClrType based on the name of the type.  Note this is a "best effort" due to
         /// the way that the DAC handles types.  This function will fail for Generics, and types which have
         /// never been constructed in the target process.  Please be sure to null-check the return value of
