@@ -163,6 +163,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
+#nullable enable
         public void EnumerateTypesWithStaticFields_MatchesFullScan(bool singleFile)
         {
             using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
@@ -180,7 +181,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 if (methodTable == 0)
                     continue;
 
-                ClrType type = runtime.Heap.GetTypeByMethodTable(methodTable);
+                ClrType? type = runtime.Heap.GetTypeByMethodTable(methodTable);
                 if (type is null)
                     continue;
 
@@ -192,22 +193,22 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(slow, fast);
 
             // The Types class has many static fields and must be in the result.
-            ClrType typesClass = module.GetTypeByName("Types");
+            ClrType? typesClass = module.GetTypeByName("Types");
             Assert.NotNull(typesClass);
-            Assert.Contains(typesClass.MethodTable, fast);
+            Assert.Contains(typesClass!.MethodTable, fast);
 
             // ExplicitImpl has no static fields and must NOT be in the result.
-            ClrType explicitImpl = module.GetTypeByName("ExplicitImpl");
+            ClrType? explicitImpl = module.GetTypeByName("ExplicitImpl");
             Assert.NotNull(explicitImpl);
-            Assert.Empty(explicitImpl.StaticFields);
+            Assert.Empty(explicitImpl!.StaticFields);
             Assert.Empty(explicitImpl.ThreadStaticFields);
             Assert.DoesNotContain(explicitImpl.MethodTable, fast);
 
             // ThreadStaticsOnly has only thread-static fields. It must STILL be returned by the
             // enumerator because thread statics are GC roots too.
-            ClrType threadStaticsOnly = module.GetTypeByName("ThreadStaticsOnly");
+            ClrType? threadStaticsOnly = module.GetTypeByName("ThreadStaticsOnly");
             Assert.NotNull(threadStaticsOnly);
-            Assert.Empty(threadStaticsOnly.StaticFields);
+            Assert.Empty(threadStaticsOnly!.StaticFields);
             Assert.NotEmpty(threadStaticsOnly.ThreadStaticFields);
             Assert.Contains(threadStaticsOnly.MethodTable, fast);
 
@@ -215,5 +216,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             foreach (ClrType type in module.EnumerateTypesWithStaticFields())
                 Assert.True(type.StaticFields.Length + type.ThreadStaticFields.Length > 0);
         }
+#nullable restore
     }
 }
