@@ -184,7 +184,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 if (type is null)
                     continue;
 
-                if (type.StaticFields.Length > 0)
+                if (type.StaticFields.Length > 0 || type.ThreadStaticFields.Length > 0)
                     slow.Add(methodTable);
             }
 
@@ -200,11 +200,20 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrType explicitImpl = module.GetTypeByName("ExplicitImpl");
             Assert.NotNull(explicitImpl);
             Assert.Empty(explicitImpl.StaticFields);
+            Assert.Empty(explicitImpl.ThreadStaticFields);
             Assert.DoesNotContain(explicitImpl.MethodTable, fast);
 
-            // Every yielded type genuinely has at least one static field.
+            // ThreadStaticsOnly has only thread-static fields. It must STILL be returned by the
+            // enumerator because thread statics are GC roots too.
+            ClrType threadStaticsOnly = module.GetTypeByName("ThreadStaticsOnly");
+            Assert.NotNull(threadStaticsOnly);
+            Assert.Empty(threadStaticsOnly.StaticFields);
+            Assert.NotEmpty(threadStaticsOnly.ThreadStaticFields);
+            Assert.Contains(threadStaticsOnly.MethodTable, fast);
+
+            // Every yielded type genuinely has at least one static OR thread-static field.
             foreach (ClrType type in module.EnumerateTypesWithStaticFields())
-                Assert.NotEmpty(type.StaticFields);
+                Assert.True(type.StaticFields.Length + type.ThreadStaticFields.Length > 0);
         }
     }
 }

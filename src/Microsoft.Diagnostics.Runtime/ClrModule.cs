@@ -209,13 +209,15 @@ namespace Microsoft.Diagnostics.Runtime
 
         /// <summary>
         /// Enumerates every constructed <see cref="ClrType"/> in this module that has at least one
-        /// static field. Types whose metadata declares no static FieldDef are skipped without
-        /// materializing the <see cref="ClrType"/>, which avoids the cost of <c>CacheFields</c>
-        /// (a recursive walk that loads every instance, static, and thread-static field, including
-        /// per-field type resolution that is especially expensive for shared generic instantiations).
-        /// On large processes (hundreds of thousands of loaded types) the majority have no statics,
-        /// so this filter is the dominant savings; callers that walk static roots should prefer
-        /// this over manually iterating <see cref="EnumerateTypeDefToMethodTableMap"/>.
+        /// static field — both regular statics (<see cref="ClrType.StaticFields"/>) and
+        /// thread statics (<see cref="ClrType.ThreadStaticFields"/>). Types whose metadata declares
+        /// no static FieldDef are skipped without materializing the <see cref="ClrType"/>, which
+        /// avoids the cost of <c>CacheFields</c> (a recursive walk that loads every instance,
+        /// static, and thread-static field, including per-field type resolution that is especially
+        /// expensive for shared generic instantiations). On large processes (hundreds of thousands
+        /// of loaded types) the majority have no statics at all, so this filter is the dominant
+        /// savings; callers that walk static roots should prefer this over manually iterating
+        /// <see cref="EnumerateTypeDefToMethodTableMap"/>.
         /// </summary>
         public IEnumerable<ClrType> EnumerateTypesWithStaticFields()
         {
@@ -230,7 +232,10 @@ namespace Microsoft.Diagnostics.Runtime
                     continue;
 
                 ClrType? type = Heap.GetTypeByMethodTable(methodTable);
-                if (type is null || type.StaticFields.Length == 0)
+                if (type is null)
+                    continue;
+
+                if (type.StaticFields.Length == 0 && type.ThreadStaticFields.Length == 0)
                     continue;
 
                 yield return type;
