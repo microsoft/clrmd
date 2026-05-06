@@ -97,8 +97,67 @@ using DataTarget dt = DataTarget.LoadDump("crash.dmp", new DataTargetOptions
 });
 ```
 
-`_NT_SYMBOL_PATH` is still supported as a fallback if the consumer does not provide
-explicit symbol paths.
+`_NT_SYMBOL_PATH` is **no longer parsed** in v4. If `DataTargetOptions` is not supplied,
+ClrMD defaults to a single symbol path pointing at the public Microsoft symbol server
+(`https://msdl.microsoft.com/download/symbols`) with a cache under
+`Path.Combine(Path.GetTempPath(), "symbols")`.
+
+To restore v3-like behavior (read `_NT_SYMBOL_PATH` and use it as the symbol path),
+parse the environment variable yourself and feed the results into `DataTargetOptions`.
+A typical sketch:
+
+```csharp
+static DataTargetOptions BuildOptionsFromNtSymbolPath()
+{
+    string? ntSymbolPath = Environment.GetEnvironmentVariable("_NT_SYMBOL_PATH");
+
+    // _NT_SYMBOL_PATH is a semicolon-separated list of entries. Each entry can be a
+    // local directory or a "srv*[downstream-cache]*<server>" element. ClrMD v4 wants
+    // the server URLs in SymbolPaths and a single local cache in SymbolCachePath.
+    List<string> servers = new();
+    string? cache = null;
+
+    foreach (string entry in (ntSymbolPath ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries))
+    {
+        if (entry.StartsWith("srv*", StringComparison.OrdinalIgnoreCase) ||
+            entry.StartsWith("symsrv*", StringComparison.OrdinalIgnoreCase))
+        {
+            // srv*[cache1*cache2*...]*<server-url>
+            string[] parts = entry.Split('*', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 2)
+            {
+                servers.Add(parts[^1]);
+                if (parts.Length >= 3 && cache is null)
+                    cache = parts[1]; // first downstream cache wins
+            }
+        }
+        else
+        {
+            // Plain local directory acts as both a search location and a cache.
+            servers.Add(entry);
+            cache ??= entry;
+        }
+    }
+
+    if (servers.Count == 0)
+        servers.Add("https://msdl.microsoft.com/download/symbols");
+
+    return new DataTargetOptions
+    {
+        SymbolPaths = servers.ToArray(),
+        SymbolCachePath = cache ?? Path.Combine(Path.GetTempPath(), "symbols"),
+    };
+}
+
+using DataTarget dt = DataTarget.LoadDump("crash.dmp", BuildOptionsFromNtSymbolPath());
+```
+
+If you only need to point at a private/UNC server or a custom cache, set
+`DataTargetOptions.SymbolPaths` and `DataTargetOptions.SymbolCachePath` directly — there
+is no need to round-trip through `_NT_SYMBOL_PATH`. For full control over how binaries
+are resolved (for example, to layer in your own search logic), assign a custom
+`DataTargetOptions.FileLocator`; when set, `SymbolPaths` and `SymbolCachePath` are
+ignored.
 
 ---
 
