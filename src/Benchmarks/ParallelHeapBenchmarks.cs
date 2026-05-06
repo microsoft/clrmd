@@ -44,7 +44,7 @@ namespace Benchmarks
                 UseOSMemoryFeatures = UseOSMemoryFeatures,
             };
 
-            _dataTarget = DataTarget.LoadDump(Program.CrashDump, options);
+            _dataTarget = DataTarget.LoadDump(Program.CrashDump, new DataTargetOptions { CacheOptions = options });
             _runtime = _dataTarget.ClrVersions.Single().CreateRuntime();
         }
 
