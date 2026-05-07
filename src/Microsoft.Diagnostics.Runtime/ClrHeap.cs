@@ -1402,27 +1402,17 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Walks the heap looking for a constructed (closed) generic instantiation in the
-        /// given module whose name matches <paramref name="normalizedName"/>.  Used as a
-        /// fallback when the TypeDef map scan fails (because closed generic MTs are not
-        /// recorded in any module's metadata).  This is O(heap size) and should only be
-        /// called when a fast-path lookup has already missed.
+        /// Looks for a constructed (closed) generic instantiation in the given module whose
+        /// name matches <paramref name="normalizedName"/> among types that have already been
+        /// constructed and cached.  Closed generics that have not been materialized yet are
+        /// reported as not found.
         /// </summary>
         private ClrType? FindClosedGenericInModule(ulong moduleAddress, string normalizedName)
         {
-            // Cache check first.
             foreach (ClrType cached in _typeFactory.EnumerateCachedTypes())
             {
                 if (cached.Module?.Address == moduleAddress && cached.Name == normalizedName)
                     return cached;
-            }
-
-            // Heap walk (constructs types on demand into _types).
-            foreach (ClrObject obj in EnumerateObjects())
-            {
-                ClrType? type = obj.Type;
-                if (type != null && type.Module?.Address == moduleAddress && type.Name == normalizedName)
-                    return type;
             }
 
             return null;
@@ -1430,11 +1420,10 @@ namespace Microsoft.Diagnostics.Runtime
 
         private ClrType? FindClosedGenericInAnyModule(string normalizedName)
         {
-            foreach (ClrObject obj in EnumerateObjects())
+            foreach (ClrType cached in _typeFactory.EnumerateCachedTypes())
             {
-                ClrType? type = obj.Type;
-                if (type != null && type.Name == normalizedName)
-                    return type;
+                if (cached.Name == normalizedName)
+                    return cached;
             }
 
             return null;
