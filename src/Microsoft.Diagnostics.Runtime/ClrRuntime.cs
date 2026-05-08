@@ -67,6 +67,23 @@ namespace Microsoft.Diagnostics.Runtime
 
         private IAbstractRuntime GetDacRuntime() => _runtime ??= (IAbstractRuntime?)_services.GetService(typeof(IAbstractRuntime)) ?? throw new NotSupportedException($"Could not construct an {nameof(IAbstractRuntime)} for this runtime.");
 
+        /// <summary>
+        /// Returns the target-space address of this runtime's stress log,
+        /// or 0 if stress logging is not enabled or the DAC does not support
+        /// the lookup.
+        /// </summary>
+        internal ulong GetStressLogAddress()
+        {
+            // The stress-log address only flows through the SOS DAC, not the
+            // abstract runtime contract. Reach into the DAC implementation
+            // directly when present; return 0 otherwise so callers get a
+            // consistent "stress log unavailable" signal.
+            object? svc = _services.GetService(typeof(IAbstractRuntime));
+            if (svc is DacImplementation.DacRuntime dacRuntime)
+                return dacRuntime.GetStressLogAddress();
+            return 0;
+        }
+
         private IAbstractComHelpers? TryGetComHelpers() => _comHelpers ??= GetServiceOrThrow<IAbstractComHelpers>();
 
         private IAbstractMethodLocator? TryGetMethodLocator() => _methodLocator ??= GetService<IAbstractMethodLocator>();

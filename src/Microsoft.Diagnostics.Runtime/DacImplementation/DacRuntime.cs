@@ -39,6 +39,11 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             _sos.DacVersion = version;
         }
 
+        internal ulong GetStressLogAddress()
+        {
+            return _sos.TryGetStressLogAddress(out ulong addr) ? addr : 0;
+        }
+
         public IEnumerable<ClrThreadInfo> EnumerateThreads()
         {
             if (!_sos.GetThreadStoreData(out ThreadStoreData threadStore))

@@ -394,6 +394,21 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return VTable.GetUsefulGlobals(Self, out commonMTs);
         }
 
+        public bool TryGetStressLogAddress(out ulong stressLogAddress)
+        {
+            HResult hr = VTable.GetStressLogAddress(Self, out ClrDataAddress addr);
+            if (!hr)
+            {
+                stressLogAddress = 0;
+                return false;
+            }
+
+            // The StressLog parser only supports 64-bit targets, so we don't
+            // need to handle the 32-bit sign-extension transform here.
+            stressLogAddress = addr.ToInteropAddress();
+            return stressLogAddress != 0;
+        }
+
         public ClrDataAddress[] GetAssemblyList(ClrDataAddress appDomain) => GetAssemblyList(appDomain, 0);
 
         public ClrDataAddress[] GetAssemblyList(ClrDataAddress appDomain, int count) => GetModuleOrAssembly(appDomain, count, VTable.GetAssemblyList);
@@ -897,7 +912,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr GetNestedExceptionData;
 
         // StressLog
-        public readonly IntPtr GetStressLogAddress;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out ClrDataAddress, int> GetStressLogAddress;
 
         // Heaps
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, IntPtr, int> TraverseLoaderHeap;

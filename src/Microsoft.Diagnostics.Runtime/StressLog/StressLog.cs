@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.StressLogs.Internal;
 
 namespace Microsoft.Diagnostics.Runtime.StressLogs
@@ -20,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
     /// <remarks>
     /// <para>
     /// This is the public entry point for stress-log analysis. Callers open
-    /// a log via <see cref="TryOpen"/>, then enumerate messages with
+    /// a log via <c>TryOpen</c>, then enumerate messages with
     /// <see cref="EnumerateMessages"/>. Each yielded
     /// <see cref="StressLogMessage"/> is valid only for the body of the
     /// iteration step that produced it.
@@ -92,6 +93,26 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         public DateTime? StartTimeUtc => _startTimeUtc;
 
         /// <summary>
+        /// Try to open the stress log for the given <paramref name="runtime"/>.
+        /// Looks up the stress log address through the runtime's DAC and
+        /// reads from the runtime's data target. Returns <see langword="false"/>
+        /// if the runtime does not have stress logging enabled, the DAC does
+        /// not support <c>GetStressLogAddress</c>, or the resulting log fails
+        /// validation.
+        /// </summary>
+        public static bool TryOpen(ClrRuntime runtime, out StressLog? stressLog)
+        {
+            stressLog = null;
+            if (runtime is null) return false;
+
+            ulong address = runtime.GetStressLogAddress();
+            if (address == 0)
+                return false;
+
+            return TryOpen(runtime.DataTarget.DataReader, address, out stressLog);
+        }
+
+        /// <summary>
         /// Try to open the stress log at <paramref name="address"/> in the
         /// target. Returns <see langword="false"/> on any structural
         /// validation failure.
@@ -102,7 +123,6 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             if (reader is null) return false;
             if (reader.PointerSize != 8) return false;
             if (address == 0) return false;
-
             StressLogOptions options = StressLogOptions.Default;
             AllocationBudget budget = new AllocationBudget(options.MaxTotalBytesAllocated);
 
