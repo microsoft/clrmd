@@ -62,8 +62,15 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Reads a ValueType struct from the instance field.
+        /// Reads a ValueType struct (or primitive) from the thread-static field.
         /// </summary>
+        /// <remarks>
+        /// For primitive-typed thread statics the runtime stores the value inline at the
+        /// field slot. For non-primitive value types the slot contains a pointer to a boxed
+        /// instance and the method-table pointer is skipped to reach the struct payload.
+        /// Use <see cref="Read{T}(ClrThread)"/> when you know the unmanaged type at compile
+        /// time.
+        /// </remarks>
         /// <returns>The value read.</returns>
         public ClrValueType ReadStruct(ClrThread thread)
         {
@@ -71,8 +78,14 @@ namespace Microsoft.Diagnostics.Runtime
             if (address == 0)
                 return default;
 
+            // Primitive thread-statics are stored inline at the slot; the slot IS the value.
+            if (ElementType.IsPrimitive())
+                return new ClrValueType(address, Type, interior: true);
+
+            // Non-primitive value types are stored as boxed instances; dereference the slot
+            // and skip the method table to reach the struct payload.
             IDataReader dataReader = ContainingType.Module.DataReader;
-            if (address == 0 || !dataReader.ReadPointer(address, out ulong obj) || obj == 0)
+            if (!dataReader.ReadPointer(address, out ulong obj) || obj == 0)
                 return default;
 
             return new ClrValueType(obj + (uint)dataReader.PointerSize, Type, interior: true);

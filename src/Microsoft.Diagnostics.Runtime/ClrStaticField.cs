@@ -96,8 +96,17 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
-        /// Reads a ValueType struct from the instance field.
+        /// Reads a ValueType struct (or primitive) from the static field.
         /// </summary>
+        /// <remarks>
+        /// For primitive-typed statics (<see cref="int"/>, <see cref="float"/>, etc.) the
+        /// runtime stores the value inline in the static base, so the returned
+        /// <see cref="ClrValueType"/> points directly at the field slot. For non-primitive
+        /// value types the runtime stores the value as a boxed object referenced by the
+        /// static slot, so the slot is dereferenced and the method-table pointer is skipped
+        /// to reach the struct data. Use <see cref="Read{T}(ClrAppDomain)"/> when you know
+        /// the unmanaged type at compile time.
+        /// </remarks>
         /// <returns>The value read.</returns>
         public ClrValueType ReadStruct(ClrAppDomain appDomain)
         {
@@ -105,8 +114,15 @@ namespace Microsoft.Diagnostics.Runtime
             if (address == 0)
                 return default;
 
+            // Primitive statics are stored inline at the static slot; the slot IS the value.
+            if (ElementType.IsPrimitive())
+                return new ClrValueType(address, Type, interior: true);
+
+            // True struct statics are stored as boxed instances on the GC heap; the slot
+            // contains a pointer to the boxed object. Dereference it and skip the method
+            // table to reach the struct payload.
             IDataReader dataReader = ContainingType.Module.DataReader;
-            if (address == 0 || !dataReader.ReadPointer(address, out ulong obj) || obj == 0)
+            if (!dataReader.ReadPointer(address, out ulong obj) || obj == 0)
                 return default;
 
             return new ClrValueType(obj + (uint)dataReader.PointerSize, Type, interior: true);
@@ -118,7 +134,18 @@ namespace Microsoft.Diagnostics.Runtime
             if (address == 0)
                 return default(ClrValueType);
 
-            return new ClrValueType(address, Type, interior: true);
+            // Primitive statics are stored inline at the slot; the slot IS the value.
+            if (ElementType.IsPrimitive())
+                return new ClrValueType(address, Type, interior: true);
+
+            // Non-primitive value types are stored as boxed instances on the GC heap;
+            // the slot contains a pointer to the boxed object. Dereference and skip the
+            // method table to reach the struct payload.
+            IDataReader dataReader = ContainingType.Module.DataReader;
+            if (!dataReader.ReadPointer(address, out ulong obj) || obj == 0)
+                return default(ClrValueType);
+
+            return new ClrValueType(obj + (uint)dataReader.PointerSize, Type, interior: true);
         }
 
         /// <summary>
