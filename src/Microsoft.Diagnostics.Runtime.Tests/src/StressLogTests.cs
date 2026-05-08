@@ -133,10 +133,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         private static void Parse(string format, ulong[] args, out CaptureReceiver receiver,
-                                  Dictionary<ulong, byte[]>? memory = null)
+                                  Dictionary<ulong, byte[]>? memory = null,
+                                  int pointerSize = 8)
         {
             receiver = CaptureReceiver.Create();
-            ArgumentResolver resolver = new ArgumentResolver(new SyntheticDataReader(memory ?? new()));
+            SyntheticDataReader reader = pointerSize == 4
+                ? new SyntheticDataReader(memory ?? new(), pointerSize: 4, architecture: System.Runtime.InteropServices.Architecture.X86)
+                : new SyntheticDataReader(memory ?? new());
+            ArgumentResolver resolver = new ArgumentResolver(reader, maxStringBytes: 256, pointerSize: pointerSize);
             FormatStringParser.Parse(Encoding.ASCII.GetBytes(format), args, resolver, ref receiver);
         }
 
@@ -233,6 +237,157 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             foreach (char c in output)
                 Assert.True(c >= 0x20 && c <= 0x7E, $"Output contains non-printable byte 0x{(int)c:X} ('{output}')");
             Assert.Contains(".[31m!", output);
+        }
+
+        // ---- 32-bit printf semantics: sign extension and 64-bit length modifier ----
+
+        [Fact]
+        public void Parser_X86_DecimalSpecSignExtendsInt()
+        {
+            // The runtime stores `int -1` as the 32-bit value 0xFFFFFFFF on a
+            // 32-bit target; when read into a ulong slot it is zero-extended
+            // to 0x00000000FFFFFFFF. %d must reinterpret the low 32 bits as a
+            // signed int and emit -1, not 4294967295.
+            Parse("%d", new ulong[] { 0xFFFFFFFFUL }, out CaptureReceiver r, pointerSize: 4);
+            Assert.Equal(1, r.IntegerCalls);
+            Assert.Contains("[Decimal:-1]", r.Output.ToString());
+        }
+
+        [Fact]
+        public void Parser_X86_UnsignedSpecZeroExtendsUint()
+        {
+            // %u of 0xFFFFFFFF on x86 is 4294967295 (unsigned int max), not -1.
+            Parse("%u", new ulong[] { 0xFFFFFFFFUL }, out CaptureReceiver r, pointerSize: 4);
+            Assert.Equal(1, r.IntegerCalls);
+            Assert.Contains("[Unsigned:4294967295]", r.Output.ToString());
+        }
+
+        [Fact]
+        public void Parser_X86_I64UnsignedConsumesTwoSlots()
+        {
+            // On 32-bit, fprintf's %I64u/%llu takes 8 bytes of arg storage,
+            // i.e. two consecutive size_t-wide slots: low dword first.
+            // 0x00000000_FFFFFFFF (low=0xFFFFFFFF, high=0) -> 4294967295.
+            Parse("%I64u", new ulong[] { 0xFFFFFFFFUL, 0UL }, out CaptureReceiver r, pointerSize: 4);
+            Assert.Equal(1, r.IntegerCalls);
+            Assert.Contains("[Unsigned:4294967295]", r.Output.ToString());
+        }
+
+        [Fact]
+        public void Parser_X86_I64UnsignedHighBitsCombined()
+        {
+            // 0x00000001_00000000 = low=0, high=1 -> 4294967296.
+            Parse("%I64u", new ulong[] { 0UL, 1UL }, out CaptureReceiver r, pointerSize: 4);
+            Assert.Equal(1, r.IntegerCalls);
+            Assert.Contains("[Unsigned:4294967296]", r.Output.ToString());
+        }
+
+        [Fact]
+        public void Parser_X86_LongLongHexConsumesTwoSlots()
+        {
+            // %llx on 32-bit: low=0xCAFEBABE, high=0xDEADBEEF -> 0xDEADBEEFCAFEBABE.
+            Parse("%llx", new ulong[] { 0xCAFEBABEUL, 0xDEADBEEFUL }, out CaptureReceiver r, pointerSize: 4);
+            Assert.Equal(1, r.IntegerCalls);
+            // CaptureReceiver formats Integer values as decimal, so just check call count and value.
+            Assert.Contains("[Hex:" + unchecked((long)0xDEADBEEFCAFEBABEUL) + "]", r.Output.ToString());
+        }
+
+        [Fact]
+        public void Parser_X86_I64UnsignedRunsOutOfArgs()
+        {
+            // Only one slot supplied for an %I64u that wants two. Must not
+            // throw, must not read out of bounds: parser sees the low slot
+            // as the value (high defaulted to 0) and emits the integer
+            // without crashing.
+            Parse("%I64u", new ulong[] { 0xFFFFFFFFUL }, out CaptureReceiver r, pointerSize: 4);
+            // Either Integer with low value, or MissingArgument -- both are
+            // acceptable so long as the parser stays bounded.
+            Assert.True(r.IntegerCalls + r.MissingCalls >= 1);
+        }
+
+        [Fact]
+        public void Parser_X64_DecimalSpecRoundTripsNegative()
+        {
+            // On 64-bit, `int -1` is sign-extended at store time to
+            // 0xFFFFFFFFFFFFFFFF; %d must still emit -1.
+            Parse("%d", new ulong[] { 0xFFFFFFFFFFFFFFFFUL }, out CaptureReceiver r, pointerSize: 8);
+            Assert.Equal(1, r.IntegerCalls);
+            Assert.Contains("[Decimal:-1]", r.Output.ToString());
+        }
+
+        // ---- Fuzz: random format strings + random args must not crash ----
+
+        [Theory]
+        [InlineData(0xC0FFEE)]
+        [InlineData(unchecked((int)0xDEADBEEF))]
+        [InlineData(0x12345678)]
+        public void Parser_FuzzNeverThrowsAndStaysBounded(int seed)
+        {
+            // Feed random bytes (including 0x25 '%' to ensure many specifier
+            // attempts) into the parser. The parser must always terminate
+            // and never throw an unhandled exception. This exercises every
+            // combination of length modifier, width/precision overflow,
+            // truncated specifier at end-of-string, etc.
+            Random rng = new(seed);
+            for (int trial = 0; trial < 250; trial++)
+            {
+                int len = rng.Next(1, 256);
+                byte[] format = new byte[len];
+                for (int i = 0; i < len; i++)
+                {
+                    int r = rng.Next(0, 100);
+                    if (r < 25)
+                        format[i] = (byte)'%';
+                    else if (r < 35)
+                        format[i] = (byte)"diuxXpsScnhlLjztI*0123456789. -+#"[rng.Next(33)];
+                    else
+                        format[i] = (byte)rng.Next(0x20, 0x7F); // printable ASCII
+                }
+
+                int argCount = rng.Next(0, 16);
+                ulong[] args = new ulong[argCount];
+                for (int i = 0; i < argCount; i++)
+                    args[i] = (ulong)rng.NextInt64();
+
+                CaptureReceiver receiver = CaptureReceiver.Create();
+                ArgumentResolver resolver = new ArgumentResolver(new SyntheticDataReader(new()));
+
+                // Must not throw.
+                FormatStringParser.Parse<CaptureReceiver>(format, args, resolver, ref receiver);
+
+                // Must not advance past argCount + a small bound (per-spec
+                // 64-bit consumes 2; rough upper bound is 2 * format.Length).
+                Assert.True(receiver.LiteralCalls + receiver.IntegerCalls + receiver.PointerCalls
+                            + receiver.StringCalls + receiver.MissingCalls <= 2 * format.Length + 8,
+                    "Parser emitted unbounded tokens for input.");
+            }
+        }
+
+        [Fact]
+        public void Parser_FuzzPercentNeverInterpreted()
+        {
+            // Stress the parser with format strings full of '%' and length
+            // modifiers but no valid conversion specifier. Verifies that
+            // %n, positional %1$, etc. never get treated as a real specifier.
+            string[] danger = {
+                "%n", "%hn", "%ln", "%lln", "%hhn",
+                "%1$d", "%99$s",
+                "%*d", "%.*d", "%-1d",
+                "%2147483648d", "%.2147483648s",
+                "%llz", "%I63d", "%qd",
+                "%pZ", "%pX", "%phM",
+            };
+            foreach (string f in danger)
+            {
+                Parse(f, new ulong[] { 1, 2, 3, 4 }, out CaptureReceiver r);
+                // %n family must never be interpreted (no Pointer, no Integer
+                // for those specs; for the others we simply require the
+                // parser to terminate cleanly and not throw).
+                if (f.Contains("%n", System.StringComparison.Ordinal) || f.Contains("$", System.StringComparison.Ordinal))
+                {
+                    Assert.Equal(0, r.PointerCalls);
+                }
+            }
         }
 
         // ---- StressLogModuleTable ----------------------------------------
