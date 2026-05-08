@@ -14,10 +14,10 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
     /// <remarks>
     /// <para>
     /// The number of bytes read from the target for any single string
-    /// argument is bounded by <see cref="MaxStringBytes"/>. NUL termination
-    /// is honored; bytes past the first NUL are dropped. Read failures
-    /// (truncated <see cref="IMemoryReader.Read"/>, address 0) yield an
-    /// empty span.
+    /// argument is bounded by the configured maximum string length. NUL
+    /// termination is honored; bytes past the first NUL are dropped. Read
+    /// failures (truncated <see cref="IMemoryReader.Read"/>, address 0)
+    /// yield an empty span.
     /// </para>
     /// <para>
     /// All bytes returned have been passed through
@@ -28,15 +28,31 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
     /// </remarks>
     internal sealed class ArgumentResolver
     {
-        public const int MaxStringBytes = 256;
+        public const int DefaultMaxStringBytes = 256;
 
         private readonly IMemoryReader _reader;
-        private readonly byte[] _readScratch = new byte[MaxStringBytes * 2]; // *2 for UTF-16
-        private readonly byte[] _sanitizeScratch = new byte[MaxStringBytes];
+        private readonly int _maxStringBytes;
+        private readonly byte[] _readScratch;
+        private readonly byte[] _sanitizeScratch;
 
         public ArgumentResolver(IMemoryReader reader)
+            : this(reader, DefaultMaxStringBytes)
+        {
+        }
+
+        public ArgumentResolver(IMemoryReader reader, int maxStringBytes)
         {
             _reader = reader;
+            // Clamp to a sane range so a misconfigured option cannot drive
+            // the parser into a zero-byte read or a many-MB allocation.
+            if (maxStringBytes < 16)
+                maxStringBytes = 16;
+            else if (maxStringBytes > 64 * 1024)
+                maxStringBytes = 64 * 1024;
+
+            _maxStringBytes = maxStringBytes;
+            _readScratch = new byte[maxStringBytes * 2]; // *2 for UTF-16
+            _sanitizeScratch = new byte[maxStringBytes];
         }
 
         public ReadOnlySpan<byte> ResolveString(ulong address, StressLogStringEncoding encoding)
@@ -46,7 +62,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
 
             if (encoding == StressLogStringEncoding.Utf8)
             {
-                Span<byte> read = _readScratch.AsSpan(0, MaxStringBytes);
+                Span<byte> read = _readScratch.AsSpan(0, _maxStringBytes);
                 int got = _reader.Read(address, read);
                 if (got <= 0)
                     return default;
@@ -58,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
             }
             else
             {
-                Span<byte> read = _readScratch.AsSpan(0, MaxStringBytes * 2);
+                Span<byte> read = _readScratch.AsSpan(0, _maxStringBytes * 2);
                 int got = _reader.Read(address, read);
                 if (got <= 0)
                     return default;

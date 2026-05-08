@@ -211,10 +211,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Parse("hello %s end", new ulong[] { StringArgAnsi }, out CaptureReceiver r, mem);
             Assert.Equal(1, r.StringCalls);
             string output = r.Output.ToString();
-            // Every char should be printable. The ESC byte must have been
-            // replaced with '.' before reaching the receiver.
+            // Every byte must be printable 7-bit ASCII. The ESC byte must
+            // have been replaced before reaching the receiver, and tab/
+            // newline bytes from anywhere in the input must also be replaced.
             foreach (char c in output)
-                Assert.True(c >= 0x20 || c == '\n' || c == '\t', $"Output contains control byte 0x{(int)c:X} ('{output}')");
+                Assert.True(c >= 0x20 && c <= 0x7E, $"Output contains non-printable byte 0x{(int)c:X} ('{output}')");
             Assert.Contains(".[31m!", output);
         }
 
@@ -314,6 +315,66 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.Equal(1, count);
             log.Dispose();
+        }
+
+        [Fact]
+        public void EndToEnd_ConcurrentEnumerationsDoNotInterfere()
+        {
+            // Two threads enumerating the same StressLog instance must each
+            // see exactly the messages they were yielded; the per-enumeration
+            // context isolates argument scratch / current iterator from the
+            // shared instance.
+            SyntheticStressLogBuilder builder = new SyntheticStressLogBuilder();
+            ulong stressLogAddr = builder.Build(out _, out _);
+            SyntheticDataReader reader = new(builder.Memory);
+
+            Assert.True(StressLog.TryOpen(reader, stressLogAddr, out StressLog? log));
+            Assert.NotNull(log);
+
+            using (log)
+            {
+                int countA = 0;
+                int countB = 0;
+                Exception? errorA = null;
+                Exception? errorB = null;
+
+                System.Threading.Thread tA = new(() =>
+                {
+                    try
+                    {
+                        for (int loop = 0; loop < 50; loop++)
+                            foreach (StressLogMessage msg in log!.EnumerateMessages())
+                            {
+                                Assert.Equal(SyntheticStressLogBuilder.ThreadId, msg.OSThreadId);
+                                countA++;
+                            }
+                    }
+                    catch (Exception ex) { errorA = ex; }
+                });
+                System.Threading.Thread tB = new(() =>
+                {
+                    try
+                    {
+                        for (int loop = 0; loop < 50; loop++)
+                            foreach (StressLogMessage msg in log!.EnumerateMessages())
+                            {
+                                Assert.Equal(SyntheticStressLogBuilder.ThreadId, msg.OSThreadId);
+                                countB++;
+                            }
+                    }
+                    catch (Exception ex) { errorB = ex; }
+                });
+
+                tA.Start();
+                tB.Start();
+                tA.Join();
+                tB.Join();
+
+                Assert.Null(errorA);
+                Assert.Null(errorB);
+                Assert.Equal(50, countA);
+                Assert.Equal(50, countB);
+            }
         }
     }
 }

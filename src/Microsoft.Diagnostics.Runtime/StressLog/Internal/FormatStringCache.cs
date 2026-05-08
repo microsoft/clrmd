@@ -34,6 +34,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
         private readonly AllocationBudget _budget;
         private readonly int _maxLength;
         private readonly int _maxEntries;
+        private readonly object _gate = new();
 
         private byte[] _readScratch;
 
@@ -55,14 +56,20 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
                 return false;
             }
 
-            if (_entries.TryGetValue(address, out Entry e))
+            // The cache is shared across concurrent enumerations on the same
+            // StressLog; serialize reads/inserts so the dictionary, FIFO
+            // queue, and shared scratch buffer stay consistent.
+            lock (_gate)
             {
-                sanitized = e.Sanitized;
-                known = e.Known;
-                return e.Sanitized.Length > 0;
-            }
+                if (_entries.TryGetValue(address, out Entry e))
+                {
+                    sanitized = e.Sanitized;
+                    known = e.Known;
+                    return e.Sanitized.Length > 0;
+                }
 
-            return TryReadAndCache(address, out sanitized, out known);
+                return TryReadAndCache(address, out sanitized, out known);
+            }
         }
 
         private bool TryReadAndCache(ulong address, out ReadOnlyMemory<byte> sanitized, out StressLogKnownFormat known)

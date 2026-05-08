@@ -40,7 +40,6 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         private readonly AllocationBudget _budget;
         private readonly StressLogModuleTable _modules;
         private readonly FormatStringCache _formatCache;
-        private readonly ArgumentResolver _argResolver;
 
         private readonly ulong _firstThreadAddr;
         private readonly ulong _tickFrequency;
@@ -48,11 +47,6 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         private readonly DateTime? _startTimeUtc;
         private readonly bool _isV4;
         private readonly StressLogVariant _variant;
-
-        private readonly ulong[] _argScratch = new ulong[StressLogConstants.MaxArgumentCount];
-
-        private ThreadIterator? _currentIterator;
-        private int _generationCounter;
 
         private bool _disposed;
 
@@ -78,7 +72,6 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             _isV4 = isV4;
             _variant = variant;
             _formatCache = new FormatStringCache(reader, budget, options.MaxFormatStringLength, options.MaxFormatStringCacheEntries);
-            _argResolver = new ArgumentResolver(reader);
         }
 
         /// <summary>
@@ -293,9 +286,22 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         /// <paramref name="cancellationToken"/> is canceled or when every
         /// thread has been drained.
         /// </summary>
+        /// <remarks>
+        /// Each call allocates an independent enumeration context. Two
+        /// concurrent enumerations on the same <see cref="StressLog"/> do
+        /// not share argument scratch buffers, so message access through
+        /// <see cref="StressLogMessage.GetArgument"/> and
+        /// <see cref="StressLogMessage.Format{T}"/> remains correct under
+        /// concurrent <c>foreach</c> loops.
+        /// </remarks>
         public IEnumerable<StressLogMessage> EnumerateMessages(CancellationToken cancellationToken = default)
         {
             ThrowIfDisposed();
+
+            // Each enumeration owns its own context so concurrent foreach loops
+            // do not clobber each other's argument scratch / current iterator.
+            ArgumentResolver argResolver = new ArgumentResolver(_reader, _options.MaxStringArgumentLength);
+            StressLogEnumerationContext context = new StressLogEnumerationContext(this, argResolver);
 
             List<ThreadIterator> iterators = new();
             try
@@ -328,12 +334,10 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                     }
 
                     ThreadIterator iter = iterators[newest];
-                    _currentIterator = iter;
-                    int gen = ++_generationCounter;
-                    CopyArgsToScratch(iter);
+                    int gen = context.CaptureFromIterator(iter);
 
                     yield return new StressLogMessage(
-                        log: this,
+                        context: context,
                         generation: gen,
                         threadId: iter.OSThreadId,
                         facility: iter.Facility,
@@ -350,7 +354,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             }
             finally
             {
-                _currentIterator = null;
+                context.Clear();
                 foreach (ThreadIterator iter in iterators)
                     iter.Dispose();
             }
@@ -400,13 +404,6 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             return iterators.Count > 0;
         }
 
-        private void CopyArgsToScratch(ThreadIterator iter)
-        {
-            int n = iter.ArgumentCount;
-            for (int i = 0; i < n; i++)
-                _argScratch[i] = iter.GetArgument(i);
-        }
-
         private ulong ResolveFormatAddress(ulong formatOffset)
         {
             return _modules.TryResolveFormatOffset(formatOffset, out ulong addr) ? addr : 0;
@@ -427,17 +424,20 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             return StressLogKnownFormat.None;
         }
 
-        internal ulong GetArgument(int generation, int index, int argCount)
-        {
-            if (generation != _generationCounter || _currentIterator is null) return 0;
-            if ((uint)index >= (uint)argCount) return 0;
-            return _argScratch[index];
-        }
-
-        internal void FormatMessage<T>(int generation, ulong formatAddress, int argCount, ref T receiver)
+        /// <summary>
+        /// Render a stress log message into a receiver using the supplied
+        /// per-enumeration argument scratch and resolver. Called by
+        /// <see cref="StressLogEnumerationContext"/> after it has confirmed
+        /// the calling <see cref="StressLogMessage"/> still belongs to the
+        /// current enumeration generation.
+        /// </summary>
+        internal void FormatMessage<T>(ulong[] argScratch,
+                                       ArgumentResolver argResolver,
+                                       ulong formatAddress,
+                                       int argCount,
+                                       ref T receiver)
             where T : struct, IStressLogFormatReceiver
         {
-            if (generation != _generationCounter || _currentIterator is null) return;
             if (formatAddress == 0)
             {
                 receiver.Literal(s_unresolvedFormat.AsSpan());
@@ -450,8 +450,8 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                 return;
             }
 
-            ReadOnlySpan<ulong> args = _argScratch.AsSpan(0, argCount);
-            FormatStringParser.Parse(formatBytes.Span, args, _argResolver, ref receiver);
+            ReadOnlySpan<ulong> args = argScratch.AsSpan(0, argCount);
+            FormatStringParser.Parse(formatBytes.Span, args, argResolver, ref receiver);
         }
 
         private static readonly byte[] s_unresolvedFormat =
@@ -467,7 +467,6 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         {
             if (_disposed) return;
             _disposed = true;
-            _currentIterator = null;
         }
     }
 }

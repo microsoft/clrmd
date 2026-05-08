@@ -7,16 +7,18 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
 {
     /// <summary>
     /// Byte-level sanitization for any text byte read from the target.
-    /// Replaces anything that is not 7-bit printable ASCII (plus space and
-    /// newline/tab) with <c>'.'</c>. Used both for format strings and for
-    /// <c>%s</c>/<c>%S</c> argument bytes before they are handed to a
-    /// receiver.
+    /// Replaces anything that is not 7-bit printable ASCII (<c>0x20</c>
+    /// through <c>0x7E</c>) with <c>'.'</c>. Used both for format strings
+    /// and for <c>%s</c>/<c>%S</c> argument bytes before they are handed to
+    /// a receiver.
     /// </summary>
     /// <remarks>
     /// The replacement character is deliberately chosen to be benign and to
     /// not be misinterpreted as part of a printf-family format specifier
     /// (e.g., <c>%</c>) or as an ANSI escape introducer (e.g., <c>\u001B</c>)
-    /// in any downstream consumer.
+    /// in any downstream consumer. Tab and newline bytes are also replaced
+    /// so that target-controlled bytes cannot inject visual line breaks
+    /// into the rendered output of a single message.
     /// </remarks>
     internal static class StressLogSanitizer
     {
@@ -74,8 +76,12 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
 
         private static byte SanitizeByte(byte b)
         {
-            // Allow space (0x20) through tilde (0x7E), plus tab and LF.
-            if (b is (>= 0x20 and <= 0x7E) or (byte)'\t' or (byte)'\n')
+            // Allow only printable 7-bit ASCII (0x20..0x7E). Everything else,
+            // including 0x00 / control / DEL / non-ASCII, is collapsed to the
+            // replacement byte. Tabs and newlines are deliberately replaced
+            // so that target-derived bytes cannot inject what looks like a
+            // line break in the rendered output.
+            if (b is >= 0x20 and <= 0x7E)
                 return b;
 
             return Replacement;

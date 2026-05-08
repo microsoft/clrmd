@@ -10,8 +10,8 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
     /// A single message decoded from a runtime stress log. The contents of
     /// the message are validated; argument values and format string bytes
     /// are accessible only through methods on this struct, which route
-    /// through the owning <see cref="StressLog"/> so that all reads are
-    /// bounded and sanitized.
+    /// through the per-enumeration context so that all reads are bounded
+    /// and sanitized.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -31,11 +31,11 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
     /// </remarks>
     public readonly struct StressLogMessage
     {
-        private readonly StressLog? _log;
+        private readonly StressLogEnumerationContext? _context;
         private readonly int _generation;
         private readonly ulong _formatAddress;
 
-        internal StressLogMessage(StressLog log,
+        internal StressLogMessage(StressLogEnumerationContext context,
                                   int generation,
                                   ulong threadId,
                                   uint facility,
@@ -43,7 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                                   ulong formatAddress,
                                   byte argumentCount)
         {
-            _log = log;
+            _context = context;
             _generation = generation;
             _formatAddress = formatAddress;
             OSThreadId = threadId;
@@ -72,7 +72,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         public ulong TimeStampTicks { get; }
 
         /// <summary>Seconds elapsed between the start of the log and this message.</summary>
-        public double ElapsedSeconds => _log?.ElapsedSecondsFor(TimeStampTicks) ?? 0.0;
+        public double ElapsedSeconds => _context?.Log.ElapsedSecondsFor(TimeStampTicks) ?? 0.0;
 
         /// <summary>Number of arguments carried by this message. Bounded to <c>[0, 63]</c>.</summary>
         public int ArgumentCount { get; }
@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         /// running the format parser.
         /// </summary>
         public StressLogKnownFormat KnownFormat
-            => _log?.LookupKnownFormat(_formatAddress) ?? StressLogKnownFormat.None;
+            => _context?.Log.LookupKnownFormat(_formatAddress) ?? StressLogKnownFormat.None;
 
         /// <summary>
         /// Read the argument at <paramref name="index"/> as a raw 64-bit
@@ -92,7 +92,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         /// message has been invalidated by subsequent iteration.
         /// </summary>
         public ulong GetArgument(int index)
-            => _log?.GetArgument(_generation, index, ArgumentCount) ?? 0;
+            => _context?.GetArgument(_generation, index, ArgumentCount) ?? 0;
 
         /// <summary>
         /// Render the message into a receiver. The format string bytes are
@@ -103,8 +103,8 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         /// </summary>
         public void Format<T>(ref T receiver) where T : struct, IStressLogFormatReceiver
         {
-            if (_log is null) return;
-            _log.FormatMessage(_generation, _formatAddress, ArgumentCount, ref receiver);
+            if (_context is null) return;
+            _context.FormatMessage(_generation, _formatAddress, ArgumentCount, ref receiver);
         }
     }
 }

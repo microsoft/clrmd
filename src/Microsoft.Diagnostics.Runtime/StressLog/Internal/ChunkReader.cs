@@ -40,6 +40,14 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
         /// </summary>
         public bool TryLoad(IDataReader reader, ulong address)
         {
+            // Reject addresses whose chunk range cannot be represented in
+            // 64 bits. Without this guard the BufferStart/BufferEnd accessors
+            // and the message-address arithmetic in the iterator can wrap.
+            const ulong totalSize = (ulong)StressLogLayout.Chunk_Buf
+                                  + (ulong)StressLogConstants.ChunkBufferSize64;
+            if (address > ulong.MaxValue - totalSize)
+                return false;
+
             Address = address;
             if (_buffer is null)
             {
@@ -82,13 +90,21 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
         /// <summary>Translate a target message address into an offset within <see cref="Buffer"/>.</summary>
         public bool TryAddressToOffset(ulong address, out int offset)
         {
+            offset = -1;
+
+            // Reject chunk addresses whose buffer range cannot be represented
+            // in 64 bits. A malformed dump can put Address near ulong.MaxValue;
+            // the additions below would otherwise wrap and let an out-of-range
+            // address pass the in-range check.
+            const ulong totalSize = (ulong)StressLogLayout.Chunk_Buf
+                                  + (ulong)StressLogConstants.ChunkBufferSize64;
+            if (Address > ulong.MaxValue - totalSize)
+                return false;
+
             ulong start = Address + (ulong)StressLogLayout.Chunk_Buf;
             ulong end = start + (ulong)StressLogConstants.ChunkBufferSize64;
             if (address < start || address >= end)
-            {
-                offset = -1;
                 return false;
-            }
 
             offset = (int)(address - start);
             return true;

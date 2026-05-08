@@ -46,6 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
         private readonly bool _writeHasWrapped;
 
         private bool _readHasWrapped;
+        private bool _revisitedWriteChunk;
         private int _messagesEmitted;
         private int _readOffset;
 
@@ -197,21 +198,26 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
             ArgumentCount = numArgs;
             _argsOffset = _readOffset + _msgHeaderSize;
 
-            // Termination: read pointer reached the write pointer.
+            // Termination: read pointer reached the write pointer. Mirrors
+            // the runtime's CompletedDump check (stresslog.h): once
+            // readHasWrapped, stopping happens when we re-enter curWriteChunk
+            // and reach curPtr. Do NOT emit this final message: in the
+            // wrapped case we already emitted the one at curPtr on the very
+            // first decode, and re-emitting it would duplicate. In the
+            // non-wrapped case _readHasWrapped is false so this branch is
+            // not taken at all.
             ulong messageAddr = _chunk.BufferStartAddress + (ulong)_readOffset;
-            bool atWriteHead = _chunk.Address == _curWriteChunk
-                               && messageAddr >= _curPtr
-                               && _readHasWrapped;
+            if (_chunk.Address == _curWriteChunk
+                && messageAddr >= _curPtr
+                && _readHasWrapped)
+            {
+                Exhausted = true;
+                return false;
+            }
 
             // Advance read offset past this message.
             _readOffset += totalSize;
             _messagesEmitted++;
-
-            if (atWriteHead)
-            {
-                Exhausted = true;
-                // Still emit this final message (it was at curPtr, valid).
-            }
 
             return true;
         }
@@ -246,16 +252,11 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
                 return false;
             }
 
-            // Natural full-circle termination: we've returned to the chunk we
-            // started at, and we already observed the read-wrap sentinel. The
-            // writer's curPtr-anchored termination test will be evaluated
-            // against the next message we decode.
-            if (nextAddr == _curWriteChunk && _readHasWrapped)
-            {
-                Exhausted = true;
-                return false;
-            }
-
+            // Allow re-entry to _curWriteChunk exactly once after wrapping.
+            // The runtime's chunk list is circular; after walking around the
+            // ring we re-enter curWriteChunk at offset 0 to read the messages
+            // written from buffer-start up to curPtr. The per-message
+            // termination above stops us before crossing curPtr a second time.
             if (!LoadChunk(nextAddr))
                 return false;
 
@@ -285,8 +286,22 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
 
             if (!_visitedChunks.Add(address))
             {
-                _diag?.Invoke(new StressLogDiagnostic(StressLogDiagnosticKind.CorruptChunk, address));
-                return false;
+                // The legitimate case for re-visiting a chunk is re-entering
+                // _curWriteChunk after the read pointer has wrapped all the
+                // way around the ring. Allow this exactly once; any other
+                // duplicate is treated as a cycle in the chunk list.
+                if (address == _curWriteChunk
+                    && _readHasWrapped
+                    && _writeHasWrapped
+                    && !_revisitedWriteChunk)
+                {
+                    _revisitedWriteChunk = true;
+                }
+                else
+                {
+                    _diag?.Invoke(new StressLogDiagnostic(StressLogDiagnosticKind.CorruptChunk, address));
+                    return false;
+                }
             }
 
             if (!_chunk.TryLoad(_reader, address))
