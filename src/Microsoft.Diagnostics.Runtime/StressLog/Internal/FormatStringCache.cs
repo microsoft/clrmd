@@ -102,6 +102,18 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
 
             copy = new byte[len];
             StressLogSanitizer.SanitizeAscii(raw.Slice(0, len), copy);
+            // Stress logs are emitted in reverse time order; runtime format
+            // strings use '{' to mark a region's start and '}' to mark its
+            // end. When the log is read newest-first these read backwards,
+            // so we swap '{' <-> '}' here so that the resulting display is
+            // bracket-balanced when read top-to-bottom. Native SOS does the
+            // same in stressLogDump.cpp.
+            for (int idx = 0; idx < copy.Length; idx++)
+            {
+                byte b = copy[idx];
+                if (b == (byte)'{') copy[idx] = (byte)'}';
+                else if (b == (byte)'}') copy[idx] = (byte)'{';
+            }
             Insert(address, copy, k);
 
             sanitized = copy;

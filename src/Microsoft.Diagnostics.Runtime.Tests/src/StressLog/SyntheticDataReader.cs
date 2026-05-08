@@ -18,20 +18,27 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private readonly Dictionary<ulong, byte[]> _segments;
 
         public SyntheticDataReader(Dictionary<ulong, byte[]> segments)
+            : this(segments, pointerSize: 8, architecture: Architecture.X64)
+        {
+        }
+
+        public SyntheticDataReader(Dictionary<ulong, byte[]> segments, int pointerSize, Architecture architecture)
         {
             _segments = segments;
+            PointerSize = pointerSize;
+            Architecture = architecture;
         }
 
         public string DisplayName => "synthetic";
         public bool IsThreadSafe => true;
         public OSPlatform TargetPlatform => OSPlatform.Windows;
-        public Architecture Architecture => Architecture.X64;
+        public Architecture Architecture { get; }
         public int ProcessId => 0;
         public IEnumerable<ModuleInfo> EnumerateModules() => Array.Empty<ModuleInfo>();
         public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context) => false;
         public IEnumerable<uint> EnumerateAllThreads() => Array.Empty<uint>();
         public void FlushCachedData() { }
-        public int PointerSize => 8;
+        public int PointerSize { get; }
 
         public int Read(ulong address, Span<byte> buffer)
         {
@@ -63,7 +70,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public T Read<T>(ulong address) where T : unmanaged
             => Read(address, out T value) ? value : default;
 
-        public bool ReadPointer(ulong address, out ulong value) => Read(address, out value);
-        public ulong ReadPointer(ulong address) => Read<ulong>(address);
+        public bool ReadPointer(ulong address, out ulong value)
+        {
+            if (PointerSize == 4)
+            {
+                if (Read(address, out uint v32)) { value = v32; return true; }
+                value = 0; return false;
+            }
+            return Read(address, out value);
+        }
+        public ulong ReadPointer(ulong address) => ReadPointer(address, out ulong v) ? v : 0UL;
     }
 }

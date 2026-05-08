@@ -7,18 +7,24 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
 {
     /// <summary>
     /// Byte-level sanitization for any text byte read from the target.
-    /// Replaces anything that is not 7-bit printable ASCII (<c>0x20</c>
-    /// through <c>0x7E</c>) with <c>'.'</c>. Used both for format strings
-    /// and for <c>%s</c>/<c>%S</c> argument bytes before they are handed to
-    /// a receiver.
+    /// Allows printable 7-bit ASCII (<c>0x20</c>..<c>0x7E</c>) plus the
+    /// whitespace control bytes <c>\t</c> (0x09), <c>\n</c> (0x0A), and
+    /// <c>\r</c> (0x0D). Everything else — including the ANSI escape
+    /// introducer (0x1B), other C0 control bytes, DEL (0x7F), and all
+    /// non-ASCII bytes — is replaced with <c>'.'</c>. Used both for format
+    /// strings and for <c>%s</c>/<c>%S</c> argument bytes before they are
+    /// handed to a receiver.
     /// </summary>
     /// <remarks>
-    /// The replacement character is deliberately chosen to be benign and to
-    /// not be misinterpreted as part of a printf-family format specifier
-    /// (e.g., <c>%</c>) or as an ANSI escape introducer (e.g., <c>\u001B</c>)
-    /// in any downstream consumer. Tab and newline bytes are also replaced
-    /// so that target-controlled bytes cannot inject visual line breaks
-    /// into the rendered output of a single message.
+    /// The replacement byte is deliberately chosen to be benign and to not
+    /// be misinterpreted as part of a printf-family format specifier
+    /// (e.g., <c>%</c>) or as an ANSI escape introducer (e.g.,
+    /// <c>\u001B</c>) in any downstream consumer. Tab/newline/carriage
+    /// return are allowed through because legitimate runtime format strings
+    /// commonly terminate with <c>\n</c>, and stripping or replacing those
+    /// alters output content rather than addressing a meaningful threat;
+    /// terminal escape injection is prevented by replacing the actual
+    /// escape byte (0x1B).
     /// </remarks>
     internal static class StressLogSanitizer
     {
@@ -76,12 +82,15 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
 
         private static byte SanitizeByte(byte b)
         {
-            // Allow only printable 7-bit ASCII (0x20..0x7E). Everything else,
-            // including 0x00 / control / DEL / non-ASCII, is collapsed to the
-            // replacement byte. Tabs and newlines are deliberately replaced
-            // so that target-derived bytes cannot inject what looks like a
-            // line break in the rendered output.
+            // Allow printable 7-bit ASCII (0x20..0x7E) plus the whitespace
+            // control bytes \t, \n, \r. Everything else, including 0x00,
+            // other C0 control bytes, the ANSI escape introducer (0x1B),
+            // DEL (0x7F), and non-ASCII bytes, is collapsed to the
+            // replacement byte to prevent terminal escape injection from
+            // target-controlled bytes.
             if (b is >= 0x20 and <= 0x7E)
+                return b;
+            if (b == (byte)'\t' || b == (byte)'\n' || b == (byte)'\r')
                 return b;
 
             return Replacement;

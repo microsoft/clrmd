@@ -83,11 +83,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 string processOutput = null;
                 if (highBit && isFramework)
                 {
-                    GenerateHighBitFrameworkDump(exePath, dumpPath, gcMode, full, architecture);
+                    GenerateHighBitFrameworkDump(exePath, dumpPath, gcMode, full, architecture, extraEnv);
                 }
                 else if (highBit)
                 {
-                    processOutput = GenerateHighBitCoreDump(exePath, dumpPath, gcMode, full, architecture);
+                    processOutput = GenerateHighBitCoreDump(exePath, dumpPath, gcMode, full, architecture, extraEnv);
                 }
                 else if (isFramework && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
@@ -373,7 +373,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// runs the target .exe's entry point. When the target throws, DbgEng captures
         /// the dump just as it does in the non-HighBit Framework path.
         /// </summary>
-        private static void GenerateHighBitFrameworkDump(string exePath, string dumpPath, GCMode gcMode, bool full, string architecture)
+        private static void GenerateHighBitFrameworkDump(string exePath, string dumpPath, GCMode gcMode, bool full, string architecture, IReadOnlyDictionary<string, string> extraEnv = null)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 throw new PlatformNotSupportedException("High-bit dump generation is only supported on Windows.");
@@ -392,6 +392,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 info.SetEnvironmentVariable("COMPlus_BuildFlavor", "SVR");
             }
 
+            if (extraEnv != null)
+            {
+                foreach (KeyValuePair<string, string> kvp in extraEnv)
+                    info.SetEnvironmentVariable(kvp.Key, kvp.Value);
+            }
+
             string commandLine = $"\"{host}\" --mode=framework \"{exePath}\"";
             LaunchAndCaptureDump(info, commandLine, workingDirectory: Path.GetDirectoryName(exePath), dumpPath, full, ClrExceptionCode);
         }
@@ -401,7 +407,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// before starting the CLR, forcing heap allocations into the upper 2 GB of the 32-bit
         /// address space. Windows x86 only.
         /// </summary>
-        private static string GenerateHighBitCoreDump(string exePath, string dumpPath, GCMode gcMode, bool full, string architecture)
+        private static string GenerateHighBitCoreDump(string exePath, string dumpPath, GCMode gcMode, bool full, string architecture, IReadOnlyDictionary<string, string> extraEnv = null)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 throw new PlatformNotSupportedException("High-bit dump generation is only supported on Windows.");
@@ -448,6 +454,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 psi.Environment["DOTNET_gcServer"] = "1";
                 psi.Environment["COMPlus_gcServer"] = "1";
+            }
+
+            if (extraEnv != null)
+            {
+                foreach (KeyValuePair<string, string> kvp in extraEnv)
+                    psi.Environment[kvp.Key] = kvp.Value;
             }
 
             using Process process = Process.Start(psi);

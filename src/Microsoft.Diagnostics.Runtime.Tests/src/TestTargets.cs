@@ -356,6 +356,47 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             return LoadDump(dumpPath, options);
         }
 
+        /// <summary>
+        /// Loads a full dump for a specific <see cref="DumpVariant"/> (which
+        /// may include the HighBit harness) with extra environment variables.
+        /// </summary>
+        public DataTarget LoadFullDumpWithEnvironment(
+            DumpVariant variant,
+            IReadOnlyDictionary<string, string> extraEnv,
+            string dumpNameSuffix,
+            GCMode gc = GCMode.Workstation,
+            bool singleFile = false,
+            DataTargetOptions? options = null)
+        {
+            if (extraEnv is null) throw new ArgumentNullException(nameof(extraEnv));
+            if (string.IsNullOrEmpty(dumpNameSuffix)) throw new ArgumentException("Suffix must be non-empty.", nameof(dumpNameSuffix));
+            if (singleFile && variant.HighBit) throw new InvalidOperationException("Single-file is not supported with HighBit.");
+            if (!Supports(variant.Flavor, variant.HighBit))
+                throw new InvalidOperationException($"Target {Name} does not support variant {variant}.");
+
+            string architecture = DumpGenerator.GetArchitecture();
+            bool isFramework = variant.Flavor == DumpFlavor.Framework;
+            string baseDumpPath = BuildDumpName(gc, full: true, architecture: architecture, isFramework: isFramework, singleFile: singleFile, highBit: variant.HighBit);
+
+            string dumpPath = Path.Combine(
+                Path.GetDirectoryName(baseDumpPath)!,
+                Path.GetFileNameWithoutExtension(baseDumpPath) + "_" + dumpNameSuffix + Path.GetExtension(baseDumpPath));
+
+            DumpGenerator.EnsureDump(
+                Name,
+                ProjectDir,
+                dumpPath,
+                architecture,
+                isFramework: isFramework,
+                gc,
+                full: true,
+                singleFile: singleFile,
+                highBit: variant.HighBit,
+                companionTargets: CompanionTargets,
+                extraEnv: extraEnv);
+            return LoadDump(dumpPath, options);
+        }
+
         // ---------------------------------------------------------------------
         // Variant-based dump loading (primary API used by matrixed [Theory] tests).
         // ---------------------------------------------------------------------

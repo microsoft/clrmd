@@ -93,6 +93,14 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         public DateTime? StartTimeUtc => _startTimeUtc;
 
         /// <summary>
+        /// Pointer size of the target the log was captured from, in bytes.
+        /// 4 for a 32-bit target, 8 for a 64-bit target. Receivers should
+        /// format <c>%p</c> arguments with <c>2 * PointerSize</c> hex digits
+        /// to match the target's native pointer width.
+        /// </summary>
+        public int PointerSize => _layout.PointerSize;
+
+        /// <summary>
         /// Try to open the stress log for the given <paramref name="runtime"/>.
         /// Looks up the stress log address through the runtime's DAC and
         /// reads from the runtime's data target. Returns <see langword="false"/>

@@ -57,6 +57,22 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
+        public void Sanitizer_PreservesWhitespaceControlBytes()
+        {
+            // \t \n \r are legitimate (format strings commonly end in \n);
+            // \v (0x0B) and \f (0x0C) are not whitespace we need to preserve.
+            byte[] input = { (byte)'\t', (byte)'\n', (byte)'\r', 0x0B, 0x0C };
+            byte[] dst = new byte[input.Length];
+            int written = StressLogSanitizer.SanitizeAscii(input, dst);
+            Assert.Equal(input.Length, written);
+            Assert.Equal((byte)'\t', dst[0]);
+            Assert.Equal((byte)'\n', dst[1]);
+            Assert.Equal((byte)'\r', dst[2]);
+            Assert.Equal((byte)'.', dst[3]);
+            Assert.Equal((byte)'.', dst[4]);
+        }
+
+        [Fact]
         public void Sanitizer_Utf16TerminatesAtNull()
         {
             // 'A' 0x00 'B' 0x00 0x00 0x00 'C' 0x00
@@ -378,5 +394,214 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Assert.Equal(50, countB);
             }
         }
+
+        // ---- 32-bit (Win-x86) ---------------------------------------------
+
+        [Fact]
+        public void Layout_x86_RoundTripSingleMessage()
+        {
+            SyntheticStressLogBuilder builder = new();
+            ulong addr = builder.Build(StressLogLayout.CoreWinX86, out _, out _);
+            SyntheticDataReader reader = new(builder.Memory, pointerSize: 4, architecture: System.Runtime.InteropServices.Architecture.X86);
+
+            Assert.True(StressLog.TryOpen(reader, addr, out StressLog? log));
+            Assert.NotNull(log);
+            Assert.Equal(4, log!.PointerSize);
+
+            int count = 0;
+            foreach (StressLogMessage msg in log.EnumerateMessages())
+            {
+                count++;
+                Assert.Equal(SyntheticStressLogBuilder.ThreadId, msg.OSThreadId);
+                Assert.Equal((StressLogFacility)SyntheticStressLogBuilder.Facility, msg.Facility);
+                Assert.Equal(0, msg.ArgumentCount);
+                if (count > 10) break;
+            }
+
+            Assert.Equal(1, count);
+            log.Dispose();
+        }
+
+        [Fact]
+        public void Layout_x86_HighBitPointersZeroExtend()
+        {
+            // Place the StressLog header at a high address (>= 0x80000000).
+            // If any pointer-sized read inadvertently sign-extended, the
+            // resulting ulong would be 0xFFFFFFFF80000000... and the chunk
+            // walk would fail. Successful enumeration confirms zero-extension.
+            HighBitBuilder builder = new(stressLogAddr: 0x80100000, threadAddr: 0x80200000, chunkAddr: 0x80300000);
+            ulong addr = builder.Build(StressLogLayout.CoreWinX86, out _, out _);
+            SyntheticDataReader reader = new(builder.Memory, pointerSize: 4, architecture: System.Runtime.InteropServices.Architecture.X86);
+
+            Assert.True(StressLog.TryOpen(reader, addr, out StressLog? log));
+            Assert.NotNull(log);
+
+            int count = 0;
+            foreach (StressLogMessage msg in log!.EnumerateMessages())
+            {
+                count++;
+                Assert.Equal(0x42UL, msg.OSThreadId);
+                if (count > 10) break;
+            }
+
+            Assert.Equal(1, count);
+            log.Dispose();
+        }
+
+        [Fact]
+        public void Layout_x86_AddressOverflowRejected()
+        {
+            // A chunk whose end address would exceed uint.MaxValue must be
+            // rejected; otherwise downstream offset arithmetic could wrap.
+            // Place a ThreadStressLog whose chunkListHead points just below
+            // 4 GiB so that adding ChunkTotalSize (16400) overflows.
+            SyntheticStressLogBuilder builder = new();
+            // Override the chunk address to one that overflows 32-bit.
+            ulong nearMax = 0xFFFFC000UL;
+            HighBitBuilder hb = new(stressLogAddr: 0x100000, threadAddr: 0x200000, chunkAddr: nearMax);
+            ulong addr = hb.Build(StressLogLayout.CoreWinX86, out _, out _);
+            SyntheticDataReader reader = new(hb.Memory, pointerSize: 4, architecture: System.Runtime.InteropServices.Architecture.X86);
+
+            Assert.True(StressLog.TryOpen(reader, addr, out StressLog? log));
+            Assert.NotNull(log);
+
+            int count = 0;
+            foreach (StressLogMessage _ in log!.EnumerateMessages())
+            {
+                count++;
+                if (count > 10) break;
+            }
+
+            // Chunk overflows 32-bit address space; iterator must reject it.
+            Assert.Equal(0, count);
+            log.Dispose();
+        }
+
+        [Fact]
+        public void Layout_x86_RejectsNonWindows()
+        {
+            SyntheticStressLogBuilder builder = new();
+            ulong addr = builder.Build(StressLogLayout.CoreWinX86, out _, out _);
+            NonWindowsX86Reader reader = new(builder.Memory);
+
+            Assert.False(StressLog.TryOpen(reader, addr, out StressLog? log, out string? reason));
+            Assert.Null(log);
+            Assert.NotNull(reason);
+            Assert.Contains("32-bit", reason!, System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void ModuleTable_x86_EntryStrideIs8Bytes()
+        {
+            // x86 module table: 8 bytes per entry (4 base + 4 size).
+            byte[] bytes = new byte[5 * 8];
+            // Entry 0: base=0x10000000, size=0x100000 (valid, >= 1 MiB).
+            BitConverter.GetBytes((uint)0x10000000).CopyTo(bytes, 0);
+            BitConverter.GetBytes((uint)0x100000).CopyTo(bytes, 4);
+            // Entries 1..4: zero-filled => skipped.
+            StressLogModuleTable table = StressLogModuleTable.BuildInProcess(
+                StressLogLayout.CoreWinX86,
+                bytes,
+                legacyModuleOffset: 0x10000000,
+                hasModuleTable: true,
+                maxOffset: 1UL << 39);
+
+            Assert.True(table.TryResolveFormatOffset(formatOffset: 0x100, out ulong addr));
+            Assert.Equal(0x10000100UL, addr);
+        }
+    }
+
+    internal sealed class HighBitBuilder
+    {
+        private readonly SyntheticStressLogBuilder _inner = new();
+        private readonly ulong _stressLogAddr;
+        private readonly ulong _threadAddr;
+        private readonly ulong _chunkAddr;
+
+        public HighBitBuilder(ulong stressLogAddr, ulong threadAddr, ulong chunkAddr)
+        {
+            _stressLogAddr = stressLogAddr;
+            _threadAddr = threadAddr;
+            _chunkAddr = chunkAddr;
+        }
+
+        public Dictionary<ulong, byte[]> Memory => _inner.Memory;
+
+        public ulong Build(StressLogLayout layout, out ulong threadAddr, out ulong chunkAddr)
+        {
+            threadAddr = _threadAddr;
+            chunkAddr = _chunkAddr;
+
+            byte[] chunk = new byte[layout.ChunkTotalSize];
+            WritePtr(layout, chunk.AsSpan(layout.ChunkPrevOffset), _chunkAddr);
+            WritePtr(layout, chunk.AsSpan(layout.ChunkNextOffset), _chunkAddr);
+
+            int msgOffset = layout.ChunkBufOffset;
+            ulong word0 = 0xABCDEF01UL;
+            ulong word1 = 1_500_000UL << StressLogConstants.FormatOffsetHighBits;
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(chunk.AsSpan(msgOffset), word0);
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(chunk.AsSpan(msgOffset + 8), word1);
+
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(chunk.AsSpan(layout.ChunkSig1Offset), StressLogConstants.ChunkSignature);
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(chunk.AsSpan(layout.ChunkSig2Offset), StressLogConstants.ChunkSignature);
+
+            Memory[_chunkAddr] = chunk;
+
+            byte[] thread = new byte[layout.ThreadHeaderSize];
+            if (layout.ThreadIdSize == 8)
+                System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(layout.ThreadIdOffset), 0x42UL);
+            else
+                System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(thread.AsSpan(layout.ThreadIdOffset), 0x42u);
+
+            ulong msgAddr = _chunkAddr + (ulong)layout.ChunkBufOffset;
+            WritePtr(layout, thread.AsSpan(layout.ThreadCurPtrOffset), msgAddr);
+            WritePtr(layout, thread.AsSpan(layout.ThreadReadPtrOffset), msgAddr);
+            WritePtr(layout, thread.AsSpan(layout.ThreadChunkListHeadOffset), _chunkAddr);
+            WritePtr(layout, thread.AsSpan(layout.ThreadChunkListTailOffset), _chunkAddr);
+            WritePtr(layout, thread.AsSpan(layout.ThreadCurReadChunkOffset), _chunkAddr);
+            WritePtr(layout, thread.AsSpan(layout.ThreadCurWriteChunkOffset), _chunkAddr);
+            Memory[_threadAddr] = thread;
+
+            byte[] header = new byte[layout.InProcHeaderSize];
+            WritePtr(layout, header.AsSpan(layout.InProcLogsOffset), _threadAddr);
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(layout.InProcPaddingOffset), 0xFFFFFFFFu);
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(header.AsSpan(layout.InProcTickFrequencyOffset), 10_000_000UL);
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(header.AsSpan(layout.InProcStartTimeStampOffset), 1_000_000UL);
+            Memory[_stressLogAddr] = header;
+
+            return _stressLogAddr;
+        }
+
+        private static void WritePtr(StressLogLayout layout, Span<byte> dst, ulong value)
+        {
+            if (layout.PointerSize == 8)
+                System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(dst, value);
+            else
+                System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(dst, (uint)value);
+        }
+    }
+
+    internal sealed class NonWindowsX86Reader : IDataReader
+    {
+        private readonly SyntheticDataReader _inner;
+        public NonWindowsX86Reader(Dictionary<ulong, byte[]> segments)
+        {
+            _inner = new SyntheticDataReader(segments, pointerSize: 4, architecture: System.Runtime.InteropServices.Architecture.X86);
+        }
+        public string DisplayName => "synthetic-linux-x86";
+        public bool IsThreadSafe => true;
+        public System.Runtime.InteropServices.OSPlatform TargetPlatform => System.Runtime.InteropServices.OSPlatform.Linux;
+        public System.Runtime.InteropServices.Architecture Architecture => System.Runtime.InteropServices.Architecture.X86;
+        public int ProcessId => 0;
+        public IEnumerable<ModuleInfo> EnumerateModules() => Array.Empty<ModuleInfo>();
+        public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context) => false;
+        public IEnumerable<uint> EnumerateAllThreads() => Array.Empty<uint>();
+        public void FlushCachedData() { }
+        public int PointerSize => 4;
+        public int Read(ulong address, Span<byte> buffer) => _inner.Read(address, buffer);
+        public bool Read<T>(ulong address, out T value) where T : unmanaged => _inner.Read(address, out value);
+        public T Read<T>(ulong address) where T : unmanaged => _inner.Read<T>(address);
+        public bool ReadPointer(ulong address, out ulong value) => _inner.ReadPointer(address, out value);
+        public ulong ReadPointer(ulong address) => _inner.ReadPointer(address);
     }
 }
