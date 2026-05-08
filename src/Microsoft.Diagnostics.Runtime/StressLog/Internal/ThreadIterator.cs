@@ -49,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
         private int _messagesEmitted;
         private int _readOffset;
 
-        public ulong ThreadId { get; }
+        public ulong OSThreadId { get; }
         public bool Exhausted { get; private set; }
 
         // Latest decoded message fields; consumer reads via accessors after each Advance().
@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
 
             if (variant == StressLogVariant.FrameworkV1)
             {
-                ThreadId = BinaryPrimitives.ReadUInt32LittleEndian(threadHeader.Slice(StressLogLayout.FxThread_ThreadId));
+                OSThreadId = BinaryPrimitives.ReadUInt32LittleEndian(threadHeader.Slice(StressLogLayout.FxThread_ThreadId));
                 _curPtr = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.FxThread_CurPtr));
                 readPtr = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.FxThread_ReadPtr));
                 uint writeWrapped32 = BinaryPrimitives.ReadUInt32LittleEndian(threadHeader.Slice(StressLogLayout.FxThread_WriteHasWrapped));
@@ -95,7 +95,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
             }
             else
             {
-                ThreadId = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.CoreThread_ThreadId));
+                OSThreadId = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.CoreThread_ThreadId));
                 writeWrapped = threadHeader[StressLogLayout.CoreThread_WriteHasWrapped];
                 _curPtr = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.CoreThread_CurPtr));
                 readPtr = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.CoreThread_ReadPtr));

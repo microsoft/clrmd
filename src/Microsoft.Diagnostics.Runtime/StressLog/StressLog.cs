@@ -295,7 +295,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                     yield return new StressLogMessage(
                         log: this,
                         generation: gen,
-                        threadId: iter.ThreadId,
+                        threadId: iter.OSThreadId,
                         facility: iter.Facility,
                         timeStampTicks: iter.TimeStamp,
                         formatAddress: ResolveFormatAddress(iter.FormatOffset),

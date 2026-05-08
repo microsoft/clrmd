@@ -306,7 +306,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             foreach (StressLogMessage msg in log.EnumerateMessages())
             {
                 count++;
-                Assert.Equal(SyntheticStressLogBuilder.ThreadId, msg.ThreadId);
+                Assert.Equal(SyntheticStressLogBuilder.ThreadId, msg.OSThreadId);
                 Assert.Equal((StressLogFacility)SyntheticStressLogBuilder.Facility, msg.Facility);
                 Assert.Equal(0, msg.ArgumentCount);
                 if (count > 100) break;

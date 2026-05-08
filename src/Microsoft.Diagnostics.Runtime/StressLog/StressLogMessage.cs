@@ -46,14 +46,19 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             _log = log;
             _generation = generation;
             _formatAddress = formatAddress;
-            ThreadId = threadId;
+            OSThreadId = threadId;
             Facility = (StressLogFacility)facility;
             TimeStampTicks = timeStampTicks;
             ArgumentCount = argumentCount;
         }
 
-        /// <summary>The id of the thread that wrote this message.</summary>
-        public ulong ThreadId { get; }
+        /// <summary>
+        /// The OS-level thread id (Windows <c>GetCurrentThreadId</c> / Linux
+        /// <c>gettid</c>) of the thread that wrote this message. To correlate
+        /// with a <see cref="ClrThread"/>, compare with
+        /// <see cref="ClrThread.OSThreadId"/>.
+        /// </summary>
+        public ulong OSThreadId { get; }
 
         /// <summary>Facility bits as encoded in the message header.</summary>
         public StressLogFacility Facility { get; }
