@@ -34,13 +34,19 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
         private readonly int _maxStringBytes;
         private readonly byte[] _readScratch;
         private readonly byte[] _sanitizeScratch;
+        private readonly int _pointerSize;
 
         public ArgumentResolver(IMemoryReader reader)
-            : this(reader, DefaultMaxStringBytes)
+            : this(reader, DefaultMaxStringBytes, pointerSize: 8)
         {
         }
 
         public ArgumentResolver(IMemoryReader reader, int maxStringBytes)
+            : this(reader, maxStringBytes, pointerSize: 8)
+        {
+        }
+
+        public ArgumentResolver(IMemoryReader reader, int maxStringBytes, int pointerSize)
         {
             _reader = reader;
             // Clamp to a sane range so a misconfigured option cannot drive
@@ -53,7 +59,16 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
             _maxStringBytes = maxStringBytes;
             _readScratch = new byte[maxStringBytes * 2]; // *2 for UTF-16
             _sanitizeScratch = new byte[maxStringBytes];
+            _pointerSize = pointerSize == 4 ? 4 : 8;
         }
+
+        /// <summary>
+        /// Pointer size of the target, in bytes. Used by the format parser
+        /// to decide whether 64-bit length-modified arguments occupy one
+        /// slot (8-byte pointer target) or two consecutive slots (4-byte
+        /// pointer target, low dword first).
+        /// </summary>
+        public int PointerSize => _pointerSize;
 
         public ReadOnlySpan<byte> ResolveString(ulong address, StressLogStringEncoding encoding)
         {

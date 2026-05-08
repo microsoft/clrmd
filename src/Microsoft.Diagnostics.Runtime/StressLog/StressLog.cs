@@ -350,7 +350,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
 
             // Each enumeration owns its own context so concurrent foreach loops
             // do not clobber each other's argument scratch / current iterator.
-            ArgumentResolver argResolver = new ArgumentResolver(_reader, _options.MaxStringArgumentLength);
+            ArgumentResolver argResolver = new ArgumentResolver(_reader, _options.MaxStringArgumentLength, _layout.PointerSize);
             StressLogEnumerationContext context = new StressLogEnumerationContext(this, argResolver);
 
             List<ThreadIterator> iterators = new();

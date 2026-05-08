@@ -168,8 +168,13 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
                     precision = MaxPrecision;
             }
 
-            // Length modifiers (recognized and ignored).
-            // h, hh, l, ll, z, j, t, L, I, I32, I64
+            // Length modifiers (recognized).
+            // h, hh, l, ll, z, j, t, L, I, I32, I64.
+            // ll, j, L, I64 indicate 64-bit args; on 32-bit targets this
+            // means the argument occupies two consecutive arg slots (low
+            // dword followed by high dword), so we record the modifier so
+            // that DispatchSpec can combine slots when needed.
+            bool is64Bit = false;
             if (i < format.Length)
             {
                 byte b = format[i];
@@ -181,10 +186,19 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
                 else if (b == (byte)'l')
                 {
                     i++;
-                    if (i < format.Length && format[i] == (byte)'l') i++;
+                    if (i < format.Length && format[i] == (byte)'l')
+                    {
+                        is64Bit = true;
+                        i++;
+                    }
                 }
-                else if (b is (byte)'z' or (byte)'j' or (byte)'t' or (byte)'L')
+                else if (b is (byte)'z' or (byte)'t')
                 {
+                    i++;
+                }
+                else if (b is (byte)'j' or (byte)'L')
+                {
+                    is64Bit = true;
                     i++;
                 }
                 else if (b == (byte)'I')
@@ -193,7 +207,10 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
                     if (i + 1 < format.Length && format[i] == (byte)'3' && format[i + 1] == (byte)'2')
                         i += 2;
                     else if (i + 1 < format.Length && format[i] == (byte)'6' && format[i + 1] == (byte)'4')
+                    {
+                        is64Bit = true;
                         i += 2;
+                    }
                 }
             }
 
@@ -208,19 +225,19 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
             {
                 case (byte)'d':
                 case (byte)'i':
-                    spec = new FormatSpec(SpecKind.Integer, StressLogIntegerKind.Decimal, default, default, width, precision);
+                    spec = new FormatSpec(SpecKind.Integer, StressLogIntegerKind.Decimal, default, default, width, precision, is64Bit);
                     return true;
                 case (byte)'u':
-                    spec = new FormatSpec(SpecKind.Integer, StressLogIntegerKind.Unsigned, default, default, width, precision);
+                    spec = new FormatSpec(SpecKind.Integer, StressLogIntegerKind.Unsigned, default, default, width, precision, is64Bit);
                     return true;
                 case (byte)'x':
-                    spec = new FormatSpec(SpecKind.Integer, StressLogIntegerKind.Hex, default, default, width, precision);
+                    spec = new FormatSpec(SpecKind.Integer, StressLogIntegerKind.Hex, default, default, width, precision, is64Bit);
                     return true;
                 case (byte)'X':
-                    spec = new FormatSpec(SpecKind.Integer, StressLogIntegerKind.HexUpper, default, default, width, precision);
+                    spec = new FormatSpec(SpecKind.Integer, StressLogIntegerKind.HexUpper, default, default, width, precision, is64Bit);
                     return true;
                 case (byte)'c':
-                    spec = new FormatSpec(SpecKind.Integer, StressLogIntegerKind.Char, default, default, width, precision);
+                    spec = new FormatSpec(SpecKind.Integer, StressLogIntegerKind.Char, default, default, width, precision, is64Bit);
                     return true;
 
                 case (byte)'p':
@@ -239,14 +256,14 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
                             default: break;
                         }
                     }
-                    spec = new FormatSpec(SpecKind.Pointer, default, ptrKind, default, width, precision);
+                    spec = new FormatSpec(SpecKind.Pointer, default, ptrKind, default, width, precision, false);
                     return true;
 
                 case (byte)'s':
-                    spec = new FormatSpec(SpecKind.String, default, default, StressLogStringEncoding.Utf8, width, precision);
+                    spec = new FormatSpec(SpecKind.String, default, default, StressLogStringEncoding.Utf8, width, precision, false);
                     return true;
                 case (byte)'S':
-                    spec = new FormatSpec(SpecKind.String, default, default, StressLogStringEncoding.Utf16, width, precision);
+                    spec = new FormatSpec(SpecKind.String, default, default, StressLogStringEncoding.Utf16, width, precision, false);
                     return true;
 
                 default:
@@ -272,11 +289,48 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
 
             ulong raw = args[argIndex++];
 
+            // On 32-bit targets, a 64-bit length-modified argument
+            // (ll/I64/j/L) occupies two pointer-sized slots: low dword
+            // first, then high dword. Combine them so the receiver sees
+            // the full 64-bit value. On 64-bit targets each slot is
+            // already 8 bytes wide so no combination is needed.
+            if (spec.Is64Bit && argumentResolver.PointerSize == 4)
+            {
+                if ((uint)argIndex < (uint)args.Length)
+                {
+                    ulong hi = args[argIndex++];
+                    raw = (raw & 0xFFFFFFFFUL) | (hi << 32);
+                }
+            }
+
             switch (spec.Kind)
             {
                 case SpecKind.Integer:
-                    receiver.Integer(spec.IntegerKind, spec.Width, spec.Precision, unchecked((long)raw));
-                    break;
+                    {
+                        // Apply the printf rule that an unmodified %d/%i/%u/%x
+                        // refers to a 32-bit int. The runtime stores each
+                        // argument size_t-wide; on 32-bit targets that's
+                        // already 4 bytes (zero-extended into the 8-byte
+                        // slot), and on 64-bit targets a 32-bit value was
+                        // sign- or zero-extended via implicit conversion at
+                        // store time. Truncate-then-extend through int/uint
+                        // to recover the value the caller wrote.
+                        long signedValue;
+                        if (spec.Is64Bit)
+                        {
+                            signedValue = unchecked((long)raw);
+                        }
+                        else if (spec.IntegerKind == StressLogIntegerKind.Decimal)
+                        {
+                            signedValue = unchecked((int)raw);
+                        }
+                        else
+                        {
+                            signedValue = unchecked((long)(uint)raw);
+                        }
+                        receiver.Integer(spec.IntegerKind, spec.Width, spec.Precision, signedValue);
+                        break;
+                    }
 
                 case SpecKind.Pointer:
                     receiver.Pointer(spec.PointerKind, raw);
@@ -305,7 +359,8 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
                               StressLogPointerKind pointerKind,
                               StressLogStringEncoding stringEncoding,
                               int width,
-                              int precision)
+                              int precision,
+                              bool is64Bit)
             {
                 Kind = kind;
                 IntegerKind = integerKind;
@@ -313,6 +368,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
                 StringEncoding = stringEncoding;
                 Width = width;
                 Precision = precision;
+                Is64Bit = is64Bit;
             }
 
             public SpecKind Kind { get; }
@@ -321,6 +377,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
             public StressLogStringEncoding StringEncoding { get; }
             public int Width { get; }
             public int Precision { get; }
+            public bool Is64Bit { get; }
         }
     }
 }
