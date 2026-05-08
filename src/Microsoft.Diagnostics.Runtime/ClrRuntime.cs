@@ -5,12 +5,14 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacImplementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
+using Microsoft.Diagnostics.Runtime.StressLogs;
 
 namespace Microsoft.Diagnostics.Runtime
 {
@@ -29,6 +31,11 @@ namespace Microsoft.Diagnostics.Runtime
         private IAbstractComHelpers? _comHelpers;
         private IAbstractMethodLocator? _methodLocator;
         private IAbstractDacController? _controller;
+
+        private StressLog? _stressLog;
+        private string? _stressLogFailureReason;
+        private bool _stressLogProbed;
+        private readonly object _stressLogGate = new();
 
         internal ClrRuntime(ClrInfo clrInfo, IServiceProvider services)
         {
@@ -55,6 +62,14 @@ namespace Microsoft.Diagnostics.Runtime
             _domainAndModules = null;
             _threads = default;
             _heap = null;
+
+            lock (_stressLogGate)
+            {
+                _stressLog?.Dispose();
+                _stressLog = null;
+                _stressLogFailureReason = null;
+                _stressLogProbed = false;
+            }
         }
 
         /// <summary>
@@ -82,6 +97,54 @@ namespace Microsoft.Diagnostics.Runtime
             if (svc is DacImplementation.DacRuntime dacRuntime)
                 return dacRuntime.GetStressLogAddress();
             return 0;
+        }
+
+        /// <summary>
+        /// The runtime's stress log, or <see langword="null"/> if stress
+        /// logging is disabled, the DAC does not provide a stress log
+        /// address, or the log fails validation. Use
+        /// <see cref="TryGetStressLog"/> if you need a description of the
+        /// failure. The returned instance is owned by this runtime and is
+        /// disposed when <see cref="FlushCachedData"/> is called; callers
+        /// should not dispose it themselves.
+        /// </summary>
+        public StressLog? StressLog
+        {
+            get
+            {
+                EnsureStressLogProbed();
+                return _stressLog;
+            }
+        }
+
+        /// <summary>
+        /// Try to get the runtime's stress log. On success, <paramref name="stressLog"/>
+        /// is populated; on failure, <paramref name="failureReason"/> contains
+        /// a human-readable explanation. The returned instance is owned by
+        /// this runtime and is disposed when <see cref="FlushCachedData"/> is
+        /// called; callers should not dispose it themselves.
+        /// </summary>
+        public bool TryGetStressLog([NotNullWhen(true)] out StressLog? stressLog,
+                                    [NotNullWhen(false)] out string? failureReason)
+        {
+            EnsureStressLogProbed();
+            stressLog = _stressLog;
+            failureReason = stressLog is null
+                ? (_stressLogFailureReason ?? "Stress log is unavailable.")
+                : null;
+            return stressLog is not null;
+        }
+
+        private void EnsureStressLogProbed()
+        {
+            if (_stressLogProbed) return;
+            lock (_stressLogGate)
+            {
+                if (_stressLogProbed) return;
+
+                StressLogs.StressLog.TryOpen(this, out _stressLog, out _stressLogFailureReason);
+                _stressLogProbed = true;
+            }
         }
 
         private IAbstractComHelpers? TryGetComHelpers() => _comHelpers ??= GetServiceOrThrow<IAbstractComHelpers>();

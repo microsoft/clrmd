@@ -88,11 +88,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
 
-            bool opened = StressLog.TryOpen(runtime, out StressLog? stressLog);
-            Assert.True(opened, BuildDiagnosticMessage("StressLog.TryOpen returned false", runtime, stressLog: null));
+            bool opened = runtime.TryGetStressLog(out StressLog? stressLog, out string? failureReason);
+            Assert.True(opened, BuildDiagnosticMessage($"runtime.TryGetStressLog returned false: {failureReason}", runtime, stressLog: null));
             Assert.NotNull(stressLog);
 
-            using (stressLog)
+            // The stress log is owned by the runtime; do not dispose it here.
             {
                 List<StressLogMessage> messages = new();
                 Dictionary<StressLogKnownFormat, int> knownCounts = new();

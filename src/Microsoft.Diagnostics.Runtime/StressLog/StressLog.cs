@@ -103,16 +103,32 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         /// not support <c>GetStressLogAddress</c>, or the resulting log fails
         /// validation.
         /// </summary>
-        public static bool TryOpen(ClrRuntime runtime, out StressLog? stressLog)
+        internal static bool TryOpen(ClrRuntime runtime, out StressLog? stressLog)
+            => TryOpen(runtime, out stressLog, out _);
+
+        /// <summary>
+        /// Try to open the stress log for the given <paramref name="runtime"/>,
+        /// returning a human-readable explanation in
+        /// <paramref name="failureReason"/> when the open fails.
+        /// </summary>
+        internal static bool TryOpen(ClrRuntime runtime, out StressLog? stressLog, out string? failureReason)
         {
             stressLog = null;
-            if (runtime is null) return false;
+            failureReason = null;
+            if (runtime is null)
+            {
+                failureReason = "Runtime is null.";
+                return false;
+            }
 
             ulong address = runtime.GetStressLogAddress();
             if (address == 0)
+            {
+                failureReason = "Stress logging is not enabled for this runtime, or the DAC does not expose the stress log address.";
                 return false;
+            }
 
-            return TryOpen(runtime.DataTarget.DataReader, address, out stressLog);
+            return TryOpen(runtime.DataTarget.DataReader, address, out stressLog, out failureReason);
         }
 
         /// <summary>
@@ -120,12 +136,28 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         /// target. Returns <see langword="false"/> on any structural
         /// validation failure.
         /// </summary>
-        public static bool TryOpen(IDataReader reader, ulong address, out StressLog? stressLog)
+        internal static bool TryOpen(IDataReader reader, ulong address, out StressLog? stressLog)
+            => TryOpen(reader, address, out stressLog, out _);
+
+        internal static bool TryOpen(IDataReader reader, ulong address, out StressLog? stressLog, out string? failureReason)
         {
             stressLog = null;
-            if (reader is null) return false;
-            if (reader.PointerSize != 8) return false;
-            if (address == 0) return false;
+            failureReason = null;
+            if (reader is null)
+            {
+                failureReason = "Data reader is null.";
+                return false;
+            }
+            if (reader.PointerSize != 8)
+            {
+                failureReason = $"Stress logs on a {reader.PointerSize * 8}-bit target are not supported; only 64-bit targets are.";
+                return false;
+            }
+            if (address == 0)
+            {
+                failureReason = "Stress log address is 0.";
+                return false;
+            }
             StressLogOptions options = StressLogOptions.Default;
             AllocationBudget budget = new AllocationBudget(options.MaxTotalBytesAllocated);
 
@@ -135,7 +167,10 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             Span<byte> header = stackalloc byte[StressLogLayout.Mm_HeaderReadSize];
             int got = reader.Read(address, header);
             if (got < StressLogLayout.InProc_HeaderSize)
+            {
+                failureReason = $"Could not read the stress log header at 0x{address:x} (got {got} bytes, expected at least {StressLogLayout.InProc_HeaderSize}).";
                 return false;
+            }
 
             uint maybeMagic = got >= StressLogLayout.Mm_Version
                 ? BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(StressLogLayout.Mm_Magic))
@@ -153,7 +188,12 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                 stressLog = OpenInProcess(reader, options, budget, header.Slice(0, StressLogLayout.InProc_HeaderSize));
             }
 
-            return stressLog is not null;
+            if (stressLog is null)
+            {
+                failureReason = "Stress log header failed validation.";
+                return false;
+            }
+            return true;
         }
 
         private static StressLog? OpenInProcess(IDataReader reader,
