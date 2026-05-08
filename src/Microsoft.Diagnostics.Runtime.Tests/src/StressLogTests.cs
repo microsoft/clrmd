@@ -318,16 +318,20 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         // ---- Fuzz: random format strings + random args must not crash ----
 
         [Theory]
-        [InlineData(0xC0FFEE)]
-        [InlineData(unchecked((int)0xDEADBEEF))]
-        [InlineData(0x12345678)]
-        public void Parser_FuzzNeverThrowsAndStaysBounded(int seed)
+        [InlineData(0xC0FFEE, 8)]
+        [InlineData(unchecked((int)0xDEADBEEF), 8)]
+        [InlineData(0x12345678, 8)]
+        [InlineData(0xC0FFEE, 4)]
+        [InlineData(unchecked((int)0xDEADBEEF), 4)]
+        [InlineData(0x12345678, 4)]
+        public void Parser_FuzzNeverThrowsAndStaysBounded(int seed, int pointerSize)
         {
             // Feed random bytes (including 0x25 '%' to ensure many specifier
             // attempts) into the parser. The parser must always terminate
             // and never throw an unhandled exception. This exercises every
             // combination of length modifier, width/precision overflow,
-            // truncated specifier at end-of-string, etc.
+            // truncated specifier at end-of-string, etc., for both pointer
+            // sizes so the x86 64-bit-arg-combining path is covered.
             Random rng = new(seed);
             for (int trial = 0; trial < 250; trial++)
             {
@@ -350,7 +354,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     args[i] = (ulong)rng.NextInt64();
 
                 CaptureReceiver receiver = CaptureReceiver.Create();
-                ArgumentResolver resolver = new ArgumentResolver(new SyntheticDataReader(new()));
+                SyntheticDataReader reader = pointerSize == 4
+                    ? new SyntheticDataReader(new(), pointerSize: 4, architecture: System.Runtime.InteropServices.Architecture.X86)
+                    : new SyntheticDataReader(new());
+                ArgumentResolver resolver = new ArgumentResolver(reader, maxStringBytes: 256, pointerSize: pointerSize);
 
                 // Must not throw.
                 FormatStringParser.Parse<CaptureReceiver>(format, args, resolver, ref receiver);

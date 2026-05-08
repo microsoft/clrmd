@@ -291,9 +291,17 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
 
             // On 32-bit targets, a 64-bit length-modified argument
             // (ll/I64/j/L) occupies two pointer-sized slots: low dword
-            // first, then high dword. Combine them so the receiver sees
-            // the full 64-bit value. On 64-bit targets each slot is
-            // already 8 bytes wide so no combination is needed.
+            // first, then high dword. This matches the canonical SOS
+            // consumer ABI: stressLogDump.cpp:formatOutput passes raw
+            // void* args to fprintf, which on 32-bit reads 8 bytes
+            // (i.e. two adjacent slots) for each %I64u / %llu. The
+            // runtime's STRESS_LOG macros store one size_t-wide slot
+            // per argument regardless of the source type, so on a
+            // 32-bit target a 64-bit value is effectively truncated at
+            // store time and the high dword we read here is whatever
+            // happens to be in the next slot. We deliberately preserve
+            // this behavior so our output matches `!dumplog`. On 64-bit
+            // each slot is already 8 bytes so no combination is needed.
             if (spec.Is64Bit && argumentResolver.PointerSize == 4)
             {
                 if ((uint)argIndex < (uint)args.Length)
