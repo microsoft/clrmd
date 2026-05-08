@@ -394,19 +394,21 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return VTable.GetUsefulGlobals(Self, out commonMTs);
         }
 
-        public bool TryGetStressLogAddress(out ulong stressLogAddress)
+        public bool TryGetStressLogAddress(out ClrDataAddress stressLogAddress)
         {
             HResult hr = VTable.GetStressLogAddress(Self, out ClrDataAddress addr);
             if (!hr)
             {
-                stressLogAddress = 0;
+                stressLogAddress = ClrDataAddress.Null;
                 return false;
             }
 
-            // The StressLog parser only supports 64-bit targets, so we don't
-            // need to handle the 32-bit sign-extension transform here.
-            stressLogAddress = addr.ToInteropAddress();
-            return stressLogAddress != 0;
+            // Return the raw wire value the same way the rest of this file
+            // does. The caller is responsible for translating it to a target
+            // pointer via ClrDataAddress.ToAddress(target), which un-sign-
+            // extends on 32-bit targets.
+            stressLogAddress = addr;
+            return !addr.IsNull;
         }
 
         public ClrDataAddress[] GetAssemblyList(ClrDataAddress appDomain) => GetAssemblyList(appDomain, 0);
