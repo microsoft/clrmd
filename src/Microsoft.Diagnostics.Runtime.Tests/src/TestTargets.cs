@@ -4,6 +4,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Implementation;
@@ -38,6 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private static readonly Lazy<TestTarget> _appDomains = new(() => new TestTarget("AppDomains", supportedFlavors: TargetFlavors.Framework, companionTargets: ["NestedException"]));
         private static readonly Lazy<TestTarget> _finalizationQueue = new(() => new TestTarget("FinalizationQueue"));
         private static readonly Lazy<TestTarget> _byReference = new(() => new TestTarget("ByReference"));
+        private static readonly Lazy<TestTarget> _stressLog = new(() => new TestTarget("StressLog"));
 
         public static TestTarget GCRoot => _gcroot.Value;
         public static TestTarget GCRoot2 => _gcroot2.Value;
@@ -51,6 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static TestTarget ClrObjects => _clrObjects.Value;
         public static TestTarget Arrays => _arrays.Value;
         public static TestTarget ByReference => _byReference.Value;
+        public static TestTarget StressLog => _stressLog.Value;
     }
 
     public class TestTarget
@@ -310,6 +313,47 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Utilities.DbgEng.DbgEngIDataReader dbgengReader = new(dumpPath);
             return new DataTarget(dbgengReader, options ?? new DataTargetOptions() { VerifyDacOnWindows = false });
+        }
+
+        /// <summary>
+        /// Loads a full dump where the target process is launched with the supplied
+        /// environment variables in addition to the standard dump-collection env.
+        /// <paramref name="dumpNameSuffix"/> is mixed into the dump filename so a
+        /// dump generated with one environment is not silently reused by a test
+        /// expecting a different environment.
+        /// </summary>
+        public DataTarget LoadFullDumpWithEnvironment(
+            IReadOnlyDictionary<string, string> extraEnv,
+            string dumpNameSuffix,
+            GCMode gc = GCMode.Workstation,
+            bool isFramework = false,
+            bool singleFile = false,
+            DataTargetOptions? options = null)
+        {
+            if (extraEnv is null) throw new ArgumentNullException(nameof(extraEnv));
+            if (string.IsNullOrEmpty(dumpNameSuffix)) throw new ArgumentException("Suffix must be non-empty.", nameof(dumpNameSuffix));
+
+            string architecture = DumpGenerator.GetArchitecture();
+            string baseDumpPath = BuildDumpName(gc, full: true, architecture: architecture, isFramework: isFramework, singleFile: singleFile);
+
+            // Append the suffix before the .dmp extension so a dump generated with
+            // one environment can't be reused by a test that expects a different one.
+            string dumpPath = Path.Combine(
+                Path.GetDirectoryName(baseDumpPath)!,
+                Path.GetFileNameWithoutExtension(baseDumpPath) + "_" + dumpNameSuffix + Path.GetExtension(baseDumpPath));
+
+            DumpGenerator.EnsureDump(
+                Name,
+                ProjectDir,
+                dumpPath,
+                architecture,
+                isFramework: isFramework,
+                gc,
+                full: true,
+                singleFile: singleFile,
+                companionTargets: CompanionTargets,
+                extraEnv: extraEnv);
+            return LoadDump(dumpPath, options);
         }
 
         // ---------------------------------------------------------------------
