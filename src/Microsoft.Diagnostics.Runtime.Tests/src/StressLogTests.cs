@@ -230,6 +230,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             BitConverter.GetBytes(StressLogConstants.FormatOffsetMax + 1).CopyTo(entries, 8); // size, too big
 
             StressLogModuleTable table = StressLogModuleTable.BuildInProcess(
+                StressLogLayout.CoreX64,
                 entries,
                 legacyModuleOffset: 0x100,
                 hasModuleTable: true,
@@ -249,6 +250,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             BitConverter.GetBytes(size).CopyTo(entries, 8);
 
             StressLogModuleTable table = StressLogModuleTable.BuildInProcess(
+                StressLogLayout.CoreX64,
                 entries,
                 legacyModuleOffset: baseAddr,
                 hasModuleTable: true,

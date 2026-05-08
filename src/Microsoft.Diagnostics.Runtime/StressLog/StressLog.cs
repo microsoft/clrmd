@@ -4,6 +4,7 @@
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime;
 using Microsoft.Diagnostics.Runtime.DacInterface;
@@ -36,6 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
     public sealed class StressLog : IDisposable
     {
         private readonly IDataReader _reader;
+        private readonly StressLogLayout _layout;
         private readonly StressLogOptions _options;
         private readonly AllocationBudget _budget;
         private readonly StressLogModuleTable _modules;
@@ -51,6 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         private bool _disposed;
 
         private StressLog(IDataReader reader,
+                          StressLogLayout layout,
                           StressLogOptions options,
                           AllocationBudget budget,
                           StressLogModuleTable modules,
@@ -62,6 +65,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                           StressLogVariant variant)
         {
             _reader = reader;
+            _layout = layout;
             _options = options;
             _budget = budget;
             _modules = modules;
@@ -141,9 +145,17 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                 failureReason = "Data reader is null.";
                 return false;
             }
-            if (reader.PointerSize != 8)
+            if (reader.PointerSize != 8 && reader.PointerSize != 4)
             {
-                failureReason = $"Stress logs on a {reader.PointerSize * 8}-bit target are not supported; only 64-bit targets are.";
+                failureReason = $"Stress logs on a {reader.PointerSize * 8}-bit target are not supported; only 32-bit and 64-bit targets are.";
+                return false;
+            }
+            if (reader.PointerSize == 4 && reader.TargetPlatform != OSPlatform.Windows)
+            {
+                // 32-bit Linux/macOS .NET runtimes have not shipped in a
+                // supported configuration in years; we have no reference
+                // dumps to validate the layout against. Reject explicitly.
+                failureReason = "Stress logs on a 32-bit non-Windows target are not supported.";
                 return false;
             }
             if (address == 0)
@@ -151,34 +163,54 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                 failureReason = "Stress log address is 0.";
                 return false;
             }
+
+            // Choose a preliminary Core layout based on pointer size; if
+            // variant detection identifies a Framework target later, we
+            // swap to the matching Framework layout.
+            StressLogLayout layout = StressLogLayout.ForCore(reader.PointerSize);
             StressLogOptions options = StressLogOptions.Default;
             AllocationBudget budget = new AllocationBudget(options.MaxTotalBytesAllocated);
 
             // Speculatively read the larger memory-mapped header. If the magic
             // does not match, treat as in-process and use only the first
-            // InProc_HeaderSize bytes.
-            Span<byte> header = stackalloc byte[StressLogLayout.Mm_HeaderReadSize];
-            int got = reader.Read(address, header);
-            if (got < StressLogLayout.InProc_HeaderSize)
+            // InProcHeaderSize bytes. Memory-mapped logs are 64-bit only;
+            // on 32-bit the magic check will always fail.
+            int speculativeReadSize = layout.Is64Bit
+                ? Math.Max(layout.MmHeaderReadSize, layout.InProcHeaderSize)
+                : layout.InProcHeaderSize;
+            Span<byte> header = stackalloc byte[512]; // upper bound for any layout
+            if (speculativeReadSize > header.Length)
             {
-                failureReason = $"Could not read the stress log header at 0x{address:x} (got {got} bytes, expected at least {StressLogLayout.InProc_HeaderSize}).";
+                // Defensive: any future layout change that bloats the header
+                // beyond 512 bytes would land here. Today the worst case is
+                // 272 (Mm x64).
+                failureReason = "Speculative header read size exceeds the preallocated buffer.";
+                return false;
+            }
+            header = header.Slice(0, speculativeReadSize);
+
+            int got = reader.Read(address, header);
+            if (got < layout.InProcHeaderSize)
+            {
+                failureReason = $"Could not read the stress log header at 0x{address:x} (got {got} bytes, expected at least {layout.InProcHeaderSize}).";
                 return false;
             }
 
-            uint maybeMagic = got >= StressLogLayout.Mm_Version
-                ? BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(StressLogLayout.Mm_Magic))
+            uint maybeMagic = layout.Is64Bit && got >= layout.MmVersionOffset
+                ? BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(layout.MmMagicOffset))
                 : 0;
 
-            bool isMemoryMapped = got >= StressLogLayout.Mm_HeaderReadSize
+            bool isMemoryMapped = layout.Is64Bit
+                                  && got >= layout.MmHeaderReadSize
                                   && maybeMagic == StressLogConstants.MemoryMappedMagic;
 
             if (isMemoryMapped)
             {
-                stressLog = OpenMemoryMapped(reader, options, budget, header);
+                stressLog = OpenMemoryMapped(reader, layout, options, budget, header);
             }
             else
             {
-                stressLog = OpenInProcess(reader, options, budget, header.Slice(0, StressLogLayout.InProc_HeaderSize));
+                stressLog = OpenInProcess(reader, layout, options, budget, header.Slice(0, layout.InProcHeaderSize));
             }
 
             if (stressLog is null)
@@ -190,25 +222,31 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         }
 
         private static StressLog? OpenInProcess(IDataReader reader,
+                                                StressLogLayout layout,
                                                 StressLogOptions options,
                                                 AllocationBudget budget,
                                                 ReadOnlySpan<byte> header)
         {
             // Variant detection. Modern CoreCLR initializes the 'padding'
-            // field at StressLog offset 32 to UINT_MAX (0xFFFFFFFF) as a
+            // field at StressLog InProcPaddingOffset to UINT_MAX (0xFFFFFFFF) as a
             // sentinel; the .NET Framework runtime stores its TLS slot index
             // there (a small positive integer). This is a stable signal we
             // verified across all five integration-test dump variants.
-            uint sentinel = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(StressLogLayout.InProc_Padding));
+            uint sentinel = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(layout.InProcPaddingOffset));
             StressLogVariant variant = sentinel == 0xFFFFFFFFu
                 ? StressLogVariant.Core
                 : StressLogVariant.FrameworkV1;
 
-            ulong logs = BinaryPrimitives.ReadUInt64LittleEndian(header.Slice(StressLogLayout.InProc_Logs));
-            ulong tickFreq = BinaryPrimitives.ReadUInt64LittleEndian(header.Slice(StressLogLayout.InProc_TickFrequency));
-            ulong startTs = BinaryPrimitives.ReadUInt64LittleEndian(header.Slice(StressLogLayout.InProc_StartTimeStamp));
-            ulong startFiletime = BinaryPrimitives.ReadUInt64LittleEndian(header.Slice(StressLogLayout.InProc_StartTime));
-            ulong moduleOffset = BinaryPrimitives.ReadUInt64LittleEndian(header.Slice(StressLogLayout.InProc_ModuleOffset));
+            // Swap to the Framework layout if needed; ThreadStressLog and
+            // StressMsg layouts differ from Core.
+            if (variant == StressLogVariant.FrameworkV1)
+                layout = layout.WithFramework();
+
+            ulong logs = layout.ReadTargetPointer(header, layout.InProcLogsOffset);
+            ulong tickFreq = BinaryPrimitives.ReadUInt64LittleEndian(header.Slice(layout.InProcTickFrequencyOffset));
+            ulong startTs = BinaryPrimitives.ReadUInt64LittleEndian(header.Slice(layout.InProcStartTimeStampOffset));
+            ulong startFiletime = BinaryPrimitives.ReadUInt64LittleEndian(header.Slice(layout.InProcStartTimeOffset));
+            ulong moduleOffset = layout.ReadTargetPointer(header, layout.InProcModuleOffsetOffset);
 
             DateTime? startTimeUtc = null;
             try
@@ -222,62 +260,66 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             }
 
             // Framework's StressLog struct has no module table appended; the
-            // bytes we speculatively read at offset 80..160 are unrelated heap
-            // memory. Restrict module table parsing to Core, and let Framework
-            // fall through to the single-module path keyed off moduleOffset.
+            // bytes we speculatively read past the header end are unrelated
+            // heap memory. Restrict module table parsing to Core, and let
+            // Framework fall through to the single-module path keyed off
+            // moduleOffset.
             StressLogModuleTable modules;
             if (variant == StressLogVariant.Core)
             {
-                ReadOnlySpan<byte> entries = header.Slice(StressLogLayout.InProc_Modules,
-                                                          StressLogConstants.MaxModules * StressLogLayout.InProc_ModuleEntrySize);
+                int entriesByteCount = StressLogConstants.MaxModules * layout.ModuleEntrySize;
+                ReadOnlySpan<byte> entries = header.Slice(layout.InProcModulesOffset, entriesByteCount);
                 modules = StressLogModuleTable.BuildInProcess(
-                    entries16: entries,
-                    moduleOffset,
+                    layout: layout,
+                    entries: entries,
+                    legacyModuleOffset: moduleOffset,
                     hasModuleTable: true,
-                    StressLogConstants.FormatOffsetMax);
+                    maxOffset: StressLogConstants.FormatOffsetMax);
             }
             else
             {
                 modules = StressLogModuleTable.BuildInProcess(
-                    entries16: ReadOnlySpan<byte>.Empty,
-                    moduleOffset,
+                    layout: layout,
+                    entries: ReadOnlySpan<byte>.Empty,
+                    legacyModuleOffset: moduleOffset,
                     hasModuleTable: false,
-                    StressLogConstants.FormatOffsetMax);
+                    maxOffset: StressLogConstants.FormatOffsetMax);
             }
 
             // V4 message decoding has been used since the addition of the
             // module table in CoreCLR; Framework V1 predates it and uses V3.
             bool isV4 = variant == StressLogVariant.Core;
 
-            return new StressLog(reader, options, budget, modules, logs, tickFreq, startTs, startTimeUtc, isV4: isV4, variant: variant);
+            return new StressLog(reader, layout, options, budget, modules, logs, tickFreq, startTs, startTimeUtc, isV4: isV4, variant: variant);
         }
 
         private static StressLog? OpenMemoryMapped(IDataReader reader,
+                                                   StressLogLayout layout,
                                                    StressLogOptions options,
                                                    AllocationBudget budget,
                                                    ReadOnlySpan<byte> header)
         {
-            uint version = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(StressLogLayout.Mm_Version));
+            uint version = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(layout.MmVersionOffset));
             if (version != StressLogConstants.MemoryMappedVersionV1
                 && version != StressLogConstants.MemoryMappedVersionV2)
             {
                 return null;
             }
 
-            ulong logs = BinaryPrimitives.ReadUInt64LittleEndian(header.Slice(StressLogLayout.Mm_Logs));
-            ulong tickFreq = BinaryPrimitives.ReadUInt64LittleEndian(header.Slice(StressLogLayout.Mm_TickFrequency));
-            ulong startTs = BinaryPrimitives.ReadUInt64LittleEndian(header.Slice(StressLogLayout.Mm_StartTimeStamp));
+            ulong logs = layout.ReadTargetPointer(header, layout.MmLogsOffset);
+            ulong tickFreq = BinaryPrimitives.ReadUInt64LittleEndian(header.Slice(layout.MmTickFrequencyOffset));
+            ulong startTs = BinaryPrimitives.ReadUInt64LittleEndian(header.Slice(layout.MmStartTimeStampOffset));
 
-            ReadOnlySpan<byte> entries = header.Slice(StressLogLayout.Mm_Modules,
-                                                      StressLogConstants.MaxModules * StressLogLayout.InProc_ModuleEntrySize);
+            int entriesByteCount = StressLogConstants.MaxModules * layout.ModuleEntrySize;
+            ReadOnlySpan<byte> entries = header.Slice(layout.MmModulesOffset, entriesByteCount);
 
             ulong maxOffset = version == StressLogConstants.MemoryMappedVersionV1
                 ? (1UL << StressLogConstants.FormatOffsetLowBits)
                 : StressLogConstants.FormatOffsetMax;
 
-            StressLogModuleTable modules = StressLogModuleTable.BuildMemoryMapped(entries, maxOffset);
+            StressLogModuleTable modules = StressLogModuleTable.BuildMemoryMapped(layout, entries, maxOffset);
 
-            return new StressLog(reader, options, budget, modules, logs, tickFreq, startTs, startTimeUtc: null, isV4: true, variant: StressLogVariant.Core);
+            return new StressLog(reader, layout, options, budget, modules, logs, tickFreq, startTs, startTimeUtc: null, isV4: true, variant: StressLogVariant.Core);
         }
 
         /// <summary>
@@ -365,7 +407,8 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             HashSet<ulong> visited = new();
             ulong addr = _firstThreadAddr;
 
-            Span<byte> threadHeader = stackalloc byte[StressLogLayout.Thread_HeaderSize];
+            Span<byte> threadHeader = stackalloc byte[StressLogConstants.MaxThreadHeaderBytes];
+            threadHeader = threadHeader.Slice(0, _layout.ThreadHeaderSize);
             Action<StressLogDiagnostic> raiseDiagnostic = d => Diagnostic?.Invoke(d);
 
             while (addr != 0)
@@ -383,14 +426,14 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                 }
 
                 int got = _reader.Read(addr, threadHeader);
-                if (got < StressLogLayout.Thread_HeaderSize)
+                if (got < _layout.ThreadHeaderSize)
                 {
                     Diagnostic?.Invoke(new StressLogDiagnostic(StressLogDiagnosticKind.ReadMemoryFailed, addr));
                     break;
                 }
 
-                ulong nextAddr = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.Thread_Next));
-                ThreadIterator iter = new ThreadIterator(_reader, _options, _budget,
+                ulong nextAddr = _layout.ReadTargetPointer(threadHeader, _layout.ThreadNextOffset);
+                ThreadIterator iter = new ThreadIterator(_reader, _layout, _options, _budget,
                     diagnostic: raiseDiagnostic,
                     threadAddress: addr,
                     threadHeader: threadHeader,

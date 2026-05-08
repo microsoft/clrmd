@@ -28,59 +28,74 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public Dictionary<ulong, byte[]> Memory { get; } = new();
 
         public ulong Build(out ulong threadAddr, out ulong chunkAddr)
+            => Build(StressLogLayout.CoreX64, out threadAddr, out chunkAddr);
+
+        public ulong Build(StressLogLayout layout, out ulong threadAddr, out ulong chunkAddr)
         {
             threadAddr = ThreadAddr;
             chunkAddr = ChunkAddr;
 
             // Construct a chunk with one V4 message at the start, followed by zeros.
-            byte[] chunk = new byte[StressLogLayout.Chunk_TotalSize];
+            byte[] chunk = new byte[layout.ChunkTotalSize];
 
             // prev = next = self (single-element ring)
-            BinaryPrimitives.WriteUInt64LittleEndian(chunk.AsSpan(StressLogLayout.Chunk_Prev), ChunkAddr);
-            BinaryPrimitives.WriteUInt64LittleEndian(chunk.AsSpan(StressLogLayout.Chunk_Next), ChunkAddr);
+            WritePointer(layout, chunk.AsSpan(layout.ChunkPrevOffset), ChunkAddr);
+            WritePointer(layout, chunk.AsSpan(layout.ChunkNextOffset), ChunkAddr);
 
-            // Write a single message with 0 args at the start of the buffer.
-            // V4 header layout (little-endian, 16 bytes):
+            // Write a single message at the start of the buffer.
+            // For Core (V4) layout (little-endian, 16 bytes):
             //   word0 = facility(32) | numberOfArgs(6) | formatOffsetLow(26)
             //   word1 = formatOffsetHigh(13) | timeStamp(51)
-            int msgOffset = StressLogLayout.Chunk_Buf;
+            int msgOffset = layout.ChunkBufOffset;
             ulong word0 = Facility; // numberOfArgs = 0, formatOffsetLow = 0
             ulong word1 = MessageTimeStamp << StressLogConstants.FormatOffsetHighBits;
             BinaryPrimitives.WriteUInt64LittleEndian(chunk.AsSpan(msgOffset), word0);
             BinaryPrimitives.WriteUInt64LittleEndian(chunk.AsSpan(msgOffset + 8), word1);
 
             // Signatures.
-            BinaryPrimitives.WriteUInt32LittleEndian(chunk.AsSpan(StressLogLayout.Chunk_DwSig1Offset), StressLogConstants.ChunkSignature);
-            BinaryPrimitives.WriteUInt32LittleEndian(chunk.AsSpan(StressLogLayout.Chunk_DwSig2Offset), StressLogConstants.ChunkSignature);
+            BinaryPrimitives.WriteUInt32LittleEndian(chunk.AsSpan(layout.ChunkSig1Offset), StressLogConstants.ChunkSignature);
+            BinaryPrimitives.WriteUInt32LittleEndian(chunk.AsSpan(layout.ChunkSig2Offset), StressLogConstants.ChunkSignature);
 
             Memory[ChunkAddr] = chunk;
 
-            // Construct the ThreadStressLog (80 bytes, Core layout).
-            byte[] thread = new byte[StressLogLayout.Thread_HeaderSize];
+            // Construct the ThreadStressLog.
+            byte[] thread = new byte[layout.ThreadHeaderSize];
             // next = 0 (no further threads)
-            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.CoreThread_ThreadId), ThreadId);
+            // threadId
+            if (layout.ThreadIdSize == 8)
+                BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(layout.ThreadIdOffset), ThreadId);
+            else
+                BinaryPrimitives.WriteUInt32LittleEndian(thread.AsSpan(layout.ThreadIdOffset), (uint)ThreadId);
             // isDead = readHasWrapped = writeHasWrapped = 0
-            ulong msgAddr = ChunkAddr + (ulong)StressLogLayout.Chunk_Buf;
-            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.CoreThread_CurPtr), msgAddr);
-            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.CoreThread_ReadPtr), msgAddr);
-            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.CoreThread_ChunkListHead), ChunkAddr);
-            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.CoreThread_ChunkListTail), ChunkAddr);
-            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.CoreThread_CurReadChunk), ChunkAddr);
-            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.CoreThread_CurWriteChunk), ChunkAddr);
+            ulong msgAddr = ChunkAddr + (ulong)layout.ChunkBufOffset;
+            WritePointer(layout, thread.AsSpan(layout.ThreadCurPtrOffset), msgAddr);
+            WritePointer(layout, thread.AsSpan(layout.ThreadReadPtrOffset), msgAddr);
+            WritePointer(layout, thread.AsSpan(layout.ThreadChunkListHeadOffset), ChunkAddr);
+            WritePointer(layout, thread.AsSpan(layout.ThreadChunkListTailOffset), ChunkAddr);
+            WritePointer(layout, thread.AsSpan(layout.ThreadCurReadChunkOffset), ChunkAddr);
+            WritePointer(layout, thread.AsSpan(layout.ThreadCurWriteChunkOffset), ChunkAddr);
             Memory[ThreadAddr] = thread;
 
-            // Construct the StressLog header (160 bytes, Core layout).
-            byte[] header = new byte[StressLogLayout.InProc_HeaderSize];
-            BinaryPrimitives.WriteUInt64LittleEndian(header.AsSpan(StressLogLayout.InProc_Logs), ThreadAddr);
+            // Construct the StressLog header.
+            byte[] header = new byte[layout.InProcHeaderSize];
+            WritePointer(layout, header.AsSpan(layout.InProcLogsOffset), ThreadAddr);
             // padding sentinel (0xFFFFFFFF) marks this as a Core in-process StressLog.
-            BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(StressLogLayout.InProc_Padding), 0xFFFFFFFFu);
-            BinaryPrimitives.WriteUInt64LittleEndian(header.AsSpan(StressLogLayout.InProc_TickFrequency), TickFrequency);
-            BinaryPrimitives.WriteUInt64LittleEndian(header.AsSpan(StressLogLayout.InProc_StartTimeStamp), StartTimeStamp);
+            BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(layout.InProcPaddingOffset), 0xFFFFFFFFu);
+            BinaryPrimitives.WriteUInt64LittleEndian(header.AsSpan(layout.InProcTickFrequencyOffset), TickFrequency);
+            BinaryPrimitives.WriteUInt64LittleEndian(header.AsSpan(layout.InProcStartTimeStampOffset), StartTimeStamp);
             // StartTime: leave 0 (no FILETIME)
             // ModuleOffset = 0 (no module table; format addresses won't resolve)
             Memory[StressLogAddr] = header;
 
             return StressLogAddr;
+        }
+
+        private static void WritePointer(StressLogLayout layout, Span<byte> dst, ulong value)
+        {
+            if (layout.PointerSize == 8)
+                BinaryPrimitives.WriteUInt64LittleEndian(dst, value);
+            else
+                BinaryPrimitives.WriteUInt32LittleEndian(dst, (uint)value);
         }
     }
 }

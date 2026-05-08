@@ -50,5 +50,13 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
 
         /// <summary>Maximum length of a format string read from the target.</summary>
         public const int MaxFormatStringLength = 256;
+
+        /// <summary>
+        /// Upper bound on bytes ever read for a <c>ThreadStressLog</c>
+        /// header. Sized for the largest variant we support so callers can
+        /// stack-allocate a buffer once and slice. Must be kept in sync
+        /// with <see cref="StressLogLayout.ThreadHeaderSize"/>.
+        /// </summary>
+        public const int MaxThreadHeaderBytes = 80;
     }
 }

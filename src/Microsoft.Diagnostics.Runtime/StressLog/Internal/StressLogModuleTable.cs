@@ -27,6 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
         private readonly Module[] _modules;
         private readonly ulong _legacyModuleOffset;
         private readonly ulong _maxOffset;
+        private readonly ulong _maxAddress;
 
         /// <summary>Number of module entries that passed validation.</summary>
         public int Count { get; }
@@ -34,25 +35,28 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
         private StressLogModuleTable(Module[] modules,
                                      int count,
                                      ulong legacyModuleOffset,
-                                     ulong maxOffset)
+                                     ulong maxOffset,
+                                     ulong maxAddress)
         {
             _modules = modules;
             Count = count;
             _legacyModuleOffset = legacyModuleOffset;
             _maxOffset = maxOffset;
+            _maxAddress = maxAddress;
         }
 
         /// <summary>
         /// Build a module table for an in-process layout. The module entries
-        /// occupy <c>StressLogConstants.MaxModules</c> 16-byte slots in
-        /// <paramref name="entries16"/>.
+        /// occupy <c>StressLogConstants.MaxModules</c> slots in
+        /// <paramref name="entries"/>, each <c>2 * pointerSize</c> bytes wide.
         /// </summary>
-        public static StressLogModuleTable BuildInProcess(ReadOnlySpan<byte> entries16,
+        public static StressLogModuleTable BuildInProcess(StressLogLayout layout,
+                                                          ReadOnlySpan<byte> entries,
                                                           ulong legacyModuleOffset,
                                                           bool hasModuleTable,
                                                           ulong maxOffset)
         {
-            Module[] modules = ParseEntries(entries16, maxOffset, out int count);
+            Module[] modules = ParseEntries(layout, entries, maxOffset, out int count);
 
             // Mirror the existing C++ heuristic: only use the module table
             // if the first entry's baseAddress matches legacyModuleOffset
@@ -67,32 +71,35 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
                 count = 0;
             }
 
-            return new StressLogModuleTable(modules, count, legacyModuleOffset, maxOffset);
+            return new StressLogModuleTable(modules, count, legacyModuleOffset, maxOffset, layout.MaxAddress);
         }
 
         /// <summary>
-        /// Build a module table for a memory-mapped layout.
+        /// Build a module table for a memory-mapped layout. Memory-mapped
+        /// stress logs are 64-bit only, so the entry size is fixed at 16.
         /// </summary>
-        public static StressLogModuleTable BuildMemoryMapped(ReadOnlySpan<byte> entries16, ulong maxOffset)
+        public static StressLogModuleTable BuildMemoryMapped(StressLogLayout layout, ReadOnlySpan<byte> entries, ulong maxOffset)
         {
-            Module[] modules = ParseEntries(entries16, maxOffset, out int count);
-            return new StressLogModuleTable(modules, count, legacyModuleOffset: 0, maxOffset);
+            Module[] modules = ParseEntries(layout, entries, maxOffset, out int count);
+            return new StressLogModuleTable(modules, count, legacyModuleOffset: 0, maxOffset, layout.MaxAddress);
         }
 
-        private static Module[] ParseEntries(ReadOnlySpan<byte> entries16, ulong maxOffset, out int count)
+        private static Module[] ParseEntries(StressLogLayout layout, ReadOnlySpan<byte> entries, ulong maxOffset, out int count)
         {
             Module[] modules = new Module[StressLogConstants.MaxModules];
             count = 0;
 
+            int entrySize = layout.ModuleEntrySize;
+            int p = layout.PointerSize;
             ulong cumulative = 0;
             for (int i = 0; i < StressLogConstants.MaxModules; i++)
             {
-                int o = i * StressLogLayout.InProc_ModuleEntrySize;
-                if (o + StressLogLayout.InProc_ModuleEntrySize > entries16.Length)
+                int o = i * entrySize;
+                if (o + entrySize > entries.Length)
                     break;
 
-                ulong baseAddress = BinaryPrimitives.ReadUInt64LittleEndian(entries16.Slice(o));
-                ulong size = BinaryPrimitives.ReadUInt64LittleEndian(entries16.Slice(o + 8));
+                ulong baseAddress = layout.ReadTargetPointer(entries, o);
+                ulong size = layout.ReadTargetPointer(entries, o + p);
 
                 if (baseAddress == 0)
                     break;
@@ -102,6 +109,13 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
 
                 ulong nextCumulative = cumulative + size;
                 if (nextCumulative < cumulative || nextCumulative >= maxOffset)
+                    break;
+
+                // Reject modules whose base+size cannot be represented in
+                // the target's address space (matters on 32-bit, where a
+                // malformed dump can otherwise produce addresses > 4GB).
+                ulong endAddress = baseAddress + size;
+                if (endAddress < baseAddress || endAddress - 1 > layout.MaxAddress)
                     break;
 
                 modules[i] = new Module(baseAddress, size, cumulative);
@@ -136,7 +150,12 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
                 }
 
                 address = _legacyModuleOffset + formatOffset;
-                return address >= _legacyModuleOffset; // overflow guard
+                if (address < _legacyModuleOffset || address > _maxAddress)
+                {
+                    address = 0;
+                    return false;
+                }
+                return true;
             }
 
             for (int i = 0; i < Count; i++)
@@ -146,7 +165,12 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
                 {
                     ulong relative = formatOffset - m.CumulativeOffset;
                     address = m.BaseAddress + relative;
-                    return address >= m.BaseAddress; // overflow guard
+                    if (address < m.BaseAddress || address > _maxAddress)
+                    {
+                        address = 0;
+                        return false;
+                    }
+                    return true;
                 }
             }
 
