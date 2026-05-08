@@ -154,6 +154,95 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Assert.True(foundValue, "No thread had the thread static field initialized");
         }
+
+        /// <summary>
+        /// Regression test for issue #1448: ReadStruct on a primitive-typed static must
+        /// return a ClrValueType pointing at the field slot (where the primitive value is
+        /// stored inline), not garbage produced by treating the inline value as a boxed
+        /// pointer. Also verifies the IClrStaticField interface implementation matches the
+        /// concrete ClrStaticField behavior.
+        /// </summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void StaticField_ReadStruct_OnPrimitive_ReturnsSlotAddress(bool singleFile)
+        {
+            using DataTarget dt = TestTargets.NestedTypes.LoadFullDump(singleFile);
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule module = runtime.GetModule(TypeTests.NestedTypesModuleName);
+            ClrType program = module.GetTypeByName("Program");
+            Assert.NotNull(program);
+
+            ClrStaticField field = program.GetStaticFieldByName("s_publicField");
+            Assert.NotNull(field);
+            Assert.True(field.IsPrimitive);
+            Assert.True(field.IsValueType);
+
+            ClrAppDomain domain = runtime.AppDomains.Single();
+            ulong slot = field.GetAddress(domain);
+            Assert.NotEqual(0ul, slot);
+
+            // ReadStruct on a primitive should point at the slot itself, not at a fake boxed
+            // object derived from misinterpreting the inline value as a pointer.
+            ClrValueType cvt = field.ReadStruct(domain);
+            Assert.Equal(slot, cvt.Address);
+
+            // The explicit IClrStaticField.ReadStruct must match the public ReadStruct.
+            Interfaces.IClrStaticField iface = field;
+            Interfaces.IClrValue ifaceCvt = iface.ReadStruct(domain);
+            Assert.Equal(cvt.Address, ifaceCvt.Address);
+
+            // Sanity: Read<int> reads the same memory the ClrValueType points at.
+            int valueRead = field.Read<int>(domain);
+            Assert.True(dt.DataReader.Read(cvt.Address, out int valueAtSlot));
+            Assert.Equal(valueRead, valueAtSlot);
+        }
+
+        /// <summary>
+        /// Regression test for issue #1448: the ClrThreadStaticField.ReadStruct primitive
+        /// path mirrors ClrStaticField.ReadStruct - returns a ClrValueType pointing at the
+        /// inline slot rather than dereferencing the value as a pointer.
+        /// </summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ThreadStaticField_ReadStruct_OnPrimitive_ReturnsSlotAddress(bool singleFile)
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule module = runtime.GetModule("types.dll");
+            ClrType type = module.GetTypeByName("Types");
+            Assert.NotNull(type);
+
+            ClrThreadStaticField idField = type.ThreadStaticFields.Single(f => f.Name == "ts_threadId");
+            Assert.True(idField.IsPrimitive);
+            Assert.True(idField.IsValueType);
+
+            bool foundValue = false;
+            foreach (ClrThread thread in runtime.Threads)
+            {
+                if (!idField.IsInitialized(thread))
+                    continue;
+
+                ulong slot = idField.GetAddress(thread);
+                Assert.NotEqual(0ul, slot);
+
+                ClrValueType cvt = idField.ReadStruct(thread);
+                Assert.Equal(slot, cvt.Address);
+
+                int valueRead = idField.Read<int>(thread);
+                Assert.True(dt.DataReader.Read(cvt.Address, out int valueAtSlot));
+                Assert.Equal(valueRead, valueAtSlot);
+                Assert.NotEqual(0, valueRead);
+
+                foundValue = true;
+                break;
+            }
+
+            Assert.True(foundValue, "No thread had the thread static field initialized");
+        }
         /// <summary>
         /// Verifies that <see cref="ClrModule.EnumerateTypesWithStaticFields"/> yields every type
         /// that has at least one static field according to <c>ClrType.StaticFields</c>, and yields
