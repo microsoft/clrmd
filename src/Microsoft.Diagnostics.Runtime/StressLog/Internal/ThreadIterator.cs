@@ -33,6 +33,8 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
         private readonly IDataReader _reader;
         private readonly StressLogOptions _options;
         private readonly bool _isV4;
+        private readonly StressLogVariant _variant;
+        private readonly int _msgHeaderSize;
         private readonly Action<StressLogDiagnostic>? _diag;
 
         private ChunkReader _chunk;
@@ -63,27 +65,54 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
                               Action<StressLogDiagnostic>? diagnostic,
                               ulong threadAddress,
                               ReadOnlySpan<byte> threadHeader,
-                              bool isV4)
+                              bool isV4,
+                              StressLogVariant variant)
         {
             _reader = reader;
             _options = options;
             _diag = diagnostic;
             _isV4 = isV4;
+            _variant = variant;
+            _msgHeaderSize = variant == StressLogVariant.FrameworkV1
+                ? StressLogLayout.Msg_HeaderSizeFxV1
+                : StressLogLayout.Msg_HeaderSize;
             _chunk = new ChunkReader(budget);
 
-            ThreadId = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.Thread_ThreadId));
-            byte readWrapped = threadHeader[StressLogLayout.Thread_ReadHasWrapped];
-            byte writeWrapped = threadHeader[StressLogLayout.Thread_WriteHasWrapped];
-            _readHasWrapped = readWrapped != 0;
-            _writeHasWrapped = writeWrapped != 0;
-            _curPtr = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.Thread_CurPtr));
-            ulong readPtr = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.Thread_ReadPtr));
-            _chunkListTail = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.Thread_ChunkListTail));
-            ulong curReadChunk = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.Thread_CurReadChunk));
-            _curWriteChunk = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.Thread_CurWriteChunk));
+            ulong curReadChunk;
+            ulong readPtr;
+            byte writeWrapped;
 
-            // Replicate the ReadOnly-mode constructor: start reading at curWriteChunk/curPtr.
-            // Many real-world dumps have curReadChunk/readPtr not set; trust curWriteChunk/curPtr.
+            if (variant == StressLogVariant.FrameworkV1)
+            {
+                ThreadId = BinaryPrimitives.ReadUInt32LittleEndian(threadHeader.Slice(StressLogLayout.FxThread_ThreadId));
+                _curPtr = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.FxThread_CurPtr));
+                readPtr = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.FxThread_ReadPtr));
+                uint writeWrapped32 = BinaryPrimitives.ReadUInt32LittleEndian(threadHeader.Slice(StressLogLayout.FxThread_WriteHasWrapped));
+                writeWrapped = (byte)(writeWrapped32 != 0 ? 1 : 0);
+                _chunkListTail = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.FxThread_ChunkListTail));
+                curReadChunk = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.FxThread_CurReadChunk));
+                _curWriteChunk = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.FxThread_CurWriteChunk));
+            }
+            else
+            {
+                ThreadId = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.CoreThread_ThreadId));
+                writeWrapped = threadHeader[StressLogLayout.CoreThread_WriteHasWrapped];
+                _curPtr = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.CoreThread_CurPtr));
+                readPtr = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.CoreThread_ReadPtr));
+                _chunkListTail = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.CoreThread_ChunkListTail));
+                curReadChunk = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.CoreThread_CurReadChunk));
+                _curWriteChunk = BinaryPrimitives.ReadUInt64LittleEndian(threadHeader.Slice(StressLogLayout.CoreThread_CurWriteChunk));
+            }
+
+            // The runtime writer never initializes readHasWrapped (it is only
+            // set by the readonly Activate() and by AdvReadPastBoundary in the
+            // SOS DAC code path). Treat the dump's bytes as junk and start from
+            // the readonly initial state described in stresslog.h.
+            _readHasWrapped = false;
+            _writeHasWrapped = writeWrapped != 0;
+
+            // Replicate the readonly Activate() seed: read from curWriteChunk/
+            // curPtr. If curWriteChunk is zero, fall back to curReadChunk/readPtr.
             ulong startChunk = _curWriteChunk != 0 ? _curWriteChunk : curReadChunk;
             ulong startPtr = _curPtr != 0 ? _curPtr : readPtr;
 
@@ -118,7 +147,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
             }
 
             ReadOnlySpan<byte> body = _chunk.Buffer;
-            if (_readOffset < 0 || _readOffset + StressLogLayout.Msg_HeaderSize > body.Length)
+            if (_readOffset < 0 || _readOffset + _msgHeaderSize > body.Length)
             {
                 if (!CrossChunkBoundary())
                     return false;
@@ -126,12 +155,14 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
             }
 
             // Decode the message header.
-            ReadOnlySpan<byte> header = body.Slice(_readOffset, StressLogLayout.Msg_HeaderSize);
+            ReadOnlySpan<byte> header = body.Slice(_readOffset, _msgHeaderSize);
             uint facility;
             int numArgs;
             ulong formatOffset;
             ulong timeStamp;
-            if (_isV4)
+            if (_variant == StressLogVariant.FrameworkV1)
+                StressLogLayout.DecodeMessageFxV1(header, out facility, out numArgs, out formatOffset, out timeStamp);
+            else if (_isV4)
                 StressLogLayout.DecodeMessageV4(header, out facility, out numArgs, out formatOffset, out timeStamp);
             else
                 StressLogLayout.DecodeMessageV3(header, out facility, out numArgs, out formatOffset, out timeStamp);
@@ -152,7 +183,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
                 return false;
             }
 
-            int totalSize = StressLogLayout.Msg_HeaderSize + numArgs * StressLogLayout.Msg_ArgSize;
+            int totalSize = _msgHeaderSize + numArgs * StressLogLayout.Msg_ArgSize;
             if (_readOffset + totalSize > body.Length)
             {
                 _diag?.Invoke(new StressLogDiagnostic(StressLogDiagnosticKind.CorruptMessage, _chunk.BufferStartAddress + (ulong)_readOffset));
@@ -164,7 +195,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
             TimeStamp = timeStamp;
             FormatOffset = formatOffset;
             ArgumentCount = numArgs;
-            _argsOffset = _readOffset + StressLogLayout.Msg_HeaderSize;
+            _argsOffset = _readOffset + _msgHeaderSize;
 
             // Termination: read pointer reached the write pointer.
             ulong messageAddr = _chunk.BufferStartAddress + (ulong)_readOffset;
@@ -231,7 +262,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
             // Skip leading zero pointer-words up to maxMsgSize() words. The
             // writer pads unused space at the start of chunks with NULs.
             ReadOnlySpan<byte> body = _chunk.Buffer;
-            int maxSkipWords = (StressLogLayout.Msg_HeaderSize + StressLogConstants.MaxArgumentCount * StressLogLayout.Msg_ArgSize) / StressLogLayout.Msg_ArgSize;
+            int maxSkipWords = (_msgHeaderSize + StressLogConstants.MaxArgumentCount * StressLogLayout.Msg_ArgSize) / StressLogLayout.Msg_ArgSize;
             int offset = 0;
             for (int w = 0; w < maxSkipWords && offset + StressLogLayout.Msg_ArgSize <= body.Length; w++)
             {

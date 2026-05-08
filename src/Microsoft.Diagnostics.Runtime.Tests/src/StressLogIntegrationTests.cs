@@ -57,25 +57,24 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [WindowsFact]
         public void CanOpenStressLog_Core_SingleFile()
         {
-            // Smoke-only: self-contained single-file publishes can include a
-            // runtime whose internal format strings differ enough that we don't
-            // recognize them; we only assert that the parser opens cleanly and
-            // produces messages.
-            RunAssertions(GCMode.Workstation, isFramework: false, singleFile: true, requireGcStartEnd: false);
+            // Self-contained single-file publishes use the same Core format
+            // strings as a framework-dependent publish; the stress log content
+            // is identical and we can assert the same set of known formats.
+            RunAssertions(GCMode.Workstation, isFramework: false, singleFile: true, requireGcStartEnd: true);
         }
 
         [FrameworkFact]
         public void CanOpenStressLog_Framework_Workstation()
         {
-            // Smoke-only: .NET Framework's GC stress format strings drift across
-            // patch releases enough that we don't pin them.
-            RunAssertions(GCMode.Workstation, isFramework: true, singleFile: false, requireGcStartEnd: false);
+            // .NET Framework's gcmsg.inl shares the GcStart/GcEnd/GcRoot
+            // format strings with Core, so they are recognized by the parser.
+            RunAssertions(GCMode.Workstation, isFramework: true, singleFile: false, requireGcStartEnd: true);
         }
 
         [FrameworkFact]
         public void CanOpenStressLog_Framework_Server()
         {
-            RunAssertions(GCMode.Server, isFramework: true, singleFile: false, requireGcStartEnd: false);
+            RunAssertions(GCMode.Server, isFramework: true, singleFile: false, requireGcStartEnd: true);
         }
 
         private static void RunAssertions(GCMode gcMode, bool isFramework, bool singleFile, bool requireGcStartEnd)
@@ -124,12 +123,9 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         break;
                 }
 
-                if (requireGcStartEnd)
-                {
-                    Assert.True(
-                        messages.Count > 0,
-                        BuildDiagnosticMessage("Stress log was opened but yielded zero messages", runtime, stressLog, messages, knownCounts, diagnostics));
-                }
+                Assert.True(
+                    messages.Count > 0,
+                    BuildDiagnosticMessage("Stress log was opened but yielded zero messages", runtime, stressLog, messages, knownCounts, diagnostics));
 
                 // Per-format arg-count sanity. The format strings come from the
                 // runtime's gcmsg.inl and have stable arities; if a format is

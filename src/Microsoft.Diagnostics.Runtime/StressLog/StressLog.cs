@@ -47,6 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         private readonly ulong _startTimeStamp;
         private readonly DateTime? _startTimeUtc;
         private readonly bool _isV4;
+        private readonly StressLogVariant _variant;
 
         private readonly ulong[] _argScratch = new ulong[StressLogConstants.MaxArgumentCount];
 
@@ -63,7 +64,8 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                           ulong tickFrequency,
                           ulong startTimeStamp,
                           DateTime? startTimeUtc,
-                          bool isV4)
+                          bool isV4,
+                          StressLogVariant variant)
         {
             _reader = reader;
             _options = options;
@@ -74,6 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             _startTimeStamp = startTimeStamp;
             _startTimeUtc = startTimeUtc;
             _isV4 = isV4;
+            _variant = variant;
             _formatCache = new FormatStringCache(reader, budget, options.MaxFormatStringLength, options.MaxFormatStringCacheEntries);
             _argResolver = new ArgumentResolver(reader);
         }
@@ -158,6 +161,16 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                                                 AllocationBudget budget,
                                                 ReadOnlySpan<byte> header)
         {
+            // Variant detection. Modern CoreCLR initializes the 'padding'
+            // field at StressLog offset 32 to UINT_MAX (0xFFFFFFFF) as a
+            // sentinel; the .NET Framework runtime stores its TLS slot index
+            // there (a small positive integer). This is a stable signal we
+            // verified across all five integration-test dump variants.
+            uint sentinel = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(StressLogLayout.InProc_Padding));
+            StressLogVariant variant = sentinel == 0xFFFFFFFFu
+                ? StressLogVariant.Core
+                : StressLogVariant.FrameworkV1;
+
             ulong logs = BinaryPrimitives.ReadUInt64LittleEndian(header.Slice(StressLogLayout.InProc_Logs));
             ulong tickFreq = BinaryPrimitives.ReadUInt64LittleEndian(header.Slice(StressLogLayout.InProc_TickFrequency));
             ulong startTs = BinaryPrimitives.ReadUInt64LittleEndian(header.Slice(StressLogLayout.InProc_StartTimeStamp));
@@ -175,18 +188,35 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                 // Malformed FILETIME; leave null.
             }
 
-            ReadOnlySpan<byte> entries = header.Slice(StressLogLayout.InProc_Modules,
-                                                      StressLogConstants.MaxModules * StressLogLayout.InProc_ModuleEntrySize);
-            // Use the module table only when at least one module entry's base
-            // address matches moduleOffset; otherwise fall back to single-module
-            // mode so a malformed log cannot remap addresses arbitrarily.
-            StressLogModuleTable modules = StressLogModuleTable.BuildInProcess(
-                entries,
-                moduleOffset,
-                hasModuleTable: true,
-                StressLogConstants.FormatOffsetMax);
+            // Framework's StressLog struct has no module table appended; the
+            // bytes we speculatively read at offset 80..160 are unrelated heap
+            // memory. Restrict module table parsing to Core, and let Framework
+            // fall through to the single-module path keyed off moduleOffset.
+            StressLogModuleTable modules;
+            if (variant == StressLogVariant.Core)
+            {
+                ReadOnlySpan<byte> entries = header.Slice(StressLogLayout.InProc_Modules,
+                                                          StressLogConstants.MaxModules * StressLogLayout.InProc_ModuleEntrySize);
+                modules = StressLogModuleTable.BuildInProcess(
+                    entries16: entries,
+                    moduleOffset,
+                    hasModuleTable: true,
+                    StressLogConstants.FormatOffsetMax);
+            }
+            else
+            {
+                modules = StressLogModuleTable.BuildInProcess(
+                    entries16: ReadOnlySpan<byte>.Empty,
+                    moduleOffset,
+                    hasModuleTable: false,
+                    StressLogConstants.FormatOffsetMax);
+            }
 
-            return new StressLog(reader, options, budget, modules, logs, tickFreq, startTs, startTimeUtc, isV4: true);
+            // V4 message decoding has been used since the addition of the
+            // module table in CoreCLR; Framework V1 predates it and uses V3.
+            bool isV4 = variant == StressLogVariant.Core;
+
+            return new StressLog(reader, options, budget, modules, logs, tickFreq, startTs, startTimeUtc, isV4: isV4, variant: variant);
         }
 
         private static StressLog? OpenMemoryMapped(IDataReader reader,
@@ -214,7 +244,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
 
             StressLogModuleTable modules = StressLogModuleTable.BuildMemoryMapped(entries, maxOffset);
 
-            return new StressLog(reader, options, budget, modules, logs, tickFreq, startTs, startTimeUtc: null, isV4: true);
+            return new StressLog(reader, options, budget, modules, logs, tickFreq, startTs, startTimeUtc: null, isV4: true, variant: StressLogVariant.Core);
         }
 
         /// <summary>
@@ -320,7 +350,8 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                     diagnostic: raiseDiagnostic,
                     threadAddress: addr,
                     threadHeader: threadHeader,
-                    isV4: _isV4);
+                    isV4: _isV4,
+                    variant: _variant);
 
                 iterators.Add(iter);
                 addr = nextAddr;

@@ -55,23 +55,25 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             Memory[ChunkAddr] = chunk;
 
-            // Construct the ThreadStressLog (80 bytes).
+            // Construct the ThreadStressLog (80 bytes, Core layout).
             byte[] thread = new byte[StressLogLayout.Thread_HeaderSize];
             // next = 0 (no further threads)
-            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.Thread_ThreadId), ThreadId);
+            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.CoreThread_ThreadId), ThreadId);
             // isDead = readHasWrapped = writeHasWrapped = 0
             ulong msgAddr = ChunkAddr + (ulong)StressLogLayout.Chunk_Buf;
-            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.Thread_CurPtr), msgAddr);
-            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.Thread_ReadPtr), msgAddr);
-            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.Thread_ChunkListHead), ChunkAddr);
-            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.Thread_ChunkListTail), ChunkAddr);
-            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.Thread_CurReadChunk), ChunkAddr);
-            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.Thread_CurWriteChunk), ChunkAddr);
+            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.CoreThread_CurPtr), msgAddr);
+            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.CoreThread_ReadPtr), msgAddr);
+            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.CoreThread_ChunkListHead), ChunkAddr);
+            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.CoreThread_ChunkListTail), ChunkAddr);
+            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.CoreThread_CurReadChunk), ChunkAddr);
+            BinaryPrimitives.WriteUInt64LittleEndian(thread.AsSpan(StressLogLayout.CoreThread_CurWriteChunk), ChunkAddr);
             Memory[ThreadAddr] = thread;
 
-            // Construct the StressLog header (160 bytes).
+            // Construct the StressLog header (160 bytes, Core layout).
             byte[] header = new byte[StressLogLayout.InProc_HeaderSize];
             BinaryPrimitives.WriteUInt64LittleEndian(header.AsSpan(StressLogLayout.InProc_Logs), ThreadAddr);
+            // padding sentinel (0xFFFFFFFF) marks this as a Core in-process StressLog.
+            BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(StressLogLayout.InProc_Padding), 0xFFFFFFFFu);
             BinaryPrimitives.WriteUInt64LittleEndian(header.AsSpan(StressLogLayout.InProc_TickFrequency), TickFrequency);
             BinaryPrimitives.WriteUInt64LittleEndian(header.AsSpan(StressLogLayout.InProc_StartTimeStamp), StartTimeStamp);
             // StartTime: leave 0 (no FILETIME)

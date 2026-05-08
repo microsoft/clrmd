@@ -67,24 +67,48 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
         public const int Mm_HeaderReadSize        = Mm_ModulesEnd; // 272
 
         // -----------------------------------------------------------------
-        // ThreadStressLog (64-bit target)
+        // ThreadStressLog (Core, 64-bit target)
         // -----------------------------------------------------------------
 
         public const int Thread_Next              = 0;     // ThreadStressLog*
-        public const int Thread_ThreadId          = 8;     // uint64
-        public const int Thread_IsDead            = 16;    // uint8
-        public const int Thread_ReadHasWrapped    = 17;    // uint8
-        public const int Thread_WriteHasWrapped   = 18;    // uint8
+        public const int CoreThread_ThreadId      = 8;     // uint64
+        public const int CoreThread_IsDead        = 16;    // uint8
+        public const int CoreThread_ReadHasWrapped  = 17;  // uint8 (uninitialized in the live writer; we never trust this byte)
+        public const int CoreThread_WriteHasWrapped = 18;  // uint8
         // 5 bytes padding for 8-byte alignment of the next pointer
-        public const int Thread_CurPtr            = 24;    // StressMsg*
-        public const int Thread_ReadPtr           = 32;    // StressMsg*
-        public const int Thread_ChunkListHead     = 40;    // StressLogChunk*
-        public const int Thread_ChunkListTail     = 48;    // StressLogChunk*
-        public const int Thread_CurReadChunk      = 56;    // StressLogChunk*
-        public const int Thread_CurWriteChunk     = 64;    // StressLogChunk*
-        public const int Thread_ChunkListLength   = 72;    // long (4 bytes)
+        public const int CoreThread_CurPtr        = 24;    // StressMsg*
+        public const int CoreThread_ReadPtr       = 32;    // StressMsg*
+        public const int CoreThread_ChunkListHead = 40;    // StressLogChunk*
+        public const int CoreThread_ChunkListTail = 48;    // StressLogChunk*
+        public const int CoreThread_CurReadChunk  = 56;    // StressLogChunk*
+        public const int CoreThread_CurWriteChunk = 64;    // StressLogChunk*
+        public const int CoreThread_ChunkListLength = 72;  // long (4 bytes)
 
-        public const int Thread_HeaderSize        = 80;    // 4 bytes trailing pad to 8-byte align
+        // -----------------------------------------------------------------
+        // ThreadStressLog (.NET Framework V1, 64-bit target)
+        // -----------------------------------------------------------------
+        //
+        // Framework's ThreadStressLog uses a 4-byte threadId and 4-byte
+        // isDead/readHasWrapped/writeHasWrapped fields, shifting curPtr,
+        // readPtr earlier in the layout. Verified against
+        // .NET Framework 4.8.9325 dumps via the cdb dt extension.
+
+        public const int FxThread_ThreadId        = 8;     // uint32
+        public const int FxThread_IsDead          = 12;    // uint32
+        public const int FxThread_CurPtr          = 16;    // StressMsg*
+        public const int FxThread_ReadPtr         = 24;    // StressMsg*
+        public const int FxThread_ReadHasWrapped  = 32;    // uint32 (uninitialized in the live writer)
+        public const int FxThread_WriteHasWrapped = 36;    // uint32
+        public const int FxThread_ChunkListHead   = 40;    // StressLogChunk*
+        public const int FxThread_ChunkListTail   = 48;    // StressLogChunk*
+        public const int FxThread_CurReadChunk    = 56;    // StressLogChunk*
+        public const int FxThread_CurWriteChunk   = 64;    // StressLogChunk*
+        public const int FxThread_ChunkListLength = 72;    // long (4 bytes)
+
+        // Both layouts use the same 80-byte struct size (the differences are
+        // a rearrangement of fields within those bytes), so we always read
+        // 80 bytes for the thread header regardless of variant.
+        public const int Thread_HeaderSize        = 80;
 
         // -----------------------------------------------------------------
         // StressLogChunk (64-bit target, 32 KB body)
@@ -101,7 +125,8 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
         // StressMsg
         // -----------------------------------------------------------------
 
-        public const int Msg_HeaderSize           = 16;    // sizeof(StressMsg) without args
+        public const int Msg_HeaderSize           = 16;    // sizeof(StressMsg) without args (Core V3/V4)
+        public const int Msg_HeaderSizeFxV1       = 24;    // .NET Framework: each header field is qword-aligned
         public const int Msg_ArgSize              = 8;     // pointer-sized
 
         // -----------------------------------------------------------------
@@ -156,6 +181,32 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
             formatOffset = formatOffset26;
             facility = w1;
             timeStamp = w2;
+        }
+
+        /// <summary>
+        /// Decode a Framework V1 <c>StressMsg</c> header from a 24-byte
+        /// little-endian span. Layout differs from Core's V3/V4: each field
+        /// is qword-aligned, so <c>fmtOffsCArgs</c>, <c>facility</c>, and
+        /// <c>timeStamp</c> each occupy 8 bytes (with the upper 4 bytes of
+        /// the first two being unused padding). The bit-field is also
+        /// (numArgs:3 | formatOffset:29) without the V3 high-bits split.
+        /// </summary>
+        public static void DecodeMessageFxV1(ReadOnlySpan<byte> header24,
+                                             out uint facility,
+                                             out int numberOfArgs,
+                                             out ulong formatOffset,
+                                             out ulong timeStamp)
+        {
+            uint w0Low = BinaryPrimitives.ReadUInt32LittleEndian(header24);
+            // header24[4..8] is padding/uninitialized — never read.
+            uint w1Low = BinaryPrimitives.ReadUInt32LittleEndian(header24.Slice(8));
+            // header24[12..16] is padding.
+            ulong ts = BinaryPrimitives.ReadUInt64LittleEndian(header24.Slice(16));
+
+            numberOfArgs = (int)(w0Low & 0x7u);
+            formatOffset = (w0Low >> 3) & ((1u << 29) - 1);
+            facility = w1Low;
+            timeStamp = ts;
         }
     }
 }
