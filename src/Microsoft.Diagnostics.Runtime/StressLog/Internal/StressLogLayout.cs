@@ -186,11 +186,11 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
         public static StressLogLayout CoreX64 { get; } = new StressLogLayout(pointerSize: 8, isFramework: false);
 
         /// <summary>
-        /// Layout for a 64-bit .NET Framework V1 target. Same chunk and
-        /// module-table sizes as Core x64; ThreadStressLog and StressMsg
-        /// layouts differ.
+        /// Layout for a 64-bit .NET Framework V1 target on Windows. .NET
+        /// Framework only ships on Windows. Same chunk and module-table
+        /// sizes as Core x64; ThreadStressLog and StressMsg layouts differ.
         /// </summary>
-        public static StressLogLayout FrameworkX64 { get; } = new StressLogLayout(pointerSize: 8, isFramework: true);
+        public static StressLogLayout FrameworkWinX64 { get; } = new StressLogLayout(pointerSize: 8, isFramework: true);
 
         /// <summary>
         /// Layout for a 32-bit Core target on Windows. .NET Core has not
@@ -222,7 +222,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
         /// </summary>
         public StressLogLayout WithFramework() => PointerSize switch
         {
-            8 => FrameworkX64,
+            8 => FrameworkWinX64,
             4 => FrameworkWinX86,
             _ => throw new InvalidOperationException(),
         };

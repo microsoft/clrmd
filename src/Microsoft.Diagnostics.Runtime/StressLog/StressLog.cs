@@ -106,15 +106,8 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         /// reads from the runtime's data target. Returns <see langword="false"/>
         /// if the runtime does not have stress logging enabled, the DAC does
         /// not support <c>GetStressLogAddress</c>, or the resulting log fails
-        /// validation.
-        /// </summary>
-        internal static bool TryOpen(ClrRuntime runtime, out StressLog? stressLog)
-            => TryOpen(runtime, out stressLog, out _);
-
-        /// <summary>
-        /// Try to open the stress log for the given <paramref name="runtime"/>,
-        /// returning a human-readable explanation in
-        /// <paramref name="failureReason"/> when the open fails.
+        /// validation; <paramref name="failureReason"/> is a human-readable
+        /// explanation in that case.
         /// </summary>
         internal static bool TryOpen(ClrRuntime runtime, out StressLog? stressLog, out string? failureReason)
         {
@@ -139,11 +132,9 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         /// <summary>
         /// Try to open the stress log at <paramref name="address"/> in the
         /// target. Returns <see langword="false"/> on any structural
-        /// validation failure.
+        /// validation failure; <paramref name="failureReason"/> is a
+        /// human-readable explanation in that case.
         /// </summary>
-        internal static bool TryOpen(IDataReader reader, ulong address, out StressLog? stressLog)
-            => TryOpen(reader, address, out stressLog, out _);
-
         internal static bool TryOpen(IDataReader reader, ulong address, out StressLog? stressLog, out string? failureReason)
         {
             stressLog = null;
@@ -370,8 +361,14 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                 }
 
                 // Yield in newest-first order via repeated linear max scan.
-                // Iterator count is bounded by MaxThreads; the linear scan is
-                // O(threads) per message, which is fine for typical numbers.
+                // Iterator count is bounded by StressLogOptions.MaxThreads
+                // (100,000), but real dumps typically have tens to hundreds
+                // of threads, where the scan is dwarfed by the per-message
+                // I/O performed by the outer loop. A min-heap would cut the
+                // per-message cost to O(log threads) at the cost of an extra
+                // allocation per enumeration plus reheap-on-advance complexity;
+                // we keep the linear scan because the simplicity wins at the
+                // thread counts we actually see.
                 while (iterators.Count > 0)
                 {
                     cancellationToken.ThrowIfCancellationRequested();

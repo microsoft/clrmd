@@ -74,6 +74,12 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
                 if (u == 0)
                     return i;
 
+                // ASCII-range code units (<= 0x7F) are forwarded to
+                // SanitizeByte so the same whitelist (\t, \n, \r) and the
+                // 0x7F -> Replacement collapse defined for the ASCII path
+                // also apply here. Code units >= 0x80 cannot be any of
+                // those special bytes and are mapped directly to
+                // Replacement without going through SanitizeByte.
                 dst[i] = u <= 0x7F ? SanitizeByte((byte)u) : Replacement;
             }
 

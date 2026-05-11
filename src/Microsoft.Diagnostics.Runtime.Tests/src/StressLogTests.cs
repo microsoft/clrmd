@@ -459,7 +459,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             // Reader returns 0 bytes for any address.
             SyntheticDataReader reader = new(new());
-            Assert.False(StressLog.TryOpen(reader, 0x1000, out StressLog? log));
+            Assert.False(StressLog.TryOpen(reader, 0x1000, out StressLog? log, out _));
             Assert.Null(log);
         }
 
@@ -467,7 +467,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public void EndToEnd_NullAddressFailsTryOpen()
         {
             SyntheticDataReader reader = new(new());
-            Assert.False(StressLog.TryOpen(reader, 0, out StressLog? log));
+            Assert.False(StressLog.TryOpen(reader, 0, out StressLog? log, out _));
             Assert.Null(log);
         }
 
@@ -478,7 +478,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ulong stressLogAddr = builder.Build(out _, out _);
             SyntheticDataReader reader = new(builder.Memory);
 
-            Assert.True(StressLog.TryOpen(reader, stressLogAddr, out StressLog? log));
+            Assert.True(StressLog.TryOpen(reader, stressLogAddr, out StressLog? log, out _));
             Assert.NotNull(log);
 
             int count = 0;
@@ -508,7 +508,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ulong stressLogAddr = builder.Build(out _, out _);
             SyntheticDataReader reader = new(builder.Memory);
 
-            Assert.True(StressLog.TryOpen(reader, stressLogAddr, out StressLog? log));
+            Assert.True(StressLog.TryOpen(reader, stressLogAddr, out StressLog? log, out _));
             Assert.NotNull(log);
 
             using (log)
@@ -566,7 +566,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ulong addr = builder.Build(StressLogLayout.CoreWinX86, out _, out _);
             SyntheticDataReader reader = new(builder.Memory, pointerSize: 4, architecture: System.Runtime.InteropServices.Architecture.X86);
 
-            Assert.True(StressLog.TryOpen(reader, addr, out StressLog? log));
+            Assert.True(StressLog.TryOpen(reader, addr, out StressLog? log, out _));
             Assert.NotNull(log);
             Assert.Equal(4, log!.PointerSize);
 
@@ -595,7 +595,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ulong addr = builder.Build(StressLogLayout.CoreWinX86, out _, out _);
             SyntheticDataReader reader = new(builder.Memory, pointerSize: 4, architecture: System.Runtime.InteropServices.Architecture.X86);
 
-            Assert.True(StressLog.TryOpen(reader, addr, out StressLog? log));
+            Assert.True(StressLog.TryOpen(reader, addr, out StressLog? log, out _));
             Assert.NotNull(log);
 
             int count = 0;
@@ -624,7 +624,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ulong addr = hb.Build(StressLogLayout.CoreWinX86, out _, out _);
             SyntheticDataReader reader = new(hb.Memory, pointerSize: 4, architecture: System.Runtime.InteropServices.Architecture.X86);
 
-            Assert.True(StressLog.TryOpen(reader, addr, out StressLog? log));
+            Assert.True(StressLog.TryOpen(reader, addr, out StressLog? log, out _));
             Assert.NotNull(log);
 
             int count = 0;
