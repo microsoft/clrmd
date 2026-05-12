@@ -111,9 +111,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             key = key.Replace('\\', '/').TrimStart('/');
             Uri fullPath = new(Server, key);
 
-            string? accessToken = await GetAccessTokenAsync().ConfigureAwait(false);
+            string? accessToken = IsSymweb ? await GetAccessTokenAsync().ConfigureAwait(false) : null;
             if (accessToken is not null)
                 _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            else
+                _http.DefaultRequestHeaders.Authorization = null;
 
             HttpResponseMessage response = await _http.GetAsync(fullPath).ConfigureAwait(false);
 
