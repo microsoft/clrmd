@@ -1,0 +1,105 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System;
+
+namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
+{
+    /// <summary>
+    /// Byte-level sanitization for any text byte read from the target.
+    /// Allows printable 7-bit ASCII (<c>0x20</c>..<c>0x7E</c>) plus the
+    /// whitespace control bytes <c>\t</c> (0x09), <c>\n</c> (0x0A), and
+    /// <c>\r</c> (0x0D). Everything else — including the ANSI escape
+    /// introducer (0x1B), other C0 control bytes, DEL (0x7F), and all
+    /// non-ASCII bytes — is replaced with <c>'.'</c>. Used both for format
+    /// strings and for <c>%s</c>/<c>%S</c> argument bytes before they are
+    /// handed to a receiver.
+    /// </summary>
+    /// <remarks>
+    /// The replacement byte is deliberately chosen to be benign and to not
+    /// be misinterpreted as part of a printf-family format specifier
+    /// (e.g., <c>%</c>) or as an ANSI escape introducer (e.g.,
+    /// <c>\u001B</c>) in any downstream consumer. Tab/newline/carriage
+    /// return are allowed through because legitimate runtime format strings
+    /// commonly terminate with <c>\n</c>, and stripping or replacing those
+    /// alters output content rather than addressing a meaningful threat;
+    /// terminal escape injection is prevented by replacing the actual
+    /// escape byte (0x1B).
+    /// </remarks>
+    internal static class StressLogSanitizer
+    {
+        public const byte Replacement = (byte)'.';
+
+        /// <summary>
+        /// Returns the length of <paramref name="src"/> up to the first NUL byte
+        /// (or the full length if there is none). Used because the runtime
+        /// stores format strings null-terminated in their original module.
+        /// </summary>
+        public static int LengthToFirstNull(ReadOnlySpan<byte> src)
+        {
+            int idx = src.IndexOf((byte)0);
+            return idx < 0 ? src.Length : idx;
+        }
+
+        /// <summary>
+        /// Sanitize <paramref name="src"/> into <paramref name="dst"/>:
+        /// non-printable bytes become <c>'.'</c>. Returns the number of bytes
+        /// written. <paramref name="dst"/> must be at least as long as
+        /// <paramref name="src"/>.
+        /// </summary>
+        public static int SanitizeAscii(ReadOnlySpan<byte> src, Span<byte> dst)
+        {
+            if (dst.Length < src.Length)
+                throw new ArgumentException("destination buffer is too small", nameof(dst));
+
+            for (int i = 0; i < src.Length; i++)
+                dst[i] = SanitizeByte(src[i]);
+
+            return src.Length;
+        }
+
+        /// <summary>
+        /// Sanitize a UTF-16LE byte sequence into ASCII <paramref name="dst"/>.
+        /// Returns the number of bytes written.
+        /// </summary>
+        public static int SanitizeUtf16(ReadOnlySpan<byte> src, Span<byte> dst)
+        {
+            int srcCount = src.Length / 2;
+            if (dst.Length < srcCount)
+                throw new ArgumentException("destination buffer is too small", nameof(dst));
+
+            for (int i = 0; i < srcCount; i++)
+            {
+                ushort u = (ushort)(src[i * 2] | (src[i * 2 + 1] << 8));
+                if (u == 0)
+                    return i;
+
+                // ASCII-range code units (<= 0x7F) are forwarded to
+                // SanitizeByte so the same whitelist (\t, \n, \r) and the
+                // 0x7F -> Replacement collapse defined for the ASCII path
+                // also apply here. Code units >= 0x80 cannot be any of
+                // those special bytes and are mapped directly to
+                // Replacement without going through SanitizeByte.
+                dst[i] = u <= 0x7F ? SanitizeByte((byte)u) : Replacement;
+            }
+
+            return srcCount;
+        }
+
+        private static byte SanitizeByte(byte b)
+        {
+            // Allow printable 7-bit ASCII (0x20..0x7E) plus the whitespace
+            // control bytes \t, \n, \r. Everything else, including 0x00,
+            // other C0 control bytes, the ANSI escape introducer (0x1B),
+            // DEL (0x7F), and non-ASCII bytes, is collapsed to the
+            // replacement byte to prevent terminal escape injection from
+            // target-controlled bytes.
+            if (b is >= 0x20 and <= 0x7E)
+                return b;
+            if (b == (byte)'\t' || b == (byte)'\n' || b == (byte)'\r')
+                return b;
+
+            return Replacement;
+        }
+    }
+}

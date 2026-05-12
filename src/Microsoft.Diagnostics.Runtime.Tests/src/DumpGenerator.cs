@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static string GetBuildOutputDir(string binDir, bool isFramework)
             => Path.Combine(binDir, GetTfm(isFramework));
 
-        public static void EnsureDump(string name, string projectDir, string dumpPath, string architecture, bool isFramework, GCMode gcMode, bool full, bool singleFile = false, bool highBit = false, string[] companionTargets = null)
+        public static void EnsureDump(string name, string projectDir, string dumpPath, string architecture, bool isFramework, GCMode gcMode, bool full, bool singleFile = false, bool highBit = false, string[] companionTargets = null, IReadOnlyDictionary<string, string> extraEnv = null)
         {
             if (File.Exists(dumpPath))
                 return;
@@ -83,25 +83,25 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 string processOutput = null;
                 if (highBit && isFramework)
                 {
-                    GenerateHighBitFrameworkDump(exePath, dumpPath, gcMode, full, architecture);
+                    GenerateHighBitFrameworkDump(exePath, dumpPath, gcMode, full, architecture, extraEnv);
                 }
                 else if (highBit)
                 {
-                    processOutput = GenerateHighBitCoreDump(exePath, dumpPath, gcMode, full, architecture);
+                    processOutput = GenerateHighBitCoreDump(exePath, dumpPath, gcMode, full, architecture, extraEnv);
                 }
                 else if (isFramework && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
-                    GenerateFrameworkDump(exePath, dumpPath, gcMode, full);
+                    GenerateFrameworkDump(exePath, dumpPath, gcMode, full, extraEnv);
                 }
                 else if (singleFile && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     // Single-file self-contained apps don't include createdump, so
                     // DOTNET_DbgEnableMiniDump won't work. Use DbgEng instead.
-                    GenerateDbgEngDump(exePath, dumpPath, gcMode, full);
+                    GenerateDbgEngDump(exePath, dumpPath, gcMode, full, extraEnv);
                 }
                 else
                 {
-                    processOutput = GenerateCoreDump(exePath, dumpPath, gcMode, full, singleFile);
+                    processOutput = GenerateCoreDump(exePath, dumpPath, gcMode, full, singleFile, extraEnv);
                 }
 
                 if (!File.Exists(dumpPath))
@@ -373,7 +373,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// runs the target .exe's entry point. When the target throws, DbgEng captures
         /// the dump just as it does in the non-HighBit Framework path.
         /// </summary>
-        private static void GenerateHighBitFrameworkDump(string exePath, string dumpPath, GCMode gcMode, bool full, string architecture)
+        private static void GenerateHighBitFrameworkDump(string exePath, string dumpPath, GCMode gcMode, bool full, string architecture, IReadOnlyDictionary<string, string> extraEnv = null)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 throw new PlatformNotSupportedException("High-bit dump generation is only supported on Windows.");
@@ -392,6 +392,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 info.SetEnvironmentVariable("COMPlus_BuildFlavor", "SVR");
             }
 
+            if (extraEnv != null)
+            {
+                foreach (KeyValuePair<string, string> kvp in extraEnv)
+                    info.SetEnvironmentVariable(kvp.Key, kvp.Value);
+            }
+
             string commandLine = $"\"{host}\" --mode=framework \"{exePath}\"";
             LaunchAndCaptureDump(info, commandLine, workingDirectory: Path.GetDirectoryName(exePath), dumpPath, full, ClrExceptionCode);
         }
@@ -401,7 +407,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// before starting the CLR, forcing heap allocations into the upper 2 GB of the 32-bit
         /// address space. Windows x86 only.
         /// </summary>
-        private static string GenerateHighBitCoreDump(string exePath, string dumpPath, GCMode gcMode, bool full, string architecture)
+        private static string GenerateHighBitCoreDump(string exePath, string dumpPath, GCMode gcMode, bool full, string architecture, IReadOnlyDictionary<string, string> extraEnv = null)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 throw new PlatformNotSupportedException("High-bit dump generation is only supported on Windows.");
@@ -448,6 +454,12 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 psi.Environment["DOTNET_gcServer"] = "1";
                 psi.Environment["COMPlus_gcServer"] = "1";
+            }
+
+            if (extraEnv != null)
+            {
+                foreach (KeyValuePair<string, string> kvp in extraEnv)
+                    psi.Environment[kvp.Key] = kvp.Value;
             }
 
             using Process process = Process.Start(psi);
@@ -750,7 +762,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// Generates a dump for a .NET Core target using DOTNET_DbgEnableMiniDump environment variables.
         /// The target is expected to crash with an unhandled exception.
         /// </summary>
-        private static string GenerateCoreDump(string exePath, string dumpPath, GCMode gcMode, bool full, bool singleFile = false)
+        private static string GenerateCoreDump(string exePath, string dumpPath, GCMode gcMode, bool full, bool singleFile = false, IReadOnlyDictionary<string, string> extraEnv = null)
         {
             bool isDll = exePath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase);
 
@@ -815,6 +827,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 psi.Environment["COMPlus_gcServer"] = "1";
             }
 
+            if (extraEnv != null)
+            {
+                foreach (KeyValuePair<string, string> kvp in extraEnv)
+                {
+                    psi.Environment[kvp.Key] = kvp.Value;
+                }
+            }
+
             using Process process = Process.Start(psi);
             string stdout = process.StandardOutput.ReadToEnd();
             string stderr = process.StandardError.ReadToEnd();
@@ -832,7 +852,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// Generates a dump for a .NET Framework target using DbgEng on Windows.
         /// Launches the target under the debugger and captures a dump on the unhandled CLR exception.
         /// </summary>
-        private static void GenerateFrameworkDump(string exePath, string dumpPath, GCMode gcMode, bool full)
+        private static void GenerateFrameworkDump(string exePath, string dumpPath, GCMode gcMode, bool full, IReadOnlyDictionary<string, string> extraEnv = null)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 throw new PlatformNotSupportedException("Framework dump generation is only supported on Windows.");
@@ -845,6 +865,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 info.SetEnvironmentVariable("COMPlus_BuildFlavor", "SVR");
             }
 
+            if (extraEnv != null)
+            {
+                foreach (KeyValuePair<string, string> kvp in extraEnv)
+                {
+                    info.SetEnvironmentVariable(kvp.Key, kvp.Value);
+                }
+            }
+
             LaunchAndCaptureDump(info, exePath, dumpPath, full, ClrExceptionCode);
         }
 
@@ -852,7 +880,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// Generates a dump for a .NET Core single-file target using DbgEng on Windows.
         /// Single-file apps don't include createdump, so DOTNET_DbgEnableMiniDump won't work.
         /// </summary>
-        private static void GenerateDbgEngDump(string exePath, string dumpPath, GCMode gcMode, bool full)
+        private static void GenerateDbgEngDump(string exePath, string dumpPath, GCMode gcMode, bool full, IReadOnlyDictionary<string, string> extraEnv = null)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 throw new PlatformNotSupportedException("DbgEng dump generation is only supported on Windows.");
@@ -864,6 +892,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             {
                 info.SetEnvironmentVariable("DOTNET_gcServer", "1");
                 info.SetEnvironmentVariable("COMPlus_gcServer", "1");
+            }
+
+            if (extraEnv != null)
+            {
+                foreach (KeyValuePair<string, string> kvp in extraEnv)
+                {
+                    info.SetEnvironmentVariable(kvp.Key, kvp.Value);
+                }
             }
 
             LaunchAndCaptureDump(info, exePath, dumpPath, full, ClrExceptionCode);
