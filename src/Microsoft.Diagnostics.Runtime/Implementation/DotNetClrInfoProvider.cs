@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private const string c_cdacContractDescriptorExport = "DotNetRuntimeContractDescriptor";
 
-        private static readonly string s_defaultAssembliesPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+        private static readonly string s_defaultAssembliesPath = AppContext.BaseDirectory;
 
         public IServiceProvider GetDacServices(ClrInfo clrInfo, string? providedPath, bool ignoreMismatch, bool verifySignature)
         {
