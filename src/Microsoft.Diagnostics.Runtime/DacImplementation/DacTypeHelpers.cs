@@ -235,6 +235,14 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         {
             if (_sos14 is not null)
             {
+                // The static base for a type is allocated up front, but the .cctor may not
+                // have run yet (e.g. for beforefieldinit types whose statics have not been
+                // touched). Returning a non-zero slot address in that case would let callers
+                // read garbage/zero and believe it was a real field value. Match the legacy
+                // DomainLocalModuleData path, which returns 0 when the class is not initialized.
+                if (_sos14.GetMethodTableInitializationFlags(ClrDataAddress.FromTargetAddress(type.MethodTable, _target)) != MethodTableInitializationFlags.MethodTableInitialized)
+                    return 0;
+
                 (ClrDataAddress nonGcBase, ClrDataAddress gcBase) = _sos14.GetStaticBaseAddress(ClrDataAddress.FromTargetAddress(type.MethodTable, _target));
                 if (field.ElementType.IsPrimitive())
                     return !nonGcBase.IsNull ? nonGcBase.ToAddress(_target) + (uint)field.Offset : 0;
@@ -277,6 +285,12 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
             if (_sos14 is not null)
             {
+                // See GetStaticFieldAddress: the per-type static bases are allocated even
+                // when the .cctor hasn't run. Match the legacy ThreadLocalModuleData path,
+                // which only returns an address once the class is initialized.
+                if (_sos14.GetMethodTableInitializationFlags(ClrDataAddress.FromTargetAddress(type.MethodTable, _target)) != MethodTableInitializationFlags.MethodTableInitialized)
+                    return 0;
+
                 (ClrDataAddress nonGcBase, ClrDataAddress gcBase) = _sos14.GetThreadStaticBaseAddress(ClrDataAddress.FromTargetAddress(type.MethodTable, _target), ClrDataAddress.FromTargetAddress(threadAddress, _target));
                 if (field.ElementType.IsPrimitive())
                     return !nonGcBase.IsNull ? nonGcBase.ToAddress(_target) + (uint)field.Offset : 0;
