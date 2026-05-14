@@ -12,7 +12,7 @@ using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
 {
-    internal sealed class CoredumpReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader, IDumpInfoProvider, IDumpFileMemorySource, IThreadInfoReader, IProcessInfoProvider, IMemoryRegionReader
+    internal sealed class CoredumpReader : CommonMemoryReader, IDataReader, IDisposable, IThreadReader, IDumpInfoProvider, IDumpFileMemorySource, IThreadInfoReader, IProcessInfoProvider, IMemoryRegionReader, IModuleSegmentReader
     {
         private readonly ElfCoreFile _core;
         private readonly DataTargetLimits? _limits;
@@ -318,6 +318,60 @@ namespace Microsoft.Diagnostics.Runtime
                     Protect = protect,
                     AllocationBase = allocBase,
                     AllocationProtect = protect,
+                };
+            }
+        }
+
+        // -- IModuleSegmentReader --
+
+        public IEnumerable<ModuleSegment> EnumerateModuleSegments(ulong moduleBaseAddress)
+        {
+            // Find the loaded image at this base. LoadedImages is keyed by
+            // filename, not address, so a small linear scan is needed —
+            // module count is in the hundreds at worst.
+            ElfLoadedImage? image = null;
+            foreach (ElfLoadedImage candidate in _core.LoadedImages.Values)
+            {
+                if (candidate.BaseAddress == moduleBaseAddress)
+                {
+                    image = candidate;
+                    break;
+                }
+            }
+            if (image is null)
+                yield break;
+
+            using ElfFile? file = image.Open();
+            if (file is null)
+                yield break;
+
+            // Compute load bias: ImageBase - p_vaddr of the lowest PT_LOAD.
+            // For PIE / shared objects the lowest PT_LOAD has p_vaddr == 0,
+            // so load bias == ImageBase. For position-dependent executables
+            // load bias is typically 0.
+            ulong lowestVaddr = ulong.MaxValue;
+            foreach (ElfProgramHeader ph in file.ProgramHeaders)
+            {
+                if (ph.Type != ElfProgramHeaderType.Load || ph.VirtualSize == 0)
+                    continue;
+                if (ph.VirtualAddress < lowestVaddr)
+                    lowestVaddr = ph.VirtualAddress;
+            }
+            if (lowestVaddr == ulong.MaxValue)
+                yield break;
+            ulong loadBias = moduleBaseAddress - lowestVaddr;
+
+            foreach (ElfProgramHeader ph in file.ProgramHeaders)
+            {
+                if (ph.Type != ElfProgramHeaderType.Load || ph.VirtualSize == 0)
+                    continue;
+                yield return new ModuleSegment
+                {
+                    VirtualAddress = ph.VirtualAddress + loadBias,
+                    VirtualSize = ph.VirtualSize,
+                    IsReadable = ph.IsReadable,
+                    IsWritable = ph.IsWritable,
+                    IsExecutable = ph.IsExecutable,
                 };
             }
         }

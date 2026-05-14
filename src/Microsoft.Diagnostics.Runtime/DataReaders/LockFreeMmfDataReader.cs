@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     /// to the inner reader, which retains its own access to the dump.
     /// </para>
     /// </summary>
-    internal sealed class LockFreeMmfDataReader : IDataReader, IThreadReader, IDumpInfoProvider, ISegmentedDirectMemoryAccess, IDisposable, IThreadInfoReader, IProcessInfoProvider, IMemoryRegionReader
+    internal sealed class LockFreeMmfDataReader : IDataReader, IThreadReader, IDumpInfoProvider, ISegmentedDirectMemoryAccess, IDisposable, IThreadInfoReader, IProcessInfoProvider, IMemoryRegionReader, IModuleSegmentReader
     {
         private readonly IDataReader _inner;
         private readonly IThreadReader? _innerThreads;
@@ -43,6 +43,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private readonly IThreadInfoReader? _innerThreadInfo;
         private readonly IProcessInfoProvider? _innerProcessInfo;
         private readonly IMemoryRegionReader? _innerRegions;
+        private readonly IModuleSegmentReader? _innerModuleSegments;
         private readonly MemoryMappedFile _mmf;
         private readonly MemoryMappedViewAccessor _accessor;
         // Base address of the mapped view, stored as IntPtr so the field itself is not unsafe.
@@ -97,6 +98,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             _innerThreadInfo = inner as IThreadInfoReader;
             _innerProcessInfo = inner as IProcessInfoProvider;
             _innerRegions = inner as IMemoryRegionReader;
+            _innerModuleSegments = inner as IModuleSegmentReader;
 
             MemoryMappedFile? mmf = null;
             MemoryMappedViewAccessor? accessor = null;
@@ -427,6 +429,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         public IEnumerable<MemoryRegion> EnumerateMemoryRegions()
             => _innerRegions?.EnumerateMemoryRegions()
                ?? throw CreateUnsupportedInterfaceException(nameof(IMemoryRegionReader));
+
+        // IModuleSegmentReader passthrough
+        public IEnumerable<ModuleSegment> EnumerateModuleSegments(ulong moduleBaseAddress)
+            => _innerModuleSegments?.EnumerateModuleSegments(moduleBaseAddress)
+               ?? throw CreateUnsupportedInterfaceException(nameof(IModuleSegmentReader));
 
         private static NotSupportedException CreateUnsupportedInterfaceException(string interfaceName)
             => new($"The inner data reader does not implement {interfaceName}.");
