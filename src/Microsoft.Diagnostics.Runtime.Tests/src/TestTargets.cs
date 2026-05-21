@@ -40,6 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private static readonly Lazy<TestTarget> _finalizationQueue = new(() => new TestTarget("FinalizationQueue"));
         private static readonly Lazy<TestTarget> _byReference = new(() => new TestTarget("ByReference"));
         private static readonly Lazy<TestTarget> _stressLog = new(() => new TestTarget("StressLog"));
+        private static readonly Lazy<TestTarget> _collectibleTypes = new(() => new TestTarget("CollectibleTypes"));
 
         public static TestTarget GCRoot => _gcroot.Value;
         public static TestTarget GCRoot2 => _gcroot2.Value;
@@ -54,6 +55,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         public static TestTarget Arrays => _arrays.Value;
         public static TestTarget ByReference => _byReference.Value;
         public static TestTarget StressLog => _stressLog.Value;
+        public static TestTarget CollectibleTypes => _collectibleTypes.Value;
     }
 
     public class TestTarget
