@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (_type is not null)
                 _typeInitialized = 1;
 
-            if (data.ElementType == ClrElementType.Class && _type != null)
+            if (_type is not null && data.ElementType is ClrElementType.Class or ClrElementType.Struct)
                 data.ElementType = _type.ElementType;
 
             FieldInfo = data;

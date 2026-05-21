@@ -171,6 +171,23 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Theory, MemberData(nameof(Variants))]
+        public void StringFieldCtor_UsesResolvedTypeWhenDacMarksStruct(DumpVariant variant, bool singleFile)
+        {
+            using Scope s = new(variant, singleFile);
+            ClrInstanceField original = s.PrimitiveCarrier.Type.GetFieldByName(nameof(s.Prototype.HelloWorldString));
+
+            Microsoft.Diagnostics.Runtime.AbstractDac.FieldInfo fieldInfo = original.FieldInfo;
+            fieldInfo.ElementType = ClrElementType.Struct;
+
+            ClrInstanceField field = new(original.ContainingType, original.Type, original._helpers, fieldInfo);
+
+            Assert.Equal(ClrElementType.String, field.ElementType);
+            Assert.False(field.IsValueType);
+            Assert.True(field.IsObjectReference);
+            Assert.Equal(s.Prototype.HelloWorldString, s.PrimitiveCarrier.ReadStringField(field));
+        }
+
+        [Theory, MemberData(nameof(Variants))]
         public void ReadValueTypeFieldByInstance_WhenDateTime_ReturnsExpected(DumpVariant variant, bool singleFile)
         {
             using Scope s = new(variant, singleFile);
