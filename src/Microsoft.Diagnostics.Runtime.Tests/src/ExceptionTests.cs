@@ -44,6 +44,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.NotNull(exception);
 
             ImmutableArray<ClrStackFrame> stackTrace = exception.StackTrace;
+            Assert.NotEmpty(stackTrace);
+
             foreach (ClrStackFrame stackFrame in stackTrace)
             {
                 Assert.Equal(stackFrame.Thread, thread);
