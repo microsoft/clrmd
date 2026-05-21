@@ -192,7 +192,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (!parser.GetElemType(out ClrElementType etype))
                 return null;
 
-            if (etype.IsPrimitive() || etype == ClrElementType.Void || etype == ClrElementType.Object || etype == ClrElementType.String)
+            if ((etype.IsPrimitive() && etype != ClrElementType.Pointer) || etype == ClrElementType.Void || etype == ClrElementType.Object || etype == ClrElementType.String)
                 return GetOrCreateBasicType(etype);
 
             if (etype == ClrElementType.Array)

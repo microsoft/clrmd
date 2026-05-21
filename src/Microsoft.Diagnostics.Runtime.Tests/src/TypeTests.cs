@@ -92,6 +92,49 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Contains(obj.Address, heap.EnumerateObjects().Select(a => a.Address));
         }
 
+        public static IEnumerable<object[]> TypesCoreVariants => TestVariants.CoreOnly(TestTargets.Types);
+
+        [Theory, MemberData(nameof(TypesCoreVariants))]
+        public void PointerFieldResolvesToPointerType(DumpVariant variant)
+        {
+            // Regression for #1458: a field whose signature is ELEMENT_TYPE_PTR was
+            // short-circuiting through GetOrCreateBasicType because ClrElementType.Pointer
+            // is included in IsPrimitive(). Due to slot-index arithmetic in the basic-type
+            // cache, this returned the cached String type for any pointer field. The
+            // visible symptom was field.IsObjectReference==false but
+            // field.Type.IsObjectReference==true (Type was misresolved to System.String).
+            using DataTarget dt = TestTargets.Types.LoadFullDump(variant);
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule module = runtime.GetModule(ModuleName);
+            ClrType holder = module.GetTypeByName("PointerFieldHolder");
+            Assert.NotNull(holder);
+
+            foreach (string fieldName in new[] { "IntPointer", "VoidPointer", "StructPointer" })
+            {
+                ClrInstanceField field = holder.GetFieldByName(fieldName);
+                Assert.NotNull(field);
+                Assert.False(field.IsObjectReference, $"Field '{fieldName}' should not be an object reference.");
+
+                Assert.NotNull(field.Type);
+                Assert.False(field.Type.IsObjectReference, $"Field '{fieldName}' resolved type '{field.Type.Name}' is incorrectly an object reference (#1458 regression).");
+
+                // Consistency: the central symptom of #1458 was that these two booleans disagreed.
+                Assert.Equal(field.IsObjectReference, field.Type.IsObjectReference);
+            }
+
+            // Spot-check the int* field, which is the cleanest case where we expect a
+            // proper pointer ClrConstructedType wrapping System.Int32.
+            ClrInstanceField intPointer = holder.GetFieldByName("IntPointer");
+            Assert.True(intPointer.Type.IsPointer);
+            Assert.False(intPointer.Type.IsArray);
+            Assert.Equal(ClrElementType.Pointer, intPointer.Type.ElementType);
+            Assert.NotNull(intPointer.Type.ComponentType);
+            Assert.Equal("System.Int32", intPointer.Type.ComponentType.Name);
+            Assert.Equal("System.Int32*", intPointer.Type.Name);
+        }
+
+
         [FrameworkFact]
         public void ArrayComponentTypeTest()
         {

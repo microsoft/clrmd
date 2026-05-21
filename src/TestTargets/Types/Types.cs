@@ -34,6 +34,24 @@ class ThreadStaticsOnly
     public static int ts_counter;
 }
 
+// Type with an unmanaged pointer instance field. Used to verify ClrMD resolves
+// pointer field signatures to a ClrConstructedType pointer (not to the basic
+// String type via the buggy IsPrimitive() short-circuit). See issue #1458.
+#pragma warning disable CS0649 // fields are never assigned — we only need the metadata in the dump
+struct PointerFieldHolderStruct
+{
+    public int X;
+    public long Y;
+}
+
+unsafe class PointerFieldHolder
+{
+    public int* IntPointer;
+    public void* VoidPointer;
+    public PointerFieldHolderStruct* StructPointer; // pointer to a value type (mirrors OVERLAPPED_ENTRY*)
+}
+#pragma warning restore CS0649
+
 class Types
 {
     [ThreadStatic]
@@ -95,6 +113,7 @@ class Types
     public static void Main()
     {
         new StructTestClass(); // Ensure type is constructed
+        new PointerFieldHolder(); // Ensure PointerFieldHolder is constructed (issue #1458)
         ExplicitImpl ei = new ExplicitImpl();
         ((IExplicitTest)ei).ExplicitMethod();
         ei.RegularMethod();
