@@ -58,8 +58,29 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 MethodTable = methodTable,
                 ParentMethodTable = data.ParentMethodTable.ToAddress(_target),
                 ModuleAddress = data.Module.ToAddress(_target),
+                HasFinalizer = ReadHasFinalizer(methodTable),
             };
             return true;
+        }
+
+        // MethodTable layout (verified on modern .NET and Desktop Framework, all
+        // architectures — x86, x64, ARM, ARM64):
+        //   - m_dwFlags is a DWORD at offset 0
+        //   - enum_flag_HasFinalizer = 0x00100000 lives in the high half of m_dwFlags
+        //   - High flags are read directly with no string/array special-casing
+        //     (only the low WORD is overloaded for component size)
+        // SOS's MethodTableData does not surface this flag, so we read it from target memory.
+        private const uint enum_flag_HasFinalizer = 0x00100000;
+
+        private bool ReadHasFinalizer(ulong methodTable)
+        {
+            if (methodTable == 0)
+                return false;
+
+            if (!_dataReader.Read(methodTable, out uint flags))
+                return false;
+
+            return (flags & enum_flag_HasFinalizer) != 0;
         }
 
         public string? GetTypeName(ulong module, ulong methodTable, int token)
