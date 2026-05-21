@@ -232,7 +232,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return (value & FinalizationSuppressedFlag) == FinalizationSuppressedFlag;
         }
 
-        public override bool IsFinalizable => Methods.Any(method => (method.Attributes & MethodAttributes.Virtual) == MethodAttributes.Virtual && method.Name == "Finalize");
+        public override bool IsFinalizable => TypeInfo.HasFinalizer;
 
         public override bool IsArray => ComponentSize != 0 && !IsString && !IsFree;
         public override bool IsCollectible => LoaderAllocatorHandle != 0;

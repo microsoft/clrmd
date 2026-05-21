@@ -27,7 +27,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override ClrElementType ElementType => ClrElementType.String;
 
-        public override bool IsFinalizable => true;
+        public override bool IsFinalizable => false;
 
         public override TypeAttributes TypeAttributes => TypeAttributes.Public;
 

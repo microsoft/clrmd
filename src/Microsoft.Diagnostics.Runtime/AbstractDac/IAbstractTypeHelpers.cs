@@ -46,6 +46,7 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         public bool IsShared { get; set; }
         public int MethodCount { get; set; }
         public bool ContainsPointers { get; set; }
+        public bool HasFinalizer { get; set; }
     }
 
     public struct ObjectArrayInformation
