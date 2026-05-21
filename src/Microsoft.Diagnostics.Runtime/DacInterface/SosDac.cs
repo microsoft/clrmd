@@ -394,6 +394,23 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return VTable.GetUsefulGlobals(Self, out commonMTs);
         }
 
+        public bool TryGetStressLogAddress(out ClrDataAddress stressLogAddress)
+        {
+            HResult hr = VTable.GetStressLogAddress(Self, out ClrDataAddress addr);
+            if (!hr)
+            {
+                stressLogAddress = ClrDataAddress.Null;
+                return false;
+            }
+
+            // Return the raw wire value the same way the rest of this file
+            // does. The caller is responsible for translating it to a target
+            // pointer via ClrDataAddress.ToAddress(target), which un-sign-
+            // extends on 32-bit targets.
+            stressLogAddress = addr;
+            return !addr.IsNull;
+        }
+
         public ClrDataAddress[] GetAssemblyList(ClrDataAddress appDomain) => GetAssemblyList(appDomain, 0);
 
         public ClrDataAddress[] GetAssemblyList(ClrDataAddress appDomain, int count) => GetModuleOrAssembly(appDomain, count, VTable.GetAssemblyList);
@@ -897,7 +914,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly IntPtr GetNestedExceptionData;
 
         // StressLog
-        public readonly IntPtr GetStressLogAddress;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out ClrDataAddress, int> GetStressLogAddress;
 
         // Heaps
         public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong /*ClrDataAddress*/, IntPtr, int> TraverseLoaderHeap;

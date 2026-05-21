@@ -35,6 +35,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return hr ? (nonGCThreadStaticsBase, gcThreadStaticsBase) : (ClrDataAddress.Null, ClrDataAddress.Null);
         }
 
+        public MethodTableInitializationFlags GetMethodTableInitializationFlags(ClrDataAddress methodTable)
+        {
+            HResult hr = VTable.GetMethodTableInitializationFlags(Self, methodTable.ToInteropAddress(), out MethodTableInitializationFlags flags);
+            return hr ? flags : MethodTableInitializationFlags.Unknown;
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         private readonly unsafe struct ISOSDac14VTable
         {

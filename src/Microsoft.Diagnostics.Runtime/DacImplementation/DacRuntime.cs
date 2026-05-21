@@ -39,6 +39,14 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             _sos.DacVersion = version;
         }
 
+        internal ulong GetStressLogAddress()
+        {
+            // Translate the wire-format ClrDataAddress to a target-process
+            // pointer; ToAddress un-sign-extends the high 32 bits on 32-bit
+            // targets so the address can be used directly with IDataReader.
+            return _sos.TryGetStressLogAddress(out ClrDataAddress addr) ? addr.ToAddress(_target) : 0;
+        }
+
         public IEnumerable<ClrThreadInfo> EnumerateThreads()
         {
             if (!_sos.GetThreadStoreData(out ThreadStoreData threadStore))

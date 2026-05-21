@@ -6,6 +6,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 
+// A type whose .cctor is never triggered by the test target. Used by the StaticFieldTests
+// regression test for issue #1448 to verify that ClrMD reports IsInitialized==false (and
+// GetAddress==0) for statics whose class constructor has not run, rather than reporting
+// IsInitialized==true with a slot address pointing at zeroed memory.
+public class UninitializedStatics
+{
+    public static int Int32Static = 100;
+    public static string StringStatic = "uninitialized class string";
+}
+
 public class Program
 {
     public static readonly int s_publicField;
@@ -34,6 +44,11 @@ public class Program
 
     private static void Main()
     {
+        // Force the runtime to load UninitializedStatics' MethodTable (via typeof) without
+        // running its .cctor, so the regression test for issue #1448 can find the type but
+        // observe IsInitialized==false on its statics.
+        GC.KeepAlive(typeof(UninitializedStatics));
+
         RuntimeHelpers.RunClassConstructor(typeof(PublicClass).TypeHandle);
         RuntimeHelpers.RunClassConstructor(typeof(PrivateClass).TypeHandle);
         RuntimeHelpers.RunClassConstructor(typeof(InternalClass).TypeHandle);

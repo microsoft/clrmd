@@ -156,6 +156,41 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         /// <summary>
+        /// Regression test for issue #1448 follow-up: ClrStaticField.IsInitialized must return
+        /// false (and GetAddress must return 0) for a type whose .cctor has not yet run. With
+        /// the new sos14-based static base APIs the per-type static area is allocated up front,
+        /// so naively returning <c>base + field.Offset</c> produces a non-zero slot pointing at
+        /// zeroed memory. That caused callers to believe their statics were initialized and
+        /// to silently read 0 / null for every primitive and reference static.
+        /// </summary>
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void StaticField_UninitializedClass_ReportsNotInitialized(bool singleFile)
+        {
+            using DataTarget dt = TestTargets.NestedTypes.LoadFullDump(singleFile);
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            ClrModule module = runtime.GetModule(TypeTests.NestedTypesModuleName);
+            ClrType type = module.GetTypeByName("UninitializedStatics");
+            Assert.NotNull(type);
+
+            ClrAppDomain domain = runtime.AppDomains.Single();
+
+            ClrStaticField intField = type.GetStaticFieldByName("Int32Static");
+            Assert.NotNull(intField);
+            Assert.False(intField.IsInitialized(domain));
+            Assert.Equal(0ul, intField.GetAddress(domain));
+            Assert.Equal(0, intField.Read<int>(domain));
+
+            ClrStaticField stringField = type.GetStaticFieldByName("StringStatic");
+            Assert.NotNull(stringField);
+            Assert.False(stringField.IsInitialized(domain));
+            Assert.Equal(0ul, stringField.GetAddress(domain));
+            Assert.True(stringField.ReadObject(domain).IsNull);
+        }
+
+        /// <summary>
         /// Regression test for issue #1448: ReadStruct on a primitive-typed static must
         /// return a ClrValueType pointing at the field slot (where the primitive value is
         /// stored inline), not garbage produced by treating the inline value as a boxed
