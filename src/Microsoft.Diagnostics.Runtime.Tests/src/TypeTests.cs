@@ -6,9 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Loader;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Xunit;
 
@@ -586,25 +584,20 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [WindowsFact]
         public void CollectibleTypeTest()
         {
-            CollectibleAssemblyLoadContext context = new();
-
-            RuntimeHelpers.RunClassConstructor(context.LoadFromAssemblyPath(Assembly.GetExecutingAssembly().Location)
-                .GetType(typeof(CollectibleUnmanagedStruct).FullName).TypeHandle);
-
-            RuntimeHelpers.RunClassConstructor(Assembly.GetExecutingAssembly()
-                .GetType(typeof(UncollectibleUnmanagedStruct).FullName).TypeHandle);
-
-            using DataTarget dataTarget = DataTarget.CreateSnapshotAndAttach(Environment.ProcessId);
-
-            ClrHeap heap = dataTarget.ClrVersions.Single(v => v.ModuleInfo.FileName.EndsWith("coreclr.dll", true, null)).CreateRuntime().Heap;
+            // The CollectibleTypes target loads its own assembly into a collectible
+            // ALC, runs CollectibleUnmanagedStruct's cctor inside it, then throws
+            // (the unhandled exception triggers the dump). Self-attach is not
+            // supported by ClrMD, so the test target captures the heap state for us.
+            using DataTarget dataTarget = TestTargets.CollectibleTypes.LoadFullDump();
+            using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
 
             ClrType[] types = heap.EnumerateObjects().Select(obj => obj.Type).ToArray();
 
             // Filter by IsCollectible: newer runtimes may also create a boxed static for
-            // the default-ALC's copy of this struct (triggered by various reflection paths
-            // in the xunit runner).  The scenario we're validating is specifically the
-            // one in the collectible ALC, so match that explicitly.
-            ClrType collectibleType = types.Single(type => type?.Name == typeof(CollectibleUnmanagedStruct).FullName && type.IsCollectible);
+            // the default-ALC's copy of this struct, so match the collectible-ALC instance
+            // explicitly.
+            ClrType collectibleType = types.Single(type => type?.Name == "CollectibleUnmanagedStruct" && type.IsCollectible);
 
             Assert.False(collectibleType.ContainsPointers);
             Assert.True(collectibleType.IsCollectible);
@@ -612,13 +605,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ulong obj = dataTarget.DataReader.ReadPointer(collectibleType.LoaderAllocatorHandle);
             Assert.Equal("System.Reflection.LoaderAllocator", heap.GetObjectType(obj).Name);
 
-            ClrType uncollectibleType = types.Single(type => type?.Name == typeof(UncollectibleUnmanagedStruct).FullName);
+            ClrType uncollectibleType = types.Single(type => type?.Name == "UncollectibleUnmanagedStruct");
 
             Assert.False(uncollectibleType.ContainsPointers);
             Assert.False(uncollectibleType.IsCollectible);
             Assert.Equal(default, uncollectibleType.LoaderAllocatorHandle);
-
-            context.Unload();
         }
 
         [Theory, MemberData(nameof(TypesVariants))]
@@ -649,23 +640,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ClrInterface[] clrInterfaces = clrType.EnumerateInterfaces().ToArray();
 
             Assert.NotEmpty(clrInterfaces);
-        }
-
-        private struct CollectibleUnmanagedStruct
-        {
-            public static CollectibleUnmanagedStruct Instance = default;
-        }
-
-        private struct UncollectibleUnmanagedStruct
-        {
-            public static UncollectibleUnmanagedStruct Instance = default;
-        }
-
-        private sealed class CollectibleAssemblyLoadContext : AssemblyLoadContext
-        {
-            public CollectibleAssemblyLoadContext() : base(true)
-            {
-            }
         }
     }
 
