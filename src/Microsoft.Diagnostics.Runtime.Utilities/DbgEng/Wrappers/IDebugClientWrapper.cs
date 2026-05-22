@@ -98,6 +98,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             GetVTable(this, out nint self, out IDebugClientVtable* vtable);
             if (callbacks is null)
             {
+                // Clear both ANSI and Wide slots to be safe.
+                vtable->SetOutputCallbacks(self, 0);
                 return vtable->SetOutputCallbacksWide(self, 0);
             }
             else
@@ -105,7 +107,16 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                 nint pUnk = DebugOutputCallbacksCOM.Instance.GetOrCreateComInterfaceForObject(callbacks, CreateComInterfaceFlags.None);
                 Marshal.QueryInterface(pUnk, in DebugOutputCallbacksCOM.IID_IOutputCallbacks2, out nint pOutputCallbacks);
 
-                int hr = vtable->SetOutputCallbacksWide(self, pOutputCallbacks);
+                // Register via ANSI SetOutputCallbacks. Diagnostic probe (in
+                // sibling native-debugger repo at C:\work\tmp\dbgcb-probe)
+                // proved dbgeng routes everything through
+                // IDebugOutputCallbacks2::Output2 regardless of which legacy
+                // slot was used to register, via internal QI; but the ANSI
+                // registration is what dbgeng's DML routing actually wires
+                // up. SetOutputCallbacksWide-only registration silently
+                // drops DML payloads (delivers ~36k spurious EXPLICIT_FLUSH
+                // callbacks instead of the requested TEXT/DML mix).
+                int hr = vtable->SetOutputCallbacks(self, pOutputCallbacks);
 
                 Marshal.Release(pOutputCallbacks);
                 Marshal.Release(pUnk);
@@ -117,7 +128,21 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         int IDebugClient.SetOutputCallbacks(nint pCallbacks)
         {
             GetVTable(this, out nint self, out IDebugClientVtable* vtable);
-            return vtable->SetOutputCallbacksWide(self, pCallbacks);
+            return vtable->SetOutputCallbacks(self, pCallbacks);
+        }
+
+        uint IDebugClient.GetOutputMask()
+        {
+            GetVTable(this, out nint self, out IDebugClientVtable* vtable);
+            uint mask = 0;
+            vtable->GetOutputMask(self, &mask);
+            return mask;
+        }
+
+        int IDebugClient.SetOutputMask(uint mask)
+        {
+            GetVTable(this, out nint self, out IDebugClientVtable* vtable);
+            return vtable->SetOutputMask(self, mask);
         }
 
         nint IDebugClient.GetEventCallbacks()

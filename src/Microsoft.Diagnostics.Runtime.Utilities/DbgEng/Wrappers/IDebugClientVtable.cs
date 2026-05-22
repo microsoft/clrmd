@@ -44,9 +44,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         private readonly nint GetInputCallbacks;
         private readonly nint SetInputCallbacks;
         private readonly nint GetOutputCallbacks;
-        private readonly nint SetOutputCallbacks;
-        private readonly nint GetOutputMask;
-        private readonly nint SetOutputMask;
+        public readonly delegate* unmanaged[Stdcall]<nint, nint, int> SetOutputCallbacks;
+        public readonly delegate* unmanaged[Stdcall]<nint, uint*, int> GetOutputMask;
+        public readonly delegate* unmanaged[Stdcall]<nint, uint, int> SetOutputMask;
         private readonly nint GetOtherOutputMask;
         private readonly nint SetOtherOutputMask;
         private readonly nint GetOutputWidth;
