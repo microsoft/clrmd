@@ -227,19 +227,29 @@ namespace Microsoft.Diagnostics.Runtime
                 }
             }
 
-            // ImagePath: prefer the first non-interpreter loaded image whose path
-            // matches AT_EXECFN's basename when available; otherwise fall back to
-            // the first non-interpreter image.
-            ulong interpreter = _core.GetAuxvValue(ElfAuxvType.Base);
-            string? imagePath = null;
-            foreach (ElfLoadedImage image in _core.LoadedImages.Values)
+            // ImagePath: prefer AT_EXECFN (kernel-recorded absolute path of
+            // the originally exec()'d binary) — this is the only auxv entry
+            // that uniquely identifies the main executable. Fall back to
+            // the first non-interpreter LoadedImage when AT_EXECFN is
+            // absent or unreadable. The legacy "first LoadedImage" path
+            // returns whatever ImmutableDictionary enumerated first, which
+            // is essentially arbitrary across runs and tends to surface a
+            // managed .dll on .NET cores rather than the actual exe
+            // (the kernel loads the .NET host last, so the host is rarely
+            // first in load-address order).
+            string? imagePath = TryGetImagePathFromAuxv();
+            if (imagePath is null)
             {
-                if (image.BaseAddress == interpreter)
-                    continue;
-                if (image.FileName.StartsWith("/dev", StringComparison.Ordinal))
-                    continue;
-                imagePath = image.FileName.Replace(" (deleted)", "");
-                break;
+                ulong interpreter = _core.GetAuxvValue(ElfAuxvType.Base);
+                foreach (ElfLoadedImage image in _core.LoadedImages.Values)
+                {
+                    if (image.BaseAddress == interpreter)
+                        continue;
+                    if (image.FileName.StartsWith("/dev", StringComparison.Ordinal))
+                        continue;
+                    imagePath = image.FileName.Replace(" (deleted)", "");
+                    break;
+                }
             }
 
             return new ProcessInfo
@@ -257,6 +267,57 @@ namespace Microsoft.Diagnostics.Runtime
                 ProcessorCount = 0,
                 DumpTimestampUtc = null,
             };
+        }
+
+        /// <summary>
+        /// Reads the absolute path of the originally exec()'d binary from
+        /// the ELF core's auxiliary vector. The auxv entry AT_EXECFN holds
+        /// a pointer (into the target process's address space) to a
+        /// NUL-terminated string with the kernel-recorded path. Returns
+        /// null when the auxv entry is missing, the pointer can't be
+        /// dereferenced from the dump's mapped memory, or the string is
+        /// empty.
+        /// </summary>
+        private string? TryGetImagePathFromAuxv()
+        {
+            ulong execfnPtr = _core.GetAuxvValue(ElfAuxvType.Execfn);
+            if (execfnPtr == 0)
+                return null;
+
+            // PATH_MAX on Linux is 4096; cap the read so a corrupt auxv
+            // pointer into a large readable region can't make us hang
+            // looking for a NUL byte. AT_EXECFN by convention ends within
+            // PATH_MAX.
+            const int maxLen = 4096;
+            Span<byte> buffer = stackalloc byte[256];
+            var sb = new System.Text.StringBuilder();
+            ulong cursor = execfnPtr;
+            while (sb.Length < maxLen)
+            {
+                int read = _core.ReadMemory(cursor, buffer);
+                if (read <= 0)
+                    return null;
+
+                for (int i = 0; i < read; i++)
+                {
+                    byte b = buffer[i];
+                    if (b == 0)
+                    {
+                        string s = sb.ToString();
+                        return s.Length == 0 ? null : s.Replace(" (deleted)", "");
+                    }
+                    // Auxv strings are ASCII paths. Reject any high-bit
+                    // byte — that's almost certainly a stale pointer into
+                    // non-text memory rather than the actual path.
+                    if (b >= 0x80)
+                        return null;
+                    sb.Append((char)b);
+                }
+
+                cursor += (ulong)read;
+            }
+
+            return null;
         }
 
         // -- IMemoryRegionReader --
