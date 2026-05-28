@@ -138,6 +138,19 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // Image path should resolve to the EXE/host that created the dump.
             Assert.False(string.IsNullOrWhiteSpace(info.ImagePath), "ImagePath was empty");
 
+            // Image path basename should actually be the test target binary
+            // (e.g. "Types" on Linux, "Types.exe" on Windows). The whole
+            // point of ImagePath is "the main executable" — historically
+            // the Linux CoredumpReader path returned a managed-DLL filename
+            // because it walked LoadedImages in load-address order and
+            // grabbed the first non-interpreter entry. Anchor that
+            // regression here so it can't silently recur (see #ELF_AT_EXECFN).
+            string expectedBase = info.TargetPlatform == OSPlatform.Windows
+                ? "Types.exe"
+                : "Types";
+            string actualBase = System.IO.Path.GetFileName(info.ImagePath!);
+            Assert.Equal(expectedBase, actualBase, ignoreCase: false);
+
             // ProcessorCount is only carried by Windows minidumps.
             if (info.TargetPlatform == OSPlatform.Windows)
                 Assert.True(info.ProcessorCount >= 1, $"ProcessorCount={info.ProcessorCount}");
