@@ -55,6 +55,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         int SetOutputCallbacks(IDebugOutputCallbacks? callbacks);
         int SetOutputCallbacks(nint pCallbacks);
 
+        uint GetOutputMask();
+        int SetOutputMask(uint mask);
+
         nint GetEventCallbacks();
         int SetEventCallbacks(IDebugEventCallbacks? callbacks);
         int SetEventCallbacks(nint pCallbacks);

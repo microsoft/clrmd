@@ -16,7 +16,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
         DEBUGGEE = 0x80,
         DEBUGGEE_PROMPT = 0x100,
         SYMBOLS = 0x200,
+        STATUS = 0x400,
+        /// <summary>Output from commands like <c>!analyze -xml</c> that emit XML/markup.</summary>
+        XML = 0x800,
 
-        ALL = NORMAL | ERROR | WARNING | VERBOSE | PROMPT | PROMPT_REGISTERS | EXTENSION_WARNING | DEBUGGEE | DEBUGGEE_PROMPT | SYMBOLS,
+        ALL = NORMAL | ERROR | WARNING | VERBOSE | PROMPT | PROMPT_REGISTERS | EXTENSION_WARNING | DEBUGGEE | DEBUGGEE_PROMPT | SYMBOLS | STATUS | XML,
     }
 }
