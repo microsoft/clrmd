@@ -21,7 +21,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         /// <summary>
         /// The opt-in <see cref="DataTargetOptions.UseLockFreeMemoryMapReader"/>
-        /// reader: single-threaded, lock-free, memory-mapped over the dump file.
+        /// reader: thread-safe for concurrent memory reads/direct spans, lock-free, and
+        /// memory-mapped over the dump file. Dispose must not race active use.
         /// </summary>
         LockFreeMmf,
     }
