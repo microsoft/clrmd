@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Immutable;
 using System.IO;
+using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -93,19 +94,24 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             get
             {
-                if (_dynamicSection is null)
+                ElfDynamicSection? cached = Volatile.Read(ref _dynamicSection);
+                if (cached is not null)
+                    return cached;
+
+                ElfDynamicSection? fresh = null;
+                foreach (ElfProgramHeader? header in ProgramHeaders)
                 {
-                    foreach (ElfProgramHeader? header in ProgramHeaders)
+                    if (header.Type == ElfProgramHeaderType.Dynamic)
                     {
-                        if (header.Type == ElfProgramHeaderType.Dynamic)
-                        {
-                            _dynamicSection = new ElfDynamicSection(Reader, Header.Is64Bit, _position + (_virtual ? header.VirtualAddress : header.FileOffset), _virtual ? header.VirtualSize : header.FileSize, _limits);
-                            break;
-                        }
+                        fresh = new ElfDynamicSection(Reader, Header.Is64Bit, _position + (_virtual ? header.VirtualAddress : header.FileOffset), _virtual ? header.VirtualSize : header.FileSize, _limits);
+                        break;
                     }
                 }
 
-                return _dynamicSection;
+                if (fresh is null)
+                    return null;
+
+                return Interlocked.CompareExchange(ref _dynamicSection, fresh, null) ?? fresh;
             }
         }
 
@@ -223,7 +229,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private void CreateVirtualAddressReader()
         {
-            _virtualAddressReader ??= new Reader(new ElfVirtualAddressSpace(ProgramHeaders, Reader.DataSource));
+            if (Volatile.Read(ref _virtualAddressReader) is not null)
+                return;
+
+            Reader fresh = new(new ElfVirtualAddressSpace(ProgramHeaders, Reader.DataSource));
+            Interlocked.CompareExchange(ref _virtualAddressReader, fresh, null);
         }
 
         private void LoadNotes()

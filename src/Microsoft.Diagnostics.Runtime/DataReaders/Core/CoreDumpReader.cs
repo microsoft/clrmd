@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -18,7 +19,9 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly DataTargetLimits? _limits;
         private Dictionary<uint, IElfPRStatus>? _threads;
         private List<ModuleInfo>? _modules;
-        private bool? _isCreatedByDotNetRuntime;
+        // 0 = unknown, 1 = false, 2 = true. Single int gives an atomic, lock-free
+        // tri-state without the torn-read hazard of Nullable<bool> (which is two fields).
+        private int _isCreatedByDotNetRuntimeState;
 
         public string DisplayName { get; }
         public OSPlatform TargetPlatform => OSPlatform.Linux;
@@ -46,7 +49,7 @@ namespace Microsoft.Diagnostics.Runtime
             };
         }
 
-        public bool IsThreadSafe => false;
+        public bool IsThreadSafe => true;
 
         public bool IsMiniOrTriage => false;
 
@@ -54,8 +57,14 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                _isCreatedByDotNetRuntime ??= SpecialDiagInfo.TryReadSpecialDiagInfo(this, out _);
-                return _isCreatedByDotNetRuntime.Value;
+                int s = Volatile.Read(ref _isCreatedByDotNetRuntimeState);
+                if (s != 0)
+                    return s == 2;
+
+                bool result = SpecialDiagInfo.TryReadSpecialDiagInfo(this, out _);
+                int newState = result ? 2 : 1;
+                int publishedState = Interlocked.CompareExchange(ref _isCreatedByDotNetRuntimeState, newState, 0);
+                return publishedState == 0 ? result : publishedState == 2;
             }
         }
 
@@ -77,20 +86,23 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IEnumerable<ModuleInfo> EnumerateModules()
         {
-            if (_modules is null)
-            {
-                // Need to filter out non-modules like the interpreter (named something
-                // like "ld-2.23") and anything that starts with /dev/ because their
-                // memory range overlaps with actual modules.
-                ulong interpreter = _core.GetAuxvValue(ElfAuxvType.Base);
+            List<ModuleInfo>? modules = Volatile.Read(ref _modules);
+            if (modules is not null)
+                return modules;
 
-                _modules = new List<ModuleInfo>();
-                foreach (ElfLoadedImage image in _core.LoadedImages.Values)
-                    if (image.BaseAddress != interpreter && !image.FileName.StartsWith("/dev", StringComparison.Ordinal))
-                        _modules.Add(CreateModuleInfo(image));
-            }
+            // Need to filter out non-modules like the interpreter (named something
+            // like "ld-2.23") and anything that starts with /dev/ because their
+            // memory range overlaps with actual modules.
+            ulong interpreter = _core.GetAuxvValue(ElfAuxvType.Base);
 
-            return _modules;
+            List<ModuleInfo> fresh = new();
+            foreach (ElfLoadedImage image in _core.LoadedImages.Values)
+                if (image.BaseAddress != interpreter && !image.FileName.StartsWith("/dev", StringComparison.Ordinal))
+                    fresh.Add(CreateModuleInfo(image));
+
+            // First publisher wins; subsequent callers see the same list. Concurrent
+            // double-construction is wasted work but never produces a torn view.
+            return Interlocked.CompareExchange(ref _modules, fresh, null) ?? fresh;
         }
 
         private ModuleInfo CreateModuleInfo(ElfLoadedImage image)
@@ -112,8 +124,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         public void FlushCachedData()
         {
-            _threads = null;
-            _modules = null;
+            Volatile.Write(ref _threads, null);
+            Volatile.Write(ref _modules, null);
+            Volatile.Write(ref _isCreatedByDotNetRuntimeState, 0);
         }
 
         public Architecture Architecture { get; }
@@ -146,18 +159,16 @@ namespace Microsoft.Diagnostics.Runtime
 
         private Dictionary<uint, IElfPRStatus> LoadThreads()
         {
-            Dictionary<uint, IElfPRStatus>? threads = _threads;
+            Dictionary<uint, IElfPRStatus>? threads = Volatile.Read(ref _threads);
+            if (threads is not null)
+                return threads;
 
-            if (threads is null)
-            {
-                threads = new Dictionary<uint, IElfPRStatus>();
-                foreach (IElfPRStatus status in _core.EnumeratePRStatus())
-                    threads.Add(status.ThreadId, status);
+            Dictionary<uint, IElfPRStatus> fresh = new();
+            foreach (IElfPRStatus status in _core.EnumeratePRStatus())
+                fresh.Add(status.ThreadId, status);
 
-                _threads = threads;
-            }
-
-            return threads;
+            // First publisher wins; the loser's Dictionary is dropped on the floor.
+            return Interlocked.CompareExchange(ref _threads, fresh, null) ?? fresh;
         }
 
         public IReadOnlyList<DumpMemorySegment> EnumerateMemorySegments()
