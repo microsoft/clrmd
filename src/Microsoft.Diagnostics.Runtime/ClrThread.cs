@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -21,6 +21,8 @@ namespace Microsoft.Diagnostics.Runtime
         private ClrException? _lastThrownException;
         private volatile Cache<ClrStackFrame>? _frameCache;
         private volatile Cache<ClrStackRoot>? _rootCache;
+        private readonly object _rootCacheLock = new();
+        private readonly object _frameCacheLock = new();
 
         internal ClrThread(IDataReader dataReader, ClrRuntime runtime, IAbstractThreadHelpers? helpers, in ClrThreadInfo threadInfo)
         {
@@ -127,26 +129,32 @@ namespace Microsoft.Diagnostics.Runtime
             if (cache is not null)
                 return Array.AsReadOnly(cache.Elements);
 
-            ClrHeap heap = Runtime.Heap;
-            ClrStackFrame[] frames = GetFramesForRoots();
-            IEnumerable<ClrStackRoot> roots = threadHelpers.EnumerateStackRoots(OSThreadId, traceErrors: IsAlive).Select(r => CreateClrStackRoot(heap, frames, r)).Where(r => r is not null)!;
             if (!Runtime.DataTarget.CacheOptions.CacheStackRoots)
-                return roots;
-
-            return CacheAndReturnRoots(roots);
-        }
-
-        private IEnumerable<ClrStackRoot> CacheAndReturnRoots(IEnumerable<ClrStackRoot> roots)
-        {
-            List<ClrStackRoot> cache = new();
-            foreach (ClrStackRoot root in roots)
             {
-                cache.Add(root);
-                yield return root;
+                ClrHeap heap = Runtime.Heap;
+                ClrStackFrame[] frames = GetFramesForRoots();
+                return threadHelpers.EnumerateStackRoots(OSThreadId, traceErrors: IsAlive).Select(r => CreateClrStackRoot(heap, frames, r)).Where(r => r is not null)!;
             }
 
-            // it's ok if we race and replace another cache as this will stabilize eventually
-            _rootCache ??= new(cache.ToArray(), false);
+            // Serialize cache population: the DAC is not thread-safe, so concurrent
+            // calls to EnumerateStackRoots for the same OSThreadId can return truncated
+            // results. Without serialization, a racing thread could publish a partial
+            // result to _rootCache and "stabilize" the wrong value forever.
+            lock (_rootCacheLock)
+            {
+                cache = _rootCache;
+                if (cache is not null)
+                    return Array.AsReadOnly(cache.Elements);
+
+                ClrHeap heap = Runtime.Heap;
+                ClrStackFrame[] frames = GetFramesForRoots();
+                ClrStackRoot[] roots = threadHelpers.EnumerateStackRoots(OSThreadId, traceErrors: IsAlive)
+                    .Select(r => CreateClrStackRoot(heap, frames, r))
+                    .Where(r => r is not null)
+                    .ToArray()!;
+                _rootCache = new(roots, false);
+                return Array.AsReadOnly(roots);
+            }
         }
 
         private ClrStackFrame[] GetFramesForRoots()
@@ -159,15 +167,24 @@ namespace Microsoft.Diagnostics.Runtime
             if (cache is not null)
                 return cache.Elements;
 
-            // We need to make sure we don't loop forever when enumerating the stack trace.
-            // We will only cache the stack if we completed enumeratione (i.e. got less
-            // than maxFrames frames)
-            int maxFrames = Runtime.DataTarget.Options.Limits.MaxStackFrames;
-            ClrStackFrame[] stack = threadHelpers.EnumerateStackTrace(OSThreadId, includeContext: false, traceErrors: IsAlive).Select(r => CreateClrStackFrame(r)).Take(maxFrames).ToArray();
-            if (Runtime.DataTarget.CacheOptions.CacheStackTraces && stack.Length < maxFrames)
-                _frameCache = new(stack, includedContext: false);
+            // Serialize cache population so concurrent DAC stack-walks don't truncate
+            // each other and publish a partial frame array.
+            lock (_frameCacheLock)
+            {
+                cache = _frameCache;
+                if (cache is not null)
+                    return cache.Elements;
 
-            return stack;
+                // We need to make sure we don't loop forever when enumerating the stack trace.
+                // We will only cache the stack if we completed enumeration (i.e. got less
+                // than maxFrames frames)
+                int maxFrames = Runtime.DataTarget.Options.Limits.MaxStackFrames;
+                ClrStackFrame[] stack = maxFrames <= 0 ? Array.Empty<ClrStackFrame>() : threadHelpers.EnumerateStackTrace(OSThreadId, includeContext: false, maxFrames: maxFrames, traceErrors: IsAlive).Select(r => CreateClrStackFrame(r)).Take(maxFrames).ToArray();
+                if (Runtime.DataTarget.CacheOptions.CacheStackTraces && stack.Length < maxFrames)
+                    _frameCache = new(stack, includedContext: false);
+
+                return stack;
+            }
         }
 
         private ClrStackRoot? CreateClrStackRoot(ClrHeap heap, ClrStackFrame[] stack, StackRootInfo stackRef)
@@ -244,29 +261,33 @@ namespace Microsoft.Diagnostics.Runtime
             if (threadHelpers is null)
                 return Array.Empty<ClrStackFrame>();
 
+            if (maxFrames <= 0)
+                return Array.Empty<ClrStackFrame>();
+
             Cache<ClrStackFrame>? cache = _frameCache;
             if (cache is not null && (!includeContext || cache.IncludedContext))
-                return Array.AsReadOnly(cache.Elements);
+                return cache.Elements.Length <= maxFrames ? Array.AsReadOnly(cache.Elements) : cache.Elements.Take(maxFrames);
 
-            IEnumerable<ClrStackFrame> frames = threadHelpers.EnumerateStackTrace(OSThreadId, includeContext, traceErrors: IsAlive).Select(r => CreateClrStackFrame(r));
             if (!Runtime.DataTarget.CacheOptions.CacheStackTraces)
-                return frames;
+                return threadHelpers.EnumerateStackTrace(OSThreadId, includeContext, maxFrames, traceErrors: IsAlive).Select(r => CreateClrStackFrame(r)).Take(maxFrames);
 
-            return CacheAndReturnFrames(includeContext, frames);
-        }
-
-        private IEnumerable<ClrStackFrame> CacheAndReturnFrames(bool includeContext, IEnumerable<ClrStackFrame> frames)
-        {
-            // Only cache frames if enumeration completed and the user didn't break out of the loop
-            List<ClrStackFrame> cachedFrames = new();
-            foreach (ClrStackFrame frame in frames)
+            // Serialize cache population so concurrent DAC stack-walks don't truncate
+            // each other and publish a partial frame array.
+            lock (_frameCacheLock)
             {
-                cachedFrames.Add(frame);
-                yield return frame;
-            }
+                cache = _frameCache;
+                if (cache is not null && (!includeContext || cache.IncludedContext))
+                    return cache.Elements.Length <= maxFrames ? Array.AsReadOnly(cache.Elements) : cache.Elements.Take(maxFrames);
 
-            // it's ok if we race and replace another cache as this will stabilize eventually
-            _frameCache ??= new(cachedFrames.ToArray(), includeContext);
+                ClrStackFrame[] frames = threadHelpers.EnumerateStackTrace(OSThreadId, includeContext, maxFrames, traceErrors: IsAlive)
+                    .Select(r => CreateClrStackFrame(r))
+                    .Take(maxFrames)
+                    .ToArray();
+                if (frames.Length < maxFrames)
+                    _frameCache = new(frames, includeContext);
+
+                return Array.AsReadOnly(frames);
+            }
         }
 
         private ClrStackFrame CreateClrStackFrame(in StackFrameInfo frame)

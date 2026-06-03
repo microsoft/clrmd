@@ -31,211 +31,279 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public IEnumerable<ClrNativeHeapInfo> EnumerateGCFreeRegions()
         {
-            using (SosMemoryEnum? memoryEnum = _sos13?.GetGCFreeRegions())
+            List<ClrNativeHeapInfo>? results = null;
+            lock (_sos.SyncRoot)
             {
-                if (memoryEnum is not null)
+                using SosMemoryEnum? memoryEnum = _sos13?.GetGCFreeRegions();
+                if (memoryEnum is null)
+                    return Array.Empty<ClrNativeHeapInfo>();
+
+                foreach (SosMemoryRegion mem in memoryEnum)
                 {
-                    foreach (SosMemoryRegion mem in memoryEnum)
+                    NativeHeapKind kind = mem.ExtraData.ToAddress(_target) switch
                     {
-                        NativeHeapKind kind = mem.ExtraData.ToAddress(_target) switch
-                        {
-                            1 => NativeHeapKind.GCFreeGlobalHugeRegion,
-                            2 => NativeHeapKind.GCFreeGlobalRegion,
-                            3 => NativeHeapKind.GCFreeRegion,
-                            4 => NativeHeapKind.GCFreeSohSegment,
-                            5 => NativeHeapKind.GCFreeUohSegment,
-                            _ => NativeHeapKind.GCFreeRegion
-                        };
+                        1 => NativeHeapKind.GCFreeGlobalHugeRegion,
+                        2 => NativeHeapKind.GCFreeGlobalRegion,
+                        3 => NativeHeapKind.GCFreeRegion,
+                        4 => NativeHeapKind.GCFreeSohSegment,
+                        5 => NativeHeapKind.GCFreeUohSegment,
+                        _ => NativeHeapKind.GCFreeRegion
+                    };
 
-                        ulong raw = mem.Start.ToAddress(_target);
-                        ulong start = raw & ~0xfful;
-                        ulong diff = raw - start;
-                        ulong len = mem.Length.ToAddress(_target) + diff;
+                    ulong raw = mem.Start.ToAddress(_target);
+                    ulong start = raw & ~0xfful;
+                    ulong diff = raw - start;
+                    ulong len = mem.Length.ToAddress(_target) + diff;
 
-                        yield return new ClrNativeHeapInfo(MemoryRange.CreateFromLength(start, len), kind, ClrNativeHeapState.Inactive, mem.Heap);
-                    }
+                    results ??= new();
+                    results.Add(new ClrNativeHeapInfo(MemoryRange.CreateFromLength(start, len), kind, ClrNativeHeapState.Inactive, mem.Heap));
                 }
             }
+
+            return (IEnumerable<ClrNativeHeapInfo>?)results ?? Array.Empty<ClrNativeHeapInfo>();
         }
 
         public IEnumerable<ClrNativeHeapInfo> EnumerateHandleTableRegions()
         {
-            using (SosMemoryEnum? memoryEnum = _sos13?.GetHandleTableRegions())
+            List<ClrNativeHeapInfo>? results = null;
+            lock (_sos.SyncRoot)
             {
-                if (memoryEnum is not null)
+                using SosMemoryEnum? memoryEnum = _sos13?.GetHandleTableRegions();
+                if (memoryEnum is null)
+                    return Array.Empty<ClrNativeHeapInfo>();
+
+                foreach (SosMemoryRegion mem in memoryEnum)
                 {
-                    foreach (SosMemoryRegion mem in memoryEnum)
-                        yield return new ClrNativeHeapInfo(MemoryRange.CreateFromLength(mem.Start.ToAddress(_target), mem.Length.ToAddress(_target)), NativeHeapKind.HandleTable, ClrNativeHeapState.Active, mem.Heap);
+                    results ??= new();
+                    results.Add(new ClrNativeHeapInfo(MemoryRange.CreateFromLength(mem.Start.ToAddress(_target), mem.Length.ToAddress(_target)), NativeHeapKind.HandleTable, ClrNativeHeapState.Active, mem.Heap));
                 }
             }
+
+            return (IEnumerable<ClrNativeHeapInfo>?)results ?? Array.Empty<ClrNativeHeapInfo>();
         }
 
         public IEnumerable<ClrNativeHeapInfo> EnumerateGCBookkeepingRegions()
         {
-            using (SosMemoryEnum? memoryEnum = _sos13?.GetGCBookkeepingMemoryRegions())
+            List<ClrNativeHeapInfo>? results = null;
+            lock (_sos.SyncRoot)
             {
-                if (memoryEnum is not null)
+                using SosMemoryEnum? memoryEnum = _sos13?.GetGCBookkeepingMemoryRegions();
+                if (memoryEnum is null)
+                    return Array.Empty<ClrNativeHeapInfo>();
+
+                foreach (SosMemoryRegion mem in memoryEnum)
                 {
-                    foreach (SosMemoryRegion mem in memoryEnum)
-                        yield return new ClrNativeHeapInfo(MemoryRange.CreateFromLength(mem.Start.ToAddress(_target), mem.Length.ToAddress(_target)), NativeHeapKind.GCBookkeeping, ClrNativeHeapState.RegionOfRegions);
+                    results ??= new();
+                    results.Add(new ClrNativeHeapInfo(MemoryRange.CreateFromLength(mem.Start.ToAddress(_target), mem.Length.ToAddress(_target)), NativeHeapKind.GCBookkeeping, ClrNativeHeapState.RegionOfRegions));
                 }
             }
+
+            return (IEnumerable<ClrNativeHeapInfo>?)results ?? Array.Empty<ClrNativeHeapInfo>();
         }
 
         public IEnumerable<ClrSyncBlockCleanupData> EnumerateSyncBlockCleanupData()
         {
-            HashSet<ulong> seen = [0];
-            ulong syncBlock = 0;
-            HResult hr = default;
-            // For back-compat with older versions of CLRMD, SOS returns E_INVALIDARG if you pass in 0 for the sync block.
-            // So we will continue on E_INVALIDARG if it is this special case of passing 0 to start enumerating.
-            while ((hr = _sos.GetSyncBlockCleanupData(ClrDataAddress.FromTargetAddress(syncBlock, _target), out SyncBlockCleanupData data)) || (hr == HResult.E_INVALIDARG && syncBlock == 0))
+            List<ClrSyncBlockCleanupData>? results = null;
+            lock (_sos.SyncRoot)
             {
-                yield return new(data.SyncBlockPointer.ToAddress(_target), data.BlockRCW.ToAddress(_target), data.BlockCCW.ToAddress(_target), data.BlockClassFactory.ToAddress(_target));
+                HashSet<ulong> seen = [0];
+                ulong syncBlock = 0;
+                HResult hr = default;
+                // For back-compat with older versions of CLRMD, SOS returns E_INVALIDARG if you pass in 0 for the sync block.
+                // So we will continue on E_INVALIDARG if it is this special case of passing 0 to start enumerating.
+                while ((hr = _sos.GetSyncBlockCleanupData(ClrDataAddress.FromTargetAddress(syncBlock, _target), out SyncBlockCleanupData data)) || (hr == HResult.E_INVALIDARG && syncBlock == 0))
+                {
+                    results ??= new();
+                    results.Add(new(data.SyncBlockPointer.ToAddress(_target), data.BlockRCW.ToAddress(_target), data.BlockCCW.ToAddress(_target), data.BlockClassFactory.ToAddress(_target)));
 
-                if (!seen.Add(data.NextSyncBlock.ToAddress(_target)))
-                    break;
+                    if (!seen.Add(data.NextSyncBlock.ToAddress(_target)))
+                        break;
 
-                syncBlock = data.NextSyncBlock.ToAddress(_target);
+                    syncBlock = data.NextSyncBlock.ToAddress(_target);
+                }
             }
+
+            return (IEnumerable<ClrSyncBlockCleanupData>?)results ?? Array.Empty<ClrSyncBlockCleanupData>();
         }
 
         private NativeHeapKind[] GetNativeHeaps()
         {
-            if (_heapNativeTypes is not null)
-                return _heapNativeTypes;
+            NativeHeapKind[]? heapNativeTypes = _heapNativeTypes;
+            if (heapNativeTypes is not null)
+                return heapNativeTypes;
 
             if (_sos13 is null)
-                return _heapNativeTypes = Array.Empty<NativeHeapKind>();
+                heapNativeTypes = Array.Empty<NativeHeapKind>();
+            else
+                heapNativeTypes = _sos13.GetLoaderAllocatorHeapNames().Select(r => r switch {
+                    "LowFrequencyHeap" => NativeHeapKind.LowFrequencyHeap,
+                    "HighFrequencyHeap" => NativeHeapKind.HighFrequencyHeap,
+                    "StubHeap" => NativeHeapKind.StubHeap,
+                    "ExecutableHeap" => NativeHeapKind.ExecutableHeap,
+                    "FixupPrecodeHeap" => NativeHeapKind.FixupPrecodeHeap,
+                    "NewStubPrecodeHeap" => NativeHeapKind.NewStubPrecodeHeap,
+                    "IndcellHeap" => NativeHeapKind.IndirectionCellHeap,
+                    "LookupHeap" => NativeHeapKind.LookupHeap,
+                    "ResolveHeap" => NativeHeapKind.ResolveHeap,
+                    "DispatchHeap" => NativeHeapKind.DispatchHeap,
+                    "CacheEntryHeap" => NativeHeapKind.CacheEntryHeap,
+                    "VtableHeap" => NativeHeapKind.VtableHeap,
+                    _ => NativeHeapKind.Unknown
+                }).ToArray();
 
-            return _heapNativeTypes = _sos13.GetLoaderAllocatorHeapNames().Select(r => r switch {
-                "LowFrequencyHeap" => NativeHeapKind.LowFrequencyHeap,
-                "HighFrequencyHeap" => NativeHeapKind.HighFrequencyHeap,
-                "StubHeap" => NativeHeapKind.StubHeap,
-                "ExecutableHeap" => NativeHeapKind.ExecutableHeap,
-                "FixupPrecodeHeap" => NativeHeapKind.FixupPrecodeHeap,
-                "NewStubPrecodeHeap" => NativeHeapKind.NewStubPrecodeHeap,
-                "IndcellHeap" => NativeHeapKind.IndirectionCellHeap,
-                "LookupHeap" => NativeHeapKind.LookupHeap,
-                "ResolveHeap" => NativeHeapKind.ResolveHeap,
-                "DispatchHeap" => NativeHeapKind.DispatchHeap,
-                "CacheEntryHeap" => NativeHeapKind.CacheEntryHeap,
-                "VtableHeap" => NativeHeapKind.VtableHeap,
-                _ => NativeHeapKind.Unknown
-            }).ToArray();
+            _heapNativeTypes = heapNativeTypes;
+            return heapNativeTypes;
         }
 
         public IEnumerable<ClrNativeHeapInfo> EnumerateJitManagerHeaps(ulong jitManager)
         {
-            List<ClrNativeHeapInfo>? codeLoaderHeaps = null;
-
-            foreach (JitCodeHeapInfo mem in _sos.GetCodeHeapList(ClrDataAddress.FromTargetAddress(jitManager, _target)))
+            List<ClrNativeHeapInfo>? results = null;
+            lock (_sos.SyncRoot)
             {
-                if (mem.Kind == CodeHeapKind.Loader)
+                foreach (JitCodeHeapInfo mem in _sos.GetCodeHeapList(ClrDataAddress.FromTargetAddress(jitManager, _target)))
                 {
-                    codeLoaderHeaps?.Clear();
-
-                    foreach (ClrNativeHeapInfo heap in LegacyEnumerateLoaderAllocatorHeaps(mem.Address.ToAddress(_target), LoaderHeapKind.LoaderHeapKindExplicitControl, NativeHeapKind.LoaderCodeHeap))
-                        yield return heap;
-                }
-                else if (mem.Kind == CodeHeapKind.Host)
-                {
-                    yield return new ClrNativeHeapInfo(new(mem.Address.ToAddress(_target), mem.CurrentAddress.ToAddress(_target)), NativeHeapKind.HostCodeHeap, ClrNativeHeapState.Active);
-                }
-                else
-                {
-                    ulong addr = mem.Address.ToAddress(_target);
-                    yield return new ClrNativeHeapInfo(new(addr, addr), NativeHeapKind.Unknown, ClrNativeHeapState.None);
+                    if (mem.Kind == CodeHeapKind.Loader)
+                    {
+                        foreach (ClrNativeHeapInfo heap in LegacyEnumerateLoaderAllocatorHeaps(mem.Address.ToAddress(_target), LoaderHeapKind.LoaderHeapKindExplicitControl, NativeHeapKind.LoaderCodeHeap))
+                        {
+                            results ??= new();
+                            results.Add(heap);
+                        }
+                    }
+                    else if (mem.Kind == CodeHeapKind.Host)
+                    {
+                        results ??= new();
+                        results.Add(new ClrNativeHeapInfo(new(mem.Address.ToAddress(_target), mem.CurrentAddress.ToAddress(_target)), NativeHeapKind.HostCodeHeap, ClrNativeHeapState.Active));
+                    }
+                    else
+                    {
+                        ulong addr = mem.Address.ToAddress(_target);
+                        results ??= new();
+                        results.Add(new ClrNativeHeapInfo(new(addr, addr), NativeHeapKind.Unknown, ClrNativeHeapState.None));
+                    }
                 }
             }
+
+            return (IEnumerable<ClrNativeHeapInfo>?)results ?? Array.Empty<ClrNativeHeapInfo>();
         }
 
         public IEnumerable<ClrNativeHeapInfo> EnumerateDomainHeaps(ulong domain)
         {
             if (domain == 0)
-                yield break;
+                return Array.Empty<ClrNativeHeapInfo>();
 
-            ulong loaderAllocator;
-            if (_sos13 is not null
-                && (loaderAllocator = _sos13.GetDomainLoaderAllocator(ClrDataAddress.FromTargetAddress(domain, _target)).ToAddress(_target)) != 0
-                && GetNativeHeaps().Length > 0)
+            List<ClrNativeHeapInfo>? results = null;
+            lock (_sos.SyncRoot)
             {
-                foreach (ClrNativeHeapInfo heap in EnumerateLoaderAllocatorNativeHeaps(loaderAllocator))
-                    yield return heap;
+                ulong loaderAllocator;
+                if (_sos13 is not null
+                    && (loaderAllocator = _sos13.GetDomainLoaderAllocator(ClrDataAddress.FromTargetAddress(domain, _target)).ToAddress(_target)) != 0
+                    && GetNativeHeaps().Length > 0)
+                {
+                    foreach (ClrNativeHeapInfo heap in EnumerateLoaderAllocatorNativeHeapsLocked(loaderAllocator))
+                    {
+                        results ??= new();
+                        results.Add(heap);
+                    }
+                }
+                else if (_sos.GetAppDomainData(ClrDataAddress.FromTargetAddress(domain, _target), out AppDomainData data))
+                {
+                    foreach (ClrNativeHeapInfo heapInfo in LegacyEnumerateLoaderAllocatorHeaps(data.StubHeap.ToAddress(_target), LoaderHeapKind.LoaderHeapKindNormal, NativeHeapKind.StubHeap))
+                    {
+                        results ??= new();
+                        results.Add(heapInfo);
+                    }
+
+                    foreach (ClrNativeHeapInfo heapInfo in LegacyEnumerateLoaderAllocatorHeaps(data.HighFrequencyHeap.ToAddress(_target), LoaderHeapKind.LoaderHeapKindNormal, NativeHeapKind.HighFrequencyHeap))
+                    {
+                        results ??= new();
+                        results.Add(heapInfo);
+                    }
+
+                    foreach (ClrNativeHeapInfo heapInfo in LegacyEnumerateLoaderAllocatorHeaps(data.LowFrequencyHeap.ToAddress(_target), LoaderHeapKind.LoaderHeapKindNormal, NativeHeapKind.LowFrequencyHeap))
+                    {
+                        results ??= new();
+                        results.Add(heapInfo);
+                    }
+
+                    foreach (ClrNativeHeapInfo heapInfo in LegacyEnumerateStubHeaps(domain))
+                    {
+                        results ??= new();
+                        results.Add(heapInfo);
+                    }
+                }
             }
-            else if (_sos.GetAppDomainData(ClrDataAddress.FromTargetAddress(domain, _target), out AppDomainData data))
-            {
-                foreach (ClrNativeHeapInfo heapInfo in LegacyEnumerateLoaderAllocatorHeaps(data.StubHeap.ToAddress(_target), LoaderHeapKind.LoaderHeapKindNormal, NativeHeapKind.StubHeap))
-                    yield return heapInfo;
 
-                foreach (ClrNativeHeapInfo heapInfo in LegacyEnumerateLoaderAllocatorHeaps(data.HighFrequencyHeap.ToAddress(_target), LoaderHeapKind.LoaderHeapKindNormal, NativeHeapKind.HighFrequencyHeap))
-                    yield return heapInfo;
-
-                foreach (ClrNativeHeapInfo heapInfo in LegacyEnumerateLoaderAllocatorHeaps(data.LowFrequencyHeap.ToAddress(_target), LoaderHeapKind.LoaderHeapKindNormal, NativeHeapKind.LowFrequencyHeap))
-                    yield return heapInfo;
-
-                foreach (ClrNativeHeapInfo heapInfo in LegacyEnumerateStubHeaps(domain))
-                    yield return heapInfo;
-            }
+            return (IEnumerable<ClrNativeHeapInfo>?)results ?? Array.Empty<ClrNativeHeapInfo>();
         }
 
         public IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorNativeHeaps(ulong loaderAllocator)
+        {
+            lock (_sos.SyncRoot)
+                return EnumerateLoaderAllocatorNativeHeapsLocked(loaderAllocator);
+        }
+
+        private IEnumerable<ClrNativeHeapInfo> EnumerateLoaderAllocatorNativeHeapsLocked(ulong loaderAllocator)
         {
             NativeHeapKind[] heapNativeTypes;
             if (loaderAllocator == 0
                 || _sos13 is null
                 || (heapNativeTypes = GetNativeHeaps()).Length == 0)
             {
-                yield break;
+                return Array.Empty<ClrNativeHeapInfo>();
             }
 
-            List<ClrNativeHeapInfo>? result = null;
-
+            List<ClrNativeHeapInfo>? results = null;
+            List<ClrNativeHeapInfo>? current = null;
             (ClrDataAddress Address, LoaderHeapKind Kind)[] heaps = _sos13.GetLoaderAllocatorHeaps(ClrDataAddress.FromTargetAddress(loaderAllocator, _target));
             for (int i = 0; i < heaps.Length; i++)
             {
-                HResult hr = _sos13.TraverseLoaderHeap(heaps[i].Address, heaps[i].Kind, (address, size, current) => {
-                    result ??= new(16);
-                    result.Add(new(MemoryRange.CreateFromLength(address, SanitizeSize(size)), heapNativeTypes[i], current != 0 ? ClrNativeHeapState.Active : ClrNativeHeapState.Inactive));
+                current?.Clear();
+                HResult hr = _sos13.TraverseLoaderHeap(heaps[i].Address, heaps[i].Kind, (address, size, currentSegment) => {
+                    current ??= new(16);
+                    current.Add(new(MemoryRange.CreateFromLength(address, SanitizeSize(size)), heapNativeTypes[i], currentSegment != 0 ? ClrNativeHeapState.Active : ClrNativeHeapState.Inactive));
                 });
 
-                if (hr && result is not null)
+                if (hr && current is not null)
                 {
-                    foreach (ClrNativeHeapInfo info in result)
-                        yield return info;
+                    results ??= new();
+                    results.AddRange(current);
                 }
-
-                result?.Clear();
             }
+
+            return (IEnumerable<ClrNativeHeapInfo>?)results ?? Array.Empty<ClrNativeHeapInfo>();
         }
 
         private IEnumerable<ClrNativeHeapInfo> LegacyEnumerateStubHeaps(ulong domain)
         {
-            List<ClrNativeHeapInfo> result = new(16);
+            List<ClrNativeHeapInfo>? results = null;
+            List<ClrNativeHeapInfo> current = new(16);
 
-            TraverseOneStubKind(domain, result, SOSDac.VCSHeapType.IndcellHeap, NativeHeapKind.IndirectionCellHeap);
-            foreach (ClrNativeHeapInfo heap in result)
-                yield return heap;
+            TraverseOneStubKind(domain, current, SOSDac.VCSHeapType.IndcellHeap, NativeHeapKind.IndirectionCellHeap);
+            if (current.Count > 0)
+                (results ??= new()).AddRange(current);
 
-            TraverseOneStubKind(domain, result, SOSDac.VCSHeapType.LookupHeap, NativeHeapKind.LookupHeap);
-            foreach (ClrNativeHeapInfo heap in result)
-                yield return heap;
+            TraverseOneStubKind(domain, current, SOSDac.VCSHeapType.LookupHeap, NativeHeapKind.LookupHeap);
+            if (current.Count > 0)
+                (results ??= new()).AddRange(current);
 
-            TraverseOneStubKind(domain, result, SOSDac.VCSHeapType.ResolveHeap, NativeHeapKind.ResolveHeap);
-            foreach (ClrNativeHeapInfo heap in result)
-                yield return heap;
+            TraverseOneStubKind(domain, current, SOSDac.VCSHeapType.ResolveHeap, NativeHeapKind.ResolveHeap);
+            if (current.Count > 0)
+                (results ??= new()).AddRange(current);
 
-            TraverseOneStubKind(domain, result, SOSDac.VCSHeapType.DispatchHeap, NativeHeapKind.DispatchHeap);
-            foreach (ClrNativeHeapInfo heap in result)
-                yield return heap;
+            TraverseOneStubKind(domain, current, SOSDac.VCSHeapType.DispatchHeap, NativeHeapKind.DispatchHeap);
+            if (current.Count > 0)
+                (results ??= new()).AddRange(current);
 
-            TraverseOneStubKind(domain, result, SOSDac.VCSHeapType.CacheEntryHeap, NativeHeapKind.CacheEntryHeap);
-            foreach (ClrNativeHeapInfo heap in result)
-                yield return heap;
+            TraverseOneStubKind(domain, current, SOSDac.VCSHeapType.CacheEntryHeap, NativeHeapKind.CacheEntryHeap);
+            if (current.Count > 0)
+                (results ??= new()).AddRange(current);
 
-            TraverseOneStubKind(domain, result, SOSDac.VCSHeapType.VtableHeap, NativeHeapKind.VtableHeap);
-            foreach (ClrNativeHeapInfo heap in result)
-                yield return heap;
+            TraverseOneStubKind(domain, current, SOSDac.VCSHeapType.VtableHeap, NativeHeapKind.VtableHeap);
+            if (current.Count > 0)
+                (results ??= new()).AddRange(current);
+
+            return (IEnumerable<ClrNativeHeapInfo>?)results ?? Array.Empty<ClrNativeHeapInfo>();
         }
 
         private void TraverseOneStubKind(ulong domain, List<ClrNativeHeapInfo> result, SOSDac.VCSHeapType vcsType, NativeHeapKind heapKind)
@@ -329,7 +397,10 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public IEnumerable<ClrNativeHeapInfo> EnumerateThunkHeaps(ulong thunkHeapAddress)
         {
-            if (thunkHeapAddress != 0)
+            if (thunkHeapAddress == 0)
+                return Array.Empty<ClrNativeHeapInfo>();
+
+            lock (_sos.SyncRoot)
             {
                 List<ClrNativeHeapInfo>? heaps = null;
                 HResult hr = TraverseLoaderHeap(thunkHeapAddress, LoaderHeapKind.LoaderHeapKindNormal, (address, size, current) => {
@@ -341,7 +412,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     return heaps;
             }
 
-            return Enumerable.Empty<ClrNativeHeapInfo>();
+            return Array.Empty<ClrNativeHeapInfo>();
         }
 
         internal static ulong SanitizeSize(nint size)

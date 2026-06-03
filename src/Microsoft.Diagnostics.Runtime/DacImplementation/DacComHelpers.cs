@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -23,27 +23,41 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public IEnumerable<ClrRcwCleanupData> EnumerateRcwCleanupData()
         {
-            return _sos.EnumerateRCWCleanup(ClrDataAddress.Null).Select(r => new ClrRcwCleanupData(r.Rcw.ToAddress(_target), r.Context.ToAddress(_target), r.Thread.ToAddress(_target), r.IsFreeThreaded));
+            List<ClrRcwCleanupData>? results = null;
+            lock (_sos.SyncRoot)
+            {
+                foreach ((ClrDataAddress Rcw, ClrDataAddress Context, ClrDataAddress Thread, bool IsFreeThreaded) r in _sos.EnumerateRCWCleanup(ClrDataAddress.Null))
+                {
+                    results ??= new List<ClrRcwCleanupData>();
+                    results.Add(new ClrRcwCleanupData(r.Rcw.ToAddress(_target), r.Context.ToAddress(_target), r.Thread.ToAddress(_target), r.IsFreeThreaded));
+                }
+            }
+
+            return (IEnumerable<ClrRcwCleanupData>?)results ?? Array.Empty<ClrRcwCleanupData>();
         }
 
         public bool GetCcwInfo(ulong obj, out CcwInfo info)
         {
             info = default;
-            if (_sos.GetObjectData(ClrDataAddress.FromTargetAddress(obj, _target), out ObjectData objData) &&
-                !objData.CCW.IsNull &&
-                _sos.GetCCWData(objData.CCW, out CcwData ccwData))
+            lock (_sos.SyncRoot)
             {
-                COMInterfacePointerData[]? pointers = _sos.GetCCWInterfaces(objData.CCW, ccwData.InterfaceCount);
-                info = new()
+                if (_sos.GetObjectData(ClrDataAddress.FromTargetAddress(obj, _target), out ObjectData objData) &&
+                    !objData.CCW.IsNull &&
+                    _sos.GetCCWData(objData.CCW, out CcwData ccwData))
                 {
-                    Address = objData.CCW.ToAddress(_target),
-                    IUnknown = ccwData.OuterIUnknown.ToAddress(_target),
-                    Object = ccwData.ManagedObject.ToAddress(_target),
-                    Handle = ccwData.Handle.ToAddress(_target),
-                    RefCount = ccwData.RefCount,
-                    JupiterRefCount = ccwData.JupiterRefCount,
-                    Interfaces = pointers?.Select(r => new ComInterfaceEntry() { InterfacePointer = r.InterfacePointer.ToAddress(_target), MethodTable = r.MethodTable.ToAddress(_target) }).ToArray() ?? Array.Empty<ComInterfaceEntry>()
-                };
+                    COMInterfacePointerData[]? pointers = _sos.GetCCWInterfaces(objData.CCW, ccwData.InterfaceCount);
+                    info = new()
+                    {
+                        Address = objData.CCW.ToAddress(_target),
+                        IUnknown = ccwData.OuterIUnknown.ToAddress(_target),
+                        Object = ccwData.ManagedObject.ToAddress(_target),
+                        Handle = ccwData.Handle.ToAddress(_target),
+                        RefCount = ccwData.RefCount,
+                        JupiterRefCount = ccwData.JupiterRefCount,
+                        Interfaces = pointers?.Select(r => new ComInterfaceEntry() { InterfacePointer = r.InterfacePointer.ToAddress(_target), MethodTable = r.MethodTable.ToAddress(_target) }).ToArray() ?? Array.Empty<ComInterfaceEntry>()
+                    };
+                    return true;
+                }
             }
 
             return false;
@@ -52,22 +66,26 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         public bool GetRcwInfo(ulong obj, out RcwInfo info)
         {
             info = default;
-            if (_sos.GetObjectData(ClrDataAddress.FromTargetAddress(obj, _target), out ObjectData objData) &&
-                !objData.RCW.IsNull &&
-                _sos.GetRCWData(objData.RCW, out RcwData rcwData))
+            lock (_sos.SyncRoot)
             {
-                COMInterfacePointerData[]? pointers = _sos.GetRCWInterfaces(objData.RCW, rcwData.InterfaceCount);
-                info = new()
+                if (_sos.GetObjectData(ClrDataAddress.FromTargetAddress(obj, _target), out ObjectData objData) &&
+                    !objData.RCW.IsNull &&
+                    _sos.GetRCWData(objData.RCW, out RcwData rcwData))
                 {
-                    Address = objData.RCW.ToAddress(_target),
-                    IUnknown = rcwData.IUnknownPointer.ToAddress(_target),
-                    Object = rcwData.ManagedObject.ToAddress(_target),
-                    RefCount = rcwData.RefCount,
-                    CreatorThread = rcwData.CreatorThread.ToAddress(_target),
-                    IsDisconnected = rcwData.IsDisconnected != 0,
-                    VTablePointer = rcwData.VTablePointer.ToAddress(_target),
-                    Interfaces = pointers?.Select(r => new ComInterfaceEntry() { InterfacePointer = r.InterfacePointer.ToAddress(_target), MethodTable = r.MethodTable.ToAddress(_target) }).ToArray() ?? Array.Empty<ComInterfaceEntry>()
-                };
+                    COMInterfacePointerData[]? pointers = _sos.GetRCWInterfaces(objData.RCW, rcwData.InterfaceCount);
+                    info = new()
+                    {
+                        Address = objData.RCW.ToAddress(_target),
+                        IUnknown = rcwData.IUnknownPointer.ToAddress(_target),
+                        Object = rcwData.ManagedObject.ToAddress(_target),
+                        RefCount = rcwData.RefCount,
+                        CreatorThread = rcwData.CreatorThread.ToAddress(_target),
+                        IsDisconnected = rcwData.IsDisconnected != 0,
+                        VTablePointer = rcwData.VTablePointer.ToAddress(_target),
+                        Interfaces = pointers?.Select(r => new ComInterfaceEntry() { InterfacePointer = r.InterfacePointer.ToAddress(_target), MethodTable = r.MethodTable.ToAddress(_target) }).ToArray() ?? Array.Empty<ComInterfaceEntry>()
+                    };
+                    return true;
+                }
             }
 
             return false;

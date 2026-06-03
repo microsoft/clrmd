@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -31,158 +31,188 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         // IClrThreadHelpers
         public IEnumerable<StackRootInfo> EnumerateStackRoots(uint osThreadId, bool traceErrors)
         {
-            using SOSStackRefEnum? stackRefEnum = _sos.EnumerateStackRefs(osThreadId);
-            if (stackRefEnum is null)
-                yield break;
-
-            const int GCInteriorFlag = 1;
-            const int GCPinnedFlag = 2;
-            const int SOS_StackSourceIP = 0;
-            const int SOS_StackSourceFrame = 1;
-            foreach (StackRefData stackRef in stackRefEnum.ReadStackRefs())
+            // The DAC is not thread-safe. Two simultaneous stack-ref enumerations (even on
+            // different OS threads) share internal DAC state and can truncate each other,
+            // yielding nondeterministic root counts. Serialize the enumerator's lifetime
+            // and materialize the result before releasing the lock.
+            List<StackRootInfo>? results = null;
+            lock (_sos.SyncRoot)
             {
-                if (stackRef.Object.IsNull)
+                using SOSStackRefEnum? stackRefEnum = _sos.EnumerateStackRefs(osThreadId);
+                if (stackRefEnum is null)
+                    return Array.Empty<StackRootInfo>();
+
+                const int GCInteriorFlag = 1;
+                const int GCPinnedFlag = 2;
+                const int SOS_StackSourceIP = 0;
+                const int SOS_StackSourceFrame = 1;
+                foreach (StackRefData stackRef in stackRefEnum.ReadStackRefs())
                 {
-                    if (traceErrors)
-                        Debug.WriteLine($"EnumerateStackRoots found an unexpected entry with Object == 0, addr:{stackRef.Address.ToAddress(_target):x} srcType:{stackRef.SourceType:x}");
-                    continue;
+                    if (stackRef.Object.IsNull)
+                    {
+                        if (traceErrors)
+                            Debug.WriteLine($"EnumerateStackRoots found an unexpected entry with Object == 0, addr:{stackRef.Address.ToAddress(_target):x} srcType:{stackRef.SourceType:x}");
+                        continue;
+                    }
+
+                    bool interior = (stackRef.Flags & GCInteriorFlag) == GCInteriorFlag;
+                    bool isPinned = (stackRef.Flags & GCPinnedFlag) == GCPinnedFlag;
+                    int regOffset = 0;
+                    string? regName = null;
+                    if (stackRef.HasRegisterInformation != 0)
+                    {
+                        regOffset = stackRef.Offset;
+                        regName = _sos.GetRegisterName(stackRef.Register);
+                    }
+
+                    ulong ip = 0;
+                    ulong frame = 0;
+                    if (stackRef.SourceType == SOS_StackSourceIP)
+                        ip = stackRef.Source.ToAddress(_target);
+                    else if (stackRef.SourceType == SOS_StackSourceFrame)
+                        frame = stackRef.Source.ToAddress(_target);
+
+                    results ??= new List<StackRootInfo>();
+                    results.Add(new StackRootInfo()
+                    {
+                        InstructionPointer = ip,
+                        StackPointer = stackRef.StackPointer.ToAddress(_target),
+                        InternalFrame = frame,
+
+                        IsInterior = interior,
+                        IsPinned = isPinned,
+
+                        Address = stackRef.Address.ToAddress(_target),
+                        Object = stackRef.Object.ToAddress(_target),
+
+                        IsEnregistered = stackRef.HasRegisterInformation != 0,
+                        RegisterName = regName,
+                        RegisterOffset = regOffset,
+                    });
                 }
-
-                bool interior = (stackRef.Flags & GCInteriorFlag) == GCInteriorFlag;
-                bool isPinned = (stackRef.Flags & GCPinnedFlag) == GCPinnedFlag;
-                int regOffset = 0;
-                string? regName = null;
-                if (stackRef.HasRegisterInformation != 0)
-                {
-                    regOffset = stackRef.Offset;
-                    regName = _sos.GetRegisterName(stackRef.Register);
-                }
-
-                ulong ip = 0;
-                ulong frame = 0;
-                if (stackRef.SourceType == SOS_StackSourceIP)
-                    ip = stackRef.Source.ToAddress(_target);
-                else if (stackRef.SourceType == SOS_StackSourceFrame)
-                    frame = stackRef.Source.ToAddress(_target);
-
-                yield return new StackRootInfo()
-                {
-                    InstructionPointer = ip,
-                    StackPointer = stackRef.StackPointer.ToAddress(_target),
-                    InternalFrame = frame,
-
-                    IsInterior = interior,
-                    IsPinned = isPinned,
-
-                    Address = stackRef.Address.ToAddress(_target),
-                    Object = stackRef.Object.ToAddress(_target),
-
-                    IsEnregistered = stackRef.HasRegisterInformation != 0,
-                    RegisterName = regName,
-                    RegisterOffset = regOffset,
-                };
             }
+
+            return (IEnumerable<StackRootInfo>?)results ?? Array.Empty<StackRootInfo>();
         }
 
-        public IEnumerable<StackFrameInfo> EnumerateStackTrace(uint osThreadId, bool includeContext, bool traceErrors)
+        public IEnumerable<StackFrameInfo> EnumerateStackTrace(uint osThreadId, bool includeContext, int maxFrames, bool traceErrors)
         {
-            using ClrStackWalk? stackwalk = _dac.CreateStackWalk(osThreadId, 0xf);
-            if (stackwalk is null)
-                yield break;
+            if (maxFrames <= 0)
+                return Array.Empty<StackFrameInfo>();
+            // Serialize the entire stack walk: the ClrStackWalk is a stateful DAC enumerator
+            // and concurrent walks on the same DAC can truncate each other.
+            List<StackFrameInfo>? results = null;
+            lock (_sos.SyncRoot)
+            {
+                using ClrStackWalk? stackwalk = _dac.CreateStackWalk(osThreadId, 0xf);
+                if (stackwalk is null)
+                    return Array.Empty<StackFrameInfo>();
 
-            int ipOffset;
-            int spOffset;
-            int contextSize;
-            uint contextFlags = 0;
-            if (_dataReader.Architecture == Architecture.Arm)
-            {
-                ipOffset = 64;
-                spOffset = 56;
-                contextSize = 416;
-            }
-            else if (_dataReader.Architecture == Architecture.Arm64)
-            {
-                ipOffset = 264;
-                spOffset = 256;
-                contextSize = 912;
-            }
-            else if (_dataReader.Architecture == (Architecture)9 /* Architecture.RiscV64 */)
-            {
-                ipOffset = 264;
-                spOffset = 24;
-                contextSize = 544;
-            }
-            else if (_dataReader.Architecture == (Architecture)6 /* Architecture.LoongArch64 */)
-            {
-                ipOffset = 264;
-                spOffset = 32;
-                contextSize = 1312;
-            }
-            else if (_dataReader.Architecture == Architecture.X86)
-            {
-                ipOffset = 184;
-                spOffset = 196;
-                contextSize = 716;
-                contextFlags = 0x1003f;
-            }
-            else // Architecture.X64
-            {
-                ipOffset = 248;
-                spOffset = 152;
-                contextSize = 1232;
-                contextFlags = 0x10003f;
-            }
-
-            HResult hr = HResult.S_OK;
-            byte[] context = ArrayPool<byte>.Shared.Rent(contextSize);
-            while (hr.IsOK)
-            {
-                hr = stackwalk.GetContext(contextFlags, contextSize, out _, context);
-                if (!hr)
+                int ipOffset;
+                int spOffset;
+                int contextSize;
+                uint contextFlags = 0;
+                if (_dataReader.Architecture == Architecture.Arm)
                 {
-                    if (traceErrors)
-                        Debug.WriteLine($"GetContext failed, flags:{contextFlags:x} size: {contextSize:x} hr={hr}");
-
-                    break;
+                    ipOffset = 64;
+                    spOffset = 56;
+                    contextSize = 416;
+                }
+                else if (_dataReader.Architecture == Architecture.Arm64)
+                {
+                    ipOffset = 264;
+                    spOffset = 256;
+                    contextSize = 912;
+                }
+                else if (_dataReader.Architecture == (Architecture)9 /* Architecture.RiscV64 */)
+                {
+                    ipOffset = 264;
+                    spOffset = 24;
+                    contextSize = 544;
+                }
+                else if (_dataReader.Architecture == (Architecture)6 /* Architecture.LoongArch64 */)
+                {
+                    ipOffset = 264;
+                    spOffset = 32;
+                    contextSize = 1312;
+                }
+                else if (_dataReader.Architecture == Architecture.X86)
+                {
+                    ipOffset = 184;
+                    spOffset = 196;
+                    contextSize = 716;
+                    contextFlags = 0x1003f;
+                }
+                else // Architecture.X64
+                {
+                    ipOffset = 248;
+                    spOffset = 152;
+                    contextSize = 1232;
+                    contextFlags = 0x10003f;
                 }
 
-                ulong ip = context.AsSpan().AsPointer(_dataReader.PointerSize, ipOffset);
-                ulong sp = context.AsSpan().AsPointer(_dataReader.PointerSize, spOffset);
-
-                ulong frameVtbl = stackwalk.GetFrameVtable().ToAddress(_target);
-                string? frameName = null;
-                ulong frameMethod = 0;
-                if (frameVtbl != 0)
+                HResult hr = HResult.S_OK;
+                byte[] context = ArrayPool<byte>.Shared.Rent(contextSize);
+                try
                 {
-                    sp = frameVtbl;
-                    frameVtbl = _dataReader.ReadPointer(sp);
-                    frameName = _sos.GetFrameName(ClrDataAddress.FromTargetAddress(frameVtbl, _target));
-                    frameMethod = _sos.GetMethodDescPtrFromFrame(ClrDataAddress.FromTargetAddress(sp, _target)).ToAddress(_target);
+                    while (hr.IsOK && (results?.Count ?? 0) < maxFrames)
+                    {
+                        hr = stackwalk.GetContext(contextFlags, contextSize, out _, context);
+                        if (!hr)
+                        {
+                            if (traceErrors)
+                                Debug.WriteLine($"GetContext failed, flags:{contextFlags:x} size: {contextSize:x} hr={hr}");
+
+                            break;
+                        }
+
+                        ulong ip = context.AsSpan().AsPointer(_dataReader.PointerSize, ipOffset);
+                        ulong sp = context.AsSpan().AsPointer(_dataReader.PointerSize, spOffset);
+
+                        ulong frameVtbl = stackwalk.GetFrameVtable().ToAddress(_target);
+                        string? frameName = null;
+                        ulong frameMethod = 0;
+                        if (frameVtbl != 0)
+                        {
+                            sp = frameVtbl;
+                            frameVtbl = _dataReader.ReadPointer(sp);
+                            frameName = _sos.GetFrameName(ClrDataAddress.FromTargetAddress(frameVtbl, _target));
+                            frameMethod = _sos.GetMethodDescPtrFromFrame(ClrDataAddress.FromTargetAddress(sp, _target)).ToAddress(_target);
+                        }
+
+                        byte[]? contextCopy = null;
+                        if (includeContext)
+                        {
+                            contextCopy = new byte[contextSize];
+                            context.AsSpan(0, contextSize).CopyTo(contextCopy);
+                        }
+
+                        results ??= new List<StackFrameInfo>();
+                        results.Add(new StackFrameInfo()
+                        {
+                            InstructionPointer = ip,
+                            StackPointer = sp,
+                            Context = contextCopy,
+                            InternalFrameVTable = frameVtbl,
+                            InternalFrameName = frameName,
+                            InnerMethodMethodHandle = frameMethod,
+                        });
+
+                        if (results.Count >= maxFrames)
+                            break;
+
+                        hr = stackwalk.Next();
+                        if (traceErrors && !hr)
+                            Debug.WriteLine($"STACKWALK FAILED - hr:{hr}");
+                    }
                 }
-
-                byte[]? contextCopy = null;
-                if (includeContext)
+                finally
                 {
-                    contextCopy = new byte[contextSize];
-                    context.AsSpan(0, contextSize).CopyTo(contextCopy);
+                    ArrayPool<byte>.Shared.Return(context);
                 }
-
-                yield return new StackFrameInfo()
-                {
-                    InstructionPointer = ip,
-                    StackPointer = sp,
-                    Context = contextCopy,
-                    InternalFrameVTable = frameVtbl,
-                    InternalFrameName = frameName,
-                    InnerMethodMethodHandle = frameMethod,
-                };
-
-                hr = stackwalk.Next();
-                if (traceErrors && !hr)
-                    Debug.WriteLine($"STACKWALK FAILED - hr:{hr}");
             }
 
-            ArrayPool<byte>.Shared.Return(context);
+            return (IEnumerable<StackFrameInfo>?)results ?? Array.Empty<StackFrameInfo>();
         }
     }
 }
