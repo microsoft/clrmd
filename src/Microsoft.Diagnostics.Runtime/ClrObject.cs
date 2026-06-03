@@ -133,7 +133,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// <summary>
         /// Gets the type of the object.
         /// </summary>
-        public ClrType? Type => _type is null || _type.Heap.ErrorType == _type ? null : _type;
+        // Use ReferenceEquals here: ErrorType is a per-heap singleton (initialized once via
+        // Interlocked.CompareExchange in ClrTypeFactory.ErrorType). Using `==` dispatches to
+        // ClrType.Equals which falls through to IsPrimitive -> GetElementType -> base-type
+        // Name lookups when MethodTable==0 (true for ErrorType). Under high-frequency stress
+        // those Name lookups go through the DAC and have produced intermittent AVs; identity
+        // comparison is sufficient and avoids the heavy path entirely.
+        public ClrType? Type => _type is null || ReferenceEquals(_type.Heap.ErrorType, _type) ? null : _type;
 
         IClrType? IClrValue.Type => Type;
 

@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -519,8 +519,11 @@ namespace Microsoft.Diagnostics.Runtime
             if (IsPrimitive && other.IsPrimitive && ElementType != ClrElementType.Unknown)
                 return ElementType == other.ElementType;
 
-            // Ok we aren't a primitive type, or a pointer, and our MethodTables are 0.  Last resort is to
-            // check if we resolved from the same token out of the same module.
+            if ((MethodTable == 0) != (other.MethodTable == 0))
+                return false;
+
+            // Ok we aren't a primitive type or a pointer, and both MethodTables are 0.
+            // Last resort is to check if we resolved from the same token out of the same module.
             if (Module != null && MetadataToken != 0)
                 return Module == other.Module && MetadataToken == other.MetadataToken;
 

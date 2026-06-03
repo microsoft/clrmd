@@ -29,6 +29,7 @@ namespace Microsoft.Diagnostics.Runtime
         private PdbInfo? _pdb;
         private (ulong MethodTable, int Token)[]? _typeDefMap;
         private (ulong MethodTable, int Token)[]? _typeRefMap;
+        private readonly object _typeMapLock = new();
         private ClrHeap? _heap;
 
         private readonly ulong _moduleAddress;
@@ -203,9 +204,41 @@ namespace Microsoft.Diagnostics.Runtime
         /// Enumerates the constructed methodtables in this module which correspond to typedef tokens defined by this module.
         /// </summary>
         /// <returns>An enumeration of (ulong methodTable, uint typeDef).</returns>
-        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefToMethodTableMap() => _typeDefMap ??= (_helpers?.EnumerateTypeDefMap(Address) ?? Enumerable.Empty<(ulong, int)>()).ToArray();
+        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeDefToMethodTableMap()
+        {
+            var map = Volatile.Read(ref _typeDefMap);
+            if (map is not null)
+                return map;
 
-        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeRefToMethodTableMap() => _typeRefMap ??= (_helpers?.EnumerateTypeRefMap(Address) ?? Enumerable.Empty<(ulong, int)>()).ToArray();
+            lock (_typeMapLock)
+            {
+                map = _typeDefMap;
+                if (map is null)
+                {
+                    map = (_helpers?.EnumerateTypeDefMap(Address) ?? Enumerable.Empty<(ulong, int)>()).ToArray();
+                    Volatile.Write(ref _typeDefMap, map);
+                }
+                return map;
+            }
+        }
+
+        public IEnumerable<(ulong MethodTable, int Token)> EnumerateTypeRefToMethodTableMap()
+        {
+            var map = Volatile.Read(ref _typeRefMap);
+            if (map is not null)
+                return map;
+
+            lock (_typeMapLock)
+            {
+                map = _typeRefMap;
+                if (map is null)
+                {
+                    map = (_helpers?.EnumerateTypeRefMap(Address) ?? Enumerable.Empty<(ulong, int)>()).ToArray();
+                    Volatile.Write(ref _typeRefMap, map);
+                }
+                return map;
+            }
+        }
 
         /// <summary>
         /// Enumerates the <see cref="ClrType"/>s reachable through this module's
