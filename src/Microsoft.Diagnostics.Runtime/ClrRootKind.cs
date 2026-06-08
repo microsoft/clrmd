@@ -49,5 +49,13 @@ namespace Microsoft.Diagnostics.Runtime
         /// The root is a SizedRef handle.
         /// </summary>
         SizedRefHandle = 8,
+
+        /// <summary>
+        /// The root is a thread static variable.  On .NET 9+ non-collectible thread statics are
+        /// rooted directly through the owning thread's thread-local storage (scanned by the GC as
+        /// part of the thread's roots) rather than through a GC handle, so they are reported here
+        /// instead of as a handle root.
+        /// </summary>
+        ThreadStaticVar = 9,
     }
 }

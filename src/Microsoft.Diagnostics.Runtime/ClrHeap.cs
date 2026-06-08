@@ -34,6 +34,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private readonly ClrTypeFactory _typeFactory;
         private readonly IMemoryReader _memoryReader;
+        private readonly IAbstractTypeHelpers _typeHelpers;
         private readonly ISegmentedDirectMemoryAccess? _directMemoryAccess;
         private volatile Dictionary<ulong, ulong>? _allocationContexts;
         private volatile (ulong Source, ulong Target)[]? _dependentHandles;
@@ -46,6 +47,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             Runtime = runtime;
             _memoryReader = memoryReader;
+            _typeHelpers = typeHelpers;
             _directMemoryAccess = memoryReader as ISegmentedDirectMemoryAccess;
             _firstChar = (uint)memoryReader.PointerSize + 4;
             _stringLength = (uint)memoryReader.PointerSize;
@@ -672,6 +674,7 @@ namespace Microsoft.Diagnostics.Runtime
         ///     ClrRuntime.EnumerateHandles().Where(handle => handle.IsStrong)
         ///     ClrRuntime.EnumerateThreads().SelectMany(thread => thread.EnumerateStackRoots())
         ///     ClrHeap.EnumerateFinalizerRoots()
+        ///     ClrHeap.EnumerateThreadStaticRoots()
         /// </summary>
         public IEnumerable<ClrRoot> EnumerateRoots()
         {
@@ -715,7 +718,42 @@ namespace Microsoft.Diagnostics.Runtime
             foreach (ClrThread thread in Runtime.Threads.Where(t => t.IsAlive))
                 foreach (ClrRoot root in thread.EnumerateStackRoots())
                     yield return root;
+
+            // Thread statics
+            foreach (ClrRoot root in EnumerateThreadStaticRoots())
+                yield return root;
         }
+
+        /// <summary>
+        /// Enumerates GC roots that come from thread static variables.  These roots are only
+        /// reported on .NET Core 9 and later: starting with that runtime, non-collectible thread
+        /// statics are rooted through each thread's thread-local storage (which the GC scans
+        /// directly as part of the owning thread's roots) instead of through a GC handle.  On
+        /// earlier runtimes thread statics were folded into the handle table, so on those targets
+        /// they are surfaced through <see cref="ClrRuntime.EnumerateHandles"/> and this method
+        /// returns an empty enumeration.  These roots are also included in <see cref="EnumerateRoots"/>.
+        /// </summary>
+        public IEnumerable<ClrRoot> EnumerateThreadStaticRoots()
+        {
+            // Modules outer / threads inner: the DAC caches each module's candidate MethodTable set
+            // (thread-independent), so the first thread for a module pays the type-def/metadata walk
+            // and the rest reuse it.  Materialize the alive-thread set once.
+            ClrThread[] aliveThreads = Runtime.Threads.Where(t => t.IsAlive).ToArray();
+            foreach (ClrModule module in Runtime.EnumerateModules())
+            {
+                foreach (ClrThread thread in aliveThreads)
+                {
+                    foreach (ulong gcBase in _typeHelpers.EnumerateThreadStaticRoots(module.Address, thread.Address))
+                    {
+                        ClrObject obj = GetObject(gcBase);
+                        if (obj.IsValid)
+                            yield return new ClrRoot(gcBase, obj, ClrRootKind.ThreadStaticVar, isInterior: false, isPinned: false);
+                    }
+                }
+            }
+        }
+
+        IEnumerable<IClrRoot> IClrHeap.EnumerateThreadStaticRoots() => EnumerateThreadStaticRoots().Cast<IClrRoot>();
 
         private (ulong Address, ClrObject obj) GetObjectAndAddress(ClrObject containing, string fieldName)
         {

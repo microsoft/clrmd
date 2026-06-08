@@ -151,6 +151,37 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ContainsPathsToTarget(heap, 0, target);
         }
 
+        /// <summary>
+        /// Regression test for issue #1474: an object reachable ONLY through a [ThreadStatic]
+        /// field must still be found by GCRoot.  On .NET 9+ non-collectible thread statics are
+        /// rooted through the thread's ThreadLocalData (scanned directly by the GC) rather than a
+        /// GC handle, so without thread-static root enumeration EnumerateRootPaths found no paths.
+        /// </summary>
+        [WindowsOrNet11Theory, MemberData(nameof(ReaderOnly))]
+        public void ThreadStaticRootsAreEnumerated(DataReaderKind reader)
+        {
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(options: reader.ToOptions());
+            using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+
+            ulong target = heap.GetObjectsOfType("ThreadStaticTarget").Single();
+            Assert.NotEqual(0ul, target);
+
+            Assert.Contains(heap.EnumerateRoots(), r => r.RootKind == ClrRootKind.ThreadStaticVar);
+
+            // The thread-static roots are also exposed directly; every root it returns is a ThreadStaticVar.
+            List<ClrRoot> threadStaticRoots = heap.EnumerateThreadStaticRoots().ToList();
+            Assert.NotEmpty(threadStaticRoots);
+            Assert.All(threadStaticRoots, r => Assert.Equal(ClrRootKind.ThreadStaticVar, r.RootKind));
+
+            GCRoot gcroot = new(heap, new ulong[] { target });
+            var paths = gcroot.EnumerateRootPaths().ToList();
+            Assert.NotEmpty(paths);
+            Assert.Contains(paths, p => p.Root.RootKind == ClrRootKind.ThreadStaticVar);
+            foreach (var (_, path) in paths)
+                VerifyPath(heap, obj => obj.Address == target, path);
+        }
+
         [WindowsOrNet11Theory, MemberData(nameof(ReaderOnly))]
         public void GCRootsPredicate(DataReaderKind reader)
         {
