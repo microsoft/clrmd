@@ -403,35 +403,58 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         {
             ThrowIfDisposed();
 
-            // Track visited threads and chunks so a corrupt log whose links form
-            // a cycle (rather than terminating at the list head) stays bounded:
-            // each node is yielded at most once and revisiting one ends the walk.
+            // Conservative per-entry charge for the visited-chunk set, so a crafted
+            // log with many disjoint chunk chains is bounded by the allocation budget
+            // (the per-thread MaxChunksPerThread bound resets per thread and does NOT
+            // bound the global set).
+            const int visitedChunkBytes = 32;
+
+            // Track visited threads and chunks so a corrupt log whose links form a
+            // cycle (rather than terminating at the list head) stays bounded: each
+            // node is yielded at most once and revisiting one ends the walk.
             HashSet<ulong> visitedThreads = new();
             HashSet<ulong> visitedChunks = new();
-
-            ulong threadAddr = _firstThreadAddr;
-            while (threadAddr != 0 && visitedThreads.Count < _options.MaxThreads && visitedThreads.Add(threadAddr))
+            int reservedBytes = 0;
+            try
             {
-                if (!TryReadTargetPointer(threadAddr + (ulong)_layout.ThreadChunkListHeadOffset, out ulong chunkListHead) || chunkListHead == 0)
-                    yield break;
-
-                ulong chunkAddr = chunkListHead;
-                int chunkCount = 0;
-                while (chunkCount < _options.MaxChunksPerThread && visitedChunks.Add(chunkAddr))
+                ulong threadAddr = _firstThreadAddr;
+                while (threadAddr != 0 && visitedThreads.Count < _options.MaxThreads && visitedThreads.Add(threadAddr))
                 {
-                    yield return new MemoryRange(chunkAddr, chunkAddr + (ulong)_layout.ChunkTotalSize);
-
-                    if (!TryReadTargetPointer(chunkAddr + (ulong)_layout.ChunkNextOffset, out ulong nextChunk) || nextChunk == 0)
+                    if (!TryReadTargetPointer(threadAddr + (ulong)_layout.ThreadChunkListHeadOffset, out ulong chunkListHead) || chunkListHead == 0)
                         yield break;
-                    if (nextChunk == chunkListHead)
-                        break;
-                    chunkAddr = nextChunk;
-                    chunkCount++;
-                }
 
-                if (!TryReadTargetPointer(threadAddr + (ulong)_layout.ThreadNextOffset, out ulong nextThread))
-                    yield break;
-                threadAddr = nextThread;
+                    ulong chunkAddr = chunkListHead;
+                    int chunkCount = 0;
+                    while (chunkCount < _options.MaxChunksPerThread)
+                    {
+                        // Skip a chunk whose range would wrap past the end of the
+                        // address space (mirrors ChunkReader's ChunkFits guard).
+                        if (!_layout.ChunkFits(chunkAddr))
+                            break;
+                        if (!visitedChunks.Add(chunkAddr))
+                            break;
+                        if (!_budget.TryReserve(visitedChunkBytes))
+                            yield break;
+                        reservedBytes += visitedChunkBytes;
+
+                        yield return new MemoryRange(chunkAddr, chunkAddr + (ulong)_layout.ChunkTotalSize);
+
+                        if (!TryReadTargetPointer(chunkAddr + (ulong)_layout.ChunkNextOffset, out ulong nextChunk) || nextChunk == 0)
+                            yield break;
+                        if (nextChunk == chunkListHead)
+                            break;
+                        chunkAddr = nextChunk;
+                        chunkCount++;
+                    }
+
+                    if (!TryReadTargetPointer(threadAddr + (ulong)_layout.ThreadNextOffset, out ulong nextThread))
+                        yield break;
+                    threadAddr = nextThread;
+                }
+            }
+            finally
+            {
+                _budget.Release(reservedBytes);
             }
         }
 
