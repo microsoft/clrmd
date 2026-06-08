@@ -16,6 +16,12 @@ class GCRootTarget
     static object TheRoot;
     static ConditionalWeakTable<SingleRef, TargetType> _dependent = new ConditionalWeakTable<SingleRef, TargetType>();
 
+    // Rooted ONLY through a [ThreadStatic] field.  On .NET 9+ thread statics live in the
+    // thread's ThreadLocalData (scanned directly by the GC) rather than a GC handle, so this
+    // exercises ClrHeap.EnumerateRoots' thread-static root enumeration (issue #1474).
+    [ThreadStatic]
+    static object ThreadStaticRoot;
+
     public static void Main(string[] args)
     {
         TargetType target = new TargetType();
@@ -46,6 +52,8 @@ class GCRootTarget
         // a single Object[] handle and stack roots may not include locals, so
         // without these handles only 1 root path would exist.
         AllocRoots(target, s, t);
+
+        ThreadStaticRoot = new ThreadStaticTarget();
 
         throw new Exception();
         GC.KeepAlive(target);
@@ -84,4 +92,8 @@ class TripleRef
 class TargetType
 {
 
+}
+
+class ThreadStaticTarget
+{
 }

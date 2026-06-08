@@ -33,6 +33,11 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         // Field helpers
         ulong GetStaticFieldAddress(in AppDomainInfo appDomain, in ClrModuleInfo module, in TypeInfo typeInfo, in FieldInfo field);
         ulong GetThreadStaticFieldAddress(ulong threadAddress, in ClrModuleInfo module, in TypeInfo typeInfo, in FieldInfo field);
+
+        // Enumerates the GC thread-static storage objects (one per type with GC thread-static
+        // storage allocated on the given thread) for all constructed types defined by the module.
+        // Returns an empty enumeration for non-Core runtimes and for CLR versions before .NET 9.
+        IEnumerable<ulong> EnumerateThreadStaticRoots(ulong moduleAddress, ulong threadAddress);
     }
 
     public struct TypeInfo

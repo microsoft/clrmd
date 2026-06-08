@@ -137,7 +137,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 lock (_serviceLock)
                 {
                     _moduleHelper ??= new(_sos, _dac.TargetProperties);
-                    return _typeHelper ??= new DacTypeHelpers(_process, _sos, _sos6, _sos8, _sos14, _dataReader, _moduleHelper, _dac.TargetProperties);
+                    return _typeHelper ??= new DacTypeHelpers(_process, _sos, _sos6, _sos8, _sos14, _dataReader, _moduleHelper, _dac.TargetProperties, _clrInfo.Flavor, _clrInfo.Version?.Major ?? 0);
                 }
             }
 
