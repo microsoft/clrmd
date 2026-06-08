@@ -652,6 +652,77 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
+        public void EnumerateMemoryRanges_SkipsCorruptThreadAndContinues()
+        {
+            SyntheticStressLogBuilder builder = new SyntheticStressLogBuilder();
+            ulong stressLogAddr = builder.Build(out ulong threadAddr, out _);
+
+            StressLogLayout layout = StressLogLayout.CoreX64;
+            ulong badChunkAddr = 0x800000;   // not present in memory -> read failure on its next pointer
+            ulong thread2Addr = 0x900000;
+            ulong chunk2Addr = 0xA00000;
+
+            // Thread 1: its chunk list leads to an unreadable chunk, then links to thread 2.
+            BinaryPrimitives.WriteUInt64LittleEndian(builder.Memory[threadAddr].AsSpan(layout.ThreadChunkListHeadOffset), badChunkAddr);
+            BinaryPrimitives.WriteUInt64LittleEndian(builder.Memory[threadAddr].AsSpan(layout.ThreadNextOffset), thread2Addr);
+
+            // Thread 2: a healthy single-chunk ring at the end of the thread list.
+            byte[] chunk2 = new byte[layout.ChunkTotalSize];
+            BinaryPrimitives.WriteUInt64LittleEndian(chunk2.AsSpan(layout.ChunkNextOffset), chunk2Addr);
+            builder.Memory[chunk2Addr] = chunk2;
+            byte[] thread2 = new byte[layout.ThreadHeaderSize];
+            BinaryPrimitives.WriteUInt64LittleEndian(thread2.AsSpan(layout.ThreadChunkListHeadOffset), chunk2Addr);
+            builder.Memory[thread2Addr] = thread2;
+
+            SyntheticDataReader reader = new(builder.Memory);
+            Assert.True(StressLog.TryOpen(reader, stressLogAddr, out StressLog? log, out _));
+            Assert.NotNull(log);
+            using (log)
+            {
+                List<StressLogDiagnostic> diagnostics = new();
+                log!.Diagnostic += d => diagnostics.Add(d);
+
+                List<MemoryRange> ranges = new();
+                foreach (MemoryRange range in log.EnumerateMemoryRanges())
+                    ranges.Add(range);
+
+                // Thread 1's read failure is reported but does not abort the walk:
+                // thread 2's chunk is still enumerated.
+                Assert.Contains(diagnostics, d => d.Kind == StressLogDiagnosticKind.ReadMemoryFailed);
+                Assert.Contains(ranges, r => r.Start == chunk2Addr);
+            }
+        }
+
+        [Fact]
+        public void MemoryMapped_HeaderConfigFieldsAreNull()
+        {
+            StressLogLayout layout = StressLogLayout.CoreX64;
+            byte[] header = new byte[layout.MmHeaderReadSize];
+            BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(layout.MmMagicOffset), StressLogConstants.MemoryMappedMagic);
+            BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(layout.MmVersionOffset), StressLogConstants.MemoryMappedVersionV1);
+            BinaryPrimitives.WriteUInt64LittleEndian(header.AsSpan(layout.MmTickFrequencyOffset), 10_000_000UL);
+            // logs = 0 (empty log); module entries left zeroed.
+
+            ulong stressLogAddr = 0x100000;
+            Dictionary<ulong, byte[]> memory = new() { [stressLogAddr] = header };
+            SyntheticDataReader reader = new(memory);
+
+            Assert.True(StressLog.TryOpen(reader, stressLogAddr, out StressLog? log, out string? reason), reason);
+            Assert.NotNull(log);
+            using (log)
+            {
+                // Memory-mapped logs do not record these in-process header fields.
+                Assert.Null(log!.FacilitiesToLog);
+                Assert.Null(log.LevelToLog);
+                Assert.Null(log.MaxSizePerThread);
+                Assert.Null(log.MaxSizeTotal);
+                Assert.Null(log.ChunkCount);
+                // TickFrequency is non-nullable and present for memory-mapped logs.
+                Assert.Equal(10_000_000UL, log.TickFrequency);
+            }
+        }
+
+        [Fact]
         public void EndToEnd_ConcurrentEnumerationsDoNotInterfere()
         {
             // Two threads enumerating the same StressLog instance must each

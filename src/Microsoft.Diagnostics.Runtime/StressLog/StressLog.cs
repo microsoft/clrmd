@@ -393,11 +393,12 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         /// logged message.
         /// </summary>
         /// <remarks>
-        /// Each range covers a whole <c>StressLogChunk</c> structure, matching
-        /// the runtime's chunk allocation granularity. Enumeration stops at the
-        /// first unreadable thread or chunk, yielding whatever ranges were
-        /// discovered before the failure. Each thread and chunk is visited at
-        /// most once, so a corrupt log whose links form a cycle stays bounded.
+        /// Each range covers a whole <c>StressLogChunk</c> structure, matching the
+        /// runtime's chunk allocation granularity. A thread or chunk that cannot be
+        /// read, or that looks corrupt, is skipped and reported through
+        /// <see cref="Diagnostic"/>; enumeration continues with the remaining
+        /// threads where possible. Each thread and chunk is visited at most once, so
+        /// a corrupt log whose links form a cycle stays bounded.
         /// </remarks>
         public IEnumerable<MemoryRange> EnumerateMemoryRanges()
         {
@@ -418,37 +419,74 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             try
             {
                 ulong threadAddr = _firstThreadAddr;
-                while (threadAddr != 0 && visitedThreads.Count < _options.MaxThreads && visitedThreads.Add(threadAddr))
+                while (threadAddr != 0)
                 {
-                    if (!TryReadTargetPointer(threadAddr + (ulong)_layout.ThreadChunkListHeadOffset, out ulong chunkListHead) || chunkListHead == 0)
-                        yield break;
-
-                    ulong chunkAddr = chunkListHead;
-                    int chunkCount = 0;
-                    while (chunkCount < _options.MaxChunksPerThread)
+                    if (visitedThreads.Count >= _options.MaxThreads)
                     {
-                        // Skip a chunk whose range would wrap past the end of the
-                        // address space (mirrors ChunkReader's ChunkFits guard).
-                        if (!_layout.ChunkFits(chunkAddr))
-                            break;
-                        if (!visitedChunks.Add(chunkAddr))
-                            break;
-                        if (!_budget.TryReserve(visitedChunkBytes))
-                            yield break;
-                        reservedBytes += visitedChunkBytes;
-
-                        yield return new MemoryRange(chunkAddr, chunkAddr + (ulong)_layout.ChunkTotalSize);
-
-                        if (!TryReadTargetPointer(chunkAddr + (ulong)_layout.ChunkNextOffset, out ulong nextChunk) || nextChunk == 0)
-                            yield break;
-                        if (nextChunk == chunkListHead)
-                            break;
-                        chunkAddr = nextChunk;
-                        chunkCount++;
+                        RaiseDiagnostic(StressLogDiagnosticKind.LimitExceeded, threadAddr);
+                        yield break;
+                    }
+                    if (!visitedThreads.Add(threadAddr))
+                    {
+                        // Thread-list cycle: we cannot make progress, so stop.
+                        RaiseDiagnostic(StressLogDiagnosticKind.CorruptThread, threadAddr);
+                        yield break;
                     }
 
+                    // Walk this thread's chunk ring. A failure here is isolated to
+                    // the thread: report it and fall through to the next thread.
+                    // chunkListHead == 0 is a legitimately empty/dead thread.
+                    if (TryReadTargetPointer(threadAddr + (ulong)_layout.ThreadChunkListHeadOffset, out ulong chunkListHead))
+                    {
+                        ulong chunkAddr = chunkListHead;
+                        int chunkCount = 0;
+                        while (chunkAddr != 0 && chunkCount < _options.MaxChunksPerThread)
+                        {
+                            // Skip a chunk whose range would wrap past the end of the
+                            // address space (mirrors ChunkReader's ChunkFits guard).
+                            if (!_layout.ChunkFits(chunkAddr))
+                            {
+                                RaiseDiagnostic(StressLogDiagnosticKind.CorruptChunk, chunkAddr);
+                                break;
+                            }
+                            if (!visitedChunks.Add(chunkAddr))
+                            {
+                                // Non-head cycle or cross-thread chunk reuse.
+                                RaiseDiagnostic(StressLogDiagnosticKind.CorruptChunk, chunkAddr);
+                                break;
+                            }
+                            if (!_budget.TryReserve(visitedChunkBytes))
+                            {
+                                // Global memory ceiling: stop the whole enumeration.
+                                RaiseDiagnostic(StressLogDiagnosticKind.LimitExceeded, chunkAddr);
+                                yield break;
+                            }
+                            reservedBytes += visitedChunkBytes;
+
+                            yield return new MemoryRange(chunkAddr, chunkAddr + (ulong)_layout.ChunkTotalSize);
+
+                            if (!TryReadTargetPointer(chunkAddr + (ulong)_layout.ChunkNextOffset, out ulong nextChunk))
+                            {
+                                RaiseDiagnostic(StressLogDiagnosticKind.ReadMemoryFailed, chunkAddr);
+                                break;
+                            }
+                            if (nextChunk == chunkListHead)
+                                break;
+                            chunkAddr = nextChunk;
+                            chunkCount++;
+                        }
+                    }
+                    else
+                    {
+                        RaiseDiagnostic(StressLogDiagnosticKind.ReadMemoryFailed, threadAddr);
+                    }
+
+                    // Advance to the next thread; without the link we cannot continue.
                     if (!TryReadTargetPointer(threadAddr + (ulong)_layout.ThreadNextOffset, out ulong nextThread))
+                    {
+                        RaiseDiagnostic(StressLogDiagnosticKind.ReadMemoryFailed, threadAddr);
                         yield break;
+                    }
                     threadAddr = nextThread;
                 }
             }
@@ -471,6 +509,9 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             value = _layout.ReadTargetPointer(buffer, 0);
             return true;
         }
+
+        private void RaiseDiagnostic(StressLogDiagnosticKind kind, ulong address)
+            => Diagnostic?.Invoke(new StressLogDiagnostic(kind, address));
 
         /// <summary>
         /// Enumerate messages from all threads in newest-first chronological
@@ -571,20 +612,20 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             {
                 if (iterators.Count >= _options.MaxThreads)
                 {
-                    Diagnostic?.Invoke(new StressLogDiagnostic(StressLogDiagnosticKind.LimitExceeded, addr));
+                    RaiseDiagnostic(StressLogDiagnosticKind.LimitExceeded, addr);
                     break;
                 }
 
                 if (!visited.Add(addr))
                 {
-                    Diagnostic?.Invoke(new StressLogDiagnostic(StressLogDiagnosticKind.CorruptThread, addr));
+                    RaiseDiagnostic(StressLogDiagnosticKind.CorruptThread, addr);
                     break;
                 }
 
                 int got = _reader.Read(addr, threadHeader);
                 if (got < _layout.ThreadHeaderSize)
                 {
-                    Diagnostic?.Invoke(new StressLogDiagnostic(StressLogDiagnosticKind.ReadMemoryFailed, addr));
+                    RaiseDiagnostic(StressLogDiagnosticKind.ReadMemoryFailed, addr);
                     break;
                 }
 
