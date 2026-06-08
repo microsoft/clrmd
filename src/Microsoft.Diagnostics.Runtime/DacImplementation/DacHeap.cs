@@ -22,15 +22,26 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly IMemoryReader _memoryReader;
         private readonly TargetProperties _target;
         private readonly GCState _gcState;
+        private readonly ThinLockLayout _thinLockLayout;
         private HashSet<ulong>? _validMethodTables;
 
-        private const uint SyncBlockRecLevelMask = 0x0000FC00;
-        private const int SyncBlockRecLevelShift = 10;
-        private const uint SyncBlockThreadIdMask = 0x000003FF;
+        private const uint LegacySyncBlockRecLevelMask = 0x0000FC00;
+        private const int LegacySyncBlockRecLevelShift = 10;
+        private const uint LegacySyncBlockThreadIdMask = 0x000003FF;
+        private const uint LargeSyncBlockRecLevelMask = 0x003F0000;
+        private const int LargeSyncBlockRecLevelShift = 16;
+        private const uint LargeSyncBlockThreadIdMask = 0x0000FFFF;
         private const uint SyncBlockSpinLock = 0x10000000;
         private const uint SyncBlockHashOrSyncBlockIndex = 0x08000000;
 
-        public DacHeap(SOSDac sos, SOSDac8? sos8, SosDac12? sos12, ISOSDac16? sos16, IMemoryReader reader, TargetProperties target, in GCInfo gcInfo, in CommonMethodTables commonMethodTables)
+        internal enum ThinLockLayout
+        {
+            Legacy,
+            Large,
+            LargeWithLegacyFallback,
+        }
+
+        public DacHeap(SOSDac sos, SOSDac8? sos8, SosDac12? sos12, ISOSDac16? sos16, IMemoryReader reader, TargetProperties target, ThinLockLayout thinLockLayout, in GCInfo gcInfo, in CommonMethodTables commonMethodTables)
         {
             _sos = sos;
             _sos8 = sos8;
@@ -38,6 +49,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             _sos16 = sos16;
             _memoryReader = reader;
             _target = target;
+            _thinLockLayout = thinLockLayout;
 
             _gcState = new()
             {
@@ -362,27 +374,62 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public (ulong Thread, int Recursion) GetThinLock(uint header)
         {
-            if (!HasThinlock(header))
-                return default;
-
-            (uint threadId, uint recursion) = GetThinlockData(header);
-            ulong threadAddress = _sos.GetThreadFromThinlockId(threadId).ToAddress(_target);
-
-            if (threadAddress == 0)
+            if (!TryGetThinLock(header, _thinLockLayout, out ulong threadAddress, out uint recursion))
                 return default;
 
             return (threadAddress, recursion.ToSigned());
+
+            bool TryGetThinLock(uint header, ThinLockLayout layout, out ulong threadAddress, out uint recursion)
+            {
+                bool useLargeThreadIdLayout = layout != ThinLockLayout.Legacy;
+                if (!HasThinlock(header, useLargeThreadIdLayout))
+                {
+                    threadAddress = 0;
+                    recursion = 0;
+                    return false;
+                }
+
+                (uint threadId, recursion) = GetThinlockData(header, useLargeThreadIdLayout);
+                threadAddress = _sos.GetThreadFromThinlockId(threadId).ToAddress(_target);
+                if (threadAddress != 0)
+                    return true;
+
+                if (layout != ThinLockLayout.LargeWithLegacyFallback || !HasThinlock(header, useLargeThreadIdLayout: false))
+                    return false;
+
+                (threadId, recursion) = GetThinlockData(header, useLargeThreadIdLayout: false);
+                threadAddress = _sos.GetThreadFromThinlockId(threadId).ToAddress(_target);
+                return threadAddress != 0;
+            }
         }
 
-        private static bool HasThinlock(uint header)
+        internal static ThinLockLayout GetThinLockLayout(ClrFlavor flavor, Version version)
         {
-            return (header & (SyncBlockHashOrSyncBlockIndex | SyncBlockSpinLock)) == 0 && (header & SyncBlockThreadIdMask) != 0;
+            if (flavor != ClrFlavor.Core)
+                return ThinLockLayout.Legacy;
+
+            return version.Major switch
+            {
+                0 => ThinLockLayout.LargeWithLegacyFallback,
+                8 => ThinLockLayout.LargeWithLegacyFallback,
+                > 8 => ThinLockLayout.Large,
+                _ => ThinLockLayout.Legacy,
+            };
         }
 
-        private static (uint ThreadId, uint Recursion) GetThinlockData(uint header)
+        internal static bool HasThinlock(uint header, bool useLargeThreadIdLayout)
         {
-            uint threadId = header & SyncBlockThreadIdMask;
-            uint recursion = (header & SyncBlockRecLevelMask) >> SyncBlockRecLevelShift;
+            uint threadIdMask = useLargeThreadIdLayout ? LargeSyncBlockThreadIdMask : LegacySyncBlockThreadIdMask;
+            return (header & (SyncBlockHashOrSyncBlockIndex | SyncBlockSpinLock)) == 0 && (header & threadIdMask) != 0;
+        }
+
+        internal static (uint ThreadId, uint Recursion) GetThinlockData(uint header, bool useLargeThreadIdLayout)
+        {
+            uint threadIdMask = useLargeThreadIdLayout ? LargeSyncBlockThreadIdMask : LegacySyncBlockThreadIdMask;
+            uint recursionMask = useLargeThreadIdLayout ? LargeSyncBlockRecLevelMask : LegacySyncBlockRecLevelMask;
+            int recursionShift = useLargeThreadIdLayout ? LargeSyncBlockRecLevelShift : LegacySyncBlockRecLevelShift;
+            uint threadId = header & threadIdMask;
+            uint recursion = (header & recursionMask) >> recursionShift;
 
             return (threadId, recursion);
         }
