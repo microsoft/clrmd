@@ -554,6 +554,61 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
+        public void EnumerateMemoryRanges_ThreadCycleIsBounded()
+        {
+            SyntheticStressLogBuilder builder = new SyntheticStressLogBuilder();
+            ulong stressLogAddr = builder.Build(out ulong threadAddr, out _);
+
+            // Corrupt the thread list into a self-cycle (next -> itself). Without
+            // cycle detection this would re-yield the thread's chunk MaxThreads times.
+            StressLogLayout layout = StressLogLayout.CoreX64;
+            BinaryPrimitives.WriteUInt64LittleEndian(builder.Memory[threadAddr].AsSpan(layout.ThreadNextOffset), threadAddr);
+
+            SyntheticDataReader reader = new(builder.Memory);
+            Assert.True(StressLog.TryOpen(reader, stressLogAddr, out StressLog? log, out _));
+            Assert.NotNull(log);
+            using (log)
+            {
+                List<MemoryRange> ranges = new();
+                foreach (MemoryRange range in log!.EnumerateMemoryRanges())
+                    ranges.Add(range);
+
+                Assert.Single(ranges);
+            }
+        }
+
+        [Fact]
+        public void EnumerateMemoryRanges_ChunkCycleIsBounded()
+        {
+            SyntheticStressLogBuilder builder = new SyntheticStressLogBuilder();
+            ulong stressLogAddr = builder.Build(out _, out ulong chunkAddr);
+
+            // Add a second chunk whose next points to itself (a cycle that never
+            // returns to the list head), and link the head chunk to it. Without
+            // cycle detection the walk would spin on the second chunk.
+            StressLogLayout layout = StressLogLayout.CoreX64;
+            ulong chunk2Addr = chunkAddr + 0x100000;
+            byte[] chunk2 = new byte[layout.ChunkTotalSize];
+            BinaryPrimitives.WriteUInt64LittleEndian(chunk2.AsSpan(layout.ChunkNextOffset), chunk2Addr);
+            builder.Memory[chunk2Addr] = chunk2;
+            BinaryPrimitives.WriteUInt64LittleEndian(builder.Memory[chunkAddr].AsSpan(layout.ChunkNextOffset), chunk2Addr);
+
+            SyntheticDataReader reader = new(builder.Memory);
+            Assert.True(StressLog.TryOpen(reader, stressLogAddr, out StressLog? log, out _));
+            Assert.NotNull(log);
+            using (log)
+            {
+                List<MemoryRange> ranges = new();
+                foreach (MemoryRange range in log!.EnumerateMemoryRanges())
+                    ranges.Add(range);
+
+                Assert.Equal(2, ranges.Count);
+                Assert.Equal(chunkAddr, ranges[0].Start);
+                Assert.Equal(chunk2Addr, ranges[1].Start);
+            }
+        }
+
+        [Fact]
         public void EndToEnd_ConcurrentEnumerationsDoNotInterfere()
         {
             // Two threads enumerating the same StressLog instance must each

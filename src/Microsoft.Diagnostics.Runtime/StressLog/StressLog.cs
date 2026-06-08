@@ -396,20 +396,28 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         /// Each range covers a whole <c>StressLogChunk</c> structure, matching
         /// the runtime's chunk allocation granularity. Enumeration stops at the
         /// first unreadable thread or chunk, yielding whatever ranges were
-        /// discovered before the failure.
+        /// discovered before the failure. Each thread and chunk is visited at
+        /// most once, so a corrupt log whose links form a cycle stays bounded.
         /// </remarks>
         public IEnumerable<MemoryRange> EnumerateMemoryRanges()
         {
             ThrowIfDisposed();
 
+            // Track visited threads and chunks so a corrupt log whose links form
+            // a cycle (rather than terminating at the list head) stays bounded:
+            // each node is yielded at most once and revisiting one ends the walk.
+            HashSet<ulong> visitedThreads = new();
+            HashSet<ulong> visitedChunks = new();
+
             ulong threadAddr = _firstThreadAddr;
-            for (int threadCount = 0; threadAddr != 0 && threadCount < _options.MaxThreads; threadCount++)
+            while (threadAddr != 0 && visitedThreads.Count < _options.MaxThreads && visitedThreads.Add(threadAddr))
             {
                 if (!TryReadTargetPointer(threadAddr + (ulong)_layout.ThreadChunkListHeadOffset, out ulong chunkListHead) || chunkListHead == 0)
                     yield break;
 
                 ulong chunkAddr = chunkListHead;
-                for (int chunkCount = 0; chunkCount < _options.MaxChunksPerThread; chunkCount++)
+                int chunkCount = 0;
+                while (chunkCount < _options.MaxChunksPerThread && visitedChunks.Add(chunkAddr))
                 {
                     yield return new MemoryRange(chunkAddr, chunkAddr + (ulong)_layout.ChunkTotalSize);
 
@@ -418,6 +426,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                     if (nextChunk == chunkListHead)
                         break;
                     chunkAddr = nextChunk;
+                    chunkCount++;
                 }
 
                 if (!TryReadTargetPointer(threadAddr + (ulong)_layout.ThreadNextOffset, out ulong nextThread))
