@@ -463,15 +463,17 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                             }
                             reservedBytes += visitedChunkBytes;
 
-                            yield return new MemoryRange(chunkAddr, chunkAddr + (ulong)_layout.ChunkTotalSize);
-
                             if (!TryReadTargetPointer(chunkAddr + (ulong)_layout.ChunkNextOffset, out ulong nextChunk))
                             {
                                 RaiseDiagnostic(StressLogDiagnosticKind.ReadMemoryFailed, chunkAddr);
                                 break;
                             }
+
+                            yield return new MemoryRange(chunkAddr, chunkAddr + (ulong)_layout.ChunkTotalSize);
+
                             if (nextChunk == chunkListHead)
                                 break;
+
                             chunkAddr = nextChunk;
                             chunkCount++;
                         }
