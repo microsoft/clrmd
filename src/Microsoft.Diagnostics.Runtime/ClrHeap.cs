@@ -674,7 +674,7 @@ namespace Microsoft.Diagnostics.Runtime
         ///     ClrRuntime.EnumerateHandles().Where(handle => handle.IsStrong)
         ///     ClrRuntime.EnumerateThreads().SelectMany(thread => thread.EnumerateStackRoots())
         ///     ClrHeap.EnumerateFinalizerRoots()
-        ///     ClrHeap.EnumerateThreadStaticRoots()
+        ///     ClrHeap.EnumerateAdditionalRoots()
         /// </summary>
         public IEnumerable<ClrRoot> EnumerateRoots()
         {
@@ -719,41 +719,104 @@ namespace Microsoft.Diagnostics.Runtime
                 foreach (ClrRoot root in thread.EnumerateStackRoots())
                     yield return root;
 
-            // Thread statics
-            foreach (ClrRoot root in EnumerateThreadStaticRoots())
+            // Additional roots not surfaced above (regular + thread statics on .NET 9/10)
+            foreach (ClrRoot root in EnumerateAdditionalRoots())
                 yield return root;
         }
 
         /// <summary>
-        /// Enumerates GC roots that come from thread static variables.  These roots are only
-        /// reported on .NET Core 9 and later: starting with that runtime, non-collectible thread
-        /// statics are rooted through each thread's thread-local storage (which the GC scans
-        /// directly as part of the owning thread's roots) instead of through a GC handle.  On
-        /// earlier runtimes thread statics were folded into the handle table, so on those targets
-        /// they are surfaced through <see cref="ClrRuntime.EnumerateHandles"/> and this method
-        /// returns an empty enumeration.  These roots are also included in <see cref="EnumerateRoots"/>.
+        /// Enumerates "additional" GC roots that are not surfaced by the handle table, finalizer
+        /// queue, or thread stacks.  On .NET 9 and 10 Core this returns the roots that come from
+        /// regular and thread static variables:
+        /// <list type="bullet">
+        /// <item>A type's GC statics live in slots inside a shared pinned <see cref="System.Object"/>[]
+        /// (the runtime's PinnedHeapHandleTable bucket) kept alive by a single strong handle.  That
+        /// handle is normally enumerated through the handle table, but on Server GC with DATAS the
+        /// DAC's handle walker can fail to enumerate it, leaving objects reachable only through a
+        /// static with no enumerable root.  Each such bucket is surfaced here as a
+        /// <see cref="ClrRootKind.StaticVar"/> root.</item>
+        /// <item>Non-collectible thread statics are rooted through each thread's thread-local storage
+        /// (scanned directly by the GC) rather than a GC handle, and are surfaced here as
+        /// <see cref="ClrRootKind.ThreadStaticVar"/> roots.</item>
+        /// </list>
+        /// On non-Core runtimes, on CLR versions before .NET 9 (where these were folded into the
+        /// handle table), and on .NET 11+ (where the DAC enumerates the handle table and statics
+        /// correctly), this returns an empty enumeration.  Reporting a bucket here is purely additive:
+        /// on targets where the strong handle <em>is</em> enumerated, the same object is simply
+        /// reported by both paths.  These roots are also included in <see cref="EnumerateRoots"/>.
         /// </summary>
-        public IEnumerable<ClrRoot> EnumerateThreadStaticRoots()
+        public IEnumerable<ClrRoot> EnumerateAdditionalRoots()
         {
-            // Modules outer / threads inner: the DAC caches each module's candidate MethodTable set
-            // (thread-independent), so the first thread for a module pays the type-def/metadata walk
-            // and the rest reuse it.  Materialize the alive-thread set once.
-            ClrThread[] aliveThreads = Runtime.Threads.Where(t => t.IsAlive).ToArray();
+            // Materialize the alive-thread set once; the DAC caches each module's candidate
+            // MethodTable set (thread-independent), so one module pass covers both static kinds.
+            ulong[] threadAddresses = Runtime.Threads.Where(t => t.IsAlive).Select(t => t.Address).ToArray();
+
+            // A regular static's GC base is interior to a shared pinned Object[] bucket, and many
+            // types map to the same bucket.  Resolve each base to its containing object and report
+            // each distinct bucket exactly once.  The bucket set is tiny, so a small list of
+            // already-resolved (range, object) entries keeps this near O(types).
+            List<(ulong Start, ulong End)> resolvedBuckets = new();
+
             foreach (ClrModule module in Runtime.EnumerateModules())
             {
-                foreach (ClrThread thread in aliveThreads)
+                foreach (AdditionalRootInfo info in _typeHelpers.EnumerateAdditionalRoots(module.Address, threadAddresses))
                 {
-                    foreach (ulong gcBase in _typeHelpers.EnumerateThreadStaticRoots(module.Address, thread.Address))
+                    if (info.IsThreadStatic)
                     {
-                        ClrObject obj = GetObject(gcBase);
+                        // The thread-static base is the GC storage object itself.
+                        ClrObject obj = GetObject(info.Address);
                         if (obj.IsValid)
-                            yield return new ClrRoot(gcBase, obj, ClrRootKind.ThreadStaticVar, isInterior: false, isPinned: false);
+                            yield return new ClrRoot(info.Address, obj, ClrRootKind.ThreadStaticVar, isInterior: false, isPinned: false);
+
+                        continue;
                     }
+
+                    // The regular-static base is interior to a pinned Object[] bucket; resolve it to
+                    // its container and report each bucket only once.
+                    bool known = false;
+                    foreach ((ulong start, ulong end) in resolvedBuckets)
+                    {
+                        if (start <= info.Address && info.Address < end)
+                        {
+                            known = true;
+                            break;
+                        }
+                    }
+
+                    if (known)
+                        continue;
+
+                    ClrObject bucket = GetContainingObject(info.Address);
+                    if (!bucket.IsValid)
+                        continue;
+
+                    resolvedBuckets.Add((bucket.Address, bucket.Address + bucket.Size));
+                    yield return new ClrRoot(info.Address, bucket, ClrRootKind.StaticVar, isInterior: false, isPinned: true);
                 }
             }
         }
 
-        IEnumerable<IClrRoot> IClrHeap.EnumerateThreadStaticRoots() => EnumerateThreadStaticRoots().Cast<IClrRoot>();
+        IEnumerable<IClrRoot> IClrHeap.EnumerateAdditionalRoots() => EnumerateAdditionalRoots().Cast<IClrRoot>();
+
+        // Resolves an interior address to the heap object that contains it, or default if none.
+        // Used to map a type's (interior) GC static base back to its containing pinned Object[].
+        private ClrObject GetContainingObject(ulong interiorAddress)
+        {
+            ClrSegment? segment = GetSegmentByAddress(interiorAddress);
+            if (segment is null)
+                return default;
+
+            foreach (ClrObject obj in segment.EnumerateObjects())
+            {
+                if (obj.Address > interiorAddress)
+                    break;
+
+                if (interiorAddress < obj.Address + obj.Size)
+                    return obj;
+            }
+
+            return default;
+        }
 
         private (ulong Address, ClrObject obj) GetObjectAndAddress(ClrObject containing, string fieldName)
         {

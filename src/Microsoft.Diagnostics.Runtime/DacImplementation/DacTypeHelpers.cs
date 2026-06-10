@@ -32,10 +32,11 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         // Cache of per-module candidate MethodTables (types whose metadata declares a static
         // FieldDef).  The type-def map and metadata filter are thread-independent, so this is
-        // computed once per module and reused across every thread.  ConcurrentDictionary because
-        // EnumerateThreadStaticRoots may run on several threads at once: recomputing a module's
-        // (deterministic, immutable) candidate array is harmless, but reads must never tear.
-        private readonly ConcurrentDictionary<ulong, ulong[]> _threadStaticCandidates = new();
+        // computed once per module and reused for every static and thread-static base lookup.
+        // ConcurrentDictionary because EnumerateAdditionalRoots may run on several threads at once:
+        // recomputing a module's (deterministic, immutable) candidate array is harmless, but reads
+        // must never tear.
+        private readonly ConcurrentDictionary<ulong, ulong[]> _staticCandidates = new();
 
         public DacTypeHelpers(ClrDataProcess clrDataProcess, SOSDac sos, SOSDac6? sos6, SOSDac8? sos8, SosDac14? sos14, IDataReader dataReader, DacModuleHelpers moduleHelpers, TargetProperties target, ClrFlavor flavor, int clrVersionMajor)
         {
@@ -340,37 +341,67 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             return threadData.GCStaticDataStart.ToAddress(_target) + (uint)field.Offset;
         }
 
-        public IEnumerable<ulong> EnumerateThreadStaticRoots(ulong moduleAddress, ulong threadAddress)
+        public IEnumerable<AdditionalRootInfo> EnumerateAdditionalRoots(ulong moduleAddress, ulong[] threadAddresses)
         {
-            // Thread statics only need special handling on .NET 9+ Core, where non-collectible
-            // thread statics live in the per-thread ThreadLocalData GC array (not a GC handle).
-            // _sos14 is required for the per-type GC base lookup and only exists on that runtime.
-            if (_flavor != ClrFlavor.Core || _clrVersionMajor < 9 || _sos14 is null || threadAddress == 0)
+            // On .NET 9 and 10 Core, two kinds of GC root are not surfaced by the normal handle/
+            // finalizer/stack walk and must be enumerated here:
+            //  * Regular statics: a type's GC statics live in slots inside a shared pinned Object[]
+            //    (the runtime's PinnedHeapHandleTable bucket) kept alive by a single strong handle.
+            //    On Server GC with DATAS the DAC's handle walker can miss that handle (it walks only
+            //    GCHeapCount() per-processor handle-table slots, fewer than the actual slot count once
+            //    the dynamic heap count is reduced), so the bucket -- and anything reachable only
+            //    through a static -- would otherwise have no enumerable root.
+            //  * Non-collectible thread statics: stored in the per-thread ThreadLocalData GC array
+            //    (scanned directly by the GC), not a GC handle.
+            // .NET 11+ enumerates the handle table and statics correctly, so this is scoped to 9/10.
+            // _sos14 is required for the per-type GC base lookups and only exists on those runtimes.
+            if (_flavor != ClrFlavor.Core || _clrVersionMajor < 9 || _clrVersionMajor > 10 || _sos14 is null)
                 yield break;
 
-            HashSet<ulong> seen = new();
-            foreach (ulong methodTable in GetThreadStaticCandidateTypes(moduleAddress))
+            HashSet<ulong> seenThreadStatic = new();
+            foreach (ulong methodTable in GetStaticCandidateTypes(moduleAddress))
             {
-                ulong gcBase;
+                // Regular static base for this type (interior to its pinned Object[] bucket).
+                ulong gcStaticBase;
                 try
                 {
-                    gcBase = GetGCThreadStaticBase(methodTable, threadAddress);
+                    gcStaticBase = GetGCStaticBase(methodTable);
                 }
                 catch
                 {
                     // A single corrupt MethodTable must not abort enumeration of all roots
                     // (EnumerateRoots is one lazy iterator); skip it like HasStaticFieldDef does.
-                    continue;
+                    gcStaticBase = 0;
                 }
 
-                if (gcBase != 0 && seen.Add(gcBase))
-                    yield return gcBase;
+                if (gcStaticBase != 0)
+                    yield return new AdditionalRootInfo { Address = gcStaticBase, IsThreadStatic = false };
+
+                // Thread-static base for this type on each live thread.
+                foreach (ulong threadAddress in threadAddresses)
+                {
+                    if (threadAddress == 0)
+                        continue;
+
+                    ulong gcThreadBase;
+                    try
+                    {
+                        gcThreadBase = GetGCThreadStaticBase(methodTable, threadAddress);
+                    }
+                    catch
+                    {
+                        continue;
+                    }
+
+                    if (gcThreadBase != 0 && seenThreadStatic.Add(gcThreadBase))
+                        yield return new AdditionalRootInfo { Address = gcThreadBase, IsThreadStatic = true };
+                }
             }
         }
 
-        private ulong[] GetThreadStaticCandidateTypes(ulong moduleAddress)
+        private ulong[] GetStaticCandidateTypes(ulong moduleAddress)
         {
-            if (_threadStaticCandidates.TryGetValue(moduleAddress, out ulong[]? cached))
+            if (_staticCandidates.TryGetValue(moduleAddress, out ulong[]? cached))
                 return cached;
 
             // Cheap pre-filter: keep only types whose metadata declares a static FieldDef, mirroring
@@ -393,8 +424,21 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             // Concurrent callers may build this simultaneously; every result is identical and
             // immutable, so publishing any winner (last write wins) is correct.
             ulong[] result = candidates.ToArray();
-            _threadStaticCandidates[moduleAddress] = result;
+            _staticCandidates[moduleAddress] = result;
             return result;
+        }
+
+        private ulong GetGCStaticBase(ulong methodTable)
+        {
+            // The per-type GC static base is allocated up front but only points at real storage
+            // once the type is initialized; an uninitialized type or a type with no GC statics
+            // yields a null gcBase (=> 0, filtered by the caller).  The returned pointer is
+            // interior to the shared pinned Object[] that backs the module's GC statics.
+            if (_sos14!.GetMethodTableInitializationFlags(ClrDataAddress.FromTargetAddress(methodTable, _target)) != MethodTableInitializationFlags.MethodTableInitialized)
+                return 0;
+
+            (_, ClrDataAddress gcBase) = _sos14.GetStaticBaseAddress(ClrDataAddress.FromTargetAddress(methodTable, _target));
+            return gcBase.IsNull ? 0 : gcBase.ToAddress(_target);
         }
 
         private ulong GetGCThreadStaticBase(ulong methodTable, ulong threadAddress)

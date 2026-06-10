@@ -34,10 +34,32 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         ulong GetStaticFieldAddress(in AppDomainInfo appDomain, in ClrModuleInfo module, in TypeInfo typeInfo, in FieldInfo field);
         ulong GetThreadStaticFieldAddress(ulong threadAddress, in ClrModuleInfo module, in TypeInfo typeInfo, in FieldInfo field);
 
-        // Enumerates the GC thread-static storage objects (one per type with GC thread-static
-        // storage allocated on the given thread) for all constructed types defined by the module.
-        // Returns an empty enumeration for non-Core runtimes and for CLR versions before .NET 9.
-        IEnumerable<ulong> EnumerateThreadStaticRoots(ulong moduleAddress, ulong threadAddress);
+        // Enumerates "additional" GC roots that the normal handle/finalizer/stack walk does not
+        // surface: on .NET 9 and 10 Core this is the GC bases of regular statics (interior to the
+        // module's shared pinned Object[] storage) and non-collectible thread statics (the per-
+        // thread GC storage object) for every constructed type defined by the module.  threadAddresses
+        // are the live threads to probe for thread statics.  Returns an empty enumeration on non-Core
+        // runtimes and on CLR versions outside [9, 10] (pre-9 had no such split; .NET 11+ enumerates
+        // the handle table and statics correctly, so no special handling is needed there).
+        IEnumerable<AdditionalRootInfo> EnumerateAdditionalRoots(ulong moduleAddress, ulong[] threadAddresses);
+    }
+
+    /// <summary>
+    /// A GC root base discovered by <see cref="IAbstractTypeHelpers.EnumerateAdditionalRoots"/>.
+    /// </summary>
+    public struct AdditionalRootInfo
+    {
+        /// <summary>
+        /// The GC base address of the static storage.  For a regular static this is an interior
+        /// pointer into the pinned Object[] that backs the module's GC statics; for a thread static
+        /// it is the per-thread GC thread-static storage object itself.
+        /// </summary>
+        public ulong Address { get; set; }
+
+        /// <summary>
+        /// True if this is a thread-static base; false if it is a regular static base.
+        /// </summary>
+        public bool IsThreadStatic { get; set; }
     }
 
     public struct TypeInfo

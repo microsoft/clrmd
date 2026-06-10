@@ -22,6 +22,12 @@ class GCRootTarget
     [ThreadStatic]
     static object ThreadStaticRoot;
 
+    // Rooted through a regular (non-thread) static field.  On .NET 9/10 a type's GC statics live
+    // in a shared pinned Object[] kept alive by a single strong handle; on Server GC + DATAS the
+    // DAC can fail to enumerate that handle, leaving static-rooted objects with no enumerable
+    // root.  This exercises ClrHeap.EnumerateAdditionalRoots (issue #1474).
+    static object StaticRoot;
+
     public static void Main(string[] args)
     {
         TargetType target = new TargetType();
@@ -54,6 +60,7 @@ class GCRootTarget
         AllocRoots(target, s, t);
 
         ThreadStaticRoot = new ThreadStaticTarget();
+        StaticRoot = new StaticTarget();
 
         throw new Exception();
         GC.KeepAlive(target);
@@ -95,5 +102,9 @@ class TargetType
 }
 
 class ThreadStaticTarget
+{
+}
+
+class StaticTarget
 {
 }
