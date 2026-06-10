@@ -85,7 +85,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     return heap;
 
                 if (_sos.GetGCHeapData(out GCInfo data) && _sos.GetCommonMethodTables(out CommonMethodTables mts) && !mts.ObjectMethodTable.IsNull)
-                    return _heapHelper = new DacHeap(_sos, _sos8, _sos12, _sos16, _dataReader, _dac.TargetProperties, data, mts);
+                    return _heapHelper = new DacHeap(_sos, _sos8, _sos12, _sos16, _dataReader, _dac.TargetProperties, DacHeap.GetThinLockLayout(_clrInfo.Flavor, _clrInfo.Version), data, mts);
 
                 return null;
             }
