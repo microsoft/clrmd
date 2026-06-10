@@ -751,47 +751,83 @@ namespace Microsoft.Diagnostics.Runtime
             // MethodTable set (thread-independent), so one module pass covers both static kinds.
             ulong[] threadAddresses = Runtime.Threads.Where(t => t.IsAlive).Select(t => t.Address).ToArray();
 
-            // A regular static's GC base is interior to a shared pinned Object[] bucket, and many
-            // types map to the same bucket.  Resolve each base to its containing object and report
-            // each distinct bucket exactly once.  The bucket set is tiny, so a small list of
-            // already-resolved (range, object) entries keeps this near O(types).
-            List<(ulong Start, ulong End)> resolvedBuckets = new();
+            // Interior bases (regular statics) point into a shared pinned Object[] bucket, and many
+            // types map to a small set of buckets.  Resolving the containing object is comparatively
+            // expensive, so cache the last resolved object as an O(1) fast path; back it with the set
+            // of buckets already resolved so each is reported exactly once and GetContainingObject is
+            // never called twice for the same bucket.  The DAC interleaves bases across the (few)
+            // live buckets rather than grouping them, so the last-object cache alone is not enough to
+            // dedupe -- the bucket set is required for correctness, but stays tiny (a handful).
+            ClrObject lastInterior = default;
+            ulong lastStart = 0;
+            ulong lastEnd = 0;
+            List<(ulong Start, ulong End, ClrObject Obj)> resolvedBuckets = new();
 
             foreach (ClrModule module in Runtime.EnumerateModules())
             {
                 foreach (AdditionalRootInfo info in _typeHelpers.EnumerateAdditionalRoots(module.Address, threadAddresses))
                 {
-                    if (info.IsThreadStatic)
+                    ClrObject obj;
+                    if (info.IsInteriorPointer)
                     {
-                        // The thread-static base is the GC storage object itself.
-                        ClrObject obj = GetObject(info.Address);
-                        if (obj.IsValid)
-                            yield return new ClrRoot(info.Address, obj, ClrRootKind.ThreadStaticVar, isInterior: false, isPinned: false);
+                        // Fast path: still inside the last resolved bucket -> already reported.
+                        if (lastInterior.IsValid && lastStart <= info.Address && info.Address < lastEnd)
+                            continue;
 
-                        continue;
-                    }
-
-                    // The regular-static base is interior to a pinned Object[] bucket; resolve it to
-                    // its container and report each bucket only once.
-                    bool known = false;
-                    foreach ((ulong start, ulong end) in resolvedBuckets)
-                    {
-                        if (start <= info.Address && info.Address < end)
+                        // Already resolved (and reported) a different bucket that contains this base?
+                        // Reuse it -- no GetContainingObject, no duplicate yield -- and prime the cache.
+                        bool known = false;
+                        foreach ((ulong start, ulong end, ClrObject bucket) in resolvedBuckets)
                         {
-                            known = true;
-                            break;
+                            if (start <= info.Address && info.Address < end)
+                            {
+                                lastInterior = bucket;
+                                lastStart = start;
+                                lastEnd = end;
+                                known = true;
+                                break;
+                            }
                         }
+
+                        if (known)
+                            continue;
+
+                        obj = GetContainingObject(info.Address);
+                        if (!obj.IsValid)
+                            continue;
+
+                        lastInterior = obj;
+                        lastStart = obj.Address;
+                        lastEnd = obj.Address + obj.Size;
+                        resolvedBuckets.Add((lastStart, lastEnd, obj));
+                    }
+                    else
+                    {
+                        // The base points at the start of the storage object.
+                        obj = GetObject(info.Address);
+                        if (!obj.IsValid)
+                            continue;
                     }
 
-                    if (known)
-                        continue;
+                    ClrRootKind rootKind;
+                    bool isPinned;
+                    switch (info.Kind)
+                    {
+                        case AdditionalRootKind.StaticVariable:
+                            rootKind = ClrRootKind.StaticVar;
+                            isPinned = true;
+                            break;
 
-                    ClrObject bucket = GetContainingObject(info.Address);
-                    if (!bucket.IsValid)
-                        continue;
+                        case AdditionalRootKind.ThreadStaticVariable:
+                            rootKind = ClrRootKind.ThreadStaticVar;
+                            isPinned = false;
+                            break;
 
-                    resolvedBuckets.Add((bucket.Address, bucket.Address + bucket.Size));
-                    yield return new ClrRoot(info.Address, bucket, ClrRootKind.StaticVar, isInterior: false, isPinned: true);
+                        default:
+                            throw new NotImplementedException($"Unhandled {nameof(AdditionalRootKind)} '{info.Kind}'.");
+                    }
+
+                    yield return new ClrRoot(info.Address, obj, rootKind, isInterior: false, isPinned: isPinned);
                 }
             }
         }

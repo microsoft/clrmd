@@ -45,21 +45,45 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     }
 
     /// <summary>
+    /// The kind of "additional" GC root reported by <see cref="IAbstractTypeHelpers.EnumerateAdditionalRoots"/>.
+    /// New members may be added over time; consumers should handle unknown values defensively.
+    /// </summary>
+    public enum AdditionalRootKind
+    {
+        /// <summary>
+        /// The root comes from a regular (non-thread) static variable.
+        /// </summary>
+        StaticVariable,
+
+        /// <summary>
+        /// The root comes from a thread static variable.
+        /// </summary>
+        ThreadStaticVariable,
+    }
+
+    /// <summary>
     /// A GC root base discovered by <see cref="IAbstractTypeHelpers.EnumerateAdditionalRoots"/>.
     /// </summary>
     public struct AdditionalRootInfo
     {
         /// <summary>
-        /// The GC base address of the static storage.  For a regular static this is an interior
-        /// pointer into the pinned Object[] that backs the module's GC statics; for a thread static
-        /// it is the per-thread GC thread-static storage object itself.
+        /// The address of the static storage.  When <see cref="IsInteriorPointer"/> is true this is
+        /// an interior pointer into the object that backs the storage (for example the pinned
+        /// <see cref="System.Object"/>[] holding a module's GC statics); when false it points at the
+        /// start of the storage object.
         /// </summary>
         public ulong Address { get; set; }
 
         /// <summary>
-        /// True if this is a thread-static base; false if it is a regular static base.
+        /// The kind of root this base represents.
         /// </summary>
-        public bool IsThreadStatic { get; set; }
+        public AdditionalRootKind Kind { get; set; }
+
+        /// <summary>
+        /// Whether <see cref="Address"/> is an interior pointer (points inside an object) rather than
+        /// the start of an object.
+        /// </summary>
+        public bool IsInteriorPointer { get; set; }
     }
 
     public struct TypeInfo
