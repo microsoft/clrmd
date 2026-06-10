@@ -31,6 +31,13 @@ namespace Microsoft.Diagnostics.Runtime
             if (dataTarget.ClrVersions.Length == 0)
                 throw new ClrDiagnosticsException("Process is not a CLR process!");
 
+            if (string.IsNullOrEmpty(dacPath))
+                throw new ArgumentNullException(nameof(dacPath));
+
+            // Resolve to a canonical absolute path so the signature-verification override callback and the
+            // load below operate on a full path (callers may pass a relative or non-normalized path).
+            dacPath = Path.GetFullPath(dacPath);
+
             TargetProperties = new TargetProperties(pointerSize: dataTarget.DataReader.PointerSize);
 
             IDisposable? fileLock = null;
@@ -40,7 +47,14 @@ namespace Microsoft.Diagnostics.Runtime
                 // VerifyDacDll uses WinVerifyTrust, which only exists on windows.  For non-windows platforms, we do
                 // not verify signatures of the DAC.  We also do not download DACs from the internet on those platforms,
                 // leaving it up to the consumer of ClrMD to safely procure the DAC.
-                if (verifySignature && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                // A host can override the verification decision per-DAC via DataTargetOptions.DacSignatureVerificationOverride,
+                // which takes priority over the VerifyDacOnWindows flag (verifySignature) passed down here. This lets a host
+                // trust a DAC it procured securely (e.g. a cDAC bundled in a signed tool package) while verifying others.
+                bool verify = verifySignature;
+                if (dataTarget.Options.DacSignatureVerificationOverride is { } shouldVerify)
+                    verify = shouldVerify(dacPath);
+
+                if (verify && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     if (!AuthenticodeUtil.VerifyDacDll(dacPath, out fileLock))
                     {
