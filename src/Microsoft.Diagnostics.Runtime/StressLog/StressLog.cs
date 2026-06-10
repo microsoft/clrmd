@@ -49,6 +49,11 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         private readonly DateTime? _startTimeUtc;
         private readonly bool _isV4;
         private readonly StressLogVariant _variant;
+        private readonly uint? _facilitiesToLog;
+        private readonly uint? _levelToLog;
+        private readonly uint? _maxSizePerThread;
+        private readonly uint? _maxSizeTotal;
+        private readonly int? _chunkCount;
 
         private bool _disposed;
 
@@ -62,7 +67,12 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                           ulong startTimeStamp,
                           DateTime? startTimeUtc,
                           bool isV4,
-                          StressLogVariant variant)
+                          StressLogVariant variant,
+                          uint? facilitiesToLog,
+                          uint? levelToLog,
+                          uint? maxSizePerThread,
+                          uint? maxSizeTotal,
+                          int? chunkCount)
         {
             _reader = reader;
             _layout = layout;
@@ -75,6 +85,11 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             _startTimeUtc = startTimeUtc;
             _isV4 = isV4;
             _variant = variant;
+            _facilitiesToLog = facilitiesToLog;
+            _levelToLog = levelToLog;
+            _maxSizePerThread = maxSizePerThread;
+            _maxSizeTotal = maxSizeTotal;
+            _chunkCount = chunkCount;
             _formatCache = new FormatStringCache(reader, budget, options.MaxFormatStringLength, options.MaxFormatStringCacheEntries);
         }
 
@@ -99,6 +114,45 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         /// to match the target's native pointer width.
         /// </summary>
         public int PointerSize => _layout.PointerSize;
+
+        /// <summary>
+        /// QueryPerformanceFrequency tick rate the log timestamps were captured with,
+        /// used to convert raw timestamps to elapsed seconds.
+        /// </summary>
+        public ulong TickFrequency => _tickFrequency;
+
+        /// <summary>
+        /// Bitmask of logging facilities the runtime was configured to record
+        /// (the runtime's <c>facilitiesToLog</c>). In-process logs only;
+        /// <see langword="null"/> for memory-mapped logs.
+        /// </summary>
+        public uint? FacilitiesToLog => _facilitiesToLog;
+
+        /// <summary>
+        /// Maximum logging verbosity level the runtime was configured to record
+        /// (the runtime's <c>levelToLog</c>). In-process logs only;
+        /// <see langword="null"/> for memory-mapped logs.
+        /// </summary>
+        public uint? LevelToLog => _levelToLog;
+
+        /// <summary>
+        /// Configured maximum log size per thread, in bytes. In-process logs
+        /// only; <see langword="null"/> for memory-mapped logs.
+        /// </summary>
+        public uint? MaxSizePerThread => _maxSizePerThread;
+
+        /// <summary>
+        /// Configured maximum total log size, in bytes. In-process logs only;
+        /// <see langword="null"/> for memory-mapped logs.
+        /// </summary>
+        public uint? MaxSizeTotal => _maxSizeTotal;
+
+        /// <summary>
+        /// Current number of allocated stress log chunks across all threads
+        /// (the runtime's <c>totalChunk</c>). In-process logs only;
+        /// <see langword="null"/> for memory-mapped logs.
+        /// </summary>
+        public int? ChunkCount => _chunkCount;
 
         /// <summary>
         /// Try to open the stress log for the given <paramref name="runtime"/>.
@@ -130,12 +184,15 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         }
 
         /// <summary>
-        /// Try to open the stress log at <paramref name="address"/> in the
-        /// target. Returns <see langword="false"/> on any structural
-        /// validation failure; <paramref name="failureReason"/> is a
-        /// human-readable explanation in that case.
+        /// Open the stress log located at <paramref name="address"/> in the target
+        /// described by <paramref name="reader"/>. Use this to read a stress log
+        /// that is not the runtime's own — for example a different utilcode-linked
+        /// module's log such as <c>mscordbi!StressLog::theLog</c>. Returns
+        /// <see langword="false"/> on any structural validation failure, with
+        /// <paramref name="failureReason"/> describing the problem. The returned
+        /// <see cref="StressLog"/> is owned by the caller and must be disposed.
         /// </summary>
-        internal static bool TryOpen(IDataReader reader, ulong address, out StressLog? stressLog, out string? failureReason)
+        public static bool TryOpen(IDataReader reader, ulong address, out StressLog? stressLog, out string? failureReason)
         {
             stressLog = null;
             failureReason = null;
@@ -246,6 +303,11 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             ulong startTs = BinaryPrimitives.ReadUInt64LittleEndian(header.Slice(layout.InProcStartTimeStampOffset));
             ulong startFiletime = BinaryPrimitives.ReadUInt64LittleEndian(header.Slice(layout.InProcStartTimeOffset));
             ulong moduleOffset = layout.ReadTargetPointer(header, layout.InProcModuleOffsetOffset);
+            uint facilitiesToLog = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(layout.InProcFacilitiesToLogOffset));
+            uint levelToLog = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(layout.InProcLevelToLogOffset));
+            uint maxSizePerThread = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(layout.InProcMaxSizePerThreadOffset));
+            uint maxSizeTotal = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(layout.InProcMaxSizeTotalOffset));
+            int chunkCount = BinaryPrimitives.ReadInt32LittleEndian(header.Slice(layout.InProcTotalChunkOffset));
 
             DateTime? startTimeUtc = null;
             try
@@ -289,7 +351,8 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             // module table in CoreCLR; Framework V1 predates it and uses V3.
             bool isV4 = variant == StressLogVariant.Core;
 
-            return new StressLog(reader, layout, options, budget, modules, logs, tickFreq, startTs, startTimeUtc, isV4: isV4, variant: variant);
+            return new StressLog(reader, layout, options, budget, modules, logs, tickFreq, startTs, startTimeUtc, isV4: isV4, variant: variant,
+                facilitiesToLog: facilitiesToLog, levelToLog: levelToLog, maxSizePerThread: maxSizePerThread, maxSizeTotal: maxSizeTotal, chunkCount: chunkCount);
         }
 
         private static StressLog? OpenMemoryMapped(IDataReader reader,
@@ -318,8 +381,139 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
 
             StressLogModuleTable modules = StressLogModuleTable.BuildMemoryMapped(layout, entries, maxOffset);
 
-            return new StressLog(reader, layout, options, budget, modules, logs, tickFreq, startTs, startTimeUtc: null, isV4: true, variant: StressLogVariant.Core);
+            return new StressLog(reader, layout, options, budget, modules, logs, tickFreq, startTs, startTimeUtc: null, isV4: true, variant: StressLogVariant.Core,
+                facilitiesToLog: null, levelToLog: null, maxSizePerThread: null, maxSizeTotal: null, chunkCount: null);
         }
+
+        /// <summary>
+        /// Enumerate the target memory ranges occupied by the stress log's
+        /// per-thread chunk buffers. Callers can use this to exclude stress
+        /// log memory from a broader scan — for example, to distinguish a real
+        /// reference to an object from a reference that merely appears inside a
+        /// logged message.
+        /// </summary>
+        /// <remarks>
+        /// Each range covers a whole <c>StressLogChunk</c> structure, matching the
+        /// runtime's chunk allocation granularity. A thread or chunk that cannot be
+        /// read, or that looks corrupt, is skipped and reported through
+        /// <see cref="Diagnostic"/>; enumeration continues with the remaining
+        /// threads where possible. Each thread and chunk is visited at most once, so
+        /// a corrupt log whose links form a cycle stays bounded.
+        /// </remarks>
+        public IEnumerable<MemoryRange> EnumerateMemoryRanges()
+        {
+            ThrowIfDisposed();
+
+            // Conservative per-entry charge for the visited-chunk set, so a crafted
+            // log with many disjoint chunk chains is bounded by the allocation budget
+            // (the per-thread MaxChunksPerThread bound resets per thread and does NOT
+            // bound the global set).
+            const int visitedChunkBytes = 32;
+
+            // Track visited threads and chunks so a corrupt log whose links form a
+            // cycle (rather than terminating at the list head) stays bounded: each
+            // node is yielded at most once and revisiting one ends the walk.
+            HashSet<ulong> visitedThreads = new();
+            HashSet<ulong> visitedChunks = new();
+            int reservedBytes = 0;
+            try
+            {
+                ulong threadAddr = _firstThreadAddr;
+                while (threadAddr != 0)
+                {
+                    if (visitedThreads.Count >= _options.MaxThreads)
+                    {
+                        RaiseDiagnostic(StressLogDiagnosticKind.LimitExceeded, threadAddr);
+                        yield break;
+                    }
+                    if (!visitedThreads.Add(threadAddr))
+                    {
+                        // Thread-list cycle: we cannot make progress, so stop.
+                        RaiseDiagnostic(StressLogDiagnosticKind.CorruptThread, threadAddr);
+                        yield break;
+                    }
+
+                    // Walk this thread's chunk ring. A failure here is isolated to
+                    // the thread: report it and fall through to the next thread.
+                    // chunkListHead == 0 is a legitimately empty/dead thread.
+                    if (TryReadTargetPointer(threadAddr + (ulong)_layout.ThreadChunkListHeadOffset, out ulong chunkListHead))
+                    {
+                        ulong chunkAddr = chunkListHead;
+                        int chunkCount = 0;
+                        while (chunkAddr != 0 && chunkCount < _options.MaxChunksPerThread)
+                        {
+                            // Skip a chunk whose range would wrap past the end of the
+                            // address space (mirrors ChunkReader's ChunkFits guard).
+                            if (!_layout.ChunkFits(chunkAddr))
+                            {
+                                RaiseDiagnostic(StressLogDiagnosticKind.CorruptChunk, chunkAddr);
+                                break;
+                            }
+                            if (!visitedChunks.Add(chunkAddr))
+                            {
+                                // Non-head cycle or cross-thread chunk reuse.
+                                RaiseDiagnostic(StressLogDiagnosticKind.CorruptChunk, chunkAddr);
+                                break;
+                            }
+                            if (!_budget.TryReserve(visitedChunkBytes))
+                            {
+                                // Global memory ceiling: stop the whole enumeration.
+                                RaiseDiagnostic(StressLogDiagnosticKind.LimitExceeded, chunkAddr);
+                                yield break;
+                            }
+                            reservedBytes += visitedChunkBytes;
+
+                            if (!TryReadTargetPointer(chunkAddr + (ulong)_layout.ChunkNextOffset, out ulong nextChunk))
+                            {
+                                RaiseDiagnostic(StressLogDiagnosticKind.ReadMemoryFailed, chunkAddr);
+                                break;
+                            }
+
+                            yield return new MemoryRange(chunkAddr, chunkAddr + (ulong)_layout.ChunkTotalSize);
+
+                            if (nextChunk == chunkListHead)
+                                break;
+
+                            chunkAddr = nextChunk;
+                            chunkCount++;
+                        }
+                    }
+                    else
+                    {
+                        RaiseDiagnostic(StressLogDiagnosticKind.ReadMemoryFailed, threadAddr);
+                    }
+
+                    // Advance to the next thread; without the link we cannot continue.
+                    if (!TryReadTargetPointer(threadAddr + (ulong)_layout.ThreadNextOffset, out ulong nextThread))
+                    {
+                        RaiseDiagnostic(StressLogDiagnosticKind.ReadMemoryFailed, threadAddr);
+                        yield break;
+                    }
+                    threadAddr = nextThread;
+                }
+            }
+            finally
+            {
+                _budget.Release(reservedBytes);
+            }
+        }
+
+        private bool TryReadTargetPointer(ulong address, out ulong value)
+        {
+            Span<byte> buffer = stackalloc byte[8];
+            buffer = buffer.Slice(0, _layout.PointerSize);
+            if (_reader.Read(address, buffer) < _layout.PointerSize)
+            {
+                value = 0;
+                return false;
+            }
+
+            value = _layout.ReadTargetPointer(buffer, 0);
+            return true;
+        }
+
+        private void RaiseDiagnostic(StressLogDiagnosticKind kind, ulong address)
+            => Diagnostic?.Invoke(new StressLogDiagnostic(kind, address));
 
         /// <summary>
         /// Enumerate messages from all threads in newest-first chronological
@@ -420,20 +614,20 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             {
                 if (iterators.Count >= _options.MaxThreads)
                 {
-                    Diagnostic?.Invoke(new StressLogDiagnostic(StressLogDiagnosticKind.LimitExceeded, addr));
+                    RaiseDiagnostic(StressLogDiagnosticKind.LimitExceeded, addr);
                     break;
                 }
 
                 if (!visited.Add(addr))
                 {
-                    Diagnostic?.Invoke(new StressLogDiagnostic(StressLogDiagnosticKind.CorruptThread, addr));
+                    RaiseDiagnostic(StressLogDiagnosticKind.CorruptThread, addr);
                     break;
                 }
 
                 int got = _reader.Read(addr, threadHeader);
                 if (got < _layout.ThreadHeaderSize)
                 {
-                    Diagnostic?.Invoke(new StressLogDiagnostic(StressLogDiagnosticKind.ReadMemoryFailed, addr));
+                    RaiseDiagnostic(StressLogDiagnosticKind.ReadMemoryFailed, addr);
                     break;
                 }
 

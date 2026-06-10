@@ -149,6 +149,48 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         knownCounts.GetValueOrDefault(StressLogKnownFormat.GcEnd, 0) > 0,
                         BuildDiagnosticMessage("GcEnd not observed", runtime, stressLog, messages, knownCounts, diagnostics));
                 }
+
+                // Header config fields are exposed for in-process logs.
+                Assert.NotNull(stressLog.FacilitiesToLog);
+                Assert.NotNull(stressLog.LevelToLog);
+                Assert.NotNull(stressLog.MaxSizePerThread);
+                Assert.NotNull(stressLog.MaxSizeTotal);
+                Assert.NotNull(stressLog.ChunkCount);
+                Assert.True(
+                    stressLog.TickFrequency > 0,
+                    BuildDiagnosticMessage("TickFrequency was zero", runtime, stressLog, messages, knownCounts, diagnostics));
+
+                // EnumerateMemoryRanges must cover the live chunk memory.
+                List<MemoryRange> ranges = new();
+                foreach (MemoryRange range in stressLog.EnumerateMemoryRanges())
+                {
+                    ranges.Add(range);
+                    if (ranges.Count >= 100_000)
+                        break;
+                }
+                Assert.True(
+                    ranges.Count > 0,
+                    BuildDiagnosticMessage("EnumerateMemoryRanges returned no ranges", runtime, stressLog, messages, knownCounts, diagnostics));
+
+                // The address-based open returns an independent, caller-owned log.
+                ulong stressLogAddr = runtime.GetStressLogAddress();
+                Assert.NotEqual(0ul, stressLogAddr);
+                bool openedByAddr = StressLog.TryOpen(runtime.DataTarget.DataReader, stressLogAddr, out StressLog? byAddr, out string? addrFailure);
+                Assert.True(
+                    openedByAddr,
+                    BuildDiagnosticMessage($"address-based StressLog.TryOpen failed: {addrFailure}", runtime, stressLog, messages, knownCounts, diagnostics));
+                using (byAddr)
+                {
+                    int byAddrCount = 0;
+                    foreach (StressLogMessage _ in byAddr!.EnumerateMessages())
+                    {
+                        byAddrCount++;
+                        break;
+                    }
+                    Assert.True(
+                        byAddrCount > 0,
+                        BuildDiagnosticMessage("address-based log yielded no messages", runtime, stressLog, messages, knownCounts, diagnostics));
+                }
             }
         }
 
