@@ -752,13 +752,18 @@ namespace Microsoft.Diagnostics.Runtime
             // MethodTable set (thread-independent), so one module pass covers both static kinds.
             ulong[] threadAddresses = Runtime.Threads.Where(t => t.IsAlive).Select(t => t.Address).ToArray();
 
-            // Interior bases (regular statics) point into a shared pinned Object[] bucket, and many
-            // types map to a small set of buckets.  Resolving the containing object is comparatively
-            // expensive, so cache the last resolved object as an O(1) fast path; back it with the set
-            // of buckets already resolved so each is reported exactly once and GetContainingObject is
-            // never called twice for the same bucket.  The DAC interleaves bases across the (few)
-            // live buckets rather than grouping them, so the last-object cache alone is not enough to
-            // dedupe -- the bucket set is required for correctness, but stays tiny (a handful).
+            // Report each distinct root object at most once.  Within this method a heap object is
+            // either a static bucket or a thread-static storage object, never both, so a single set
+            // of already-reported object addresses suffices.  This dedup lives at the ClrHeap layer
+            // so the "distinct roots" contract holds regardless of whether the IAbstractTypeHelpers
+            // implementation dedupes its output.
+            HashSet<ulong> seen = new();
+
+            // Perf cache for interior bases (regular statics): many types' bases point into the same
+            // few pinned Object[] buckets, and resolving the containing object is comparatively
+            // expensive.  Cache the last resolved bucket (O(1) fast path) plus every resolved bucket
+            // range so GetContainingObject is never called twice for the same bucket.  This is purely
+            // an optimization -- correctness/dedup is handled by 'seen' above.
             ClrObject lastInterior = default;
             ulong lastStart = 0;
             ulong lastEnd = 0;
@@ -771,36 +776,39 @@ namespace Microsoft.Diagnostics.Runtime
                     ClrObject obj;
                     if (info.IsInteriorPointer)
                     {
-                        // Fast path: still inside the last resolved bucket -> already reported.
+                        // Resolve the interior base to its containing object, reusing the cache so
+                        // GetContainingObject runs at most once per bucket.
                         if (lastInterior.IsValid && lastStart <= info.Address && info.Address < lastEnd)
-                            continue;
-
-                        // Already resolved (and reported) a different bucket that contains this base?
-                        // Reuse it -- no GetContainingObject, no duplicate yield -- and prime the cache.
-                        bool known = false;
-                        foreach ((ulong start, ulong end, ClrObject bucket) in resolvedBuckets)
                         {
-                            if (start <= info.Address && info.Address < end)
+                            obj = lastInterior;
+                        }
+                        else
+                        {
+                            obj = default;
+                            foreach ((ulong start, ulong end, ClrObject bucket) in resolvedBuckets)
                             {
-                                lastInterior = bucket;
-                                lastStart = start;
-                                lastEnd = end;
-                                known = true;
-                                break;
+                                if (start <= info.Address && info.Address < end)
+                                {
+                                    obj = bucket;
+                                    lastInterior = bucket;
+                                    lastStart = start;
+                                    lastEnd = end;
+                                    break;
+                                }
+                            }
+
+                            if (!obj.IsValid)
+                            {
+                                obj = GetContainingObject(info.Address);
+                                if (!obj.IsValid)
+                                    continue;
+
+                                lastInterior = obj;
+                                lastStart = obj.Address;
+                                lastEnd = obj.Address + obj.Size;
+                                resolvedBuckets.Add((lastStart, lastEnd, obj));
                             }
                         }
-
-                        if (known)
-                            continue;
-
-                        obj = GetContainingObject(info.Address);
-                        if (!obj.IsValid)
-                            continue;
-
-                        lastInterior = obj;
-                        lastStart = obj.Address;
-                        lastEnd = obj.Address + obj.Size;
-                        resolvedBuckets.Add((lastStart, lastEnd, obj));
                     }
                     else
                     {
@@ -809,6 +817,9 @@ namespace Microsoft.Diagnostics.Runtime
                         if (!obj.IsValid)
                             continue;
                     }
+
+                    if (!seen.Add(obj.Address))
+                        continue;
 
                     ClrRootKind rootKind;
                     bool isPinned;
