@@ -414,7 +414,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 }
 
                 if (gcStaticBase != 0)
-                    yield return new AdditionalRootInfo { Address = gcStaticBase, IsThreadStatic = false };
+                    yield return new AdditionalRootInfo { Address = gcStaticBase, Kind = AdditionalRootKind.StaticVariable, IsInteriorPointer = true };
 
                 // Thread-static base for this type on each live thread.
                 foreach (ulong threadAddress in threadAddresses)
@@ -433,7 +433,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     }
 
                     if (gcThreadBase != 0 && seenThreadStatic.Add(gcThreadBase))
-                        yield return new AdditionalRootInfo { Address = gcThreadBase, IsThreadStatic = true };
+                        yield return new AdditionalRootInfo { Address = gcThreadBase, Kind = AdditionalRootKind.ThreadStaticVariable, IsInteriorPointer = false };
                 }
             }
         }
