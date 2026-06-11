@@ -563,6 +563,21 @@ namespace Microsoft.Diagnostics.Runtime
                 domain.Modules = moduleBuilder.MoveOrCopyToImmutable();
             }
 
+            // Content-based BCL fallback
+            if (bcl is null)
+            {
+                IAbstractHeap? heap = GetService<IAbstractHeap>();
+                IAbstractTypeHelpers? typeHelpers = GetService<IAbstractTypeHelpers>();
+                ulong objectMt = heap?.State.ObjectMethodTable ?? 0;
+                if (objectMt != 0
+                    && typeHelpers is not null
+                    && typeHelpers.GetTypeInfo(objectMt, out TypeInfo info)
+                    && info.ModuleAddress != 0)
+                {
+                    modules.TryGetValue(info.ModuleAddress, out bcl);
+                }
+            }
+
             return new(system, shared, builder.MoveOrCopyToImmutable(), modules.Values.ToArray(), bcl);
         }
 
