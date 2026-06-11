@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -99,6 +100,14 @@ public class DataTargetOptions
     /// Note that disabling this option can lead to security risks, so it should only be disabled if you understand the implications.
     /// </summary>
     public bool VerifyDacOnWindows { get; init; } = true;
+
+    /// <summary>
+    /// An optional callback that decides, per DAC, whether ClrMD verifies its signature before loading it.
+    /// When non-null this takes priority over <see cref="VerifyDacOnWindows"/>: it is invoked with the full
+    /// (absolute) path of the DAC (or cDAC) ClrMD is about to load and if it returns <see langword="true"/>,
+    /// signature verification is performed; if it returns <see langword="false"/>, verification is skipped.
+    /// </summary>
+    public Func<string, bool>? DacSignatureVerificationOverride { get; init; }
 
     /// <summary>
     /// When true, <see cref="DataTarget.LoadDump(string, DataTargetOptions?)"/> will wrap the underlying
