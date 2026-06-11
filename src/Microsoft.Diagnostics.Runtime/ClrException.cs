@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Security.AccessControl;
@@ -125,7 +126,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// the middle of constructing the stackwalk.)  This returns an empty list if no stack trace is
         /// associated with this exception object.
         /// </summary>
-        public ImmutableArray<ClrStackFrame> StackTrace => GetExceptionStackTrace();
+        public ImmutableArray<ClrStackFrame> StackTrace => EnumerateExceptionStackTrace().Take(64).ToImmutableArray();
 
         ImmutableArray<IClrStackFrame> IClrException.StackTrace => StackTrace.CastArray<IClrStackFrame>();
 
@@ -260,12 +261,18 @@ namespace Microsoft.Diagnostics.Runtime
             return result == uint.MaxValue ? 0 : result + (uint)pointerSize;
         }
 
-        private ImmutableArray<ClrStackFrame> GetExceptionStackTrace()
+        /// <summary>
+        /// Enumerates the stack trace for this exception.  Note that this may be empty or partial depending
+        /// on the state of the exception in the process.  (It may have never been thrown or we may be in
+        /// the middle of constructing the stackwalk.)  This returns an empty sequence if no stack trace is
+        /// associated with this exception object.
+        /// </summary>
+        public IEnumerable<ClrStackFrame> EnumerateExceptionStackTrace()
         {
             uint offset = GetStackTraceOffset(Type);
             DebugOnly.Assert(offset != uint.MaxValue);
             if (offset == 0)
-                return ImmutableArray<ClrStackFrame>.Empty;
+                yield break;
 
             IDataReader dataReader = Type.Module.DataReader;
             int pointerSize = dataReader.PointerSize;
@@ -273,30 +280,27 @@ namespace Microsoft.Diagnostics.Runtime
             ClrObject _stackTrace = Type.Module.Heap.GetObject(address);
 
             if (_stackTrace.IsNull)
-                return ImmutableArray<ClrStackFrame>.Empty;
+                yield break;
 
             int len = _stackTrace.AsArray().Length;
             if (len == 0)
-                return ImmutableArray<ClrStackFrame>.Empty;
+                yield break;
 
             int elementSize = pointerSize * 4;
             int headerSize = pointerSize * 2;
             if (len < headerSize)
-                return ImmutableArray<ClrStackFrame>.Empty;
+                yield break;
 
             ulong dataPtr = _stackTrace + (ulong)headerSize;
             int count = dataReader.Read<int>(dataPtr);
             if (count <= 0)
-                return ImmutableArray<ClrStackFrame>.Empty;
+                yield break;
 
             int maxCount = (len - headerSize) / elementSize;
             if (maxCount <= 0)
-                return ImmutableArray<ClrStackFrame>.Empty;
+                yield break;
 
             count = Math.Min(count, maxCount);
-
-            ImmutableArray<ClrStackFrame>.Builder result = ImmutableArray.CreateBuilder<ClrStackFrame>(count);
-            result.Count = result.Capacity;
 
             // Skip size and header
             dataPtr += (ulong)headerSize;
@@ -308,11 +312,9 @@ namespace Microsoft.Diagnostics.Runtime
                 ulong md = dataReader.ReadPointer(dataPtr + (ulong)pointerSize + (ulong)pointerSize);
 
                 ClrMethod? method = Type.Module.Heap.Runtime.GetMethodByHandle(md);
-                result[i] = new ClrStackFrame(Thread, null, ip, sp, ClrStackFrameKind.ManagedMethod, method, frameName: null);
+                yield return new ClrStackFrame(Thread, null, ip, sp, ClrStackFrameKind.ManagedMethod, method, frameName: null);
                 dataPtr += (ulong)elementSize;
             }
-
-            return result.MoveOrCopyToImmutable();
         }
     }
 }
