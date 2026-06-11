@@ -49,5 +49,24 @@ namespace Microsoft.Diagnostics.Runtime
         /// The root is a SizedRef handle.
         /// </summary>
         SizedRefHandle = 8,
+
+        /// <summary>
+        /// The root is a thread static variable.  On .NET 9+ non-collectible thread statics are
+        /// rooted directly through the owning thread's thread-local storage (scanned by the GC as
+        /// part of the thread's roots) rather than through a GC handle, so they are reported here
+        /// instead of as a handle root.
+        /// </summary>
+        ThreadStaticVar = 9,
+
+        /// <summary>
+        /// The root is a (regular, non-thread) static variable.  On .NET 9+ a type's GC statics
+        /// live in slots inside a shared pinned <see cref="System.Object"/>[] (the runtime's
+        /// PinnedHeapHandleTable bucket) that is kept alive by a single strong handle.  On Server
+        /// GC with DATAS the DAC's handle walker can fail to enumerate that strong handle, so the
+        /// bucket -- and everything reachable only through a static -- would otherwise have no
+        /// enumerable root.  These roots surface the bucket directly and are also included in
+        /// <see cref="ClrHeap.EnumerateRoots"/>.
+        /// </summary>
+        StaticVar = 10,
     }
 }

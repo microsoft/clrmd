@@ -26,6 +26,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         IEnumerable<IClrValue> EnumerateObjects(bool carefully);
         IEnumerable<IClrValue> EnumerateObjects(MemoryRange range, bool carefully = false);
         IEnumerable<IClrRoot> EnumerateRoots();
+        IEnumerable<IClrRoot> EnumerateAdditionalRoots();
         IEnumerable<SyncBlock> EnumerateSyncBlocks();
         IClrValue FindNextObjectOnSegment(ulong address, bool carefully = false);
         IClrValue FindPreviousObjectOnSegment(ulong address, bool carefully = false);
