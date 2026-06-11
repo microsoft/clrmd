@@ -8,8 +8,6 @@ variables:
     value: DotNetCore
   - name: _SignType
     value: real
-  - group: DotNet-Symbol-Server-Pats
-  - group: Publish-Build-Assets
 
 resources:
   repositories:
