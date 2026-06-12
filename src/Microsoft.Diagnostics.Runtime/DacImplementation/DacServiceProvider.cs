@@ -104,7 +104,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     GCInfo data = default;
                     CommonMethodTables mts = default;
                     bool initialized;
-                    lock (_dac.SyncRoot)
+                    lock (_sos.SyncRoot)
                     {
                         initialized = _sos.GetGCHeapData(out data) && _sos.GetCommonMethodTables(out mts) && !mts.ObjectMethodTable.IsNull;
                     }
@@ -203,8 +203,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             // The DAC is not thread-safe: Flush tears down internal DAC structures
             // (handle tables, stack-walk state, type caches). Concurrent DAC reads
             // observe truncated/empty enumerations during the flush window. Serialize
-            // on the same lock the readers take.
-            lock (_dac.SyncRoot)
+            // on the same lock the readers take (SOSDac.SyncRoot is DacLibrary.SyncRoot).
+            lock (_sos.SyncRoot)
             {
                 _moduleHelper?.Flush();
                 if (_sos13 is not null)
