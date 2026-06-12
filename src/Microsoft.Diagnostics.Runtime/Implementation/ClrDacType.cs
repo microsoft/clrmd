@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using TypeInfo = Microsoft.Diagnostics.Runtime.AbstractDac.TypeInfo;
@@ -22,7 +23,19 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private ulong _assemblyLoadContextHandle = ulong.MaxValue - 1;
 
         private ClrElementType _elementType;
-        private GCDesc _gcDesc;
+
+        // Thread-safe GC desc cache: the GCDesc struct has three fields, so a plain
+        // `_gcDesc = new GCDesc(...)` assignment is not atomic and another thread can
+        // observe a half-initialized struct (e.g. _data set but _pointerSize still 0).
+        // We publish the immutable GCDesc through a reference-typed holder so that the
+        // reference store is atomic and other threads only ever see the fully-constructed
+        // value. Null means "not cached yet" (the result of a failed dump read is NOT
+        // cached so it will be retried on the next call, matching the previous behavior).
+        private sealed class GCDescHolder
+        {
+            public GCDesc Value;
+        }
+        private GCDescHolder? _gcDescHolder;
         private ClrType? _componentType;
         private int _baseArrayOffset;
 
@@ -106,8 +119,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private GCDesc GetOrCreateGCDesc()
         {
-            if (!ContainsPointers || !_gcDesc.IsEmpty)
-                return _gcDesc;
+            if (!ContainsPointers)
+                return default;
+
+            GCDescHolder? holder = Volatile.Read(ref _gcDescHolder);
+            if (holder is not null)
+                return holder.Value;
 
             IDataReader reader = Module.DataReader;
             if (reader is null)
@@ -116,10 +133,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             int pointerSize = reader.PointerSize;
             DebugOnly.Assert(MethodTable != 0, "Attempted to fill GC desc with a constructed (not real) type.");
             if (!reader.Read(MethodTable - (ulong)pointerSize, out int entries))
-            {
-                _gcDesc = default;
                 return default;
-            }
 
             // Get entries in map
             if (entries < 0)
@@ -128,13 +142,14 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             int slots = 1 + entries * 2;
             byte[] buffer = new byte[slots * pointerSize];
             if (reader.Read(MethodTable - (ulong)(slots * pointerSize), buffer) != buffer.Length)
-            {
-                _gcDesc = default;
                 return default;
-            }
 
-            // Construct the gc desc
-            return _gcDesc = new GCDesc(buffer, pointerSize);
+            // Publish the fully-constructed GCDesc through a reference store. Multiple
+            // threads can race here; whichever one wins the CompareExchange wins the
+            // race, but all subsequent reads return that holder's value.
+            GCDescHolder fresh = new() { Value = new GCDesc(buffer, pointerSize) };
+            GCDescHolder published = Interlocked.CompareExchange(ref _gcDescHolder, fresh, null) ?? fresh;
+            return published.Value;
         }
 
         private ClrElementType GetElementType()
@@ -142,10 +157,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (_elementType != ClrElementType.Unknown)
                 return _elementType;
 
-            if (this == Heap.ObjectType)
+            if (ReferenceEquals(this, Heap.ObjectType))
                 return _elementType = ClrElementType.Object;
 
-            if (this == Heap.StringType)
+            if (ReferenceEquals(this, Heap.StringType))
                 return _elementType = ClrElementType.String;
 
             if (ComponentSize > 0)
@@ -155,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (baseType is null)
                 return _elementType = ClrElementType.Object;
 
-            if (baseType == Heap.ObjectType)
+            if (ReferenceEquals(baseType, Heap.ObjectType))
                 return _elementType = ClrElementType.Class;
 
             if (baseType.Name != "System.ValueType")
@@ -220,7 +235,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return new ClrEnum(this);
         }
 
-        public override bool IsFree => this == Heap.FreeType;
+        // ReferenceEquals: FreeType is a per-heap singleton (Interlocked.CompareExchange in
+        // ClrTypeFactory.GetOrCreateBasicType). Avoids dispatching to ClrType.Equals, which
+        // can do expensive (and racy under stress) Name/IsPrimitive lookups.
+        public override bool IsFree => ReferenceEquals(this, Heap.FreeType);
 
         private const uint FinalizationSuppressedFlag = 0x40000000;
 

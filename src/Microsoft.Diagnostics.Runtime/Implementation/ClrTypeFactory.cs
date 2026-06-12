@@ -117,15 +117,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ClrType? existing = TryGetType(mt);
             if (existing != null)
             {
-                if (obj != 0 && !existing.IsString && existing.ComponentSize != 0 && existing.ComponentType is null && existing is ClrDacType type)
-                    type.SetComponentType(TryGetComponentType(obj));
-
+                ApplyDeferredComponentType(existing, obj);
                 return existing;
             }
 
             if (!_typeHelpers.GetTypeInfo(mt, out TypeInfo mtd))
                 return null;
 
+            // Build the type outside of any lock: construction recursively calls
+            // GetOrCreateType for the parent MT and other helpers (TryGetComponentType,
+            // GetModule) which would deadlock or starve other threads if held under
+            // _types.
             ClrType? baseType = GetOrCreateType(mtd.ParentMethodTable, 0);
             ClrModule module = GetModule(mtd.ModuleAddress);
             ClrType? componentType = null;
@@ -136,11 +138,35 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             ClrType result = new ClrDacType(_typeHelpers, _heap, baseType, componentType, module, mtd);
             if (_options.CacheTypes)
             {
+                ClrType? winner = null;
+
+                // Atomic publish-or-discard. If another thread raced ahead and
+                // already cached a type for this MT, return the winner so all
+                // callers observe a single canonical ClrType instance per MT.
+                // Returning a duplicate would break reference equality assumptions
+                // elsewhere (e.g. ClrType.IsFree compares `this == Heap.FreeType`)
+                // and can race a still-uninitialized ClrDacType into a code path
+                // that dereferences its fields under another thread's lock.
                 lock (_types)
-                    _types[mt] = result;
+                {
+                    if (!_types.TryGetValue(mt, out winner))
+                    {
+                        _types[mt] = result;
+                        winner = result;
+                    }
+                }
+
+                ApplyDeferredComponentType(winner, obj);
+                return winner;
             }
 
             return result;
+        }
+
+        private void ApplyDeferredComponentType(ClrType existing, ulong obj)
+        {
+            if (obj != 0 && !existing.IsString && existing.ComponentSize != 0 && existing.ComponentType is null && existing is ClrDacType type)
+                type.SetComponentType(TryGetComponentType(obj));
         }
 
         public ClrType? TryGetType(ulong mt)
@@ -430,7 +456,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 basicTypes[(int)ClrElementType.Object] = _heap.ObjectType;
                 basicTypes[(int)ClrElementType.String] = _heap.StringType;
 
-                Interlocked.CompareExchange(ref _basicTypes, basicTypes, null);
+                // If we lost the publication race, switch to the winner's array
+                // so subsequent slot writes are visible to all readers (otherwise
+                // the loser would write into an orphaned array and leak duplicate
+                // ClrPrimitiveType instances).
+                basicTypes = Interlocked.CompareExchange(ref _basicTypes, basicTypes, null) ?? basicTypes;
             }
 
             int index = (int)basicType - 1;
@@ -441,7 +471,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (result is not null)
                 return result;
 
-            return basicTypes[index] = new ClrPrimitiveType(_typeHelpers, bcl, _heap, basicType);
+            // Atomically install a new primitive type into the slot so all threads
+            // observe a single canonical instance for each ClrElementType.
+            ClrType fresh = new ClrPrimitiveType(_typeHelpers, bcl, _heap, basicType);
+            result = Interlocked.CompareExchange(ref basicTypes[index], fresh, null) ?? fresh;
+            return result;
         }
 
         private ClrModule GetModule(ulong moduleAddress)
@@ -452,10 +486,22 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 Interlocked.CompareExchange(ref _modules, modules, null);
             }
 
-            if (!_modules.TryGetValue(moduleAddress, out ClrModule? module))
-                module = _errorModule ??= new(_heap.Runtime.AppDomains[0], 0, _heap.Runtime.GetServiceOrThrow<IAbstractModuleHelpers>(), null, _heap.Runtime.DataTarget.DataReader);
+            if (_modules.TryGetValue(moduleAddress, out ClrModule? module))
+                return module;
 
-            return module;
+            // Race-safe lazy init for the error-module fallback. The previous `??=`
+            // pattern allowed two threads to construct distinct ClrModule instances
+            // and the loser's instance could still be observed (with potentially
+            // unpublished fields) by a third thread that read _errorModule between
+            // the two writes.
+            ClrModule? errorModule = _errorModule;
+            if (errorModule is null)
+            {
+                ClrModule fresh = new(_heap.Runtime.AppDomains[0], 0, _heap.Runtime.GetServiceOrThrow<IAbstractModuleHelpers>(), null, _heap.Runtime.DataTarget.DataReader);
+                errorModule = Interlocked.CompareExchange(ref _errorModule, fresh, null) ?? fresh;
+            }
+
+            return errorModule;
         }
     }
 }
