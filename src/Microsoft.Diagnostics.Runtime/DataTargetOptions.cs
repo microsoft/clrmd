@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -111,8 +111,9 @@ public class DataTargetOptions
 
     /// <summary>
     /// When true, <see cref="DataTarget.LoadDump(string, DataTargetOptions?)"/> will wrap the underlying
-    /// dump reader with a single-threaded, lock-free, memory-mapped data reader. This trades thread safety
-    /// for significantly faster sequential read patterns (heap walks, GC root traversal).
+    /// dump reader with a thread-safe, lock-free, memory-mapped data reader. This removes per-read locks
+    /// and stream seeks from concurrent memory reads and direct-span access, which significantly improves
+    /// sequential read patterns (heap walks, GC root traversal).
     ///
     /// <para>
     /// Only takes effect when loading a dump from a file path (Minidump, ELF coredump, or Mach-O coredump).
@@ -120,9 +121,10 @@ public class DataTargetOptions
     /// </para>
     ///
     /// <para>
-    /// Default is <c>false</c>. Setting this to <c>true</c> means the resulting
-    /// <see cref="IDataReader"/> is NOT thread safe; callers must serialize all access to the
-    /// <see cref="DataTarget"/>, <see cref="ClrRuntime"/>, and <see cref="ClrHeap"/>.
+    /// Default is <c>false</c>. When enabled, concurrent memory reads and
+    /// <see cref="ISegmentedDirectMemoryAccess.TryGetDirectSpan"/>
+    /// calls are safe. <see cref="DataTarget.Dispose"/> must not race active use; dispose the data target
+    /// only after all readers are quiesced.
     /// </para>
     ///
     /// <para>
