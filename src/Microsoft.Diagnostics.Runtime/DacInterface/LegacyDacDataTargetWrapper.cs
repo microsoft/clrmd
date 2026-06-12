@@ -141,7 +141,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 for (int i = 0; i < copy; i++)
                     pName[i] = symbolName[i];
                 pName[copy] = '\0';
-                return HResult.S_OK;
+                return copy < symbolName.Length ? HResult.S_FALSE : HResult.S_OK;
             }
             catch
             {
