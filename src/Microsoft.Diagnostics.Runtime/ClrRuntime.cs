@@ -25,8 +25,13 @@ namespace Microsoft.Diagnostics.Runtime
         private readonly IServiceProvider _services;
         private volatile ClrHeap? _heap;
         private ImmutableArray<ClrThread> _threads;
+        // ImmutableArray<T> is a struct and cannot be marked volatile, so the lock-free
+        // double-checked reads of _threads/_handles below use these volatile flags as the
+        // acquire/release barrier that publishes the array contents safely.
+        private volatile bool _threadsPublished;
         private volatile DomainAndModules? _domainAndModules;
         private ImmutableArray<ClrHandle> _handles;
+        private volatile bool _handlesPublished;
 
         private IAbstractRuntime? _runtime;
         private IAbstractComHelpers? _comHelpers;
@@ -62,7 +67,11 @@ namespace Microsoft.Diagnostics.Runtime
 
             _controller.Flush();
             _domainAndModules = null;
+            // Clear the published flag (volatile) before resetting the array so a racing
+            // reader either sees the old published array or falls into the lock to rebuild.
+            _threadsPublished = false;
             _threads = default;
+            _handlesPublished = false;
             _handles = default;
             _heap = null;
 
@@ -208,7 +217,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                if (!_threads.IsDefault)
+                if (_threadsPublished)
                     return _threads;
 
                 // Serialize cache population: concurrent DAC EnumerateThreads calls can
@@ -216,7 +225,7 @@ namespace Microsoft.Diagnostics.Runtime
                 // the permanent cached value.
                 lock (_runtimeCacheLock)
                 {
-                    if (!_threads.IsDefault)
+                    if (_threadsPublished)
                         return _threads;
 
                     IAbstractThreadHelpers? threadHelpers = GetService<IAbstractThreadHelpers>();
@@ -232,6 +241,7 @@ namespace Microsoft.Diagnostics.Runtime
                     }
 
                     _threads = builder.MoveOrCopyToImmutable();
+                    _threadsPublished = true;
                     return _threads;
                 }
             }
@@ -287,7 +297,7 @@ namespace Microsoft.Diagnostics.Runtime
         /// <returns>An enumeration of GC handles in the process.</returns>
         public IEnumerable<ClrHandle> EnumerateHandles()
         {
-            if (!_handles.IsDefault)
+            if (_handlesPublished)
                 return _handles;
 
             // Serialize cache population: SOSDac.EnumerateHandles is a stateful DAC
@@ -296,7 +306,7 @@ namespace Microsoft.Diagnostics.Runtime
             // root-count mismatches during parallel EnumerateRoots() calls.
             lock (_runtimeCacheLock)
             {
-                if (!_handles.IsDefault)
+                if (_handlesPublished)
                     return _handles;
 
                 ImmutableArray<ClrHandle>.Builder builder = ImmutableArray.CreateBuilder<ClrHandle>();
@@ -304,6 +314,7 @@ namespace Microsoft.Diagnostics.Runtime
                     builder.Add(new ClrHandle(this, info));
 
                 _handles = builder.MoveOrCopyToImmutable();
+                _handlesPublished = true;
                 return _handles;
             }
         }
