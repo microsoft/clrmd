@@ -16,6 +16,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         internal static readonly Guid IID_IMetadataLocator = new("aa8fa804-bc05-4642-b2c5-c353ed22fc63");
         internal static readonly Guid IID_ICLRRuntimeLocator = new("b760bf44-9377-4597-8be7-58083bdc5146");
         internal static readonly Guid IID_ICLRContractLocator = new("17d5b8c6-34a9-407f-af4f-a930201d4e02");
+        internal static readonly Guid IID_ICLRSymbolProvider = new("c4f8b7e2-9d3a-4f6c-b1e5-8a2d7c3f9b1e");
 
         public const ulong MagicCallbackConstant = 0x43;
 
@@ -29,6 +30,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public ulong RuntimeBaseAddress { get; }
 
         public ulong ContractDescriptor { get; }
+
+        internal IClrSymbolProvider? SymbolProvider => _dataTarget.Options.SymbolProvider;
 
         public DacDataTarget(DataTarget dataTarget, ulong runtimeBaseAddress = 0, ulong contractDescriptor = 0)
         {

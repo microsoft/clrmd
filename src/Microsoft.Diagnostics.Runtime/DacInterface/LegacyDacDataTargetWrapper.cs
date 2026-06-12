@@ -44,6 +44,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             builder = AddInterface(DacDataTarget.IID_ICLRContractLocator, false);
             builder.AddMethod(new GetRuntimeBaseDelegate(GetContractDescriptor));
             builder.Complete();
+
+            builder = AddInterface(DacDataTarget.IID_ICLRSymbolProvider, false);
+            builder.AddMethod(new TryGetSymbolNameDelegate(TryGetSymbolName));
+            builder.AddMethod(new TryGetSymbolAddressDelegate(TryGetSymbolAddress));
+            builder.Complete();
         }
 
         private int GetMachineType(IntPtr self, out IMAGE_FILE_MACHINE machineType)
@@ -112,6 +117,68 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             address = _dacDataTarget.ContractDescriptor;
             return address == 0 ? HResult.E_FAIL : HResult.S_OK;
         }
+
+        private int TryGetSymbolName(IntPtr _, ulong address, uint cchName, char* pName, uint* pcchNameActual, ulong* pDisplacement)
+        {
+            try
+            {
+                IClrSymbolProvider? provider = _dacDataTarget.SymbolProvider;
+                if (provider is null)
+                    return HResult.E_NOTIMPL;
+
+                if (!provider.TryGetSymbolName(address, out string? symbolName, out ulong displacement))
+                    return HResult.E_FAIL;
+
+                if (pcchNameActual != null)
+                    *pcchNameActual = (uint)symbolName.Length + 1;
+                if (pDisplacement != null)
+                    *pDisplacement = displacement;
+
+                if (cchName == 0 || pName == null)
+                    return HResult.S_OK;
+
+                int copy = Math.Min(symbolName.Length, (int)cchName - 1);
+                for (int i = 0; i < copy; i++)
+                    pName[i] = symbolName[i];
+                pName[copy] = '\0';
+                return copy < symbolName.Length ? HResult.S_FALSE : HResult.S_OK;
+            }
+            catch
+            {
+                return HResult.E_FAIL;
+            }
+        }
+
+        private int TryGetSymbolAddress(IntPtr _, string name, ulong* pAddress)
+        {
+            if (pAddress == null)
+                return HResult.E_INVALIDARG;
+            *pAddress = 0;
+
+            try
+            {
+                IClrSymbolProvider? provider = _dacDataTarget.SymbolProvider;
+                if (provider is null)
+                    return HResult.E_NOTIMPL;
+
+                if (string.IsNullOrEmpty(name))
+                    return HResult.E_INVALIDARG;
+
+                if (provider.TryGetSymbolAddress(name, out ulong address) && address != 0)
+                {
+                    *pAddress = address;
+                    return HResult.S_OK;
+                }
+                return HResult.E_FAIL;
+            }
+            catch
+            {
+                return HResult.E_FAIL;
+            }
+        }
+
+        private delegate int TryGetSymbolNameDelegate(IntPtr self, ulong address, uint cchName, char* pName, uint* pcchNameActual, ulong* pDisplacement);
+        private delegate int TryGetSymbolAddressDelegate(IntPtr self, [In, MarshalAs(UnmanagedType.LPWStr)] string name, ulong* pAddress);
 
         private delegate int GetMetadataDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPWStr)] string fileName, int imageTimestamp, int imageSize,
                                                  IntPtr mvid, uint mdRva, uint flags, uint bufferSize, IntPtr buffer, int* dataSize);
