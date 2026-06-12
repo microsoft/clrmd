@@ -120,25 +120,33 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private int TryGetSymbolName(IntPtr _, ulong address, uint cchName, char* pName, uint* pcchNameActual, ulong* pDisplacement)
         {
-            IClrSymbolProvider? provider = _dacDataTarget.SymbolProvider;
-            if (provider is null)
-                return HResult.E_FAIL;
+            try
+            {
+                IClrSymbolProvider? provider = _dacDataTarget.SymbolProvider;
+                if (provider is null)
+                    return HResult.E_NOTIMPL;
 
-            if (!provider.TryGetSymbolName(address, out string? symbolName, out ulong displacement) || string.IsNullOrEmpty(symbolName))
-                return HResult.E_FAIL;
+                if (!provider.TryGetSymbolName(address, out string? symbolName, out ulong displacement))
+                    return HResult.E_FAIL;
 
-            if (pcchNameActual != null)
-                *pcchNameActual = (uint)symbolName!.Length;
-            if (pDisplacement != null)
-                *pDisplacement = displacement;
+                if (pcchNameActual != null)
+                    *pcchNameActual = (uint)symbolName.Length + 1;
+                if (pDisplacement != null)
+                    *pDisplacement = displacement;
 
-            if (cchName == 0 || pName == null)
+                if (cchName == 0 || pName == null)
+                    return HResult.S_OK;
+
+                int copy = Math.Min(symbolName.Length, (int)cchName - 1);
+                for (int i = 0; i < copy; i++)
+                    pName[i] = symbolName[i];
+                pName[copy] = '\0';
                 return HResult.S_OK;
-
-            int copy = Math.Min(symbolName!.Length, (int)cchName);
-            for (int i = 0; i < copy; i++)
-                pName[i] = symbolName[i];
-            return HResult.S_OK;
+            }
+            catch
+            {
+                return HResult.E_FAIL;
+            }
         }
 
         private int TryGetSymbolAddress(IntPtr _, string name, ulong* pAddress)
@@ -147,16 +155,26 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 return HResult.E_INVALIDARG;
             *pAddress = 0;
 
-            IClrSymbolProvider? provider = _dacDataTarget.SymbolProvider;
-            if (provider is null || string.IsNullOrEmpty(name))
-                return HResult.E_FAIL;
-
-            if (provider.TryGetSymbolAddress(name, out ulong address) && address != 0)
+            try
             {
-                *pAddress = address;
-                return HResult.S_OK;
+                IClrSymbolProvider? provider = _dacDataTarget.SymbolProvider;
+                if (provider is null)
+                    return HResult.E_NOTIMPL;
+
+                if (string.IsNullOrEmpty(name))
+                    return HResult.E_INVALIDARG;
+
+                if (provider.TryGetSymbolAddress(name, out ulong address) && address != 0)
+                {
+                    *pAddress = address;
+                    return HResult.S_OK;
+                }
+                return HResult.E_FAIL;
             }
-            return HResult.E_FAIL;
+            catch
+            {
+                return HResult.E_FAIL;
+            }
         }
 
         private delegate int TryGetSymbolNameDelegate(IntPtr self, ulong address, uint cchName, char* pName, uint* pcchNameActual, ulong* pDisplacement);

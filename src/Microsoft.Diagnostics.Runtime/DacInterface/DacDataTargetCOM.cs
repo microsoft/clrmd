@@ -43,14 +43,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             wrappers[1].IID = DacDataTarget.IID_IMetadataLocator;
             wrappers[1].Vtable = IMetaDataLocatorVtbl.Create(qi, addRef, release);
 
-            wrappers[2].IID = DacDataTarget.IID_ICLRRuntimeLocator;
-            wrappers[2].Vtable = ICLRRuntimeLocatorVtbl.Create(qi, addRef, release);
+            wrappers[2].IID = DacDataTarget.IID_ICLRSymbolProvider;
+            wrappers[2].Vtable = ICLRSymbolProviderVtbl.Create(qi, addRef, release);
 
-            wrappers[3].IID = DacDataTarget.IID_ICLRContractLocator;
-            wrappers[3].Vtable = ICLRContractLocatorVtbl.Create(qi, addRef, release);
+            wrappers[3].IID = DacDataTarget.IID_ICLRRuntimeLocator;
+            wrappers[3].Vtable = ICLRRuntimeLocatorVtbl.Create(qi, addRef, release);
 
-            wrappers[4].IID = DacDataTarget.IID_ICLRSymbolProvider;
-            wrappers[4].Vtable = ICLRSymbolProviderVtbl.Create(qi, addRef, release);
+            wrappers[4].IID = DacDataTarget.IID_ICLRContractLocator;
+            wrappers[4].Vtable = ICLRContractLocatorVtbl.Create(qi, addRef, release);
 
             return wrappers;
         }
@@ -59,13 +59,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             DacDataTarget dacDataTarget = obj as DacDataTarget ?? throw new InvalidOperationException($"Expected {nameof(DacDataTarget)} but got {obj.GetType()}.");
 
-            // Interfaces exposed (in order): IDacDataTarget, IMetadataLocator, ICLRRuntimeLocator, ICLRContractLocator, ICLRSymbolProvider
-            // ICLRRuntimeLocator requires a valid RuntimeBaseAddress; ICLRContractLocator requires a valid ContractDescriptor.
-            // ICLRSymbolProvider is always exposed — the vtable thunks return E_FAIL when no IClrSymbolProvider is registered on the DataTarget.
-            count = 2;
+            count = 3;
             if (dacDataTarget.RuntimeBaseAddress != 0)
             {
-                count = 3;
+                count = 4;
             }
             if (dacDataTarget.ContractDescriptor != 0)
             {
@@ -292,26 +289,33 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             [UnmanagedCallersOnly]
             private static int TryGetSymbolName(IntPtr self, ulong address, uint cchName, char* pName, uint* pcchNameActual, ulong* pDisplacement)
             {
-                DacDataTarget dacDataTarget = ComInterfaceDispatch.GetInstance<DacDataTarget>((ComInterfaceDispatch*)self);
-                IClrSymbolProvider? provider = dacDataTarget.SymbolProvider;
-                if (provider is null)
-                    return HResult.E_FAIL;
+                try
+                {
+                    DacDataTarget dacDataTarget = ComInterfaceDispatch.GetInstance<DacDataTarget>((ComInterfaceDispatch*)self);
+                    IClrSymbolProvider? provider = dacDataTarget.SymbolProvider;
+                    if (provider is null)
+                        return HResult.E_NOTIMPL;
 
-                if (!provider.TryGetSymbolName(address, out string? symbolName, out ulong displacement) || string.IsNullOrEmpty(symbolName))
-                    return HResult.E_FAIL;
+                    if (!provider.TryGetSymbolName(address, out string? symbolName, out ulong displacement))
+                        return HResult.E_FAIL;
+                    if (pcchNameActual != null)
+                        *pcchNameActual = (uint)symbolName.Length + 1;
+                    if (pDisplacement != null)
+                        *pDisplacement = displacement;
 
-                if (pcchNameActual != null)
-                    *pcchNameActual = (uint)symbolName!.Length;
-                if (pDisplacement != null)
-                    *pDisplacement = displacement;
+                    if (cchName == 0 || pName == null)
+                        return HResult.S_OK;
 
-                if (cchName == 0 || pName == null)
+                    int copy = Math.Min(symbolName.Length, (int)cchName - 1);
+                    for (int i = 0; i < copy; i++)
+                        pName[i] = symbolName[i];
+                    pName[copy] = '\0';
                     return HResult.S_OK;
-
-                int copy = Math.Min(symbolName!.Length, (int)cchName);
-                for (int i = 0; i < copy; i++)
-                    pName[i] = symbolName[i];
-                return HResult.S_OK;
+                }
+                catch
+                {
+                    return HResult.E_FAIL;
+                }
             }
 
             [UnmanagedCallersOnly]
@@ -321,21 +325,28 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     return HResult.E_INVALIDARG;
                 *pAddress = 0;
 
-                DacDataTarget dacDataTarget = ComInterfaceDispatch.GetInstance<DacDataTarget>((ComInterfaceDispatch*)self);
-                IClrSymbolProvider? provider = dacDataTarget.SymbolProvider;
-                if (provider is null)
-                    return HResult.E_FAIL;
-
-                string? name = Marshal.PtrToStringUni(namePtr);
-                if (string.IsNullOrEmpty(name))
-                    return HResult.E_INVALIDARG;
-
-                if (provider.TryGetSymbolAddress(name!, out ulong address) && address != 0)
+                try
                 {
-                    *pAddress = address;
-                    return HResult.S_OK;
+                    DacDataTarget dacDataTarget = ComInterfaceDispatch.GetInstance<DacDataTarget>((ComInterfaceDispatch*)self);
+                    IClrSymbolProvider? provider = dacDataTarget.SymbolProvider;
+                    if (provider is null)
+                        return HResult.E_NOTIMPL;
+
+                    string? name = Marshal.PtrToStringUni(namePtr);
+                    if (string.IsNullOrEmpty(name))
+                        return HResult.E_INVALIDARG;
+
+                    if (provider.TryGetSymbolAddress(name, out ulong address) && address != 0)
+                    {
+                        *pAddress = address;
+                        return HResult.S_OK;
+                    }
+                    return HResult.E_FAIL;
                 }
-                return HResult.E_FAIL;
+                catch
+                {
+                    return HResult.E_FAIL;
+                }
             }
         }
     }
