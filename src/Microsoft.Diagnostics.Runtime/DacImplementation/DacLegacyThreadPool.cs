@@ -23,7 +23,11 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public bool GetLegacyThreadPoolData(out LegacyThreadPoolInfo result)
         {
-            HResult hr = _sos.GetThreadPoolData(out ThreadPoolData data);
+            HResult hr;
+            ThreadPoolData data;
+            lock (_sos.SyncRoot)
+                hr = _sos.GetThreadPoolData(out data);
+
             result = new()
             {
                 AsyncTimerCallbackCompletionFPtr = data.AsyncTimerCallbackCompletionFPtr.ToAddress(_target),
@@ -52,7 +56,11 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public bool GetLegacyWorkRequestData(ulong workRequest, out LegacyWorkRequestInfo workRequestInfo)
         {
-            bool res = _sos.GetWorkRequestData(ClrDataAddress.FromTargetAddress(workRequest, _target), out WorkRequestData workRequestData);
+            bool res;
+            WorkRequestData workRequestData;
+            lock (_sos.SyncRoot)
+                res = _sos.GetWorkRequestData(ClrDataAddress.FromTargetAddress(workRequest, _target), out workRequestData);
+
             workRequestInfo = new()
             {
                 Function = workRequestData.Function.ToAddress(_target),

@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             IAbstractRuntime runtimeService = runtime.GetService<IAbstractRuntime>();
             Assert.NotNull(runtimeService);
 
-            ClrThreadInfo[] threads = runtimeService.EnumerateThreads().ToArray();
+            ClrThreadInfo[] threads = runtimeService.EnumerateThreads(int.MaxValue).ToArray();
 
             foreach (ClrThread thread in runtime.Threads)
             {

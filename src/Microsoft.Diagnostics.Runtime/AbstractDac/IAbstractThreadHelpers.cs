@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Generic;
@@ -26,15 +26,16 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
 
         /// <summary>
         /// Enumerates the stack trace of this method.  Note that in the event of bugs or corrupted
-        /// state, this can occasionally produce bad data and run "forever", so be sure to break out of
-        /// the loop when a threshold is reached when calling it.
+        /// state, this can occasionally produce bad data and run "forever", so <paramref name="maxFrames" />
+        /// is enforced inside the DAC stack walk.
         /// </summary>
         /// <param name="osThreadId">The thread to enumerate.</param>
         /// <param name="includeContext">Whether to calculate and include the thread's CONTEXT record or not.
         /// Registers are always in the Windows CONTEXT format, as that's what the OS uses.</param>
+        /// <param name="maxFrames">The maximum number of stack frames to walk.</param>
         /// <param name="traceErrors">Whether or not to Trace any errors encountered.</param>
         /// <returns>An enumeration of stack frames.</returns>
-        IEnumerable<StackFrameInfo> EnumerateStackTrace(uint osThreadId, bool includeContext, bool traceErrors);
+        IEnumerable<StackFrameInfo> EnumerateStackTrace(uint osThreadId, bool includeContext, int maxFrames, bool traceErrors);
     }
 
     /// <summary>

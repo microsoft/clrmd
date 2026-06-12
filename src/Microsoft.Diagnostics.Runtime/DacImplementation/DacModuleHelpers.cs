@@ -26,32 +26,48 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public ClrModuleInfo GetModuleInfo(ulong moduleAddress)
         {
-            _sos.GetModuleData(ClrDataAddress.FromTargetAddress(moduleAddress, _target), out ModuleData data);
-
-            ulong assemblyAddr = data.Assembly.ToAddress(_target);
-            ClrModuleInfo result = new()
+            ClrModuleInfo result;
+            lock (_sos.SyncRoot)
             {
-                Address = moduleAddress,
-                Assembly = assemblyAddr,
-                AssemblyName = assemblyAddr != 0 ? _sos.GetAssemblyName(ClrDataAddress.FromTargetAddress(assemblyAddr, _target)) : null,
-                Id = data.ModuleID,
-                Index = data.ModuleIndex,
-                IsPEFile = data.IsPEFile != 0,
-                ImageBase = data.ILBase.ToAddress(_target),
-                MetadataAddress = data.MetadataStart.ToAddress(_target),
-                MetadataSize = data.MetadataSize,
-                IsDynamic = data.IsReflection != 0,
-                ThunkHeap = data.ThunkHeap.ToAddress(_target),
-                LoaderAllocator = data.LoaderAllocator.ToAddress(_target),
-            };
+                _sos.GetModuleData(ClrDataAddress.FromTargetAddress(moduleAddress, _target), out ModuleData data);
+
+                ulong assemblyAddr = data.Assembly.ToAddress(_target);
+                result = new()
+                {
+                    Address = moduleAddress,
+                    Assembly = assemblyAddr,
+                    AssemblyName = assemblyAddr != 0 ? _sos.GetAssemblyName(ClrDataAddress.FromTargetAddress(assemblyAddr, _target)) : null,
+                    Id = data.ModuleID,
+                    Index = data.ModuleIndex,
+                    IsPEFile = data.IsPEFile != 0,
+                    ImageBase = data.ILBase.ToAddress(_target),
+                    MetadataAddress = data.MetadataStart.ToAddress(_target),
+                    MetadataSize = data.MetadataSize,
+                    IsDynamic = data.IsReflection != 0,
+                    ThunkHeap = data.ThunkHeap.ToAddress(_target),
+                    LoaderAllocator = data.LoaderAllocator.ToAddress(_target),
+                };
+            }
 
             ClrDataModule? dataModule = GetClrDataModule(moduleAddress);
-            if (dataModule is not null && dataModule.GetModuleData(out ExtendedModuleData extended))
+            if (dataModule is not null)
             {
-                result.Layout = extended.IsFlatLayout != 0 ? ModuleLayout.Flat : ModuleLayout.Mapped;
-                result.IsDynamic |= extended.IsDynamic != 0;
-                result.Size = extended.LoadedPESize;
-                result.FileName = dataModule.GetFileName();
+                bool ok;
+                ExtendedModuleData extended;
+                string? fileName;
+                lock (_sos.SyncRoot)
+                {
+                    ok = dataModule.GetModuleData(out extended);
+                    fileName = ok ? dataModule.GetFileName() : null;
+                }
+
+                if (ok)
+                {
+                    result.Layout = extended.IsFlatLayout != 0 ? ModuleLayout.Flat : ModuleLayout.Mapped;
+                    result.IsDynamic |= extended.IsDynamic != 0;
+                    result.Size = extended.LoadedPESize;
+                    result.FileName = fileName;
+                }
             }
 
             return result;
@@ -65,7 +81,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         {
             int tokenType = kind == SOSDac.ModuleMapTraverseKind.TypeDefToMethodTable ? mdtTypeDef : mdtTypeRef;
             List<(ulong MethodTable, int Token)> result = new();
-            _sos.TraverseModuleMap(kind, ClrDataAddress.FromTargetAddress(module, _target), (token, mt, _) => { result.Add((mt, token | tokenType)); });
+            lock (_sos.SyncRoot)
+                _sos.TraverseModuleMap(kind, ClrDataAddress.FromTargetAddress(module, _target), (token, mt, _) => { result.Add((mt, token | tokenType)); });
 
             return result;
         }
@@ -81,14 +98,17 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
             if (module is not null)
             {
-                nint qiResult = module.QueryInterface(MetadataImport.IID_IMetaDataImport);
-                if (qiResult != 0)
+                lock (_sos.SyncRoot)
                 {
-                    import = new(module.Library, qiResult);
+                    nint qiResult = module.QueryInterface(MetadataImport.IID_IMetaDataImport);
+                    if (qiResult != 0)
+                    {
+                        import = new(module.Library, qiResult);
+                    }
                 }
             }
 
-            DacMetadataReader? result = import != null ? new(import) : null;
+            DacMetadataReader? result = import != null ? new(import, _sos.SyncRoot) : null;
             lock (_imports)
             {
                 try
@@ -115,7 +135,9 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (_modules.TryGetValue(moduleAddress, out ClrDataModule? dataModule))
                     return dataModule;
 
-            ClrDataModule? result = _sos.GetClrDataModule(ClrDataAddress.FromTargetAddress(moduleAddress, _target));
+            ClrDataModule? result;
+            lock (_sos.SyncRoot)
+                result = _sos.GetClrDataModule(ClrDataAddress.FromTargetAddress(moduleAddress, _target));
 
             lock (_modules)
             {

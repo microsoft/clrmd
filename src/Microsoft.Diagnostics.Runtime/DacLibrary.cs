@@ -15,6 +15,16 @@ namespace Microsoft.Diagnostics.Runtime
         private bool _disposed;
         private readonly ClrDataProcess _clrDataProcess;
 
+        /// <summary>
+        /// A single lock that serializes calls into stateful DAC entry points (stack walks,
+        /// handle enumeration, etc.). The DAC is not thread-safe: even calls on different
+        /// entities (e.g. two ClrThreads' stack walks) share internal DAC state and can
+        /// corrupt each other when run concurrently. Most steady-state work hits ClrMD's
+        /// own caches and never acquires this lock; only the cold-miss DAC enumeration
+        /// paths take it.
+        /// </summary>
+        public object SyncRoot { get; } = new();
+
         public DacDataTarget DacDataTarget { get; }
 
         public RefCountedFreeLibrary? OwningLibrary { get; }

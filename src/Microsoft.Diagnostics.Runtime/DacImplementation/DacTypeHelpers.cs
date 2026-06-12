@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Reflection;
@@ -41,26 +42,29 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public bool GetTypeInfo(ulong methodTable, out TypeInfo info)
         {
-            if (!_sos.GetMethodTableData(ClrDataAddress.FromTargetAddress(methodTable, _target), out MethodTableData data))
+            lock (_sos.SyncRoot)
             {
-                info = default;
-                return false;
-            }
+                if (!_sos.GetMethodTableData(ClrDataAddress.FromTargetAddress(methodTable, _target), out MethodTableData data))
+                {
+                    info = default;
+                    return false;
+                }
 
-            info = new()
-            {
-                MetadataToken = unchecked((int)data.Token),
-                StaticSize = unchecked((int)data.BaseSize),
-                ComponentSize = unchecked((int)data.ComponentSize),
-                ContainsPointers = data.ContainsPointers != 0,
-                IsShared = data.Shared != 0,
-                MethodCount = data.NumMethods,
-                MethodTable = methodTable,
-                ParentMethodTable = data.ParentMethodTable.ToAddress(_target),
-                ModuleAddress = data.Module.ToAddress(_target),
-                HasFinalizer = ReadHasFinalizer(methodTable),
-            };
-            return true;
+                info = new()
+                {
+                    MetadataToken = unchecked((int)data.Token),
+                    StaticSize = unchecked((int)data.BaseSize),
+                    ComponentSize = unchecked((int)data.ComponentSize),
+                    ContainsPointers = data.ContainsPointers != 0,
+                    IsShared = data.Shared != 0,
+                    MethodCount = data.NumMethods,
+                    MethodTable = methodTable,
+                    ParentMethodTable = data.ParentMethodTable.ToAddress(_target),
+                    ModuleAddress = data.Module.ToAddress(_target),
+                    HasFinalizer = ReadHasFinalizer(methodTable),
+                };
+                return true;
+            }
         }
 
         // MethodTable layout (verified on modern .NET and Desktop Framework, all
@@ -85,7 +89,11 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public string? GetTypeName(ulong module, ulong methodTable, int token)
         {
-            string? name = _sos.GetMethodTableName(ClrDataAddress.FromTargetAddress(methodTable, _target));
+            string? name;
+            lock (_sos.SyncRoot)
+            {
+                name = _sos.GetMethodTableName(ClrDataAddress.FromTargetAddress(methodTable, _target));
+            }
             if (string.IsNullOrWhiteSpace(name) || name == UnloadedTypeName)
                 return GetTypeByToken(module, token);
 
@@ -143,159 +151,187 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public ulong GetLoaderAllocatorHandle(ulong mt)
         {
-            if (_sos6 != null && _sos6.GetMethodTableCollectibleData(ClrDataAddress.FromTargetAddress(mt, _target), out MethodTableCollectibleData data) && data.Collectible != 0)
-                return data.LoaderAllocatorObjectHandle.ToAddress(_target);
+            lock (_sos.SyncRoot)
+            {
+                if (_sos6 != null && _sos6.GetMethodTableCollectibleData(ClrDataAddress.FromTargetAddress(mt, _target), out MethodTableCollectibleData data) && data.Collectible != 0)
+                    return data.LoaderAllocatorObjectHandle.ToAddress(_target);
+            }
 
             return 0;
         }
 
         public ulong GetAssemblyLoadContextAddress(ulong mt)
         {
-            if (_sos8 != null && _sos8.GetAssemblyLoadContext(ClrDataAddress.FromTargetAddress(mt, _target), out ClrDataAddress assemblyLoadContext))
-                return assemblyLoadContext.ToAddress(_target);
+            lock (_sos.SyncRoot)
+            {
+                if (_sos8 != null && _sos8.GetAssemblyLoadContext(ClrDataAddress.FromTargetAddress(mt, _target), out ClrDataAddress assemblyLoadContext))
+                    return assemblyLoadContext.ToAddress(_target);
+            }
 
             return 0;
         }
 
         public bool GetObjectArrayInformation(ulong objRef, out ObjectArrayInformation data)
         {
-            if (!_sos.GetObjectData(ClrDataAddress.FromTargetAddress(objRef, _target), out ObjectData objData))
+            lock (_sos.SyncRoot)
             {
-                data = default;
-                return false;
-            }
+                if (!_sos.GetObjectData(ClrDataAddress.FromTargetAddress(objRef, _target), out ObjectData objData))
+                {
+                    data = default;
+                    return false;
+                }
 
-            ulong dataPointer = objData.ArrayDataPointer.ToAddress(_target) > objRef ? objData.ArrayDataPointer.ToAddress(_target) - objRef : 0;
-            data = new()
-            {
-                ComponentType = objData.ElementTypeHandle.ToAddress(_target),
-                ComponentElementType = (ClrElementType)objData.ElementType,
-                DataPointer = dataPointer > int.MaxValue ? int.MaxValue : (int)dataPointer
-            };
-            return true;
+                ulong dataPointer = objData.ArrayDataPointer.ToAddress(_target) > objRef ? objData.ArrayDataPointer.ToAddress(_target) - objRef : 0;
+                data = new()
+                {
+                    ComponentType = objData.ElementTypeHandle.ToAddress(_target),
+                    ComponentElementType = (ClrElementType)objData.ElementType,
+                    DataPointer = dataPointer > int.MaxValue ? int.MaxValue : (int)dataPointer
+                };
+                return true;
+            }
         }
 
         public IEnumerable<MethodInfo> EnumerateMethodsForType(ulong methodTable)
         {
-            if (!_sos.GetMethodTableData(ClrDataAddress.FromTargetAddress(methodTable, _target), out MethodTableData data))
-                yield break;
-
-            for (uint i = 0; i < data.NumMethods; i++)
+            // Materialize entirely under the DAC lock: every step touches _sos.
+            List<MethodInfo>? results = null;
+            lock (_sos.SyncRoot)
             {
-                ClrDataAddress slot = _sos.GetMethodTableSlot(ClrDataAddress.FromTargetAddress(methodTable, _target), i);
-                if (_sos.GetCodeHeaderData(slot, out CodeHeaderData chd))
+                if (!_sos.GetMethodTableData(ClrDataAddress.FromTargetAddress(methodTable, _target), out MethodTableData data))
+                    return Array.Empty<MethodInfo>();
+
+                for (uint i = 0; i < data.NumMethods; i++)
                 {
-                    if (_sos.GetMethodDescData(chd.MethodDesc, ClrDataAddress.Null, out MethodDescData mdd))
+                    ClrDataAddress slot = _sos.GetMethodTableSlot(ClrDataAddress.FromTargetAddress(methodTable, _target), i);
+                    if (_sos.GetCodeHeaderData(slot, out CodeHeaderData chd))
                     {
-                        ulong md = chd.MethodDesc.ToAddress(_target);
-                        uint compilation = chd.JITType;
+                        if (_sos.GetMethodDescData(chd.MethodDesc, ClrDataAddress.Null, out MethodDescData mdd))
+                        {
+                            ulong md = chd.MethodDesc.ToAddress(_target);
+                            uint compilation = chd.JITType;
 
-                        HotColdRegions regions;
-                        if (mdd.HasNativeCode != 0 && _sos.GetCodeHeaderData(mdd.NativeCodeAddr, out CodeHeaderData chdBasedOnNative))
-                        {
-                            regions = new(mdd.NativeCodeAddr.ToAddress(_target), chdBasedOnNative.HotRegionSize, chdBasedOnNative.ColdRegionStart.ToAddress(_target), chdBasedOnNative.ColdRegionSize);
-                            md = chdBasedOnNative.MethodDesc.ToAddress(_target);
-                            compilation = chdBasedOnNative.JITType;
-                        }
-                        else
-                        {
-                            regions = new(mdd.NativeCodeAddr.ToAddress(_target), chd.HotRegionSize, chd.ColdRegionStart.ToAddress(_target), chd.ColdRegionSize);
-                        }
+                            HotColdRegions regions;
+                            if (mdd.HasNativeCode != 0 && _sos.GetCodeHeaderData(mdd.NativeCodeAddr, out CodeHeaderData chdBasedOnNative))
+                            {
+                                regions = new(mdd.NativeCodeAddr.ToAddress(_target), chdBasedOnNative.HotRegionSize, chdBasedOnNative.ColdRegionStart.ToAddress(_target), chdBasedOnNative.ColdRegionSize);
+                                md = chdBasedOnNative.MethodDesc.ToAddress(_target);
+                                compilation = chdBasedOnNative.JITType;
+                            }
+                            else
+                            {
+                                regions = new(mdd.NativeCodeAddr.ToAddress(_target), chd.HotRegionSize, chd.ColdRegionStart.ToAddress(_target), chd.ColdRegionSize);
+                            }
 
-                        yield return new()
-                        {
-                            MethodDesc = md,
-                            Token = (int)mdd.MDToken,
-                            CompilationType = (MethodCompilationType)compilation,
-                            HotCold = regions,
-                        };
+                            results ??= new List<MethodInfo>();
+                            results.Add(new()
+                            {
+                                MethodDesc = md,
+                                Token = (int)mdd.MDToken,
+                                CompilationType = (MethodCompilationType)compilation,
+                                HotCold = regions,
+                            });
+                        }
                     }
                 }
             }
+
+            return (IEnumerable<MethodInfo>?)results ?? Array.Empty<MethodInfo>();
         }
 
         public IEnumerable<FieldInfo> EnumerateFields(TypeInfo type, int baseFieldCount)
         {
-            if (!_sos.GetFieldInfo(ClrDataAddress.FromTargetAddress(type.MethodTable, _target), out MethodTableFieldInfo fieldInfo) || fieldInfo.FirstFieldAddress.IsNull)
-                yield break;
-
-            ulong nextField = fieldInfo.FirstFieldAddress.ToAddress(_target);
-            for (int i = baseFieldCount; i < fieldInfo.NumInstanceFields + fieldInfo.NumStaticFields; i++)
+            // Materialize entirely under the DAC lock.
+            List<FieldInfo>? results = null;
+            lock (_sos.SyncRoot)
             {
-                if (!_sos.GetFieldData(ClrDataAddress.FromTargetAddress(nextField, _target), out FieldData dacFieldData))
-                    break;
+                if (!_sos.GetFieldInfo(ClrDataAddress.FromTargetAddress(type.MethodTable, _target), out MethodTableFieldInfo fieldInfo) || fieldInfo.FirstFieldAddress.IsNull)
+                    return Array.Empty<FieldInfo>();
 
-                if (dacFieldData.IsContextLocal == 0)
+                ulong nextField = fieldInfo.FirstFieldAddress.ToAddress(_target);
+                for (int i = baseFieldCount; i < fieldInfo.NumInstanceFields + fieldInfo.NumStaticFields; i++)
                 {
-                    FieldKind kind;
-                    if (dacFieldData.IsThreadLocal != 0)
-                        kind = FieldKind.ThreadStatic;
-                    else if (dacFieldData.IsStatic != 0)
-                        kind = FieldKind.Static;
-                    else if (dacFieldData.IsContextLocal != 0)
-                        kind = FieldKind.Unsupported;
-                    else
-                        kind = FieldKind.Instance;
+                    if (!_sos.GetFieldData(ClrDataAddress.FromTargetAddress(nextField, _target), out FieldData dacFieldData))
+                        break;
 
-                    yield return new()
+                    if (dacFieldData.IsContextLocal == 0)
                     {
-                        FieldDesc = nextField,
-                        MethodTable = dacFieldData.TypeMethodTable.ToAddress(_target),
-                        ElementType = (ClrElementType)dacFieldData.ElementType,
-                        Offset = dacFieldData.Offset <= int.MaxValue ? (int)dacFieldData.Offset : int.MaxValue,
-                        Token = dacFieldData.FieldToken <= int.MaxValue ? (int)dacFieldData.FieldToken : int.MaxValue,
-                        Kind = kind,
-                    };
-                }
+                        FieldKind kind;
+                        if (dacFieldData.IsThreadLocal != 0)
+                            kind = FieldKind.ThreadStatic;
+                        else if (dacFieldData.IsStatic != 0)
+                            kind = FieldKind.Static;
+                        else if (dacFieldData.IsContextLocal != 0)
+                            kind = FieldKind.Unsupported;
+                        else
+                            kind = FieldKind.Instance;
 
-                nextField = dacFieldData.NextField.ToAddress(_target);
+                        results ??= new List<FieldInfo>();
+                        results.Add(new()
+                        {
+                            FieldDesc = nextField,
+                            MethodTable = dacFieldData.TypeMethodTable.ToAddress(_target),
+                            ElementType = (ClrElementType)dacFieldData.ElementType,
+                            Offset = dacFieldData.Offset <= int.MaxValue ? (int)dacFieldData.Offset : int.MaxValue,
+                            Token = dacFieldData.FieldToken <= int.MaxValue ? (int)dacFieldData.FieldToken : int.MaxValue,
+                            Kind = kind,
+                        });
+                    }
+
+                    nextField = dacFieldData.NextField.ToAddress(_target);
+                }
             }
+
+            return (IEnumerable<FieldInfo>?)results ?? Array.Empty<FieldInfo>();
         }
 
         public ulong GetStaticFieldAddress(in AppDomainInfo appDomain, in ClrModuleInfo module, in TypeInfo type, in FieldInfo field)
         {
-            if (_sos14 is not null)
+            lock (_sos.SyncRoot)
             {
-                // The static base for a type is allocated up front, but the .cctor may not
-                // have run yet (e.g. for beforefieldinit types whose statics have not been
-                // touched). Returning a non-zero slot address in that case would let callers
-                // read garbage/zero and believe it was a real field value. Match the legacy
-                // DomainLocalModuleData path, which returns 0 when the class is not initialized.
-                if (_sos14.GetMethodTableInitializationFlags(ClrDataAddress.FromTargetAddress(type.MethodTable, _target)) != MethodTableInitializationFlags.MethodTableInitialized)
+                if (_sos14 is not null)
+                {
+                    // The static base for a type is allocated up front, but the .cctor may not
+                    // have run yet (e.g. for beforefieldinit types whose statics have not been
+                    // touched). Returning a non-zero slot address in that case would let callers
+                    // read garbage/zero and believe it was a real field value. Match the legacy
+                    // DomainLocalModuleData path, which returns 0 when the class is not initialized.
+                    if (_sos14.GetMethodTableInitializationFlags(ClrDataAddress.FromTargetAddress(type.MethodTable, _target)) != MethodTableInitializationFlags.MethodTableInitialized)
+                        return 0;
+
+                    (ClrDataAddress nonGcBase, ClrDataAddress gcBase) = _sos14.GetStaticBaseAddress(ClrDataAddress.FromTargetAddress(type.MethodTable, _target));
+                    if (field.ElementType.IsPrimitive())
+                        return !nonGcBase.IsNull ? nonGcBase.ToAddress(_target) + (uint)field.Offset : 0;
+
+                    return !gcBase.IsNull ? gcBase.ToAddress(_target) + (uint)field.Offset : 0;
+                }
+
+                if (appDomain.Address == 0)
                     return 0;
 
-                (ClrDataAddress nonGcBase, ClrDataAddress gcBase) = _sos14.GetStaticBaseAddress(ClrDataAddress.FromTargetAddress(type.MethodTable, _target));
-                if (field.ElementType.IsPrimitive())
-                    return !nonGcBase.IsNull ? nonGcBase.ToAddress(_target) + (uint)field.Offset : 0;
+                if (type.IsShared)
+                {
+                    if (!_sos.GetDomainLocalModuleDataFromAppDomain(ClrDataAddress.FromTargetAddress(appDomain.Address, _target), (int)module.Id, out DomainLocalModuleData dlmd))
+                        return 0;
 
-                return !gcBase.IsNull ? gcBase.ToAddress(_target) + (uint)field.Offset : 0;
-            }
-
-            if (appDomain.Address == 0)
-                return 0;
-
-            if (type.IsShared)
-            {
-                if (!_sos.GetDomainLocalModuleDataFromAppDomain(ClrDataAddress.FromTargetAddress(appDomain.Address, _target), (int)module.Id, out DomainLocalModuleData dlmd))
-                    return 0;
-
-                if (field.ElementType.IsPrimitive())
-                    return dlmd.NonGCStaticDataStart.ToAddress(_target) + (uint)field.Offset;
+                    if (field.ElementType.IsPrimitive())
+                        return dlmd.NonGCStaticDataStart.ToAddress(_target) + (uint)field.Offset;
+                    else
+                        return dlmd.GCStaticDataStart.ToAddress(_target) + (uint)field.Offset;
+                }
                 else
-                    return dlmd.GCStaticDataStart.ToAddress(_target) + (uint)field.Offset;
-            }
-            else
-            {
-                if (!_sos.GetDomainLocalModuleDataFromModule(ClrDataAddress.FromTargetAddress(module.Address, _target), out DomainLocalModuleData dlmd))
-                    return 0;
+                {
+                    if (!_sos.GetDomainLocalModuleDataFromModule(ClrDataAddress.FromTargetAddress(module.Address, _target), out DomainLocalModuleData dlmd))
+                        return 0;
 
-                if (!IsInitialized(dlmd, type.MetadataToken))
-                    return 0;
+                    if (!IsInitialized(dlmd, type.MetadataToken))
+                        return 0;
 
-                if (field.ElementType.IsPrimitive())
-                    return dlmd.NonGCStaticDataStart.ToAddress(_target) + (uint)field.Offset;
-                else
-                    return dlmd.GCStaticDataStart.ToAddress(_target) + (uint)field.Offset;
+                    if (field.ElementType.IsPrimitive())
+                        return dlmd.NonGCStaticDataStart.ToAddress(_target) + (uint)field.Offset;
+                    else
+                        return dlmd.GCStaticDataStart.ToAddress(_target) + (uint)field.Offset;
+                }
             }
         }
 
@@ -304,28 +340,31 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             if (threadAddress == 0)
                 return 0;
 
-            if (_sos14 is not null)
+            lock (_sos.SyncRoot)
             {
-                // See GetStaticFieldAddress: the per-type static bases are allocated even
-                // when the .cctor hasn't run. Match the legacy ThreadLocalModuleData path,
-                // which only returns an address once the class is initialized.
-                if (_sos14.GetMethodTableInitializationFlags(ClrDataAddress.FromTargetAddress(type.MethodTable, _target)) != MethodTableInitializationFlags.MethodTableInitialized)
+                if (_sos14 is not null)
+                {
+                    // See GetStaticFieldAddress: the per-type static bases are allocated even
+                    // when the .cctor hasn't run. Match the legacy ThreadLocalModuleData path,
+                    // which only returns an address once the class is initialized.
+                    if (_sos14.GetMethodTableInitializationFlags(ClrDataAddress.FromTargetAddress(type.MethodTable, _target)) != MethodTableInitializationFlags.MethodTableInitialized)
+                        return 0;
+
+                    (ClrDataAddress nonGcBase, ClrDataAddress gcBase) = _sos14.GetThreadStaticBaseAddress(ClrDataAddress.FromTargetAddress(type.MethodTable, _target), ClrDataAddress.FromTargetAddress(threadAddress, _target));
+                    if (field.ElementType.IsPrimitive())
+                        return !nonGcBase.IsNull ? nonGcBase.ToAddress(_target) + (uint)field.Offset : 0;
+
+                    return !gcBase.IsNull ? gcBase.ToAddress(_target) + (uint)field.Offset : 0;
+                }
+
+                if (!_sos.GetThreadLocalModuleData(ClrDataAddress.FromTargetAddress(threadAddress, _target), (uint)module.Index, out ThreadLocalModuleData threadData))
                     return 0;
 
-                (ClrDataAddress nonGcBase, ClrDataAddress gcBase) = _sos14.GetThreadStaticBaseAddress(ClrDataAddress.FromTargetAddress(type.MethodTable, _target), ClrDataAddress.FromTargetAddress(threadAddress, _target));
                 if (field.ElementType.IsPrimitive())
-                    return !nonGcBase.IsNull ? nonGcBase.ToAddress(_target) + (uint)field.Offset : 0;
+                    return threadData.NonGCStaticDataStart.ToAddress(_target) + (uint)field.Offset;
 
-                return !gcBase.IsNull ? gcBase.ToAddress(_target) + (uint)field.Offset : 0;
+                return threadData.GCStaticDataStart.ToAddress(_target) + (uint)field.Offset;
             }
-
-            if (!_sos.GetThreadLocalModuleData(ClrDataAddress.FromTargetAddress(threadAddress, _target), (uint)module.Index, out ThreadLocalModuleData threadData))
-                return 0;
-
-            if (field.ElementType.IsPrimitive())
-                return threadData.NonGCStaticDataStart.ToAddress(_target) + (uint)field.Offset;
-
-            return threadData.GCStaticDataStart.ToAddress(_target) + (uint)field.Offset;
         }
 
         private bool IsInitialized(in DomainLocalModuleData data, int token)
@@ -339,34 +378,45 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         // Method helpers
 
-        public string? GetMethodSignature(ulong methodDesc) => _sos.GetMethodDescName(ClrDataAddress.FromTargetAddress(methodDesc, _target));
+        public string? GetMethodSignature(ulong methodDesc)
+        {
+            lock (_sos.SyncRoot)
+                return _sos.GetMethodDescName(ClrDataAddress.FromTargetAddress(methodDesc, _target));
+        }
 
-        public ulong GetILForModule(ulong address, uint rva) => _sos.GetILForModule(ClrDataAddress.FromTargetAddress(address, _target), rva).ToAddress(_target);
+        public ulong GetILForModule(ulong address, uint rva)
+        {
+            lock (_sos.SyncRoot)
+                return _sos.GetILForModule(ClrDataAddress.FromTargetAddress(address, _target), rva).ToAddress(_target);
+        }
 
         public ImmutableArray<ILToNativeMap> GetILMap(ulong ip, in HotColdRegions hotCold)
         {
             ImmutableArray<ILToNativeMap>.Builder result = ImmutableArray.CreateBuilder<ILToNativeMap>();
 
-            foreach (ClrDataMethod method in _clrDataProcess.EnumerateMethodInstancesByAddress(ClrDataAddress.FromTargetAddress(ip, _target)))
+            lock (_sos.SyncRoot)
             {
-                ILToNativeMap[]? map = method.GetILToNativeMap();
-                if (map != null)
+                foreach (ClrDataMethod method in _clrDataProcess.EnumerateMethodInstancesByAddress(ClrDataAddress.FromTargetAddress(ip, _target)))
                 {
-                    for (int i = 0; i < map.Length; i++)
+                    ILToNativeMap[]? map = method.GetILToNativeMap();
+                    if (map != null)
                     {
-                        if (map[i].StartAddress > map[i].EndAddress)
+                        for (int i = 0; i < map.Length; i++)
                         {
-                            if (i + 1 == map.Length)
-                                map[i].EndAddress = FindEnd(hotCold, map[i].StartAddress);
-                            else
-                                map[i].EndAddress = map[i + 1].StartAddress - 1;
+                            if (map[i].StartAddress > map[i].EndAddress)
+                            {
+                                if (i + 1 == map.Length)
+                                    map[i].EndAddress = FindEnd(hotCold, map[i].StartAddress);
+                                else
+                                    map[i].EndAddress = map[i + 1].StartAddress - 1;
+                            }
                         }
+
+                        result.AddRange(map);
                     }
 
-                    result.AddRange(map);
+                    method.Dispose();
                 }
-
-                method.Dispose();
             }
 
             return result.MoveOrCopyToImmutable();

@@ -22,8 +22,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         internal static readonly Guid IID_ISOSDac = new("436f00f2-b42a-4b9f-870c-e73db66ae930");
 
         private readonly DacLibrary _library;
-        private volatile Dictionary<int, string>? _regNames;
-        private volatile Dictionary<ClrDataAddress, string>? _frameNames;
+        private readonly Dictionary<int, string> _regNames = new();
+        private readonly Dictionary<ClrDataAddress, string> _frameNames = new();
 
         // CLRDATA_REQUEST_REVISION version from the DAC
         public int DacVersion { get; set; }
@@ -40,6 +40,12 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             _library = lib;
         }
+
+        /// <summary>
+        /// Process-wide lock that serializes stateful DAC enumerations (stack walks, etc.).
+        /// See <see cref="DacLibrary.SyncRoot"/> for the rationale.
+        /// </summary>
+        internal object SyncRoot => _library.SyncRoot;
 
         public RejitData[] GetRejitData(ClrDataAddress md, ClrDataAddress ip = default)
         {
@@ -67,7 +73,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public string? GetRegisterName(int index)
         {
-            Dictionary<int, string> regNames = _regNames ??= new();
+            Dictionary<int, string> regNames = _regNames;
             lock (regNames)
                 if (regNames.TryGetValue(index, out string? cached))
                     return cached;
@@ -275,10 +281,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public string GetFrameName(ClrDataAddress vtable)
         {
-            Dictionary<ClrDataAddress, string> frameNames = _frameNames ??= new();
+            Dictionary<ClrDataAddress, string> frameNames = _frameNames;
             lock (frameNames)
             {
-                if (_frameNames.TryGetValue(vtable, out string? cached))
+                if (frameNames.TryGetValue(vtable, out string? cached))
                     return cached;
             }
 
@@ -286,7 +292,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (result is not null)
             {
                 lock (frameNames)
-                    _frameNames[vtable] = result;
+                    frameNames[vtable] = result;
 
                 return result;
             }

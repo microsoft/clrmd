@@ -40,6 +40,7 @@ namespace Microsoft.Diagnostics.Runtime
         private volatile SyncBlockContainer? _syncBlocks;
         private volatile ClrSegment? _currSegment;
         private volatile ArrayPool<ObjectCorruption>? _objectCorruptionPool;
+        private readonly object _heapCacheLock = new();
         private ulong _lastComFlags;
 
         internal ClrHeap(ClrRuntime runtime, IMemoryReader memoryReader, IAbstractHeap helpers, IAbstractTypeHelpers typeHelpers)
@@ -796,13 +797,23 @@ namespace Microsoft.Diagnostics.Runtime
         private SyncBlockContainer GetSyncBlocks()
         {
             SyncBlockContainer? container = _syncBlocks;
-            if (container is null)
-            {
-                container = new SyncBlockContainer(Helpers.EnumerateSyncBlocks());
-                Interlocked.CompareExchange(ref _syncBlocks, container, null);
-            }
+            if (container is not null)
+                return container;
 
-            return container;
+            // Serialize cache population so two concurrent DAC EnumerateSyncBlocks
+            // calls don't each build a SyncBlockContainer (with one's partial
+            // results getting permanently published).
+            lock (_heapCacheLock)
+            {
+                container = _syncBlocks;
+                if (container is null)
+                {
+                    container = new SyncBlockContainer(Helpers.EnumerateSyncBlocks());
+                    _syncBlocks = container;
+                }
+
+                return container;
+            }
         }
 
         internal ClrThinLock? GetThinlock(ulong address)
@@ -1165,16 +1176,26 @@ namespace Microsoft.Diagnostics.Runtime
             if (result is not null)
                 return result;
 
-            result = new();
-            foreach (MemoryRange allocContext in Helpers.EnumerateThreadAllocationContexts())
-                result[allocContext.Start] = allocContext.End;
+            // Serialize cache population so the DAC's per-runtime
+            // EnumerateThreadAllocationContexts call doesn't race with itself
+            // and produce two divergent dictionaries (the winner's published).
+            lock (_heapCacheLock)
+            {
+                result = _allocationContexts;
+                if (result is not null)
+                    return result;
 
-            foreach (ClrSubHeap subHeap in SubHeaps)
-                if (subHeap.AllocationContext.Start < subHeap.AllocationContext.End)
-                    result[subHeap.AllocationContext.Start] = subHeap.AllocationContext.End;
+                result = new();
+                foreach (MemoryRange allocContext in Helpers.EnumerateThreadAllocationContexts())
+                    result[allocContext.Start] = allocContext.End;
 
-            Interlocked.CompareExchange(ref _allocationContexts, result, null);
-            return result;
+                foreach (ClrSubHeap subHeap in SubHeaps)
+                    if (subHeap.AllocationContext.Start < subHeap.AllocationContext.End)
+                        result[subHeap.AllocationContext.Start] = subHeap.AllocationContext.End;
+
+                _allocationContexts = result;
+                return result;
+            }
         }
 
         private (ulong Source, ulong Target)[] GetDependentHandles()
@@ -1183,10 +1204,19 @@ namespace Microsoft.Diagnostics.Runtime
             if (handles is not null)
                 return handles;
 
-            handles = Helpers.EnumerateDependentHandles().OrderBy(r => r.Source).ToArray();
+            // Serialize cache population: concurrent DAC handle enumerations can return
+            // partial results, and the previous CompareExchange pattern would publish
+            // the first-to-finish (possibly truncated) array as the cached value.
+            lock (_heapCacheLock)
+            {
+                handles = _dependentHandles;
+                if (handles is not null)
+                    return handles;
 
-            Interlocked.CompareExchange(ref _dependentHandles, handles, null);
-            return handles;
+                handles = Helpers.EnumerateDependentHandles().OrderBy(r => r.Source).ToArray();
+                _dependentHandles = handles;
+                return handles;
+            }
         }
 
         private IEnumerable<ClrRoot> EnumerateFinalizers(IEnumerable<MemoryRange> memoryRanges)
