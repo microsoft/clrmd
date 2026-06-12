@@ -36,7 +36,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             GetIUnknownImpl(out IntPtr qi, out IntPtr addRef, out IntPtr release);
 
-            ComInterfaceEntry* wrappers = (ComInterfaceEntry*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(DacDataTargetCOM), sizeof(ComInterfaceEntry) * 4);
+            ComInterfaceEntry* wrappers = (ComInterfaceEntry*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(DacDataTargetCOM), sizeof(ComInterfaceEntry) * 5);
             wrappers[0].IID = DacDataTarget.IID_IDacDataTarget;
             wrappers[0].Vtable = IDacDataTargetVtbl.Create(qi, addRef, release);
 
@@ -49,6 +49,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             wrappers[3].IID = DacDataTarget.IID_ICLRContractLocator;
             wrappers[3].Vtable = ICLRContractLocatorVtbl.Create(qi, addRef, release);
 
+            wrappers[4].IID = DacDataTarget.IID_ICLRSymbolProvider;
+            wrappers[4].Vtable = ICLRSymbolProviderVtbl.Create(qi, addRef, release);
+
             return wrappers;
         }
 
@@ -56,8 +59,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             DacDataTarget dacDataTarget = obj as DacDataTarget ?? throw new InvalidOperationException($"Expected {nameof(DacDataTarget)} but got {obj.GetType()}.");
 
-            // Interfaces exposed (in order): IDacDataTarget, IMetadataLocator, ICLRRuntimeLocator, ICLRContractLocator
+            // Interfaces exposed (in order): IDacDataTarget, IMetadataLocator, ICLRRuntimeLocator, ICLRContractLocator, ICLRSymbolProvider
             // ICLRRuntimeLocator requires a valid RuntimeBaseAddress; ICLRContractLocator requires a valid ContractDescriptor.
+            // ICLRSymbolProvider is always exposed — the vtable thunks return E_FAIL when no IClrSymbolProvider is registered on the DataTarget.
             count = 2;
             if (dacDataTarget.RuntimeBaseAddress != 0)
             {
@@ -65,7 +69,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
             if (dacDataTarget.ContractDescriptor != 0)
             {
-                count = 4;
+                count = 5;
             }
 
             ComInterfaceEntry* result = s_wrapperEntry;
@@ -268,6 +272,70 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 DacDataTarget dacDataTarget = ComInterfaceDispatch.GetInstance<DacDataTarget>((ComInterfaceDispatch*)self);
                 *address = dacDataTarget.ContractDescriptor;
                 return *address != 0 ? HResult.S_OK : HResult.E_FAIL;
+            }
+        }
+
+        private static unsafe class ICLRSymbolProviderVtbl
+        {
+            public static IntPtr Create(IntPtr qi, IntPtr addRef, IntPtr release)
+            {
+                IntPtr* vtblRaw = (IntPtr*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(ICLRSymbolProviderVtbl), IntPtr.Size * 5);
+                vtblRaw[0] = qi;
+                vtblRaw[1] = addRef;
+                vtblRaw[2] = release;
+                vtblRaw[3] = (IntPtr)(delegate* unmanaged<IntPtr, ulong, uint, char*, uint*, ulong*, int>)&TryGetSymbolName;
+                vtblRaw[4] = (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, ulong*, int>)&TryGetSymbolAddress;
+
+                return (IntPtr)vtblRaw;
+            }
+
+            [UnmanagedCallersOnly]
+            private static int TryGetSymbolName(IntPtr self, ulong address, uint cchName, char* pName, uint* pcchNameActual, ulong* pDisplacement)
+            {
+                DacDataTarget dacDataTarget = ComInterfaceDispatch.GetInstance<DacDataTarget>((ComInterfaceDispatch*)self);
+                IClrSymbolProvider? provider = dacDataTarget.SymbolProvider;
+                if (provider is null)
+                    return HResult.E_FAIL;
+
+                if (!provider.TryGetSymbolName(address, out string? symbolName, out ulong displacement) || string.IsNullOrEmpty(symbolName))
+                    return HResult.E_FAIL;
+
+                if (pcchNameActual != null)
+                    *pcchNameActual = (uint)symbolName!.Length;
+                if (pDisplacement != null)
+                    *pDisplacement = displacement;
+
+                if (cchName == 0 || pName == null)
+                    return HResult.S_OK;
+
+                int copy = Math.Min(symbolName!.Length, (int)cchName);
+                for (int i = 0; i < copy; i++)
+                    pName[i] = symbolName[i];
+                return HResult.S_OK;
+            }
+
+            [UnmanagedCallersOnly]
+            private static int TryGetSymbolAddress(IntPtr self, IntPtr namePtr, ulong* pAddress)
+            {
+                if (pAddress is null)
+                    return HResult.E_INVALIDARG;
+                *pAddress = 0;
+
+                DacDataTarget dacDataTarget = ComInterfaceDispatch.GetInstance<DacDataTarget>((ComInterfaceDispatch*)self);
+                IClrSymbolProvider? provider = dacDataTarget.SymbolProvider;
+                if (provider is null)
+                    return HResult.E_FAIL;
+
+                string? name = Marshal.PtrToStringUni(namePtr);
+                if (string.IsNullOrEmpty(name))
+                    return HResult.E_INVALIDARG;
+
+                if (provider.TryGetSymbolAddress(name!, out ulong address) && address != 0)
+                {
+                    *pAddress = address;
+                    return HResult.S_OK;
+                }
+                return HResult.E_FAIL;
             }
         }
     }

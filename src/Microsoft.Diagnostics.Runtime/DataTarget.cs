@@ -47,6 +47,23 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Loads a (c)DAC binary and wraps it in an <see cref="IServiceProvider"/> of
+        /// the standard ClrMD DAC services for <paramref name="clrInfo"/>.
+        /// </summary>
+        public static IServiceProvider CreateDacServices(ClrInfo clrInfo, string dacFilePath, bool verifySignature = false)
+        {
+            if (clrInfo is null) throw new ArgumentNullException(nameof(clrInfo));
+            if (dacFilePath is null) throw new ArgumentNullException(nameof(dacFilePath));
+            DacLibrary library = new(
+                clrInfo.DataTarget,
+                dacFilePath,
+                clrInfo.ModuleInfo.ImageBase,
+                clrInfo.ContractDescriptorAddress,
+                verifySignature);
+            return new DacImplementation.DacServiceProvider(clrInfo, library);
+        }
+
+        /// <summary>
         /// The options set for this data target.
         /// </summary>
         public DataTargetOptions Options { get; } = _options ?? new DataTargetOptions();
