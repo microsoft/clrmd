@@ -30,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         {
             ThrowIfDisposed();
 
-            (ulong dataRemoved, uint _) = TryRemoveAllPagesFromCache(disposeLocks: false);
+            ulong dataRemoved = TryRemoveAllPagesFromCache();
 
             int oldCurrent;
             int newCurrent;
@@ -48,7 +48,11 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         protected override (byte[] Data, ulong DataExtent) GetPageDataAtOffset(ulong pageAlignedOffset)
         {
-            // NOTE: The caller ensures this method is not called concurrently
+            // NOTE: With the lock-free CompareExchange publish path, this method MAY
+            // execute concurrently on the same offset from multiple threads. That is
+            // safe here: each call acquires its own MemoryMappedViewAccessor and rents
+            // its own buffer; only the CAS winner's buffer is retained, and the loser's
+            // buffer is returned via DiscardUnusedPage.
 
             if (HeapSegmentCacheEventSource.Instance.IsEnabled())
                 HeapSegmentCacheEventSource.Instance.PageInDataStart((long)(_segmentData.VirtualAddress + pageAlignedOffset), EntryPageSize);
@@ -142,60 +146,40 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             return sizeRead;
         }
 
-        protected override void Dispose(bool disposing)
+        protected override void DiscardUnusedPage(CachePage<byte[]> page)
         {
-            for (int i = 0; i < 3; i++)
-            {
-                if (TryRemoveAllPagesFromCache(disposeLocks: true).ItemsSkipped == 0)
-                {
-                    break;
-                }
-            }
+            // Loser of a publish-CAS: return the rented buffer to the pool.
+            if (page.Data != null)
+                ArrayPool<byte>.Shared.Return(page.Data);
         }
 
-        private (ulong DataRemoved, uint ItemsSkipped) TryRemoveAllPagesFromCache(bool disposeLocks)
+        protected override void Dispose(bool disposing)
         {
-            // Assume we will be able to evict all non-null pages
+            TryRemoveAllPagesFromCache();
+        }
+
+        private ulong TryRemoveAllPagesFromCache()
+        {
             ulong dataRemoved = 0;
-            uint itemsSkipped = 0;
 
             for (int i = 0; i < _pages.Length; i++)
             {
-                CachePage<byte[]> page = _pages[i];
+                // Atomically claim the slot. In-flight readers that already captured
+                // the page reference (via Volatile.Read on the read path) may still be
+                // inside CopyDataFromPage / InvokeCallbackWithDataPtr mid-memcpy on
+                // page.Data. We intentionally do NOT return page.Data to
+                // ArrayPool<byte>.Shared here: if we did, another thread could rent the
+                // same buffer and overwrite it under that reader, producing corrupted
+                // reads (e.g. zeroed MethodTable pointers leading to spurious null
+                // ClrType lookups). Letting GC reclaim the array preserves the data
+                // for any in-flight reader's lifetime. Eviction is rare relative to
+                // the hot read path, so the lost pool reuse is acceptable.
+                CachePage<byte[]> page = Interlocked.Exchange(ref _pages[i], null);
                 if (page != null)
-                {
-                    ReaderWriterLockSlim dataChunkLock = _pageLocks[i];
-                    if (!dataChunkLock.TryEnterWriteLock(timeout: TimeSpan.Zero))
-                    {
-                        // Someone holds a read or write lock on this page, skip it
-                        itemsSkipped++;
-                        continue;
-                    }
-
-                    try
-                    {
-                        // double check that no other thread already scavenged this entry
-                        page = _pages[i];
-                        if (page != null)
-                        {
-                            ArrayPool<byte>.Shared.Return(page.Data);
-                            dataRemoved += page.DataExtent;
-                            _pages[i] = null;
-                        }
-                    }
-                    finally
-                    {
-                        dataChunkLock.ExitWriteLock();
-                        if (disposeLocks)
-                        {
-                            dataChunkLock.Dispose();
-                            _pageLocks[i] = null;
-                        }
-                    }
-                }
+                    dataRemoved += page.DataExtent;
             }
 
-            return (dataRemoved, itemsSkipped);
+            return dataRemoved;
         }
     }
 }

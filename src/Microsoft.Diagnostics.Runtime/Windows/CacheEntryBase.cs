@@ -17,7 +17,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
     internal abstract class CacheEntryBase<T> : SegmentCacheEntry, IDisposable
     {
         protected CachePage<T>[] _pages;
-        protected ReaderWriterLockSlim[] _pageLocks;
         protected MinidumpSegment _segmentData;
         protected volatile int _entrySize;
         private int _lastAccessTimestamp;
@@ -34,14 +33,9 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 pageCount++;
 
             _pages = new CachePage<T>[pageCount];
-            _pageLocks = new ReaderWriterLockSlim[pageCount];
-            for (int i = 0; i < _pageLocks.Length; i++)
-            {
-                _pageLocks[i] = new ReaderWriterLockSlim();
-            }
 
-            _minSize = 4 * UIntPtr.Size + /*our four fields that are reference type fields (pages, pageLocks, segmentData, and updateOwningCacheForAddedChunk)*/
-                           2 * (_pages.Length * UIntPtr.Size) + /*The array of cache pages and matching size array of locks */
+            _minSize = 3 * UIntPtr.Size + /*our three reference-typed fields (pages, segmentData, and updateOwningCacheForAddedChunk)*/
+                           (_pages.Length * UIntPtr.Size) + /*The array of cache pages */
                            2 * sizeof(uint) + /*entrySize and minSize fields*/
                            sizeof(long) /*lastAccessTickCount field*/ +
                            derivedMinSize /*size added from our derived classes bookkeeping overhead*/;
@@ -137,7 +131,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             Dispose(disposing: true);
 
             _pages = null;
-            _pageLocks = null;
         }
 
         protected abstract void Dispose(bool disposing);
@@ -172,101 +165,56 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         protected abstract (T Data, ulong DataExtent) GetPageDataAtOffset(ulong pageAlignedOffset);
 
+        /// <summary>
+        /// Called when a page was constructed by <see cref="GetPageDataAtOffset"/> but lost
+        /// the CompareExchange race to publish it into <c>_pages</c>. Derived classes that
+        /// rent buffers (e.g. ArrayPoolBasedCacheEntry) override this to return the buffer.
+        /// </summary>
+        protected virtual void DiscardUnusedPage(CachePage<T> page)
+        {
+        }
+
         private ulong ReadPageDataFromOffset(int pageIndex, ulong inPageOffset, uint byteCount, IntPtr buffer, Func<UIntPtr, ulong, uint> dataReader)
         {
-            bool notifyCacheOfSizeUpdate = false;
-
-            ulong sizeRead = 0;
-            int addedSize = 0;
-
-            ReaderWriterLockSlim pageLock = _pageLocks[pageIndex];
-
-            pageLock.EnterReadLock();
-            bool holdsReadLock = true;
-            try
+            // Lock-free fast path: pages are immutable once published. A successful
+            // Volatile.Read of a non-null CachePage<T> guarantees we observe its fully
+            // initialized Data + DataExtent (set in the ctor before the CAS publish).
+            CachePage<T> page = Volatile.Read(ref _pages[pageIndex]);
+            if (page != null)
             {
-                // THREADING: If the data is not null we can just read it directly as we hold the read lock, if it is null we must acquire the write lock in
-                // preparation to fetch the data from physical memory
-                if (_pages[pageIndex] != null)
-                {
-                    UpdateLastAccessTimstamp();
-
-                    if (dataReader == null)
-                    {
-                        sizeRead = CopyDataFromPage(_pages[pageIndex], buffer, inPageOffset, byteCount);
-                    }
-                    else
-                    {
-                        sizeRead = InvokeCallbackWithDataPtr(_pages[pageIndex], dataReader);
-                    }
-                }
-                else
-                {
-                    pageLock.ExitReadLock();
-                    holdsReadLock = false;
-
-                    pageLock.EnterWriteLock();
-                    try
-                    {
-                        // THREADING: Double check it's still null (i.e. no other thread beat us to paging this data in between dropping our read lock and acquiring
-                        // the write lock)
-                        if (_pages[pageIndex] == null)
-                        {
-                            ulong dataRange;
-                            T data;
-                            (data, dataRange) = GetPageDataAtOffset((ulong)pageIndex * EntryPageSize);
-
-                            _pages[pageIndex] = new CachePage<T>(data, dataRange);
-
-                            Interlocked.Add(ref _entrySize, (int)dataRange);
-
-                            UpdateLastAccessTimstamp();
-
-                            if (dataReader == null)
-                            {
-                                sizeRead = CopyDataFromPage(_pages[pageIndex], buffer, inPageOffset, byteCount);
-                            }
-                            else
-                            {
-                                sizeRead = InvokeCallbackWithDataPtr(_pages[pageIndex], dataReader);
-                            }
-
-                            addedSize = (int)dataRange;
-                            notifyCacheOfSizeUpdate = true;
-                        }
-                        else
-                        {
-                            // Someone else beat us to retrieving the data, so we can just read
-                            UpdateLastAccessTimstamp();
-
-                            if (dataReader == null)
-                            {
-                                sizeRead = CopyDataFromPage(_pages[pageIndex], buffer, inPageOffset, byteCount);
-                            }
-                            else
-                            {
-                                sizeRead = InvokeCallbackWithDataPtr(_pages[pageIndex], dataReader);
-                            }
-                        }
-                    }
-                    finally
-                    {
-                        pageLock.ExitWriteLock();
-                    }
-                }
-            }
-            finally
-            {
-                if (holdsReadLock)
-                    pageLock.ExitReadLock();
+                UpdateLastAccessTimstamp();
+                return dataReader == null
+                    ? CopyDataFromPage(page, buffer, inPageOffset, byteCount)
+                    : InvokeCallbackWithDataPtr(page, dataReader);
             }
 
-            if (notifyCacheOfSizeUpdate)
+            // Miss path: synthesize a page and try to publish it. Two threads racing on
+            // the same pageIndex will both fetch the page contents (cheap relative to
+            // RWLS contention), then only the CAS winner's page is retained; the loser
+            // hands its page to DiscardUnusedPage so any rented buffer is released.
+            (T data, ulong dataRange) = GetPageDataAtOffset((ulong)pageIndex * EntryPageSize);
+            CachePage<T> newPage = new CachePage<T>(data, dataRange);
+
+            CachePage<T> existing = Interlocked.CompareExchange(ref _pages[pageIndex], newPage, null);
+            if (existing == null)
             {
-                _updateOwningCacheForAddedChunk((uint)addedSize);
+                // We won the publish race.
+                Interlocked.Add(ref _entrySize, (int)dataRange);
+                UpdateLastAccessTimstamp();
+                _updateOwningCacheForAddedChunk((uint)dataRange);
+                page = newPage;
+            }
+            else
+            {
+                // We lost: another thread already published a page. Drop ours.
+                DiscardUnusedPage(newPage);
+                UpdateLastAccessTimstamp();
+                page = existing;
             }
 
-            return sizeRead;
+            return dataReader == null
+                ? CopyDataFromPage(page, buffer, inPageOffset, byteCount)
+                : InvokeCallbackWithDataPtr(page, dataReader);
         }
 
         private bool ReadPageDataFromOffsetUntil(uint segmentOffset, byte[] terminatingSequence, List<byte> bytesRead)

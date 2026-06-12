@@ -8,6 +8,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
@@ -22,7 +23,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private readonly bool _leaveOpen;
         private readonly Reader _reader;
         private ImmutableDictionary<ulong, ElfLoadedImage>? _loadedImages;
+        // _auxvEntries is mutated only under _auxvLock; _auxvLoaded is the publication
+        // flag readers check first to avoid taking the lock on the steady-state path.
         private readonly Dictionary<ulong, ulong> _auxvEntries = new();
+        private readonly object _auxvLock = new();
+        private volatile bool _auxvLoaded;
         private ElfVirtualAddressSpace? _virtualAddressSpace;
 
         /// <summary>
@@ -69,7 +74,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <summary>
         /// A mapping of all loaded images in the process.  The key is the base address that the module is loaded at.
         /// </summary>
-        public ImmutableDictionary<ulong, ElfLoadedImage> LoadedImages => _loadedImages ??= LoadFileTable();
+        public ImmutableDictionary<ulong, ElfLoadedImage> LoadedImages
+        {
+            get
+            {
+                ImmutableDictionary<ulong, ElfLoadedImage>? cached = Volatile.Read(ref _loadedImages);
+                if (cached is not null)
+                    return cached;
+
+                ImmutableDictionary<ulong, ElfLoadedImage> fresh = LoadFileTable();
+                return Interlocked.CompareExchange(ref _loadedImages, fresh, null) ?? fresh;
+            }
+        }
 
         /// <summary>
         /// Creates an ElfCoreFile from a file on disk.
@@ -113,8 +129,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <returns>The number of bytes written into the buffer.</returns>
         public int ReadMemory(ulong address, Span<byte> buffer)
         {
-            _virtualAddressSpace ??= new ElfVirtualAddressSpace(ElfFile.ProgramHeaders, _reader.DataSource);
-            return _virtualAddressSpace.Read(address, buffer);
+            ElfVirtualAddressSpace? vas = Volatile.Read(ref _virtualAddressSpace);
+            if (vas is null)
+            {
+                ElfVirtualAddressSpace fresh = new(ElfFile.ProgramHeaders, _reader.DataSource);
+                vas = Interlocked.CompareExchange(ref _virtualAddressSpace, fresh, null) ?? fresh;
+            }
+            return vas.Read(address, buffer);
         }
 
         private IEnumerable<ElfNote> GetNotes(ElfNoteType type)
@@ -124,38 +145,54 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         private void LoadAuxvTable()
         {
-            if (_auxvEntries.Count != 0)
+            if (_auxvLoaded)
                 return;
 
-            ElfNote auxvNote = GetNotes(ElfNoteType.Aux).SingleOrDefault() ?? throw new BadImageFormatException($"No auxv entries in coredump");
-            ulong position = 0;
-            int count = 0;
-            while (true)
+            // Hold the lock for the full read+populate so concurrent first callers do
+            // not corrupt _auxvEntries via interleaved Add calls.
+            lock (_auxvLock)
             {
-                if (count++ > _limits.MaxElfAuxvEntries)
-                    throw new InvalidDataException($"ELF coredump contains more than {_limits.MaxElfAuxvEntries} auxv entries, which exceeds the maximum allowed.");
+                if (_auxvLoaded)
+                    return;
 
-                ulong type;
-                ulong value;
-                if (ElfFile.Header.Is64Bit)
+                // Defensive: if a previous attempt threw mid-population (e.g., hit
+                // MaxElfAuxvEntries), start fresh so duplicate-key Adds don't fire.
+                _auxvEntries.Clear();
+
+                ElfNote auxvNote = GetNotes(ElfNoteType.Aux).SingleOrDefault() ?? throw new BadImageFormatException($"No auxv entries in coredump");
+                ulong position = 0;
+                int count = 0;
+                while (true)
                 {
-                    ElfAuxv64 elfauxv64 = auxvNote.ReadContents<ElfAuxv64>(ref position);
-                    type = elfauxv64.Type;
-                    value = elfauxv64.Value;
-                }
-                else
-                {
-                    ElfAuxv32 elfauxv32 = auxvNote.ReadContents<ElfAuxv32>(ref position);
-                    type = elfauxv32.Type;
-                    value = elfauxv32.Value;
+                    if (count++ > _limits.MaxElfAuxvEntries)
+                        throw new InvalidDataException($"ELF coredump contains more than {_limits.MaxElfAuxvEntries} auxv entries, which exceeds the maximum allowed.");
+
+                    ulong type;
+                    ulong value;
+                    if (ElfFile.Header.Is64Bit)
+                    {
+                        ElfAuxv64 elfauxv64 = auxvNote.ReadContents<ElfAuxv64>(ref position);
+                        type = elfauxv64.Type;
+                        value = elfauxv64.Value;
+                    }
+                    else
+                    {
+                        ElfAuxv32 elfauxv32 = auxvNote.ReadContents<ElfAuxv32>(ref position);
+                        type = elfauxv32.Type;
+                        value = elfauxv32.Value;
+                    }
+
+                    if (type == (ulong)ElfAuxvType.Null)
+                    {
+                        break;
+                    }
+
+                    _auxvEntries.Add(type, value);
                 }
 
-                if (type == (ulong)ElfAuxvType.Null)
-                {
-                    break;
-                }
-
-                _auxvEntries.Add(type, value);
+                // _auxvLoaded is volatile: the write here happens-after all _auxvEntries
+                // mutations and is observed by readers using the fast-path check above.
+                _auxvLoaded = true;
             }
         }
 
