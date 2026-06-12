@@ -30,13 +30,18 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             _target = target;
 
             int version = 0;
-            if (!_dac.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))))
-                throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data. This may indicate the dump was taken before the CLR was fully initialized, or the dump is corrupt or truncated. Failed to request DacVersion.");
+            // This DAC request runs during lazy service construction (under _serviceLock);
+            // serialize it on the DAC lock like every other DAC entry point.
+            lock (_sos.SyncRoot)
+            {
+                if (!_dac.Request(DacRequests.VERSION, ReadOnlySpan<byte>.Empty, new Span<byte>(&version, sizeof(int))))
+                    throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data. This may indicate the dump was taken before the CLR was fully initialized, or the dump is corrupt or truncated. Failed to request DacVersion.");
 
-            if (version is not (9 or 10))
-                throw new NotSupportedException($"The CLR debugging layer reported a version of {version} which this build of ClrMD does not support.");
+                if (version is not (9 or 10))
+                    throw new NotSupportedException($"The CLR debugging layer reported a version of {version} which this build of ClrMD does not support.");
 
-            _sos.DacVersion = version;
+                _sos.DacVersion = version;
+            }
         }
 
         internal ulong GetStressLogAddress()
@@ -48,11 +53,12 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 return _sos.TryGetStressLogAddress(out ClrDataAddress addr) ? addr.ToAddress(_target) : 0;
         }
 
-        public IEnumerable<ClrThreadInfo> EnumerateThreads()
+        public IEnumerable<ClrThreadInfo> EnumerateThreads(int maxCount)
         {
             // Materialize entirely under the DAC lock. The IDataReader.ReadPointer
             // / GetThreadTeb calls don't go through the DAC, but the surrounding
-            // _sos.* calls must be serialized.
+            // _sos.* calls must be serialized. maxCount bounds the work so a corrupt
+            // dump reporting a huge ThreadCount can't drive unbounded materialization.
             List<ClrThreadInfo>? results = null;
             lock (_sos.SyncRoot)
             {
@@ -65,6 +71,9 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
                 for (int i = 0; i < threadStore.ThreadCount && seen.Add(threadAddress); i++)
                 {
+                    if ((results?.Count ?? 0) >= maxCount)
+                        break;
+
                     if (!_sos.GetThreadData(currentThread, out ThreadData threadData))
                         break;
 
@@ -117,7 +126,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             return (IEnumerable<ClrThreadInfo>?)results ?? Array.Empty<ClrThreadInfo>();
         }
 
-        public IEnumerable<AppDomainInfo> EnumerateAppDomains()
+        public IEnumerable<AppDomainInfo> EnumerateAppDomains(int maxCount)
         {
             List<AppDomainInfo>? results = null;
             lock (_sos.SyncRoot)
@@ -125,13 +134,13 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (!_sos.GetAppDomainStoreData(out AppDomainStoreData domainStore))
                     throw new InvalidDataException("This instance of CLR either has not been initialized or does not contain any data. This may indicate the dump was taken before the CLR was fully initialized, or the dump is corrupt or truncated. Failed to request AppDomainStoreData.");
 
-                if (!domainStore.SharedDomain.IsNull)
+                if (!domainStore.SharedDomain.IsNull && (results?.Count ?? 0) < maxCount)
                 {
                     results ??= new List<AppDomainInfo>();
                     results.Add(CreateAppDomainInfo(domainStore.SharedDomain.ToAddress(_target), AppDomainKind.Shared, "Shared Domain"));
                 }
 
-                if (!domainStore.SystemDomain.IsNull)
+                if (!domainStore.SystemDomain.IsNull && (results?.Count ?? 0) < maxCount)
                 {
                     results ??= new List<AppDomainInfo>();
                     results.Add(CreateAppDomainInfo(domainStore.SystemDomain.ToAddress(_target), AppDomainKind.System, "System Domain"));
@@ -139,6 +148,9 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
                 foreach (ClrDataAddress domain in _sos.GetAppDomainList())
                 {
+                    if ((results?.Count ?? 0) >= maxCount)
+                        break;
+
                     ulong domainAddr = domain.ToAddress(_target);
                     string name = _sos.GetAppDomainName(domain) ?? "";
                     results ??= new List<AppDomainInfo>();
@@ -174,15 +186,23 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             return result;
         }
 
-        public IEnumerable<ulong> GetModuleList(ulong domain)
+        public IEnumerable<ulong> GetModuleList(ulong domain, int maxCount)
         {
             List<ulong> result = new();
             lock (_sos.SyncRoot)
             {
                 foreach (ClrDataAddress assembly in _sos.GetAssemblyList(ClrDataAddress.FromTargetAddress(domain, _target)))
                 {
+                    if (result.Count >= maxCount)
+                        break;
+
                     foreach (ClrDataAddress module in _sos.GetModuleList(assembly))
+                    {
+                        if (result.Count >= maxCount)
+                            break;
+
                         result.Add(module.ToAddress(_target));
+                    }
                 }
             }
 
@@ -192,10 +212,12 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         public IEnumerable<ClrHandleInfo> EnumerateHandles()
         {
             // SOSHandleEnum is a stateful DAC enumerator. Concurrent enumerations
-            // share internal DAC state and can truncate each other. Materialize the
-            // entire enumeration under the DAC lock so the enumerator's lifetime
-            // (creation, iteration, dispose) is fully serialized.
-            List<ClrHandleInfo>? results = null;
+            // share internal DAC state and can truncate each other. Drain the enumerator
+            // entirely under the DAC lock (creation, iteration, dispose), but collect only
+            // the raw HandleData under the lock. Resolving the object pointer
+            // (IDataReader.ReadPointer) does not go through the DAC, so do it outside the
+            // lock to keep the global DAC lock hold time short.
+            List<HandleData>? raw = null;
             lock (_sos.SyncRoot)
             {
                 using SOSHandleEnum? handleEnum = _sos.EnumerateHandles();
@@ -204,21 +226,31 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
                 foreach (HandleData handle in handleEnum.ReadHandles())
                 {
-                    ulong handleAddr = handle.Handle.ToAddress(_target);
-                    results ??= new List<ClrHandleInfo>();
-                    results.Add(new ClrHandleInfo()
-                    {
-                        Address = handleAddr,
-                        Object = _dataReader.ReadPointer(handleAddr),
-                        Kind = (ClrHandleKind)handle.Type,
-                        AppDomain = handle.AppDomain.ToAddress(_target),
-                        DependentTarget = handle.Secondary.ToAddress(_target),
-                        RefCount = handle.IsPegged != 0 ? handle.JupiterRefCount : handle.RefCount,
-                    });
+                    raw ??= new List<HandleData>();
+                    raw.Add(handle);
                 }
             }
 
-            return (IEnumerable<ClrHandleInfo>?)results ?? Array.Empty<ClrHandleInfo>();
+            if (raw is null)
+                return Array.Empty<ClrHandleInfo>();
+
+            ClrHandleInfo[] results = new ClrHandleInfo[raw.Count];
+            for (int i = 0; i < raw.Count; i++)
+            {
+                HandleData handle = raw[i];
+                ulong handleAddr = handle.Handle.ToAddress(_target);
+                results[i] = new ClrHandleInfo()
+                {
+                    Address = handleAddr,
+                    Object = _dataReader.ReadPointer(handleAddr),
+                    Kind = (ClrHandleKind)handle.Type,
+                    AppDomain = handle.AppDomain.ToAddress(_target),
+                    DependentTarget = handle.Secondary.ToAddress(_target),
+                    RefCount = handle.IsPegged != 0 ? handle.JupiterRefCount : handle.RefCount,
+                };
+            }
+
+            return results;
         }
 
         public IEnumerable<JitManagerInfo> EnumerateClrJitManagers()

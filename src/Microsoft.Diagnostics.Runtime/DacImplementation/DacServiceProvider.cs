@@ -23,15 +23,19 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly SosDac14? _sos14;
         private readonly ISOSDac16? _sos16;
 
-        private IAbstractClrNativeHeaps? _nativeHeaps;
-        private IAbstractComHelpers? _com;
-        private IAbstractHeap? _heapHelper;
-        private IAbstractLegacyThreadPool? _threadPool;
-        private IAbstractMethodLocator? _methodLocator;
-        private DacModuleHelpers? _moduleHelper;
-        private IAbstractRuntime? _runtime;
-        private IAbstractThreadHelpers? _threadHelper;
-        private IAbstractTypeHelpers? _typeHelper;
+        // These service singletons are read on a lock-free fast path in GetService and
+        // published under _serviceLock, so they must be volatile to give the fast-path
+        // read an acquire barrier (otherwise a partially-constructed instance could be
+        // observed on a weak memory model).
+        private volatile IAbstractClrNativeHeaps? _nativeHeaps;
+        private volatile IAbstractComHelpers? _com;
+        private volatile IAbstractHeap? _heapHelper;
+        private volatile IAbstractLegacyThreadPool? _threadPool;
+        private volatile IAbstractMethodLocator? _methodLocator;
+        private volatile DacModuleHelpers? _moduleHelper;
+        private volatile IAbstractRuntime? _runtime;
+        private volatile IAbstractThreadHelpers? _threadHelper;
+        private volatile IAbstractTypeHelpers? _typeHelper;
 
         private bool _disposed;
         private readonly object _serviceLock = new();
@@ -60,18 +64,27 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             if (_disposed)
                 throw new ObjectDisposedException(GetType().FullName);
 
-            _disposed = true;
-            _sos13?.LockedFlush();
-            _process.Dispose();
-            _sos.Dispose();
-            _sos6?.Dispose();
-            _sos8?.Dispose();
-            _sos12?.Dispose();
-            _sos13?.Dispose();
-            _sos14?.Dispose();
-            _sos16?.Dispose();
-            _dac.Dispose();
-            _moduleHelper?.Dispose();
+            // Serialize teardown against in-flight DAC reads: every DAC entry point takes
+            // _sos.SyncRoot (== _dac.SyncRoot), so disposing the native/COM wrappers under
+            // that same lock guarantees no reader is mid-call when we free them.
+            lock (_sos.SyncRoot)
+            {
+                if (_disposed)
+                    return;
+
+                _disposed = true;
+                _sos13?.LockedFlush();
+                _process.Dispose();
+                _sos.Dispose();
+                _sos6?.Dispose();
+                _sos8?.Dispose();
+                _sos12?.Dispose();
+                _sos13?.Dispose();
+                _sos14?.Dispose();
+                _sos16?.Dispose();
+                _dac.Dispose();
+                _moduleHelper?.Dispose();
+            }
         }
 
         public object? GetService(Type serviceType)

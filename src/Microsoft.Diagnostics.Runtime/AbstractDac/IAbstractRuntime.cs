@@ -19,9 +19,9 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// </summary>
     public interface IAbstractRuntime
     {
-        IEnumerable<ClrThreadInfo> EnumerateThreads();
-        IEnumerable<AppDomainInfo> EnumerateAppDomains();
-        IEnumerable<ulong> GetModuleList(ulong appDomain);
+        IEnumerable<ClrThreadInfo> EnumerateThreads(int maxCount);
+        IEnumerable<AppDomainInfo> EnumerateAppDomains(int maxCount);
+        IEnumerable<ulong> GetModuleList(ulong appDomain, int maxCount);
         IEnumerable<ClrHandleInfo> EnumerateHandles();
         IEnumerable<JitManagerInfo> EnumerateClrJitManagers();
         string? GetJitHelperFunctionName(ulong address);

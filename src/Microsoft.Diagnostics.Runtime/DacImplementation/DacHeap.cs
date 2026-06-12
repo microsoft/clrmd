@@ -93,8 +93,10 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         public IEnumerable<(ulong Source, ulong Target)> EnumerateDependentHandles()
         {
             // SOSHandleEnum is a stateful DAC enumerator; serialize its lifetime
-            // against other DAC calls (Flush, other enumerators).
-            List<(ulong Source, ulong Target)>? results = null;
+            // against other DAC calls (Flush, other enumerators). Collect only the raw
+            // dependent HandleData under the lock; resolving the source object
+            // (IMemoryReader.ReadPointer) is not a DAC call, so do it outside the lock.
+            List<HandleData>? raw = null;
             lock (_sos.SyncRoot)
             {
                 using SOSHandleEnum? handleEnum = _sos.EnumerateHandles(ClrHandleKind.Dependent);
@@ -105,17 +107,24 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 {
                     if (handle.Type == (int)ClrHandleKind.Dependent)
                     {
-                        ulong obj = _memoryReader.ReadPointer(handle.Handle.ToAddress(_target));
-                        if (obj != 0)
-                        {
-                            results ??= new List<(ulong, ulong)>();
-                            results.Add((obj, handle.Secondary.ToAddress(_target)));
-                        }
+                        raw ??= new List<HandleData>();
+                        raw.Add(handle);
                     }
                 }
             }
 
-            return (IEnumerable<(ulong, ulong)>?)results ?? Array.Empty<(ulong, ulong)>();
+            if (raw is null)
+                return Array.Empty<(ulong, ulong)>();
+
+            List<(ulong Source, ulong Target)> results = new(raw.Count);
+            foreach (HandleData handle in raw)
+            {
+                ulong obj = _memoryReader.ReadPointer(handle.Handle.ToAddress(_target));
+                if (obj != 0)
+                    results.Add((obj, handle.Secondary.ToAddress(_target)));
+            }
+
+            return results;
         }
 
         public IEnumerable<SyncBlockInfo> EnumerateSyncBlocks()

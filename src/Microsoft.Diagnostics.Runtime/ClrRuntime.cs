@@ -66,14 +66,20 @@ namespace Microsoft.Diagnostics.Runtime
                  throw new NotSupportedException($"This version of CLR debugging does not support flushing the runtime.");
 
             _controller.Flush();
-            _domainAndModules = null;
-            // Clear the published flag (volatile) before resetting the array so a racing
-            // reader either sees the old published array or falls into the lock to rebuild.
-            _threadsPublished = false;
-            _threads = default;
-            _handlesPublished = false;
-            _handles = default;
-            _heap = null;
+
+            // Reset the managed caches under the same lock their builders publish under, so a
+            // builder that is mid-population cannot republish pre-flush data after the reset.
+            lock (_runtimeCacheLock)
+            {
+                _domainAndModules = null;
+                // Clear the published flag (volatile) before resetting the array so a racing
+                // reader either sees the old published array or falls into the lock to rebuild.
+                _threadsPublished = false;
+                _threads = default;
+                _handlesPublished = false;
+                _handles = default;
+                _heap = null;
+            }
 
             lock (_stressLogGate)
             {
@@ -232,7 +238,7 @@ namespace Microsoft.Diagnostics.Runtime
                     ImmutableArray<ClrThread>.Builder builder = ImmutableArray.CreateBuilder<ClrThread>();
 
                     int max = DataTarget.Options.Limits.MaxThreads;
-                    foreach (ClrThreadInfo data in GetDacRuntime().EnumerateThreads())
+                    foreach (ClrThreadInfo data in GetDacRuntime().EnumerateThreads(max))
                     {
                         if (builder.Count >= max)
                             break;
@@ -569,7 +575,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             int domainCount = 0;
             ImmutableArray<ClrAppDomain>.Builder builder = ImmutableArray.CreateBuilder<ClrAppDomain>();
-            foreach (AppDomainInfo domainInfo in GetDacRuntime().EnumerateAppDomains())
+            foreach (AppDomainInfo domainInfo in GetDacRuntime().EnumerateAppDomains(limits.MaxAppDomains))
             {
                 if (domainCount++ >= limits.MaxAppDomains)
                     break;
@@ -597,7 +603,7 @@ namespace Microsoft.Diagnostics.Runtime
                 IAbstractModuleHelpers moduleHelpers = GetServiceOrThrow<IAbstractModuleHelpers>();
                 IAbstractClrNativeHeaps? nativeHeaps = GetService<IAbstractClrNativeHeaps>();
                 ImmutableArray<ClrModule>.Builder moduleBuilder = ImmutableArray.CreateBuilder<ClrModule>();
-                foreach (ulong moduleAddress in GetDacRuntime().GetModuleList(domain.Address))
+                foreach (ulong moduleAddress in GetDacRuntime().GetModuleList(domain.Address, limits.MaxModules - modules.Count))
                 {
                     if (modules.Count >= limits.MaxModules)
                         break;
