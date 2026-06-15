@@ -281,14 +281,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 vtblRaw[0] = qi;
                 vtblRaw[1] = addRef;
                 vtblRaw[2] = release;
-                vtblRaw[3] = (IntPtr)(delegate* unmanaged<IntPtr, ulong, uint, char*, uint*, ulong*, int>)&TryGetSymbolName;
-                vtblRaw[4] = (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, ulong*, int>)&TryGetSymbolAddress;
+                vtblRaw[3] = (IntPtr)(delegate* unmanaged<IntPtr, ulong, ulong, uint, char*, uint*, ulong*, int>)&TryGetSymbolName;
+                vtblRaw[4] = (IntPtr)(delegate* unmanaged<IntPtr, ulong, IntPtr, ulong*, int>)&TryGetSymbolAddress;
 
                 return (IntPtr)vtblRaw;
             }
 
             [UnmanagedCallersOnly]
-            private static int TryGetSymbolName(IntPtr self, ulong address, uint cchName, char* pName, uint* pcchNameActual, ulong* pDisplacement)
+            private static int TryGetSymbolName(IntPtr self, ulong moduleBase, ulong address, uint cchName, char* pName, uint* pcchNameActual, ulong* pDisplacement)
             {
                 if (cchName > int.MaxValue)
                     return HResult.E_INVALIDARG;
@@ -300,7 +300,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     if (provider is null)
                         return HResult.E_NOTIMPL;
 
-                    if (!provider.TryGetSymbolName(address, out string? symbolName, out ulong displacement))
+                    if (!provider.TryGetSymbolName(moduleBase, address, out string? symbolName, out ulong displacement))
                         return HResult.E_FAIL;
                     if (pcchNameActual != null)
                         *pcchNameActual = (uint)symbolName.Length + 1;
@@ -323,7 +323,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
 
             [UnmanagedCallersOnly]
-            private static int TryGetSymbolAddress(IntPtr self, IntPtr namePtr, ulong* pAddress)
+            private static int TryGetSymbolAddress(IntPtr self, ulong moduleBase, IntPtr namePtr, ulong* pAddress)
             {
                 if (pAddress is null)
                     return HResult.E_INVALIDARG;
@@ -340,7 +340,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     if (string.IsNullOrEmpty(name))
                         return HResult.E_INVALIDARG;
 
-                    if (provider.TryGetSymbolAddress(name, out ulong address) && address != 0)
+                    if (provider.TryGetSymbolAddress(moduleBase, name, out ulong address) && address != 0)
                     {
                         *pAddress = address;
                         return HResult.S_OK;

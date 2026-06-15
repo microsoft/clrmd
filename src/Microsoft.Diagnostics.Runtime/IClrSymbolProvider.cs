@@ -14,15 +14,16 @@ namespace Microsoft.Diagnostics.Runtime
     {
         /// <summary>
         /// Resolves <paramref name="address"/> to the symbol that owns it.
-        /// <paramref name="symbolName"/> should be module-qualified
-        /// (<c>"Module!Symbol"</c>); callers split on '!' to recover the module name.
+        /// When <paramref name="moduleBase"/> is non-zero the lookup is scoped to the module
+        /// loaded at that image base, otherwise the search spans every loaded module.
         /// </summary>
-        bool TryGetSymbolName(ulong address, [NotNullWhen(true)] out string? symbolName, out ulong displacement);
+        bool TryGetSymbolName(ulong moduleBase, ulong address, [NotNullWhen(true)] out string? symbolName, out ulong displacement);
 
         /// <summary>
-        /// Resolves a symbol name (optionally <c>"Module!Symbol"</c>-qualified) to its address.
-        /// Unqualified names should be searched across all loaded modules.
+        /// Resolves a <paramref name="symbolName"/> to its address. When
+        /// <paramref name="moduleBase"/> is non-zero the lookup is scoped to the module
+        /// loaded at that image base; otherwise it searches every loaded module.
         /// </summary>
-        bool TryGetSymbolAddress(string symbolName, out ulong address);
+        bool TryGetSymbolAddress(ulong moduleBase, string symbolName, out ulong address);
     }
 }
