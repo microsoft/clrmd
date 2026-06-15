@@ -59,15 +59,16 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             DacDataTarget dacDataTarget = obj as DacDataTarget ?? throw new InvalidOperationException($"Expected {nameof(DacDataTarget)} but got {obj.GetType()}.");
 
+            // Slots: 0=IDacDataTarget, 1=IMetadataLocator, 2=ICLRSymbolProvider (always exposed),
+            // 3=ICLRRuntimeLocator (requires RuntimeBaseAddress), 4=ICLRContractLocator (requires
+            // ContractDescriptor). The optional interfaces are appended in order, so a non-zero
+            // ContractDescriptor without a RuntimeBaseAddress is not representable here; callers
+            // that need the contract locator are expected to also supply the runtime base.
             count = 3;
             if (dacDataTarget.RuntimeBaseAddress != 0)
-            {
-                count = 4;
-            }
+                count++;
             if (dacDataTarget.ContractDescriptor != 0)
-            {
-                count = 5;
-            }
+                count++;
 
             ComInterfaceEntry* result = s_wrapperEntry;
             return result;
@@ -289,6 +290,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             [UnmanagedCallersOnly]
             private static int TryGetSymbolName(IntPtr self, ulong address, uint cchName, char* pName, uint* pcchNameActual, ulong* pDisplacement)
             {
+                if (cchName > int.MaxValue)
+                    return HResult.E_INVALIDARG;
+
                 try
                 {
                     DacDataTarget dacDataTarget = ComInterfaceDispatch.GetInstance<DacDataTarget>((ComInterfaceDispatch*)self);

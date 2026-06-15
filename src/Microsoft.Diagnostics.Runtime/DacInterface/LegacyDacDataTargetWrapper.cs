@@ -120,6 +120,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private int TryGetSymbolName(IntPtr _, ulong address, uint cchName, char* pName, uint* pcchNameActual, ulong* pDisplacement)
         {
+            if (cchName > int.MaxValue)
+                return HResult.E_INVALIDARG;
+
             try
             {
                 IClrSymbolProvider? provider = _dacDataTarget.SymbolProvider;
