@@ -21,6 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     internal static class DumpGenerator
     {
         private static readonly object _lock = new();
+        private static readonly HashSet<string> s_publishedSingleFile = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Ensures a dump file exists for the given test target. If the dump doesn't exist,
@@ -184,15 +185,30 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             string rid = GetRuntimeIdentifier(architecture);
             string publishDir = Path.Combine(outputDir, "singlefile");
+            string exeName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? name + ".exe" : name;
+            string publishedExe = Path.Combine(publishDir, exeName);
+
+            // The single-file exe is byte-identical across dump variants (GC mode, full/mini,
+            // etc. are set via environment at launch, not at publish). It only depends on the
+            // target name and architecture, both captured by publishedExe's path. Publishing it
+            // once and reusing it avoids re-running 'dotnet publish' for every dump variant, which
+            // would otherwise have GenerateBundle delete an exe that a prior launched-to-crash
+            // process (or antivirus) still holds open, producing a flaky access-denied error.
+            if (s_publishedSingleFile.Contains(publishedExe) || File.Exists(publishedExe))
+            {
+                s_publishedSingleFile.Add(publishedExe);
+                return publishedExe;
+            }
+
             Directory.CreateDirectory(publishDir);
 
             RunDotnetPublish(csprojPath, "net10.0", rid, publishDir);
 
-            string exeName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? name + ".exe" : name;
-            string publishedExe = Path.Combine(publishDir, exeName);
-
             if (File.Exists(publishedExe))
+            {
+                s_publishedSingleFile.Add(publishedExe);
                 return publishedExe;
+            }
 
             throw new InvalidOperationException($"Single-file publish succeeded but could not find output for {name} in {publishDir}");
         }
