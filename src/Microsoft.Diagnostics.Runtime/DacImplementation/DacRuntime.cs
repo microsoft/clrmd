@@ -53,6 +53,15 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 return _sos.TryGetStressLogAddress(out ClrDataAddress addr) ? addr.ToAddress(_target) : 0;
         }
 
+        public uint? TlsSlotIndex
+        {
+            get
+            {
+                uint result = _sos.GetTlsIndex();
+                return result != uint.MaxValue ? result : null;
+            }
+        }
+
         public IEnumerable<ClrThreadInfo> EnumerateThreads(int maxCount)
         {
             // Materialize entirely under the DAC lock. The IDataReader.ReadPointer
@@ -104,6 +113,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     results.Add(new()
                     {
                         Address = threadAddress,
+                        AllocationContext = CreateAllocationContext(threadData),
                         AppDomain = threadData.Domain.ToAddress(_target),
                         ExceptionInFlight = ex,
                         GCMode = threadData.PreemptiveGCDisabled == 0 ? GCMode.Preemptive : GCMode.Cooperative,
@@ -124,6 +134,13 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             }
 
             return (IEnumerable<ClrThreadInfo>?)results ?? Array.Empty<ClrThreadInfo>();
+        }
+
+        private MemoryRange CreateAllocationContext(in ThreadData threadData)
+        {
+            ulong start = threadData.AllocationContextPointer.ToAddress(_target);
+            ulong end = threadData.AllocationContextLimit.ToAddress(_target);
+            return start <= end ? new MemoryRange(start, end) : default;
         }
 
         public IEnumerable<AppDomainInfo> EnumerateAppDomains(int maxCount)

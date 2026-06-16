@@ -95,6 +95,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public bool CanFlushData => GetService<IAbstractDacController>() is not null;
 
+        /// <summary>
+        /// Gets the CLR TLS slot index for this runtime, or null if it is unavailable.
+        /// </summary>
+        public uint? TlsSlotIndex => GetDacRuntime().TlsSlotIndex;
+
         internal T? GetService<T>() where T: class => (T?)_services.GetService(typeof(T));
         internal T GetServiceOrThrow<T>() where T : class => (T?)_services.GetService(typeof(T)) ?? throw new NotSupportedException($"This version of ClrMD does not support {typeof(T).FullName}");
 
