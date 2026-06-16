@@ -14,7 +14,11 @@ namespace Microsoft.Diagnostics.Runtime
     /// </summary>
     public sealed class ClrInfo : IClrInfo
     {
-        internal ClrInfo(DataTarget dt, ModuleInfo module, Version clrVersion, IClrInfoProvider provider)
+        /// <summary>
+        /// Constructs a <see cref="ClrInfo"/>. Use this from a custom
+        /// <see cref="IClrInfoProvider"/>.
+        /// </summary>
+        public ClrInfo(DataTarget dt, ModuleInfo module, Version clrVersion, IClrInfoProvider provider)
         {
             DataTarget = dt ?? throw new ArgumentNullException(nameof(dt));
             ModuleInfo = module ?? throw new ArgumentNullException(nameof(module));

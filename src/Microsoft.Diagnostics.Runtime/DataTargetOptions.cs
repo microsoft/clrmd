@@ -135,4 +135,11 @@ public class DataTargetOptions
     /// </para>
     /// </summary>
     public bool UseLockFreeMemoryMapReader { get; init; }
+
+    /// <summary>
+    /// Optional host-supplied symbol provider. When set, ClrMD's COM data
+    /// target wrapper exposes <c>ICLRSymbolProvider</c> and forwards its
+    /// calls to this instance.
+    /// </summary>
+    public IClrSymbolProvider? SymbolProvider { get; init; }
 }
