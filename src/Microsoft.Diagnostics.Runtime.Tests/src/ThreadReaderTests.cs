@@ -7,6 +7,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -102,7 +103,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 }
             });
 
-            Assert.NotNull(runtime.TlsSlotIndex);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Assert.NotNull(runtime.TlsSlotIndex);
+            }
+            else
+            {
+                Assert.Null(runtime.TlsSlotIndex);
+            }
         }
     }
 }

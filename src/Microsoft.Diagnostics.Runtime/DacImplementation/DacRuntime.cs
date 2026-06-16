@@ -20,6 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly SOSDac _sos;
         private readonly ISOSDac13? _sos13;
         private readonly TargetProperties _target;
+        private readonly bool _supportsTlsSlotIndex;
 
         public DacRuntime(ClrInfo clrInfo, ClrDataProcess dac, SOSDac sos, ISOSDac13? sos13, TargetProperties target)
         {
@@ -28,6 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             _sos = sos;
             _sos13 = sos13;
             _target = target;
+            _supportsTlsSlotIndex = clrInfo.ModuleInfo is PEModuleInfo;
 
             int version = 0;
             // This DAC request runs during lazy service construction (under _serviceLock);
@@ -57,8 +59,14 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         {
             get
             {
-                uint result = _sos.GetTlsIndex();
-                return result != uint.MaxValue ? result : null;
+                if (!_supportsTlsSlotIndex)
+                    return null;
+
+                lock (_sos.SyncRoot)
+                {
+                    uint result = _sos.GetTlsIndex();
+                    return result != uint.MaxValue ? result : null;
+                }
             }
         }
 
