@@ -118,7 +118,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             return address == 0 ? HResult.E_FAIL : HResult.S_OK;
         }
 
-        private int TryGetSymbolName(IntPtr _, ulong moduleBase, ulong address, uint cchName, char* pName, uint* pcchNameActual, ulong* pDisplacement)
+        private int TryGetSymbolName(IntPtr _, ulong address, uint cchName, char* pName, uint* pcchNameActual, ulong* pDisplacement)
         {
             if (cchName > int.MaxValue)
                 return HResult.E_INVALIDARG;
@@ -129,7 +129,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 if (provider is null)
                     return HResult.E_NOTIMPL;
 
-                if (!provider.TryGetSymbolName(moduleBase, address, out string? symbolName, out ulong displacement))
+                if (!provider.TryGetSymbolName(address, out string? symbolName, out ulong displacement))
                     return HResult.E_FAIL;
 
                 if (pcchNameActual != null)
@@ -167,6 +167,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 if (string.IsNullOrEmpty(name))
                     return HResult.E_INVALIDARG;
 
+                if (name.IndexOf('!') >= 0)
+                    return HResult.E_INVALIDARG;
+
                 if (provider.TryGetSymbolAddress(moduleBase, name, out ulong address) && address != 0)
                 {
                     *pAddress = address;
@@ -180,7 +183,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        private delegate int TryGetSymbolNameDelegate(IntPtr self, ulong moduleBase, ulong address, uint cchName, char* pName, uint* pcchNameActual, ulong* pDisplacement);
+        private delegate int TryGetSymbolNameDelegate(IntPtr self, ulong address, uint cchName, char* pName, uint* pcchNameActual, ulong* pDisplacement);
         private delegate int TryGetSymbolAddressDelegate(IntPtr self, ulong moduleBase, [In, MarshalAs(UnmanagedType.LPWStr)] string name, ulong* pAddress);
 
         private delegate int GetMetadataDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPWStr)] string fileName, int imageTimestamp, int imageSize,

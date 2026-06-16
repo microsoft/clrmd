@@ -14,10 +14,8 @@ namespace Microsoft.Diagnostics.Runtime
     {
         /// <summary>
         /// Resolves <paramref name="address"/> to the symbol that owns it.
-        /// When <paramref name="moduleBase"/> is non-zero the lookup is scoped to the module
-        /// loaded at that image base, otherwise the search spans every loaded module.
         /// </summary>
-        bool TryGetSymbolName(ulong moduleBase, ulong address, [NotNullWhen(true)] out string? symbolName, out ulong displacement);
+        bool TryGetSymbolName(ulong address, [NotNullWhen(true)] out string? symbolName, out ulong displacement);
 
         /// <summary>
         /// Resolves a <paramref name="symbolName"/> to its address. When
