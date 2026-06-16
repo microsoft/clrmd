@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.Utilities;
@@ -16,16 +17,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     /// Exercises the ICLRSymbolProvider COM thunks that DacDataTargetCOM exposes,
     /// using an in-memory <see cref="IClrSymbolProvider"/> mock supplied via
     /// <see cref="DataTargetOptions.SymbolProvider"/>. No DAC or crash dump is loaded;
-    /// the test only QIs the CCW and invokes the vtable directly.
+    /// the test builds the real CCW, QIs ICLRSymbolProvider via a
+    /// <see cref="CallableCOMWrapper"/>, and invokes the vtable methods through it.
     /// </summary>
     public unsafe class ClrSymbolProviderTests
     {
-        // ICLRSymbolProvider vtable layout (after the 3 IUnknown slots):
-        //   slot 3: HRESULT TryGetSymbolName(ulong address, uint cchName, char* pName, uint* pcchNameActual, ulong* pDisplacement);
-        //   slot 4: HRESULT TryGetSymbolAddress(LPCWSTR name, ulong* pAddress);
-        private const int VtblSlot_TryGetSymbolName = 3;
-        private const int VtblSlot_TryGetSymbolAddress = 4;
-
         [Fact]
         public void TryGetSymbolName_NullProvider_ReturnsNotImpl()
         {
@@ -34,7 +30,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             char buffer = '\0';
             uint actual = 0;
             ulong displacement = 0;
-            int hr = h.TryGetSymbolName(0x1000, cchName: 1, &buffer, &actual, &displacement);
+            int hr = h.SymbolProvider.TryGetSymbolName(0x1000, cchName: 1, &buffer, &actual, &displacement);
 
             Assert.Equal(HResult.E_NOTIMPL, hr);
         }
@@ -44,7 +40,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             RecordingSymbolProvider provider = new()
             {
-                NameResult = "coreclr!SymbolFoo",
+                NameResult = "coreclr_SymbolFoo",
                 DisplacementResult = 0x42,
                 NameLookupResult = true,
             };
@@ -55,7 +51,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             uint actual = 0;
             ulong displacement = 0;
 
-            int hr = h.TryGetSymbolName(0x1234, cchName: bufLen, buffer, &actual, &displacement);
+            int hr = h.SymbolProvider.TryGetSymbolName(0x1234, cchName: bufLen, buffer, &actual, &displacement);
 
             Assert.Equal(HResult.S_OK, hr);
             Assert.Equal(0x1234ul, provider.LastAddress);
@@ -80,7 +76,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             for (int i = 0; i < bufLen; i++) buffer[i] = 'Z';
             uint actual = 0;
 
-            int hr = h.TryGetSymbolName(0x10, cchName: bufLen, buffer, &actual, null);
+            int hr = h.SymbolProvider.TryGetSymbolName(0x10, cchName: bufLen, buffer, &actual, null);
 
             Assert.Equal(HResult.S_FALSE, hr);
             Assert.Equal((uint)provider.NameResult!.Length + 1, actual);
@@ -99,7 +95,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             using SymbolProviderHarness h = SymbolProviderHarness.Create(provider);
 
             uint actual = 0;
-            int hr = h.TryGetSymbolName(0x10, cchName: 0, pName: null, &actual, null);
+            int hr = h.SymbolProvider.TryGetSymbolName(0x10, cchName: 0, pName: null, &actual, null);
 
             Assert.Equal(HResult.S_OK, hr);
             Assert.Equal(4u, actual); // length + null terminator
@@ -113,7 +109,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             char buffer = '\0';
             uint actual = 0;
-            int hr = h.TryGetSymbolName(0x10, cchName: (uint)int.MaxValue + 1, &buffer, &actual, null);
+            int hr = h.SymbolProvider.TryGetSymbolName(0x10, cchName: (uint)int.MaxValue + 1, &buffer, &actual, null);
 
             Assert.Equal(HResult.E_INVALIDARG, hr);
             Assert.False(provider.WasCalled, "Provider must not be called when cchName is invalid.");
@@ -127,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             char buffer = '\0';
             uint actual = 0;
-            int hr = h.TryGetSymbolName(0x10, cchName: 1, &buffer, &actual, null);
+            int hr = h.SymbolProvider.TryGetSymbolName(0x10, cchName: 1, &buffer, &actual, null);
 
             Assert.Equal(HResult.E_FAIL, hr);
         }
@@ -140,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             char buffer = '\0';
             uint actual = 0;
-            int hr = h.TryGetSymbolName(0x10, cchName: 1, &buffer, &actual, null);
+            int hr = h.SymbolProvider.TryGetSymbolName(0x10, cchName: 1, &buffer, &actual, null);
 
             Assert.Equal(HResult.E_FAIL, hr);
         }
@@ -153,7 +149,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ulong address = 0;
             int hr;
             fixed (char* p = "Foo")
-                hr = h.TryGetSymbolAddress((IntPtr)p, &address);
+                hr = h.SymbolProvider.TryGetSymbolAddress(moduleBase: 0, (IntPtr)p, &address);
 
             Assert.Equal(HResult.E_NOTIMPL, hr);
             Assert.Equal(0ul, address);
@@ -166,7 +162,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             int hr;
             fixed (char* p = "Foo")
-                hr = h.TryGetSymbolAddress((IntPtr)p, null);
+                hr = h.SymbolProvider.TryGetSymbolAddress(moduleBase: 0, (IntPtr)p, null);
 
             Assert.Equal(HResult.E_INVALIDARG, hr);
         }
@@ -183,12 +179,31 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             ulong address = 0;
             int hr;
-            fixed (char* p = "coreclr!Foo")
-                hr = h.TryGetSymbolAddress((IntPtr)p, &address);
+            fixed (char* p = "coreclr_Foo")
+                hr = h.SymbolProvider.TryGetSymbolAddress(moduleBase: 0xBEEF0000, (IntPtr)p, &address);
 
             Assert.Equal(HResult.S_OK, hr);
             Assert.Equal(0xCAFEBABEul, address);
-            Assert.Equal("coreclr!Foo", provider.LastName);
+            Assert.Equal(0xBEEF0000ul, provider.LastModuleBase);
+            Assert.Equal("coreclr_Foo", provider.LastName);
+        }
+
+        [Fact]
+        public void TryGetSymbolAddress_NameContainsBang_ReturnsInvalidArg()
+        {
+            // '!' is reserved as the SOS module separator; the COM boundary
+            // rejects qualified names so callers must split at the host
+            // before reaching us.
+            RecordingSymbolProvider provider = new() { AddressLookupResult = true, AddressResult = 0x1 };
+            using SymbolProviderHarness h = SymbolProviderHarness.Create(provider);
+
+            ulong address = 0;
+            int hr;
+            fixed (char* p = "coreclr!Foo")
+                hr = h.SymbolProvider.TryGetSymbolAddress(moduleBase: 0, (IntPtr)p, &address);
+
+            Assert.Equal(HResult.E_INVALIDARG, hr);
+            Assert.False(provider.WasCalled);
         }
 
         [Fact]
@@ -200,7 +215,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ulong address = 0xDEADBEEF;
             int hr;
             fixed (char* p = "Foo")
-                hr = h.TryGetSymbolAddress((IntPtr)p, &address);
+                hr = h.SymbolProvider.TryGetSymbolAddress(moduleBase: 0, (IntPtr)p, &address);
 
             Assert.Equal(HResult.E_FAIL, hr);
             Assert.Equal(0ul, address);
@@ -215,7 +230,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ulong address = 0;
             int hr;
             fixed (char* p = "")
-                hr = h.TryGetSymbolAddress((IntPtr)p, &address);
+                hr = h.SymbolProvider.TryGetSymbolAddress(moduleBase: 0, (IntPtr)p, &address);
 
             Assert.Equal(HResult.E_INVALIDARG, hr);
             Assert.False(provider.WasCalled);
@@ -233,6 +248,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             public bool AddressLookupResult { get; set; }
             public ulong AddressResult { get; set; }
 
+            public ulong LastModuleBase { get; private set; }
             public ulong LastAddress { get; private set; }
             public string? LastName { get; private set; }
             public bool WasCalled { get; private set; }
@@ -254,9 +270,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 return true;
             }
 
-            public bool TryGetSymbolAddress(string symbolName, out ulong address)
+            public bool TryGetSymbolAddress(ulong moduleBase, string symbolName, out ulong address)
             {
                 WasCalled = true;
+                LastModuleBase = moduleBase;
                 LastName = symbolName;
                 address = AddressLookupResult ? AddressResult : 0;
                 return AddressLookupResult;
@@ -264,20 +281,48 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         /// <summary>
-        /// Builds a real DacDataTargetCOM CCW for a synthetic DataTarget, QIs for
-        /// ICLRSymbolProvider, and exposes typed wrappers around the vtable thunks.
+        /// <see cref="CallableCOMWrapper"/> over the ICLRSymbolProvider that
+        /// <see cref="DacDataTargetCOM"/> exposes. Mirrors the established
+        /// pattern used by <c>SOSDac6</c>, <c>SOSDac12</c>, etc.
+        /// </summary>
+        private sealed class ClrSymbolProviderWrapper : CallableCOMWrapper
+        {
+            public ClrSymbolProviderWrapper(IntPtr pUnknown)
+                : base(library: null, in DacDataTarget.IID_ICLRSymbolProvider, pUnknown)
+            {
+            }
+
+            private ref readonly Vtable VTable => ref Unsafe.AsRef<Vtable>(_vtable);
+
+            public int TryGetSymbolName(ulong address, uint cchName, char* pName, uint* pcchActual, ulong* pDisplacement)
+                => VTable.TryGetSymbolName(Self, address, cchName, pName, pcchActual, pDisplacement);
+
+            public int TryGetSymbolAddress(ulong moduleBase, IntPtr name, ulong* pAddress)
+                => VTable.TryGetSymbolAddress(Self, moduleBase, name, pAddress);
+
+            [StructLayout(LayoutKind.Sequential)]
+            private readonly struct Vtable
+            {
+                public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, uint, char*, uint*, ulong*, int> TryGetSymbolName;
+                public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, IntPtr, ulong*, int> TryGetSymbolAddress;
+            }
+        }
+
+        /// <summary>
+        /// Builds a real <see cref="DacDataTargetCOM"/> CCW around a synthetic
+        /// <see cref="DataTarget"/>, then exposes the ICLRSymbolProvider through
+        /// a <see cref="CallableCOMWrapper"/> wrapper.
         /// </summary>
         private sealed class SymbolProviderHarness : IDisposable
         {
             private readonly DataTarget _dataTarget;
-            private readonly IntPtr _dacDataTargetPtr;
-            private readonly IntPtr _symbolProviderPtr;
 
-            private SymbolProviderHarness(DataTarget dataTarget, IntPtr dacDataTargetPtr, IntPtr symbolProviderPtr)
+            public ClrSymbolProviderWrapper SymbolProvider { get; }
+
+            private SymbolProviderHarness(DataTarget dataTarget, ClrSymbolProviderWrapper symbolProvider)
             {
                 _dataTarget = dataTarget;
-                _dacDataTargetPtr = dacDataTargetPtr;
-                _symbolProviderPtr = symbolProviderPtr;
+                SymbolProvider = symbolProvider;
             }
 
             public static SymbolProviderHarness Create(IClrSymbolProvider? provider)
@@ -290,34 +335,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 IntPtr iDacDataTarget = DacDataTargetCOM.CreateIDacDataTarget(dac);
                 Assert.NotEqual(IntPtr.Zero, iDacDataTarget);
 
-                Guid iid = DacDataTarget.IID_ICLRSymbolProvider;
-                int qiHr = Marshal.QueryInterface(iDacDataTarget, in iid, out IntPtr iSymbolProvider);
-                Assert.Equal(HResult.S_OK, qiHr);
-                Assert.NotEqual(IntPtr.Zero, iSymbolProvider);
-
-                return new SymbolProviderHarness(dt, iDacDataTarget, iSymbolProvider);
-            }
-
-            public int TryGetSymbolName(ulong address, uint cchName, char* pName, uint* pcchNameActual, ulong* pDisplacement)
-            {
-                IntPtr* vtbl = *(IntPtr**)_symbolProviderPtr;
-                var fn = (delegate* unmanaged<IntPtr, ulong, uint, char*, uint*, ulong*, int>)vtbl[VtblSlot_TryGetSymbolName];
-                return fn(_symbolProviderPtr, address, cchName, pName, pcchNameActual, pDisplacement);
-            }
-
-            public int TryGetSymbolAddress(IntPtr namePtr, ulong* pAddress)
-            {
-                IntPtr* vtbl = *(IntPtr**)_symbolProviderPtr;
-                var fn = (delegate* unmanaged<IntPtr, IntPtr, ulong*, int>)vtbl[VtblSlot_TryGetSymbolAddress];
-                return fn(_symbolProviderPtr, namePtr, pAddress);
+                // CallableCOMWrapper QIs for ICLRSymbolProvider and Releases pUnknown internally.
+                ClrSymbolProviderWrapper wrapper = new(iDacDataTarget);
+                return new SymbolProviderHarness(dt, wrapper);
             }
 
             public void Dispose()
             {
-                if (_symbolProviderPtr != IntPtr.Zero)
-                    Marshal.Release(_symbolProviderPtr);
-                if (_dacDataTargetPtr != IntPtr.Zero)
-                    Marshal.Release(_dacDataTargetPtr);
+                SymbolProvider.Dispose();
                 _dataTarget.Dispose();
             }
         }
