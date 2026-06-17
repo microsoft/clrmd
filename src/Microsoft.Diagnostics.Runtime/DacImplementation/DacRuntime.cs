@@ -64,8 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
                 lock (_sos.SyncRoot)
                 {
-                    uint result = _sos.GetTlsIndex();
-                    return result != uint.MaxValue ? result : null;
+                    return _sos.TryGetTlsIndex(out uint result) ? result : null;
                 }
             }
         }

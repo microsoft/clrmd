@@ -102,13 +102,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
-        public uint GetTlsIndex()
+        public bool TryGetTlsIndex(out uint value)
         {
-            HResult hr = VTable.GetTLSIndex(Self, out uint index);
-            if (hr)
-                return index;
-
-            return uint.MaxValue;
+            HResult hr = VTable.GetTLSIndex(Self, out value);
+            return hr.IsOK;
         }
 
         public ClrDataAddress GetThreadFromThinlockId(uint id)
