@@ -151,6 +151,76 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             ContainsPathsToTarget(heap, 0, target);
         }
 
+        /// <summary>
+        /// Regression test for issue #1474: an object reachable ONLY through a [ThreadStatic]
+        /// field must still be found by GCRoot.  On .NET 9+ non-collectible thread statics are
+        /// rooted through the thread's ThreadLocalData (scanned directly by the GC) rather than a
+        /// GC handle, so without thread-static root enumeration EnumerateRootPaths found no paths.
+        /// </summary>
+        [WindowsOrNet11Theory, MemberData(nameof(ReaderOnly))]
+        public void ThreadStaticRootsAreEnumerated(DataReaderKind reader)
+        {
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(options: reader.ToOptions());
+            using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+
+            ulong target = heap.GetObjectsOfType("ThreadStaticTarget").Single();
+            Assert.NotEqual(0ul, target);
+
+            Assert.Contains(heap.EnumerateRoots(), r => r.RootKind == ClrRootKind.ThreadStaticVar);
+
+            // The thread-static roots are also exposed through EnumerateAdditionalRoots.
+            List<ClrRoot> additionalRoots = heap.EnumerateAdditionalRoots().ToList();
+            Assert.Contains(additionalRoots, r => r.RootKind == ClrRootKind.ThreadStaticVar);
+
+            GCRoot gcroot = new(heap, new ulong[] { target });
+            var paths = gcroot.EnumerateRootPaths().ToList();
+            Assert.NotEmpty(paths);
+            Assert.Contains(paths, p => p.Root.RootKind == ClrRootKind.ThreadStaticVar);
+            foreach (var (_, path) in paths)
+                VerifyPath(heap, obj => obj.Address == target, path);
+        }
+
+        /// <summary>
+        /// Regression test for issue #1474: an object reachable through a regular (non-thread)
+        /// static field must be found by GCRoot, and reachable from a StaticVar root.  On .NET 9/10
+        /// a type's GC statics live in a shared pinned Object[] kept alive by a single strong
+        /// handle; on Server GC + DATAS the DAC can fail to enumerate that handle, leaving
+        /// static-rooted objects with no enumerable root.  EnumerateAdditionalRoots surfaces the
+        /// containing bucket directly as a StaticVar root.
+        ///
+        /// NOTE: this test dump is Workstation GC, where the strong handle <em>is</em> enumerated,
+        /// so here the StaticVar root is additive (the object is also reachable via the strong
+        /// handle).  The test therefore guards the new static-root code path rather than the DATAS
+        /// handle-walker condition, which is impractical to force in a test target.  The DATAS
+        /// condition itself was verified against the issue's customer dumps.
+        /// </summary>
+        [WindowsOrNet11Theory, MemberData(nameof(ReaderOnly))]
+        public void StaticRootsAreEnumerated(DataReaderKind reader)
+        {
+            using DataTarget dataTarget = TestTargets.GCRoot.LoadFullDump(options: reader.ToOptions());
+            using ClrRuntime runtime = dataTarget.ClrVersions.Single().CreateRuntime();
+            ClrHeap heap = runtime.Heap;
+
+            ulong target = heap.GetObjectsOfType("StaticTarget").Single();
+            Assert.NotEqual(0ul, target);
+
+            Assert.Contains(heap.EnumerateRoots(), r => r.RootKind == ClrRootKind.StaticVar);
+
+            // The static roots are also exposed through EnumerateAdditionalRoots; every StaticVar
+            // root points at a valid (pinned Object[] bucket) object.
+            List<ClrRoot> staticRoots = heap.EnumerateAdditionalRoots().Where(r => r.RootKind == ClrRootKind.StaticVar).ToList();
+            Assert.NotEmpty(staticRoots);
+            Assert.All(staticRoots, r => Assert.True(r.Object.IsValid));
+
+            GCRoot gcroot = new(heap, new ulong[] { target });
+            var paths = gcroot.EnumerateRootPaths().ToList();
+            Assert.NotEmpty(paths);
+            Assert.Contains(paths, p => p.Root.RootKind == ClrRootKind.StaticVar);
+            foreach (var (_, path) in paths)
+                VerifyPath(heap, obj => obj.Address == target, path);
+        }
+
         [WindowsOrNet11Theory, MemberData(nameof(ReaderOnly))]
         public void GCRootsPredicate(DataReaderKind reader)
         {

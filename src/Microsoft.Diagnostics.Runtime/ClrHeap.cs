@@ -34,6 +34,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private readonly ClrTypeFactory _typeFactory;
         private readonly IMemoryReader _memoryReader;
+        private readonly IAbstractTypeHelpers _typeHelpers;
         private readonly ISegmentedDirectMemoryAccess? _directMemoryAccess;
         private volatile Dictionary<ulong, ulong>? _allocationContexts;
         private volatile (ulong Source, ulong Target)[]? _dependentHandles;
@@ -47,6 +48,7 @@ namespace Microsoft.Diagnostics.Runtime
         {
             Runtime = runtime;
             _memoryReader = memoryReader;
+            _typeHelpers = typeHelpers;
             _directMemoryAccess = memoryReader as ISegmentedDirectMemoryAccess;
             _firstChar = (uint)memoryReader.PointerSize + 4;
             _stringLength = (uint)memoryReader.PointerSize;
@@ -673,6 +675,7 @@ namespace Microsoft.Diagnostics.Runtime
         ///     ClrRuntime.EnumerateHandles().Where(handle => handle.IsStrong)
         ///     ClrRuntime.EnumerateThreads().SelectMany(thread => thread.EnumerateStackRoots())
         ///     ClrHeap.EnumerateFinalizerRoots()
+        ///     ClrHeap.EnumerateAdditionalRoots()
         /// </summary>
         public IEnumerable<ClrRoot> EnumerateRoots()
         {
@@ -716,6 +719,151 @@ namespace Microsoft.Diagnostics.Runtime
             foreach (ClrThread thread in Runtime.Threads.Where(t => t.IsAlive))
                 foreach (ClrRoot root in thread.EnumerateStackRoots())
                     yield return root;
+
+            // Additional roots not surfaced above (regular + thread statics on .NET 9/10)
+            foreach (ClrRoot root in EnumerateAdditionalRoots())
+                yield return root;
+        }
+
+        /// <summary>
+        /// Enumerates "additional" GC roots that are not surfaced by the handle table, finalizer
+        /// queue, or thread stacks.  On .NET 9 and 10 Core this returns the roots that come from
+        /// regular and thread static variables:
+        /// <list type="bullet">
+        /// <item>A type's GC statics live in slots inside a shared pinned <see cref="System.Object"/>[]
+        /// (the runtime's PinnedHeapHandleTable bucket) kept alive by a single strong handle.  That
+        /// handle is normally enumerated through the handle table, but on Server GC with DATAS the
+        /// DAC's handle walker can fail to enumerate it, leaving objects reachable only through a
+        /// static with no enumerable root.  Each such bucket is surfaced here as a
+        /// <see cref="ClrRootKind.StaticVar"/> root.</item>
+        /// <item>Non-collectible thread statics are rooted through each thread's thread-local storage
+        /// (scanned directly by the GC) rather than a GC handle, and are surfaced here as
+        /// <see cref="ClrRootKind.ThreadStaticVar"/> roots.</item>
+        /// </list>
+        /// On non-Core runtimes, on CLR versions before .NET 9 (where these were folded into the
+        /// handle table), and on .NET 11+ (where the DAC enumerates the handle table and statics
+        /// correctly), this returns an empty enumeration.  Reporting a bucket here is purely additive:
+        /// on targets where the strong handle <em>is</em> enumerated, the same object is simply
+        /// reported by both paths.  These roots are also included in <see cref="EnumerateRoots"/>.
+        /// </summary>
+        public IEnumerable<ClrRoot> EnumerateAdditionalRoots()
+        {
+            // Materialize the alive-thread set once; the DAC caches each module's candidate
+            // MethodTable set (thread-independent), so one module pass covers both static kinds.
+            ulong[] threadAddresses = Runtime.Threads.Where(t => t.IsAlive).Select(t => t.Address).ToArray();
+
+            // Report each distinct root object at most once.  Within this method a heap object is
+            // either a static bucket or a thread-static storage object, never both, so a single set
+            // of already-reported object addresses suffices.  This dedup lives at the ClrHeap layer
+            // so the "distinct roots" contract holds regardless of whether the IAbstractTypeHelpers
+            // implementation dedupes its output.
+            HashSet<ulong> seen = new();
+
+            // Perf cache for interior bases (regular statics): many types' bases point into the same
+            // few pinned Object[] buckets, and resolving the containing object is comparatively
+            // expensive.  Cache the last resolved bucket (O(1) fast path) plus every resolved bucket
+            // range so GetContainingObject is never called twice for the same bucket.  This is purely
+            // an optimization -- correctness/dedup is handled by 'seen' above.
+            ClrObject lastInterior = default;
+            ulong lastStart = 0;
+            ulong lastEnd = 0;
+            List<(ulong Start, ulong End, ClrObject Obj)> resolvedBuckets = new();
+
+            foreach (ClrModule module in Runtime.EnumerateModules())
+            {
+                foreach (AdditionalRootInfo info in _typeHelpers.EnumerateAdditionalRoots(module.Address, threadAddresses))
+                {
+                    ClrObject obj;
+                    if (info.IsInteriorPointer)
+                    {
+                        // Resolve the interior base to its containing object, reusing the cache so
+                        // GetContainingObject runs at most once per bucket.
+                        if (lastInterior.IsValid && lastStart <= info.Address && info.Address < lastEnd)
+                        {
+                            obj = lastInterior;
+                        }
+                        else
+                        {
+                            obj = default;
+                            foreach ((ulong start, ulong end, ClrObject bucket) in resolvedBuckets)
+                            {
+                                if (start <= info.Address && info.Address < end)
+                                {
+                                    obj = bucket;
+                                    lastInterior = bucket;
+                                    lastStart = start;
+                                    lastEnd = end;
+                                    break;
+                                }
+                            }
+
+                            if (!obj.IsValid)
+                            {
+                                obj = GetContainingObject(info.Address);
+                                if (!obj.IsValid)
+                                    continue;
+
+                                lastInterior = obj;
+                                lastStart = obj.Address;
+                                lastEnd = obj.Address + obj.Size;
+                                resolvedBuckets.Add((lastStart, lastEnd, obj));
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // The base points at the start of the storage object.
+                        obj = GetObject(info.Address);
+                        if (!obj.IsValid)
+                            continue;
+                    }
+
+                    if (!seen.Add(obj.Address))
+                        continue;
+
+                    ClrRootKind rootKind;
+                    bool isPinned;
+                    switch (info.Kind)
+                    {
+                        case AdditionalRootKind.StaticVariable:
+                            rootKind = ClrRootKind.StaticVar;
+                            isPinned = true;
+                            break;
+
+                        case AdditionalRootKind.ThreadStaticVariable:
+                            rootKind = ClrRootKind.ThreadStaticVar;
+                            isPinned = false;
+                            break;
+
+                        default:
+                            throw new NotImplementedException($"Unhandled {nameof(AdditionalRootKind)} '{info.Kind}'.");
+                    }
+
+                    yield return new ClrRoot(info.Address, obj, rootKind, isInterior: false, isPinned: isPinned);
+                }
+            }
+        }
+
+        IEnumerable<IClrRoot> IClrHeap.EnumerateAdditionalRoots() => EnumerateAdditionalRoots().Cast<IClrRoot>();
+
+        // Resolves an interior address to the heap object that contains it, or default if none.
+        // Used to map a type's (interior) GC static base back to its containing pinned Object[].
+        private ClrObject GetContainingObject(ulong interiorAddress)
+        {
+            ClrSegment? segment = GetSegmentByAddress(interiorAddress);
+            if (segment is null)
+                return default;
+
+            foreach (ClrObject obj in segment.EnumerateObjects())
+            {
+                if (obj.Address > interiorAddress)
+                    break;
+
+                if (interiorAddress < obj.Address + obj.Size)
+                    return obj;
+            }
+
+            return default;
         }
 
         private (ulong Address, ClrObject obj) GetObjectAndAddress(ClrObject containing, string fieldName)
