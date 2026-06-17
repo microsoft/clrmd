@@ -18,6 +18,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         IClrAppDomain? SharedDomain { get; }
         IClrAppDomain? SystemDomain { get; }
         ImmutableArray<IClrThread> Threads { get; }
+        uint? TlsSlotIndex { get; }
 
         IEnumerable<ClrNativeHeapInfo> EnumerateClrNativeHeaps();
         IEnumerable<IClrRoot> EnumerateHandles();

@@ -20,6 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.Interfaces
         ulong StackBase { get; }
         ulong StackLimit { get; }
         ClrThreadState State { get; }
+        MemoryRange AllocationContext { get; }
         bool IsFinalizer { get; }
         bool IsGc { get; }
         IEnumerable<IClrRoot> EnumerateStackRoots();

@@ -36,6 +36,7 @@ namespace Microsoft.Diagnostics.Runtime
             LockCount = threadInfo.LockCount;
             StackBase = threadInfo.StackBase;
             StackLimit = threadInfo.StackLimit;
+            AllocationContext = threadInfo.AllocationContext;
             _exceptionInFlight = threadInfo.ExceptionInFlight;
             IsFinalizer = threadInfo.IsFinalizer;
             IsGc = threadInfo.IsGC;
@@ -114,6 +115,12 @@ namespace Microsoft.Diagnostics.Runtime
         /// Gets the limit of the stack for this thread, or 0 if the value could not be obtained.
         /// </summary>
         public ulong StackLimit { get; }
+
+        /// <summary>
+        /// Gets the allocation context for this thread. This range is used by the GC
+        /// for allocation and does not contain valid objects.
+        /// </summary>
+        public MemoryRange AllocationContext { get; }
 
         /// <summary>
         /// Enumerates the GC references (objects) on the stack.

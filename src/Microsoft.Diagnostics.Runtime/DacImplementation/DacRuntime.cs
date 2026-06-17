@@ -20,6 +20,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly SOSDac _sos;
         private readonly ISOSDac13? _sos13;
         private readonly TargetProperties _target;
+        private readonly bool _supportsTlsSlotIndex;
 
         public DacRuntime(ClrInfo clrInfo, ClrDataProcess dac, SOSDac sos, ISOSDac13? sos13, TargetProperties target)
         {
@@ -28,6 +29,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             _sos = sos;
             _sos13 = sos13;
             _target = target;
+            _supportsTlsSlotIndex = clrInfo.ModuleInfo is PEModuleInfo;
 
             int version = 0;
             // This DAC request runs during lazy service construction (under _serviceLock);
@@ -51,6 +53,20 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             // targets so the address can be used directly with IDataReader.
             lock (_sos.SyncRoot)
                 return _sos.TryGetStressLogAddress(out ClrDataAddress addr) ? addr.ToAddress(_target) : 0;
+        }
+
+        public uint? TlsSlotIndex
+        {
+            get
+            {
+                if (!_supportsTlsSlotIndex)
+                    return null;
+
+                lock (_sos.SyncRoot)
+                {
+                    return _sos.TryGetTlsIndex(out uint result) ? result : null;
+                }
+            }
         }
 
         public IEnumerable<ClrThreadInfo> EnumerateThreads(int maxCount)
@@ -104,6 +120,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     results.Add(new()
                     {
                         Address = threadAddress,
+                        AllocationContext = CreateAllocationContext(threadData),
                         AppDomain = threadData.Domain.ToAddress(_target),
                         ExceptionInFlight = ex,
                         GCMode = threadData.PreemptiveGCDisabled == 0 ? GCMode.Preemptive : GCMode.Cooperative,
@@ -124,6 +141,13 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             }
 
             return (IEnumerable<ClrThreadInfo>?)results ?? Array.Empty<ClrThreadInfo>();
+        }
+
+        private MemoryRange CreateAllocationContext(in ThreadData threadData)
+        {
+            ulong start = threadData.AllocationContextPointer.ToAddress(_target);
+            ulong end = threadData.AllocationContextLimit.ToAddress(_target);
+            return start <= end ? new MemoryRange(start, end) : default;
         }
 
         public IEnumerable<AppDomainInfo> EnumerateAppDomains(int maxCount)

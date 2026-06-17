@@ -19,6 +19,11 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     /// </summary>
     public interface IAbstractRuntime
     {
+        /// <summary>
+        /// The CLR TLS slot index for this runtime, or null if it is unavailable.
+        /// </summary>
+        uint? TlsSlotIndex { get; }
+
         IEnumerable<ClrThreadInfo> EnumerateThreads(int maxCount);
         IEnumerable<AppDomainInfo> EnumerateAppDomains(int maxCount);
         IEnumerable<ulong> GetModuleList(ulong appDomain, int maxCount);
@@ -61,6 +66,11 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
         /// The Windows TEB, if available, 0 otherwise.
         /// </summary>
         public ulong Teb { get; set; }
+
+        /// <summary>
+        /// The allocation context for this thread.
+        /// </summary>
+        public MemoryRange AllocationContext { get; set; }
 
         /// <summary>
         /// The base address range of the stack space for this thread.

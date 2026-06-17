@@ -7,6 +7,7 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -74,6 +75,42 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             uint mainThreadId = runtime.GetMainThread().OSThreadId;
             Assert.Equal(mainThreadId, threadReader.EnumerateOSThreadIds().First());
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ThreadAllocationContextAndTlsSlotIndex(bool singleFile)
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile);
+            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+
+            IAbstractRuntime runtimeService = runtime.GetService<IAbstractRuntime>();
+            Assert.NotNull(runtimeService);
+
+            ClrThreadInfo[] threadInfos = runtimeService.EnumerateThreads(int.MaxValue).ToArray();
+            MemoryRange[] heapAllocationContexts = runtime.Heap.EnumerateAllocationContexts().ToArray();
+            Assert.NotEmpty(heapAllocationContexts);
+
+            Assert.All(runtime.Threads, thread =>
+            {
+                ClrThreadInfo threadInfo = Assert.Single(threadInfos, info => info.Address == thread.Address);
+                Assert.Equal(threadInfo.AllocationContext, thread.AllocationContext);
+
+                if (thread.AllocationContext.Length > 0)
+                {
+                    Assert.Contains(thread.AllocationContext, heapAllocationContexts);
+                }
+            });
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Assert.NotNull(runtime.TlsSlotIndex);
+            }
+            else
+            {
+                Assert.Null(runtime.TlsSlotIndex);
+            }
         }
     }
 }
