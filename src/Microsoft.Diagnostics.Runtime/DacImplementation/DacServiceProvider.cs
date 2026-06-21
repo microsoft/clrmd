@@ -123,7 +123,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     }
 
                     if (initialized)
-                        return _heapHelper = new DacHeap(_sos, _sos8, _sos12, _sos16, _dataReader, _dac.TargetProperties, data, mts);
+                        return _heapHelper = new DacHeap(_sos, _sos8, _sos12, _sos16, _dataReader, _dac.TargetProperties, DacHeap.GetThinLockLayout(_clrInfo.Flavor, _clrInfo.Version), data, mts);
 
                     return null;
                 }
