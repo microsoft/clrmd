@@ -92,7 +92,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                 vtable[i++] = release;
                 vtable[i++] = (nint)(delegate* unmanaged<nint, int>)&Ignore;
                 vtable[i++] = (nint)(delegate* unmanaged<nint, DEBUG_OUTCBI*, int>)&GetInterestMask;
-                vtable[i++] = (nint)(delegate* unmanaged<nint, DEBUG_OUTCB, DEBUG_OUTPUT, ulong, nint, int>)&Output2;
+                vtable[i++] = (nint)(delegate* unmanaged<nint, DEBUG_OUTCB, DEBUG_OUTCBF, ulong, nint, int>)&Output2;
 
                 Debug.Assert(i == total);
 
@@ -111,16 +111,21 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
             }
 
             /// <summary>
-            /// IDebugOutputCallbacks2::Output2 dispatcher. The 'Which' arg
-            /// (DEBUG_OUTCB) selects TEXT / DML / EXPLICIT_FLUSH; we route
-            /// each to the appropriate callback method. The 'Flags' arg is
-            /// DEBUG_OUTPUT for TEXT (severity bits) and DEBUG_OUTCBF for
-            /// DML (HAS_TAGS / HAS_SPECIAL_CHARACTERS / COMBINED_FLUSH).
-            /// We declare the param as DEBUG_OUTPUT and reinterpret for DML
-            /// since both are 32-bit and ABI-compatible.
+            /// <c>IDebugOutputCallbacks2::Output2(Which, Flags, Arg, Text)</c> dispatcher.
+            /// <list type="bullet">
+            ///   <item><c>Which</c> (<see cref="DEBUG_OUTCB"/>) selects TEXT / DML / EXPLICIT_FLUSH.</item>
+            ///   <item><c>Flags</c> (<see cref="DEBUG_OUTCBF"/>) is the callback bitfield
+            ///   (COMBINED_EXPLICIT_FLUSH / DML_HAS_TAGS / DML_HAS_SPECIAL_CHARACTERS) — NOT a severity.</item>
+            ///   <item><c>Arg</c> (a <c>ULONG64</c>) carries the <see cref="DEBUG_OUTPUT"/> severity mask
+            ///   (NORMAL / ERROR / WARNING / ...) for both TEXT and DML payloads.</item>
+            /// </list>
+            /// The severity therefore comes from <c>Arg</c>, not <c>Flags</c>. (A previous version passed
+            /// <c>Flags</c> as <see cref="IDebugOutputCallbacks.OnText"/>'s severity, which is always
+            /// <c>COMBINED_EXPLICIT_FLUSH</c> (0x1) for plain text — coincidentally equal to
+            /// <see cref="DEBUG_OUTPUT.NORMAL"/> (0x1) — so WARNING/ERROR text was mis-reported as NORMAL.)
             /// </summary>
             [UnmanagedCallersOnly]
-            private static int Output2(nint self, DEBUG_OUTCB which, DEBUG_OUTPUT flags, ulong args, nint textPtr)
+            private static int Output2(nint self, DEBUG_OUTCB which, DEBUG_OUTCBF cbFlags, ulong arg, nint textPtr)
             {
                 IDebugOutputCallbacks callbacks = ComInterfaceDispatch.GetInstance<IDebugOutputCallbacks>((ComInterfaceDispatch*)self);
                 switch (which)
@@ -129,11 +134,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                         callbacks.OnFlush();
                         break;
                     case DEBUG_OUTCB.DML:
-                        callbacks.OnDml((DEBUG_OUTCBF)(uint)flags, Marshal.PtrToStringUni(textPtr), args);
+                        callbacks.OnDml(cbFlags, Marshal.PtrToStringUni(textPtr), arg);
                         break;
                     case DEBUG_OUTCB.TEXT:
                     default:
-                        callbacks.OnText(flags, Marshal.PtrToStringUni(textPtr), args);
+                        callbacks.OnText((DEBUG_OUTPUT)(uint)arg, Marshal.PtrToStringUni(textPtr), arg);
                         break;
                 }
                 return 0;
