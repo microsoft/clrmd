@@ -183,12 +183,30 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                 return false;
             }
 
-            // Stress log format strings live in a module's read-only data,
-            // which Linux coredumps (and minidumps) frequently strip out. Wrap
-            // the dump reader so format-string and string-argument reads can
-            // fall back to the module image on disk; without this, every
-            // message would render as "<unresolved-format>".
-            DataTarget dataTarget = runtime.DataTarget;
+            return TryOpen(runtime.DataTarget, address, out stressLog, out failureReason);
+        }
+
+        /// <summary>
+        /// Open the stress log located at <paramref name="address"/> in the given
+        /// <paramref name="dataTarget"/>. Unlike the <see cref="IDataReader"/>
+        /// overload, this wires up an on-disk module-image fallback so that
+        /// format strings and <c>%s</c>/<c>%S</c> argument strings living in a
+        /// module's read-only data can be recovered when the dump itself strips
+        /// those file-backed pages (common for Linux coredumps and minidumps);
+        /// without it every message would render as <c>&lt;unresolved-format&gt;</c>.
+        /// The returned <see cref="StressLog"/> owns the fallback reader and
+        /// releases it on <see cref="Dispose"/>.
+        /// </summary>
+        public static bool TryOpen(DataTarget dataTarget, ulong address, out StressLog? stressLog, out string? failureReason)
+        {
+            stressLog = null;
+            failureReason = null;
+            if (dataTarget is null)
+            {
+                failureReason = "DataTarget is null.";
+                return false;
+            }
+
             ModuleImageReader formatReader = new(dataTarget.DataReader, dataTarget);
             if (!TryOpen(dataTarget.DataReader, address, formatReader, out stressLog, out failureReason))
             {

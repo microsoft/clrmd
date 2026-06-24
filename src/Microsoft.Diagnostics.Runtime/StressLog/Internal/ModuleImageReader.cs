@@ -159,7 +159,12 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
                 _info = info;
                 _dataTarget = dataTarget;
                 _platform = platform;
-                ImageEnd = info.ImageBase + (ulong)info.ImageSize;
+
+                // Saturate rather than wrap: a corrupt reader can report an
+                // ImageSize that pushes ImageBase + ImageSize past ulong.MaxValue,
+                // which would make ImageEnd < ImageBase and silently hide the module.
+                ulong size = (ulong)info.ImageSize;
+                ImageEnd = info.ImageBase > ulong.MaxValue - size ? ulong.MaxValue : info.ImageBase + size;
             }
 
             public ulong ImageBase => _info.ImageBase;
@@ -194,10 +199,19 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
                     {
                         if (ph.Type != ElfProgramHeaderType.Load || ph.FileSize == 0)
                             continue;
+
+                        // Guard against ulong wrap from a corrupt/hostile header
+                        // before using the segment's vaddr range.
+                        if (ph.FileSize > ulong.MaxValue - ph.VirtualAddress)
+                            continue;
                         if (fileVaddr < ph.VirtualAddress || fileVaddr >= ph.VirtualAddress + ph.FileSize)
                             continue;
 
                         ulong segmentOffset = fileVaddr - ph.VirtualAddress;
+
+                        // Guard against ulong wrap when translating to a file offset.
+                        if (segmentOffset > ulong.MaxValue - ph.FileOffset)
+                            return 0;
                         ulong fileOffset = ph.FileOffset + segmentOffset;
 
                         // Do not read past this segment's file-backed bytes.
@@ -208,8 +222,11 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
                         return elf.Reader.ReadBytes(fileOffset, buffer.Slice(0, toRead));
                     }
                 }
-                catch (IOException)
+                catch (Exception ex) when (ex is IOException or InvalidDataException or OverflowException or ArgumentException)
                 {
+                    // A corrupt or hostile module image (e.g. lazy program-header
+                    // parsing throws InvalidDataException, or out-of-range offsets)
+                    // must degrade to <unresolved-format>, never crash enumeration.
                     return 0;
                 }
 
@@ -258,13 +275,14 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
 
             private string? LocateFile()
             {
-                // The path recorded in the dump, if it happens to resolve on
-                // this machine (e.g. analyzing a dump on the box that made it).
-                if (!string.IsNullOrEmpty(_info.FileName) && File.Exists(_info.FileName))
-                    return _info.FileName;
-
-                // Otherwise locate the binary by its build id through the
-                // configured file locator (symbol server / local cache).
+                // The module path recorded in the dump is untrusted input: a
+                // crafted dump could point it at a UNC share (triggering an
+                // outbound SMB authentication / NTLM-hash leak when probed) or at
+                // an arbitrary local file. We therefore never open the recorded
+                // path directly. Instead, locate the binary by its build id
+                // through the configured file locator (symbol server / local
+                // cache), which keys on the file's base name plus build id rather
+                // than the dump-supplied path.
                 IFileLocator? locator = _dataTarget.FileLocator;
                 if (locator is null || _info.BuildId.IsDefaultOrEmpty)
                     return null;
