@@ -101,9 +101,18 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
                 List<ModuleImage> list = new();
                 foreach (ModuleInfo info in _dataTarget.EnumerateModules())
                 {
-                    // Only ELF images are resolved today; that is the
-                    // demonstrated gap (Linux coredumps strip .rodata).
-                    if (info.Kind != ModuleKind.Elf)
+                    // Resolve ELF module images. Some data readers report a
+                    // real ModuleKind; others (notably the dotnet/diagnostics
+                    // IDataReader bridge used by dotnet-dump and SOS) report
+                    // every module as ModuleKind.Unknown. On a Linux target,
+                    // admit Unknown modules too and let ModuleImage validate
+                    // them by attempting an ELF parse: a non-ELF file simply
+                    // yields no bytes. Without this, the on-disk .rodata
+                    // fallback never engages under dotnet-dump and every
+                    // message renders as <unresolved-format>.
+                    bool elfCandidate = info.Kind == ModuleKind.Elf
+                        || (info.Kind == ModuleKind.Unknown && _platform == OSPlatform.Linux);
+                    if (!elfCandidate)
                         continue;
                     if (info.ImageBase == 0 || info.ImageSize <= 0)
                         continue;
