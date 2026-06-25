@@ -37,6 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
     public sealed class StressLog : IDisposable
     {
         private readonly IDataReader _reader;
+        private readonly IMemoryReader _formatReader;
         private readonly StressLogLayout _layout;
         private readonly StressLogOptions _options;
         private readonly AllocationBudget _budget;
@@ -58,6 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         private bool _disposed;
 
         private StressLog(IDataReader reader,
+                          IMemoryReader? formatReader,
                           StressLogLayout layout,
                           StressLogOptions options,
                           AllocationBudget budget,
@@ -75,6 +77,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                           int? chunkCount)
         {
             _reader = reader;
+            _formatReader = formatReader ?? reader;
             _layout = layout;
             _options = options;
             _budget = budget;
@@ -90,7 +93,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             _maxSizePerThread = maxSizePerThread;
             _maxSizeTotal = maxSizeTotal;
             _chunkCount = chunkCount;
-            _formatCache = new FormatStringCache(reader, budget, options.MaxFormatStringLength, options.MaxFormatStringCacheEntries);
+            _formatCache = new FormatStringCache(_formatReader, budget, options.MaxFormatStringLength, options.MaxFormatStringCacheEntries);
         }
 
         /// <summary>
@@ -180,7 +183,38 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                 return false;
             }
 
-            return TryOpen(runtime.DataTarget.DataReader, address, out stressLog, out failureReason);
+            return TryOpen(runtime.DataTarget, address, out stressLog, out failureReason);
+        }
+
+        /// <summary>
+        /// Open the stress log located at <paramref name="address"/> in the given
+        /// <paramref name="dataTarget"/>. Unlike the <see cref="IDataReader"/>
+        /// overload, this wires up an on-disk module-image fallback so that
+        /// format strings and <c>%s</c>/<c>%S</c> argument strings living in a
+        /// module's read-only data can be recovered when the dump itself strips
+        /// those file-backed pages (common for Linux coredumps and minidumps);
+        /// without it every message would render as <c>&lt;unresolved-format&gt;</c>.
+        /// The returned <see cref="StressLog"/> owns the fallback reader and
+        /// releases it on <see cref="Dispose"/>.
+        /// </summary>
+        public static bool TryOpen(DataTarget dataTarget, ulong address, out StressLog? stressLog, out string? failureReason)
+        {
+            stressLog = null;
+            failureReason = null;
+            if (dataTarget is null)
+            {
+                failureReason = "DataTarget is null.";
+                return false;
+            }
+
+            ModuleImageReader formatReader = new(dataTarget.DataReader, dataTarget);
+            if (!TryOpen(dataTarget.DataReader, address, formatReader, out stressLog, out failureReason))
+            {
+                formatReader.Dispose();
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -193,6 +227,16 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         /// <see cref="StressLog"/> is owned by the caller and must be disposed.
         /// </summary>
         public static bool TryOpen(IDataReader reader, ulong address, out StressLog? stressLog, out string? failureReason)
+            => TryOpen(reader, address, formatReader: null, out stressLog, out failureReason);
+
+        /// <summary>
+        /// Open the stress log, optionally supplying a <paramref name="formatReader"/>
+        /// used to recover format-string and string-argument bytes (for example
+        /// a reader that falls back to module images on disk). When
+        /// <paramref name="formatReader"/> is <see langword="null"/> the dump
+        /// <paramref name="reader"/> is used for those reads as well.
+        /// </summary>
+        internal static bool TryOpen(IDataReader reader, ulong address, IMemoryReader? formatReader, out StressLog? stressLog, out string? failureReason)
         {
             stressLog = null;
             failureReason = null;
@@ -262,11 +306,11 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
 
             if (isMemoryMapped)
             {
-                stressLog = OpenMemoryMapped(reader, layout, options, budget, header);
+                stressLog = OpenMemoryMapped(reader, formatReader, layout, options, budget, header);
             }
             else
             {
-                stressLog = OpenInProcess(reader, layout, options, budget, header.Slice(0, layout.InProcHeaderSize));
+                stressLog = OpenInProcess(reader, formatReader, layout, options, budget, header.Slice(0, layout.InProcHeaderSize));
             }
 
             if (stressLog is null)
@@ -278,6 +322,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         }
 
         private static StressLog? OpenInProcess(IDataReader reader,
+                                                IMemoryReader? formatReader,
                                                 StressLogLayout layout,
                                                 StressLogOptions options,
                                                 AllocationBudget budget,
@@ -351,11 +396,12 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             // module table in CoreCLR; Framework V1 predates it and uses V3.
             bool isV4 = variant == StressLogVariant.Core;
 
-            return new StressLog(reader, layout, options, budget, modules, logs, tickFreq, startTs, startTimeUtc, isV4: isV4, variant: variant,
+            return new StressLog(reader, formatReader, layout, options, budget, modules, logs, tickFreq, startTs, startTimeUtc, isV4: isV4, variant: variant,
                 facilitiesToLog: facilitiesToLog, levelToLog: levelToLog, maxSizePerThread: maxSizePerThread, maxSizeTotal: maxSizeTotal, chunkCount: chunkCount);
         }
 
         private static StressLog? OpenMemoryMapped(IDataReader reader,
+                                                   IMemoryReader? formatReader,
                                                    StressLogLayout layout,
                                                    StressLogOptions options,
                                                    AllocationBudget budget,
@@ -381,7 +427,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
 
             StressLogModuleTable modules = StressLogModuleTable.BuildMemoryMapped(layout, entries, maxOffset);
 
-            return new StressLog(reader, layout, options, budget, modules, logs, tickFreq, startTs, startTimeUtc: null, isV4: true, variant: StressLogVariant.Core,
+            return new StressLog(reader, formatReader, layout, options, budget, modules, logs, tickFreq, startTs, startTimeUtc: null, isV4: true, variant: StressLogVariant.Core,
                 facilitiesToLog: null, levelToLog: null, maxSizePerThread: null, maxSizeTotal: null, chunkCount: null);
         }
 
@@ -535,7 +581,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
 
             // Each enumeration owns its own context so concurrent foreach loops
             // do not clobber each other's argument scratch / current iterator.
-            ArgumentResolver argResolver = new ArgumentResolver(_reader, _options.MaxStringArgumentLength, _layout.PointerSize);
+            ArgumentResolver argResolver = new ArgumentResolver(_formatReader, _options.MaxStringArgumentLength, _layout.PointerSize);
             StressLogEnumerationContext context = new StressLogEnumerationContext(this, argResolver);
 
             List<ThreadIterator> iterators = new();
@@ -709,6 +755,12 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         {
             if (_disposed) return;
             _disposed = true;
+
+            // Dispose a format reader we own (the module-image fallback wraps
+            // the dump reader but holds its own ElfFile handles). The dump
+            // reader itself is owned by the DataTarget, so we never dispose it.
+            if (!ReferenceEquals(_formatReader, _reader) && _formatReader is IDisposable disposable)
+                disposable.Dispose();
         }
     }
 }
