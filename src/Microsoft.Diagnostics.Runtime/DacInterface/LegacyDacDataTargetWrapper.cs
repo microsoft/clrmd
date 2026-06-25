@@ -48,6 +48,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             builder = AddInterface(DacDataTarget.IID_ICLRSymbolProvider, false);
             builder.AddMethod(new TryGetSymbolNameDelegate(TryGetSymbolName));
             builder.AddMethod(new TryGetSymbolAddressDelegate(TryGetSymbolAddress));
+            builder.AddMethod(new TryGetFieldOffsetDelegate(TryGetFieldOffset));
             builder.Complete();
         }
 
@@ -183,8 +184,37 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             }
         }
 
+        private int TryGetFieldOffset(IntPtr _, ulong moduleBase, string typeName, string fieldName, uint* pOffset)
+        {
+            if (pOffset == null)
+                return HResult.E_INVALIDARG;
+            *pOffset = 0;
+
+            try
+            {
+                IClrSymbolProvider? provider = _dacDataTarget.SymbolProvider;
+                if (provider is null)
+                    return HResult.E_NOTIMPL;
+
+                if (string.IsNullOrEmpty(typeName) || string.IsNullOrEmpty(fieldName))
+                    return HResult.E_INVALIDARG;
+
+                if (provider.TryGetFieldOffset(moduleBase, typeName, fieldName, out uint offset))
+                {
+                    *pOffset = offset;
+                    return HResult.S_OK;
+                }
+                return HResult.E_FAIL;
+            }
+            catch
+            {
+                return HResult.E_FAIL;
+            }
+        }
+
         private delegate int TryGetSymbolNameDelegate(IntPtr self, ulong address, uint cchName, char* pName, uint* pcchNameActual, ulong* pDisplacement);
         private delegate int TryGetSymbolAddressDelegate(IntPtr self, ulong moduleBase, [In, MarshalAs(UnmanagedType.LPWStr)] string name, ulong* pAddress);
+        private delegate int TryGetFieldOffsetDelegate(IntPtr self, ulong moduleBase, [In, MarshalAs(UnmanagedType.LPWStr)] string typeName, [In, MarshalAs(UnmanagedType.LPWStr)] string fieldName, uint* pOffset);
 
         private delegate int GetMetadataDelegate(IntPtr self, [In][MarshalAs(UnmanagedType.LPWStr)] string fileName, int imageTimestamp, int imageSize,
                                                  IntPtr mvid, uint mdRva, uint flags, uint bufferSize, IntPtr buffer, int* dataSize);

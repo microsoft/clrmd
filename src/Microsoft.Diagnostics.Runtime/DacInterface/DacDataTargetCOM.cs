@@ -277,12 +277,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             public static IntPtr Create(IntPtr qi, IntPtr addRef, IntPtr release)
             {
-                IntPtr* vtblRaw = (IntPtr*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(ICLRSymbolProviderVtbl), IntPtr.Size * 5);
+                IntPtr* vtblRaw = (IntPtr*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(ICLRSymbolProviderVtbl), IntPtr.Size * 6);
                 vtblRaw[0] = qi;
                 vtblRaw[1] = addRef;
                 vtblRaw[2] = release;
                 vtblRaw[3] = (IntPtr)(delegate* unmanaged<IntPtr, ulong, uint, char*, uint*, ulong*, int>)&TryGetSymbolName;
                 vtblRaw[4] = (IntPtr)(delegate* unmanaged<IntPtr, ulong, IntPtr, ulong*, int>)&TryGetSymbolAddress;
+                vtblRaw[5] = (IntPtr)(delegate* unmanaged<IntPtr, ulong, IntPtr, IntPtr, uint*, int>)&TryGetFieldOffset;
 
                 return (IntPtr)vtblRaw;
             }
@@ -346,6 +347,38 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                     if (provider.TryGetSymbolAddress(moduleBase, name, out ulong address) && address != 0)
                     {
                         *pAddress = address;
+                        return HResult.S_OK;
+                    }
+                    return HResult.E_FAIL;
+                }
+                catch
+                {
+                    return HResult.E_FAIL;
+                }
+            }
+
+            [UnmanagedCallersOnly]
+            private static int TryGetFieldOffset(IntPtr self, ulong moduleBase, IntPtr typeNamePtr, IntPtr fieldNamePtr, uint* pOffset)
+            {
+                if (pOffset is null)
+                    return HResult.E_INVALIDARG;
+                *pOffset = 0;
+
+                try
+                {
+                    DacDataTarget dacDataTarget = ComInterfaceDispatch.GetInstance<DacDataTarget>((ComInterfaceDispatch*)self);
+                    IClrSymbolProvider? provider = dacDataTarget.SymbolProvider;
+                    if (provider is null)
+                        return HResult.E_NOTIMPL;
+
+                    string? typeName = Marshal.PtrToStringUni(typeNamePtr);
+                    string? fieldName = Marshal.PtrToStringUni(fieldNamePtr);
+                    if (string.IsNullOrEmpty(typeName) || string.IsNullOrEmpty(fieldName))
+                        return HResult.E_INVALIDARG;
+
+                    if (provider.TryGetFieldOffset(moduleBase, typeName, fieldName, out uint offset))
+                    {
+                        *pOffset = offset;
                         return HResult.S_OK;
                     }
                     return HResult.E_FAIL;
