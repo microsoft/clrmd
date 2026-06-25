@@ -156,11 +156,13 @@ namespace Microsoft.Diagnostics.Runtime
             Dispose(false);
         }
 
-        private void Dispose(bool _)
+        private void Dispose(bool disposing)
         {
             if (!_disposed)
             {
-                _clrDataProcess?.Dispose();
+                if (disposing)
+                    _clrDataProcess?.Dispose();
+
                 OwningLibrary?.Release();
 
                 _disposed = true;

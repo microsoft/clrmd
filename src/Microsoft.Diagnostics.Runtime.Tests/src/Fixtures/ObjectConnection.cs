@@ -57,6 +57,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests.Fixtures
             return obj;
         }
 
-        void IDisposable.Dispose() => DataTarget?.Dispose();
+        void IDisposable.Dispose()
+        {
+            Runtime?.Dispose();
+            DataTarget?.Dispose();
+        }
     }
 }

@@ -81,7 +81,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         {
             if (!_disposed)
             {
-                Release();
+                if (disposing)
+                {
+                    Release();
+                }
+
                 Library?.Release();
                 _disposed = true;
             }
