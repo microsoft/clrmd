@@ -236,6 +236,85 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.False(provider.WasCalled);
         }
 
+        [Fact]
+        public void TryGetFieldOffset_NullProvider_ReturnsNotImpl()
+        {
+            using SymbolProviderHarness h = SymbolProviderHarness.Create(provider: null);
+
+            uint offset = 0xdead;
+            int hr;
+            fixed (char* t = "S_P_CoreLib_System_Exception")
+            fixed (char* f = "_message")
+                hr = h.SymbolProvider.TryGetFieldOffset(moduleBase: 0, (IntPtr)t, (IntPtr)f, &offset);
+
+            Assert.Equal(HResult.E_NOTIMPL, hr);
+        }
+
+        [Fact]
+        public void TryGetFieldOffset_NullOutPointer_ReturnsInvalidArg()
+        {
+            RecordingSymbolProvider provider = new() { FieldLookupResult = true, FieldOffsetResult = 8 };
+            using SymbolProviderHarness h = SymbolProviderHarness.Create(provider);
+
+            int hr;
+            fixed (char* t = "S_P_CoreLib_System_Exception")
+            fixed (char* f = "_message")
+                hr = h.SymbolProvider.TryGetFieldOffset(moduleBase: 0, (IntPtr)t, (IntPtr)f, null);
+
+            Assert.Equal(HResult.E_INVALIDARG, hr);
+        }
+
+        [Fact]
+        public void TryGetFieldOffset_Success_WritesOffsetAndForwardsArgs()
+        {
+            RecordingSymbolProvider provider = new() { FieldLookupResult = true, FieldOffsetResult = 0x18 };
+            using SymbolProviderHarness h = SymbolProviderHarness.Create(provider);
+
+            uint offset = 0;
+            int hr;
+            fixed (char* t = "S_P_CoreLib_System_Exception")
+            fixed (char* f = "_innerException")
+                hr = h.SymbolProvider.TryGetFieldOffset(moduleBase: 0xBEEF0000, (IntPtr)t, (IntPtr)f, &offset);
+
+            Assert.Equal(HResult.S_OK, hr);
+            Assert.Equal(0x18u, offset);
+            Assert.Equal(0xBEEF0000u, provider.LastModuleBase);
+            Assert.Equal("S_P_CoreLib_System_Exception", provider.LastTypeName);
+            Assert.Equal("_innerException", provider.LastFieldName);
+        }
+
+        [Fact]
+        public void TryGetFieldOffset_ProviderReturnsFalse_ReturnsEFailAndZeroes()
+        {
+            RecordingSymbolProvider provider = new() { FieldLookupResult = false };
+            using SymbolProviderHarness h = SymbolProviderHarness.Create(provider);
+
+            uint offset = 0xdead;
+            int hr;
+            fixed (char* t = "S_P_CoreLib_System_Exception")
+            fixed (char* f = "_missing")
+                hr = h.SymbolProvider.TryGetFieldOffset(moduleBase: 0, (IntPtr)t, (IntPtr)f, &offset);
+
+            Assert.Equal(HResult.E_FAIL, hr);
+            Assert.Equal(0u, offset);
+        }
+
+        [Fact]
+        public void TryGetFieldOffset_EmptyTypeName_ReturnsInvalidArg()
+        {
+            RecordingSymbolProvider provider = new() { FieldLookupResult = true, FieldOffsetResult = 8 };
+            using SymbolProviderHarness h = SymbolProviderHarness.Create(provider);
+
+            uint offset = 0;
+            int hr;
+            fixed (char* t = "")
+            fixed (char* f = "_message")
+                hr = h.SymbolProvider.TryGetFieldOffset(moduleBase: 0, (IntPtr)t, (IntPtr)f, &offset);
+
+            Assert.Equal(HResult.E_INVALIDARG, hr);
+            Assert.False(provider.WasCalled);
+        }
+
         // -- helpers --------------------------------------------------------
 
         private sealed class RecordingSymbolProvider : IClrSymbolProvider
@@ -248,9 +327,14 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             public bool AddressLookupResult { get; set; }
             public ulong AddressResult { get; set; }
 
+            public bool FieldLookupResult { get; set; }
+            public uint FieldOffsetResult { get; set; }
+
             public ulong LastModuleBase { get; private set; }
             public ulong LastAddress { get; private set; }
             public string? LastName { get; private set; }
+            public string? LastTypeName { get; private set; }
+            public string? LastFieldName { get; private set; }
             public bool WasCalled { get; private set; }
 
             public bool TryGetSymbolName(ulong address, [NotNullWhen(true)] out string? symbolName, out ulong displacement)
@@ -278,6 +362,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 address = AddressLookupResult ? AddressResult : 0;
                 return AddressLookupResult;
             }
+
+            public bool TryGetFieldOffset(ulong moduleBase, string typeName, string fieldName, out uint offset)
+            {
+                WasCalled = true;
+                LastModuleBase = moduleBase;
+                LastTypeName = typeName;
+                LastFieldName = fieldName;
+                offset = FieldLookupResult ? FieldOffsetResult : 0;
+                return FieldLookupResult;
+            }
         }
 
         /// <summary>
@@ -300,11 +394,15 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             public int TryGetSymbolAddress(ulong moduleBase, IntPtr name, ulong* pAddress)
                 => VTable.TryGetSymbolAddress(Self, moduleBase, name, pAddress);
 
+            public int TryGetFieldOffset(ulong moduleBase, IntPtr typeName, IntPtr fieldName, uint* pOffset)
+                => VTable.TryGetFieldOffset(Self, moduleBase, typeName, fieldName, pOffset);
+
             [StructLayout(LayoutKind.Sequential)]
             private readonly struct Vtable
             {
                 public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, uint, char*, uint*, ulong*, int> TryGetSymbolName;
                 public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, IntPtr, ulong*, int> TryGetSymbolAddress;
+                public readonly delegate* unmanaged[Stdcall]<IntPtr, ulong, IntPtr, IntPtr, uint*, int> TryGetFieldOffset;
             }
         }
 

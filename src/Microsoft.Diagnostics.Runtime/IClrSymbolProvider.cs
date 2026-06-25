@@ -18,10 +18,14 @@ namespace Microsoft.Diagnostics.Runtime
         bool TryGetSymbolName(ulong address, [NotNullWhen(true)] out string? symbolName, out ulong displacement);
 
         /// <summary>
-        /// Resolves a <paramref name="symbolName"/> to its address. When
-        /// <paramref name="moduleBase"/> is non-zero the lookup is scoped to the module
-        /// loaded at that image base; otherwise it searches every loaded module.
+        /// Resolves a <paramref name="symbolName"/> to its address.
         /// </summary>
         bool TryGetSymbolAddress(ulong moduleBase, string symbolName, out ulong address);
+
+        /// <summary>
+        /// Resolves the byte offset of instance field <paramref name="fieldName"/>
+        /// on the type named <paramref name="typeName"/>.
+        /// </summary>
+        bool TryGetFieldOffset(ulong moduleBase, string typeName, string fieldName, out uint offset);
     }
 }
