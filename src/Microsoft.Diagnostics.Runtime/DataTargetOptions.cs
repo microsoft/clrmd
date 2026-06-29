@@ -19,7 +19,7 @@ public class DataTargetOptions
     public CacheOptions CacheOptions
     {
         get => field ??= new CacheOptions();
-        init;
+        set;
     }
 
     /// <summary>
@@ -28,7 +28,7 @@ public class DataTargetOptions
     /// </summary>
     public IFileLocator FileLocator
     {
-        init;
+        set;
         get
         {
             if (field is null)
@@ -53,7 +53,7 @@ public class DataTargetOptions
     /// resolution.</remarks>
     public string SymbolCachePath
     {
-        init;
+        set;
         get => field ??= Path.Combine(Path.GetTempPath(), "symbols");
     }
 
@@ -61,7 +61,7 @@ public class DataTargetOptions
     /// The symbol path used by the default file locator if <see cref="FileLocator"/> is null.  If
     /// <see cref="FileLocator"/> is non-null, this property has no effect.
     /// </summary>
-    public string[] SymbolPaths { get; init; } = ["https://msdl.microsoft.com/download/symbols"];
+    public string[] SymbolPaths { get; set; } = ["https://msdl.microsoft.com/download/symbols"];
 
     /// <summary>
     /// If true, all runtimes in the target process will be enumerated.  This enables us to find single-file runtimes
@@ -73,7 +73,7 @@ public class DataTargetOptions
     /// <summary>
     /// The TokenCredential to use for any Azure based symbol servers (set to null if not using one).
     /// </summary>
-    public TokenCredential? SymbolTokenCredential { get; init; }
+    public TokenCredential? SymbolTokenCredential { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether detailed information about symbol requests is traced during execution.
@@ -81,7 +81,7 @@ public class DataTargetOptions
     /// <remarks>When enabled, this property allows the tracing of all symbol resolution requests, which can
     /// be useful for debugging or analyzing symbol loading behavior. Tracing may produce a large amount of output and
     /// could impact performance.</remarks>
-    public bool TraceSymbolRequests { get; init; }
+    public bool TraceSymbolRequests { get; set; }
 
     /// <summary>
     /// Safety limits for parsing and enumeration operations. These limits prevent excessive memory
@@ -90,7 +90,7 @@ public class DataTargetOptions
     public DataTargetLimits Limits
     {
         get => field ??= new DataTargetLimits();
-        init;
+        set;
     }
 
     /// <summary>
@@ -99,7 +99,7 @@ public class DataTargetOptions
     /// from source).  This only affects dacs with a signature.
     /// Note that disabling this option can lead to security risks, so it should only be disabled if you understand the implications.
     /// </summary>
-    public bool VerifyDacOnWindows { get; init; } = true;
+    public bool VerifyDacOnWindows { get; set; } = true;
 
     /// <summary>
     /// An optional callback that decides, per DAC, whether ClrMD verifies its signature before loading it.
@@ -107,7 +107,7 @@ public class DataTargetOptions
     /// (absolute) path of the DAC (or cDAC) ClrMD is about to load and if it returns <see langword="true"/>,
     /// signature verification is performed; if it returns <see langword="false"/>, verification is skipped.
     /// </summary>
-    public Func<string, bool>? DacSignatureVerificationOverride { get; init; }
+    public Func<string, bool>? DacSignatureVerificationOverride { get; set; }
 
     /// <summary>
     /// When true, <see cref="DataTarget.LoadDump(string, DataTargetOptions?)"/> will wrap the underlying
@@ -134,12 +134,12 @@ public class DataTargetOptions
     /// as a 64-bit process) when loading large dumps from a 32-bit host.
     /// </para>
     /// </summary>
-    public bool UseLockFreeMemoryMapReader { get; init; }
+    public bool UseLockFreeMemoryMapReader { get; set; }
 
     /// <summary>
     /// Optional host-supplied symbol provider. When set, ClrMD's COM data
     /// target wrapper exposes <c>ICLRSymbolProvider</c> and forwards its
     /// calls to this instance.
     /// </summary>
-    public IClrSymbolProvider? SymbolProvider { get; init; }
+    public IClrSymbolProvider? SymbolProvider { get; set; }
 }
