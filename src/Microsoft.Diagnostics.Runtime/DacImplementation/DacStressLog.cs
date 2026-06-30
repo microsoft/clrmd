@@ -9,13 +9,6 @@ using Microsoft.Diagnostics.Runtime.DacInterface;
 
 namespace Microsoft.Diagnostics.Runtime.DacImplementation
 {
-    /// <summary>
-    /// <see cref="IAbstractStressLog"/> backed by <c>ISOSDacInterface17</c>. Every
-    /// DAC call is serialized on the DAC lock, addresses are translated to target
-    /// pointers, and arguments are fetched eagerly per batch (the DAC interprets the
-    /// message index passed to <c>GetArguments</c> relative to the most recent
-    /// <c>Next</c> batch).
-    /// </summary>
     internal sealed class DacStressLog : IAbstractStressLog
     {
         private const int ThreadBatchSize = 32;
@@ -129,12 +122,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                             ulong[] args;
                             if (argCount > 0)
                             {
-                                // GetArguments has no start-offset: every call copies
-                                // arguments starting at index 0, so the only way to read
-                                // them all is a single call with a buffer large enough to
-                                // hold them. Grow the reusable buffer to fit this message
-                                // so no arguments are ever truncated, regardless of the
-                                // runtime's maximum argument count.
                                 if (argBuffer.Length < argCount)
                                     argBuffer = new ClrDataAddress[argCount];
 

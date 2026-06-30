@@ -17,11 +17,8 @@ namespace Microsoft.Diagnostics.Runtime.AbstractDac
     public interface IAbstractStressLog
     {
         bool GetStressLogData(out StressLogData data);
-
         IEnumerable<StressLogThreadInfo> EnumerateThreads();
-
         IEnumerable<StressLogMessageInfo> EnumerateMessages(ulong threadLogAddress, CancellationToken cancellationToken);
-
         IEnumerable<(ulong Start, ulong Size)> EnumerateMemoryRanges();
     }
 
