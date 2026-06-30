@@ -7,7 +7,7 @@ using System.Threading;
 namespace Microsoft.Diagnostics.Runtime.AbstractDac
 {
     /// <summary>
-    /// This interface is used read the stress log data from the target process.
+    /// This interface is used to read the stress log data from the target process.
     ///
     /// This interface is optional.
     ///

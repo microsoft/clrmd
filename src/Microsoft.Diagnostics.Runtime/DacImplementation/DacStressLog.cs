@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.StressLogs.Internal;
 
 namespace Microsoft.Diagnostics.Runtime.DacImplementation
 {
@@ -13,7 +14,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
     {
         private const int ThreadBatchSize = 32;
         private const int MessageBatchSize = 32;
-        private const int InitialArgumentCapacity = 16;
 
         private readonly SOSDac _sos;
         private readonly ISOSDac17 _sos17;
@@ -95,7 +95,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             try
             {
                 SOSStressMsgData[] batch = new SOSStressMsgData[MessageBatchSize];
-                ClrDataAddress[] argBuffer = new ClrDataAddress[InitialArgumentCapacity];
+                ClrDataAddress[] argBuffer = new ClrDataAddress[StressLogConstants.MaxArgumentCount];
 
                 while (true)
                 {
@@ -117,14 +117,11 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                         for (int i = 0; i < got; i++)
                         {
                             SOSStressMsgData msg = batch[i];
-                            int argCount = (int)msg.ArgumentCount;
+                            int argCount = (int)Math.Min(msg.ArgumentCount, (uint)StressLogConstants.MaxArgumentCount);
 
                             ulong[] args;
                             if (argCount > 0)
                             {
-                                if (argBuffer.Length < argCount)
-                                    argBuffer = new ClrDataAddress[argCount];
-
                                 int fetched = msgEnum.GetArguments((uint)i, argBuffer.AsSpan(0, argCount));
                                 if (fetched < 0)
                                     fetched = 0;

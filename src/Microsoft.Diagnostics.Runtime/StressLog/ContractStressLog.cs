@@ -126,7 +126,16 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         {
             ThrowIfDisposed();
             foreach ((ulong start, ulong size) in _dac.EnumerateMemoryRanges())
-                yield return new MemoryRange(start, start + size);
+            {
+                ulong end = start + size;
+                if (end < start)
+                {
+                    RaiseDiagnostic(StressLogDiagnosticKind.CorruptChunk, start);
+                    continue;
+                }
+
+                yield return new MemoryRange(start, end);
+            }
         }
 
         public override IEnumerable<StressLogMessage> EnumerateMessages(CancellationToken cancellationToken = default)
@@ -145,7 +154,10 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                 foreach (StressLogThreadInfo thread in _dac.EnumerateThreads())
                 {
                     if (iterators.Count >= _options.MaxThreads)
+                    {
+                        RaiseDiagnostic(StressLogDiagnosticKind.LimitExceeded, thread.ThreadLogAddress);
                         break;
+                    }
 
                     IEnumerator<StressLogMessageInfo> iter = _dac.EnumerateMessages(thread.ThreadLogAddress, cancellationToken).GetEnumerator();
                     if (iter.MoveNext())
