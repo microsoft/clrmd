@@ -6,35 +6,18 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
-using Microsoft.Diagnostics.Runtime;
-using Microsoft.Diagnostics.Runtime.DacInterface;
 using Microsoft.Diagnostics.Runtime.StressLogs.Internal;
 
 namespace Microsoft.Diagnostics.Runtime.StressLogs
 {
     /// <summary>
-    /// Reads a runtime stress log from a target process or dump. The
-    /// implementation validates every input byte: every linked-list walk
-    /// is bounded and cycle-detected, every memory read is checked against
-    /// the requested length, and no log-derived bytes are ever passed to
-    /// a runtime formatter.
+    /// <see cref="StressLog"/> that reads threads and messages by parsing the
+    /// runtime's stress log directly out of target memory. This is the back-compat
+    /// path for runtimes whose DAC does not expose the structured stress-log contract,
+    /// and the implementation behind the address-based <c>StressLog.TryOpen</c>
+    /// overloads.
     /// </summary>
-    /// <remarks>
-    /// <para>
-    /// This is the public entry point for stress-log analysis. Callers open
-    /// a log via <c>TryOpen</c>, then enumerate messages with
-    /// <see cref="EnumerateMessages"/>. Each yielded
-    /// <see cref="StressLogMessage"/> is valid only for the body of the
-    /// iteration step that produced it.
-    /// </para>
-    /// <para>
-    /// Format string bytes are sanitized and decoded inside the
-    /// <see cref="StressLog"/> instance. Consumers receive only typed,
-    /// sanitized tokens through <see cref="IStressLogFormatReceiver"/>; the
-    /// raw bytes never escape this assembly.
-    /// </para>
-    /// </remarks>
-    public sealed class StressLog : IDisposable
+    internal sealed class LegacyStressLog : StressLog
     {
         private readonly IDataReader _reader;
         private readonly IMemoryReader _formatReader;
@@ -56,9 +39,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
         private readonly uint? _maxSizeTotal;
         private readonly int? _chunkCount;
 
-        private bool _disposed;
-
-        private StressLog(IDataReader reader,
+        internal LegacyStressLog(IDataReader reader,
                           IMemoryReader? formatReader,
                           StressLogLayout layout,
                           StressLogOptions options,
@@ -96,138 +77,14 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             _formatCache = new FormatStringCache(_formatReader, budget, options.MaxFormatStringLength, options.MaxFormatStringCacheEntries);
         }
 
-        /// <summary>
-        /// Raised when the parser detects malformed input. Diagnostics are
-        /// best-effort and may be raised before the corresponding
-        /// <see cref="EnumerateMessages"/> sequence terminates.
-        /// </summary>
-        public event Action<StressLogDiagnostic>? Diagnostic;
-
-        /// <summary>
-        /// Approximate wall-clock time at which the runtime initialized the
-        /// stress log. Available only for in-process logs; memory-mapped
-        /// logs do not record an absolute time and report <see langword="null"/>.
-        /// </summary>
-        public DateTime? StartTimeUtc => _startTimeUtc;
-
-        /// <summary>
-        /// Pointer size of the target the log was captured from, in bytes.
-        /// 4 for a 32-bit target, 8 for a 64-bit target. Receivers should
-        /// format <c>%p</c> arguments with <c>2 * PointerSize</c> hex digits
-        /// to match the target's native pointer width.
-        /// </summary>
-        public int PointerSize => _layout.PointerSize;
-
-        /// <summary>
-        /// QueryPerformanceFrequency tick rate the log timestamps were captured with,
-        /// used to convert raw timestamps to elapsed seconds.
-        /// </summary>
-        public ulong TickFrequency => _tickFrequency;
-
-        /// <summary>
-        /// Bitmask of logging facilities the runtime was configured to record
-        /// (the runtime's <c>facilitiesToLog</c>). In-process logs only;
-        /// <see langword="null"/> for memory-mapped logs.
-        /// </summary>
-        public uint? FacilitiesToLog => _facilitiesToLog;
-
-        /// <summary>
-        /// Maximum logging verbosity level the runtime was configured to record
-        /// (the runtime's <c>levelToLog</c>). In-process logs only;
-        /// <see langword="null"/> for memory-mapped logs.
-        /// </summary>
-        public uint? LevelToLog => _levelToLog;
-
-        /// <summary>
-        /// Configured maximum log size per thread, in bytes. In-process logs
-        /// only; <see langword="null"/> for memory-mapped logs.
-        /// </summary>
-        public uint? MaxSizePerThread => _maxSizePerThread;
-
-        /// <summary>
-        /// Configured maximum total log size, in bytes. In-process logs only;
-        /// <see langword="null"/> for memory-mapped logs.
-        /// </summary>
-        public uint? MaxSizeTotal => _maxSizeTotal;
-
-        /// <summary>
-        /// Current number of allocated stress log chunks across all threads
-        /// (the runtime's <c>totalChunk</c>). In-process logs only;
-        /// <see langword="null"/> for memory-mapped logs.
-        /// </summary>
-        public int? ChunkCount => _chunkCount;
-
-        /// <summary>
-        /// Try to open the stress log for the given <paramref name="runtime"/>.
-        /// Looks up the stress log address through the runtime's DAC and
-        /// reads from the runtime's data target. Returns <see langword="false"/>
-        /// if the runtime does not have stress logging enabled, the DAC does
-        /// not support <c>GetStressLogAddress</c>, or the resulting log fails
-        /// validation; <paramref name="failureReason"/> is a human-readable
-        /// explanation in that case.
-        /// </summary>
-        internal static bool TryOpen(ClrRuntime runtime, out StressLog? stressLog, out string? failureReason)
-        {
-            stressLog = null;
-            failureReason = null;
-            if (runtime is null)
-            {
-                failureReason = "Runtime is null.";
-                return false;
-            }
-
-            ulong address = runtime.GetStressLogAddress();
-            if (address == 0)
-            {
-                failureReason = "Stress logging is not enabled for this runtime, or the DAC does not expose the stress log address.";
-                return false;
-            }
-
-            return TryOpen(runtime.DataTarget, address, out stressLog, out failureReason);
-        }
-
-        /// <summary>
-        /// Open the stress log located at <paramref name="address"/> in the given
-        /// <paramref name="dataTarget"/>. Unlike the <see cref="IDataReader"/>
-        /// overload, this wires up an on-disk module-image fallback so that
-        /// format strings and <c>%s</c>/<c>%S</c> argument strings living in a
-        /// module's read-only data can be recovered when the dump itself strips
-        /// those file-backed pages (common for Linux coredumps and minidumps);
-        /// without it every message would render as <c>&lt;unresolved-format&gt;</c>.
-        /// The returned <see cref="StressLog"/> owns the fallback reader and
-        /// releases it on <see cref="Dispose"/>.
-        /// </summary>
-        public static bool TryOpen(DataTarget dataTarget, ulong address, out StressLog? stressLog, out string? failureReason)
-        {
-            stressLog = null;
-            failureReason = null;
-            if (dataTarget is null)
-            {
-                failureReason = "DataTarget is null.";
-                return false;
-            }
-
-            ModuleImageReader formatReader = new(dataTarget.DataReader, dataTarget);
-            if (!TryOpen(dataTarget.DataReader, address, formatReader, out stressLog, out failureReason))
-            {
-                formatReader.Dispose();
-                return false;
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Open the stress log located at <paramref name="address"/> in the target
-        /// described by <paramref name="reader"/>. Use this to read a stress log
-        /// that is not the runtime's own — for example a different utilcode-linked
-        /// module's log such as <c>mscordbi!StressLog::theLog</c>. Returns
-        /// <see langword="false"/> on any structural validation failure, with
-        /// <paramref name="failureReason"/> describing the problem. The returned
-        /// <see cref="StressLog"/> is owned by the caller and must be disposed.
-        /// </summary>
-        public static bool TryOpen(IDataReader reader, ulong address, out StressLog? stressLog, out string? failureReason)
-            => TryOpen(reader, address, formatReader: null, out stressLog, out failureReason);
+        public override DateTime? StartTimeUtc => _startTimeUtc;
+        public override int PointerSize => _layout.PointerSize;
+        public override ulong TickFrequency => _tickFrequency;
+        public override uint? FacilitiesToLog => _facilitiesToLog;
+        public override uint? LevelToLog => _levelToLog;
+        public override uint? MaxSizePerThread => _maxSizePerThread;
+        public override uint? MaxSizeTotal => _maxSizeTotal;
+        public override int? ChunkCount => _chunkCount;
 
         /// <summary>
         /// Open the stress log, optionally supplying a <paramref name="formatReader"/>
@@ -354,16 +211,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             uint maxSizeTotal = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(layout.InProcMaxSizeTotalOffset));
             int chunkCount = BinaryPrimitives.ReadInt32LittleEndian(header.Slice(layout.InProcTotalChunkOffset));
 
-            DateTime? startTimeUtc = null;
-            try
-            {
-                if (startFiletime != 0)
-                    startTimeUtc = DateTime.FromFileTimeUtc((long)startFiletime);
-            }
-            catch (ArgumentOutOfRangeException)
-            {
-                // Malformed FILETIME; leave null.
-            }
+            DateTime? startTimeUtc = FileTimeToUtc(startFiletime);
 
             // Framework's StressLog struct has no module table appended; the
             // bytes we speculatively read past the header end are unrelated
@@ -396,7 +244,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             // module table in CoreCLR; Framework V1 predates it and uses V3.
             bool isV4 = variant == StressLogVariant.Core;
 
-            return new StressLog(reader, formatReader, layout, options, budget, modules, logs, tickFreq, startTs, startTimeUtc, isV4: isV4, variant: variant,
+            return new LegacyStressLog(reader, formatReader, layout, options, budget, modules, logs, tickFreq, startTs, startTimeUtc, isV4: isV4, variant: variant,
                 facilitiesToLog: facilitiesToLog, levelToLog: levelToLog, maxSizePerThread: maxSizePerThread, maxSizeTotal: maxSizeTotal, chunkCount: chunkCount);
         }
 
@@ -427,26 +275,11 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
 
             StressLogModuleTable modules = StressLogModuleTable.BuildMemoryMapped(layout, entries, maxOffset);
 
-            return new StressLog(reader, formatReader, layout, options, budget, modules, logs, tickFreq, startTs, startTimeUtc: null, isV4: true, variant: StressLogVariant.Core,
+            return new LegacyStressLog(reader, formatReader, layout, options, budget, modules, logs, tickFreq, startTs, startTimeUtc: null, isV4: true, variant: StressLogVariant.Core,
                 facilitiesToLog: null, levelToLog: null, maxSizePerThread: null, maxSizeTotal: null, chunkCount: null);
         }
 
-        /// <summary>
-        /// Enumerate the target memory ranges occupied by the stress log's
-        /// per-thread chunk buffers. Callers can use this to exclude stress
-        /// log memory from a broader scan — for example, to distinguish a real
-        /// reference to an object from a reference that merely appears inside a
-        /// logged message.
-        /// </summary>
-        /// <remarks>
-        /// Each range covers a whole <c>StressLogChunk</c> structure, matching the
-        /// runtime's chunk allocation granularity. A thread or chunk that cannot be
-        /// read, or that looks corrupt, is skipped and reported through
-        /// <see cref="Diagnostic"/>; enumeration continues with the remaining
-        /// threads where possible. Each thread and chunk is visited at most once, so
-        /// a corrupt log whose links form a cycle stays bounded.
-        /// </remarks>
-        public IEnumerable<MemoryRange> EnumerateMemoryRanges()
+        public override IEnumerable<MemoryRange> EnumerateMemoryRanges()
         {
             ThrowIfDisposed();
 
@@ -558,24 +391,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             return true;
         }
 
-        private void RaiseDiagnostic(StressLogDiagnosticKind kind, ulong address)
-            => Diagnostic?.Invoke(new StressLogDiagnostic(kind, address));
-
-        /// <summary>
-        /// Enumerate messages from all threads in newest-first chronological
-        /// order. Iteration stops cooperatively when
-        /// <paramref name="cancellationToken"/> is canceled or when every
-        /// thread has been drained.
-        /// </summary>
-        /// <remarks>
-        /// Each call allocates an independent enumeration context. Two
-        /// concurrent enumerations on the same <see cref="StressLog"/> do
-        /// not share argument scratch buffers, so message access through
-        /// <see cref="StressLogMessage.GetArgument"/> and
-        /// <see cref="StressLogMessage.Format{T}"/> remains correct under
-        /// concurrent <c>foreach</c> loops.
-        /// </remarks>
-        public IEnumerable<StressLogMessage> EnumerateMessages(CancellationToken cancellationToken = default)
+        public override IEnumerable<StressLogMessage> EnumerateMessages(CancellationToken cancellationToken = default)
         {
             ThrowIfDisposed();
 
@@ -654,7 +470,7 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
 
             Span<byte> threadHeader = stackalloc byte[StressLogConstants.MaxThreadHeaderBytes];
             threadHeader = threadHeader.Slice(0, _layout.ThreadHeaderSize);
-            Action<StressLogDiagnostic> raiseDiagnostic = d => Diagnostic?.Invoke(d);
+            Action<StressLogDiagnostic> raiseDiagnostic = RaiseDiagnostic;
 
             while (addr != 0)
             {
@@ -697,14 +513,14 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             return _modules.TryResolveFormatOffset(formatOffset, out ulong addr) ? addr : 0;
         }
 
-        internal double ElapsedSecondsFor(ulong timeStamp)
+        internal override double ElapsedSecondsFor(ulong timeStamp)
         {
             if (_tickFrequency == 0) return 0;
             ulong delta = timeStamp >= _startTimeStamp ? timeStamp - _startTimeStamp : 0;
             return (double)delta / _tickFrequency;
         }
 
-        internal StressLogKnownFormat LookupKnownFormat(ulong address)
+        internal override StressLogKnownFormat LookupKnownFormat(ulong address)
         {
             if (address == 0) return StressLogKnownFormat.None;
             if (_formatCache.TryGet(address, out _, out StressLogKnownFormat known))
@@ -712,19 +528,10 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
             return StressLogKnownFormat.None;
         }
 
-        /// <summary>
-        /// Render a stress log message into a receiver using the supplied
-        /// per-enumeration argument scratch and resolver. Called by
-        /// <see cref="StressLogEnumerationContext"/> after it has confirmed
-        /// the calling <see cref="StressLogMessage"/> still belongs to the
-        /// current enumeration generation.
-        /// </summary>
-        internal void FormatMessage<T>(ulong[] argScratch,
-                                       ArgumentResolver argResolver,
-                                       ulong formatAddress,
-                                       int argCount,
-                                       ref T receiver)
-            where T : struct, IStressLogFormatReceiver
+        internal override void FormatMessage<T>(ReadOnlySpan<ulong> args,
+                                                ArgumentResolver argResolver,
+                                                ulong formatAddress,
+                                                ref T receiver)
         {
             if (formatAddress == 0)
             {
@@ -738,24 +545,14 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs
                 return;
             }
 
-            ReadOnlySpan<ulong> args = argScratch.AsSpan(0, argCount);
             FormatStringParser.Parse(formatBytes.Span, args, argResolver, ref receiver);
         }
 
         private static readonly byte[] s_unresolvedFormat =
             System.Text.Encoding.ASCII.GetBytes("<unresolved-format>");
 
-        private void ThrowIfDisposed()
+        protected override void DisposeCore()
         {
-            if (_disposed)
-                throw new ObjectDisposedException(nameof(StressLog));
-        }
-
-        public void Dispose()
-        {
-            if (_disposed) return;
-            _disposed = true;
-
             // Dispose a format reader we own (the module-image fallback wraps
             // the dump reader but holds its own ElfFile handles). The dump
             // reader itself is owned by the DataTarget, so we never dispose it.

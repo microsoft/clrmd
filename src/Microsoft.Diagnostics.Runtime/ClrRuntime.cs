@@ -165,7 +165,22 @@ namespace Microsoft.Diagnostics.Runtime
             {
                 if (_stressLogProbed) return;
 
-                StressLogs.StressLog.TryOpen(this, out _stressLog, out _stressLogFailureReason);
+                // Prefer the structured DAC stress-log contract and fall back to the
+                // raw memory parser at the DAC-reported address when it is unavailable.
+                IAbstractStressLog? dac = GetService<IAbstractStressLog>();
+                if (dac is not null)
+                {
+                    ContractStressLog.TryOpen(DataTarget, dac, out _stressLog, out _stressLogFailureReason);
+                }
+                else
+                {
+                    ulong address = GetStressLogAddress();
+                    if (address != 0)
+                        StressLog.TryOpen(DataTarget, address, out _stressLog, out _stressLogFailureReason);
+                    else
+                        _stressLogFailureReason = "Stress logging is not enabled for this runtime, or the DAC does not expose the stress log.";
+                }
+
                 _stressLogProbed = true;
             }
         }
