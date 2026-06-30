@@ -36,13 +36,13 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         private const string DumpSuffix = "stresslog_v2";
 
-        [WindowsFact]
+        [Fact]
         public void Is17AndRawProduceIdenticalMessages_Workstation()
         {
             RunParity(GCMode.Workstation);
         }
 
-        [WindowsFact]
+        [Fact]
         public void Is17AndRawProduceIdenticalMessages_Server()
         {
             RunParity(GCMode.Server);
