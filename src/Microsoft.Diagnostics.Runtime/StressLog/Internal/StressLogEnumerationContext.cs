@@ -6,12 +6,13 @@ using System;
 namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
 {
     /// <summary>
-    /// Per-enumeration state for <see cref="StressLog.EnumerateMessages"/>.
-    /// Each call to <c>EnumerateMessages</c> allocates a fresh context, so
-    /// two concurrent enumerations of the same <see cref="StressLog"/> do
-    /// not share argument scratch buffers, the active iterator, or the
-    /// generation counter that invalidates stale <see cref="StressLogMessage"/>
-    /// instances.
+    /// Per-enumeration backing for the value-type <see cref="StressLogMessage"/>.
+    /// A <see cref="StressLogMessage"/> is yielded eagerly but resolves its
+    /// arguments and format text lazily, so it needs a stable place to read the
+    /// "current" message's arguments from plus a way to render. Each call to
+    /// <c>EnumerateMessages</c> allocates a fresh context, so concurrent
+    /// enumerations of the same <see cref="StressLog"/> do not share the argument
+    /// scratch buffer or the generation counter that invalidates stale messages.
     /// </summary>
     internal sealed class StressLogEnumerationContext
     {
@@ -19,8 +20,9 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
         private readonly ulong[] _argScratch = new ulong[StressLogConstants.MaxArgumentCount];
         private readonly ArgumentResolver _argResolver;
 
+        private int _argCount;
         private int _generationCounter;
-        private ThreadIterator? _currentIterator;
+        private bool _hasCurrent;
 
         public StressLogEnumerationContext(StressLog log, ArgumentResolver argResolver)
         {
@@ -30,32 +32,46 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
 
         public StressLog Log => _log;
 
-        public ThreadIterator? CurrentIterator
-        {
-            get => _currentIterator;
-            set => _currentIterator = value;
-        }
-
         /// <summary>
-        /// Bump the generation counter and copy the active iterator's
-        /// arguments into our scratch buffer. Returns the new generation,
-        /// which the corresponding <see cref="StressLogMessage"/> stamps so
-        /// later access through the message can detect that iteration has
-        /// since advanced and refuse to read stale buffers.
+        /// Bump the generation counter and copy the active iterator's arguments into
+        /// the scratch buffer. Returns the new generation, which the corresponding
+        /// <see cref="StressLogMessage"/> stamps so later access through the message
+        /// can detect that iteration has since advanced and refuse to read stale
+        /// buffers.
         /// </summary>
         public int CaptureFromIterator(ThreadIterator iter)
         {
-            _currentIterator = iter;
-            int gen = ++_generationCounter;
-            int n = iter.ArgumentCount;
+            int n = Math.Min(iter.ArgumentCount, _argScratch.Length);
             for (int i = 0; i < n; i++)
                 _argScratch[i] = iter.GetArgument(i);
-            return gen;
+            return SetCurrent(n);
+        }
+
+        /// <summary>
+        /// Bump the generation counter and copy a pre-resolved argument span (the DAC
+        /// contract returns the arguments directly) into the scratch buffer. Returns
+        /// the new generation, with the same staleness semantics as
+        /// <see cref="CaptureFromIterator"/>.
+        /// </summary>
+        public int CaptureArgs(ReadOnlySpan<ulong> args)
+        {
+            int n = Math.Min(args.Length, _argScratch.Length);
+            for (int i = 0; i < n; i++)
+                _argScratch[i] = args[i];
+            return SetCurrent(n);
+        }
+
+        private int SetCurrent(int count)
+        {
+            _argCount = count;
+            _hasCurrent = true;
+            return ++_generationCounter;
         }
 
         public void Clear()
         {
-            _currentIterator = null;
+            _hasCurrent = false;
+            _argCount = 0;
             // Do not reset _generationCounter; outstanding StressLogMessage
             // instances rely on the counter never returning to a previously
             // valid value.
@@ -63,16 +79,17 @@ namespace Microsoft.Diagnostics.Runtime.StressLogs.Internal
 
         public ulong GetArgument(int generation, int index, int argCount)
         {
-            if (generation != _generationCounter || _currentIterator is null) return 0;
-            if ((uint)index >= (uint)argCount) return 0;
+            if (generation != _generationCounter || !_hasCurrent) return 0;
+            if ((uint)index >= (uint)Math.Min(argCount, _argCount)) return 0;
             return _argScratch[index];
         }
 
         public void FormatMessage<T>(int generation, ulong formatAddress, int argCount, ref T receiver)
             where T : struct, IStressLogFormatReceiver
         {
-            if (generation != _generationCounter || _currentIterator is null) return;
-            _log.FormatMessage(_argScratch, _argResolver, formatAddress, argCount, ref receiver);
+            if (generation != _generationCounter || !_hasCurrent) return;
+            int count = Math.Min(argCount, _argCount);
+            _log.FormatMessage(_argScratch.AsSpan(0, count), _argResolver, formatAddress, ref receiver);
         }
     }
 }

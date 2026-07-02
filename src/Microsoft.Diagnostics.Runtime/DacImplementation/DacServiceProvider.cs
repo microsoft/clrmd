@@ -22,6 +22,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly ISOSDac13? _sos13;
         private readonly SosDac14? _sos14;
         private readonly ISOSDac16? _sos16;
+        private readonly ISOSDac17? _sos17;
 
         // These service singletons are read on a lock-free fast path in GetService and
         // published under _serviceLock, so they must be volatile to give the fast-path
@@ -36,6 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private volatile IAbstractRuntime? _runtime;
         private volatile IAbstractThreadHelpers? _threadHelper;
         private volatile IAbstractTypeHelpers? _typeHelper;
+        private volatile IAbstractStressLog? _stressLog;
 
         private bool _disposed;
         private readonly object _serviceLock = new();
@@ -54,6 +56,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             _sos13 = _process.CreateSOSDacInterface13();
             _sos14 = _process.CreateSOSDacInterface14();
             _sos16 = _process.CreateSOSDacInterface16();
+            _sos17 = _process.CreateSOSDacInterface17();
 
             library.DacDataTarget.SetMagicCallback(_process.Flush);
             IsThreadSafe = _sos13 is not null || RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
@@ -82,6 +85,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 _sos13?.Dispose();
                 _sos14?.Dispose();
                 _sos16?.Dispose();
+                _sos17?.Dispose();
                 _dac.Dispose();
                 _moduleHelper?.Dispose();
             }
@@ -193,6 +197,18 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     return th;
                 lock (_serviceLock)
                     return _threadHelper ??= new DacThreadHelpers(_process, _sos, _dataReader, _dac.TargetProperties);
+            }
+
+            if (serviceType == typeof(IAbstractStressLog))
+            {
+                if (_sos17 is null)
+                    return null;
+
+                IAbstractStressLog? s = _stressLog;
+                if (s is not null)
+                    return s;
+                lock (_serviceLock)
+                    return _stressLog ??= new DacStressLog(_sos, _sos17, _dac.TargetProperties);
             }
 
             if (serviceType == typeof(IAbstractDacController))
