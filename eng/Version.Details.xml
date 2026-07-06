@@ -3,34 +3,34 @@
   <ProductDependencies>
   </ProductDependencies>
   <ToolsetDependencies>
-    <Dependency Name="Microsoft.DotNet.Arcade.Sdk" Version="10.0.0-beta.26328.103">
+    <Dependency Name="Microsoft.DotNet.Arcade.Sdk" Version="10.0.0-beta.26354.103">
       <Uri>https://github.com/dotnet/dotnet</Uri>
-      <Sha>d90771109c7250deb1786ca4b5a7d9bf2051a1e2</Sha>
+      <Sha>519286c3b619e8e6480c00a290c81d6ceb05af3f</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.CodeAnalysis" Version="10.0.0-beta.26328.103">
+    <Dependency Name="Microsoft.DotNet.CodeAnalysis" Version="10.0.0-beta.26354.103">
       <Uri>https://github.com/dotnet/dotnet</Uri>
-      <Sha>d90771109c7250deb1786ca4b5a7d9bf2051a1e2</Sha>
+      <Sha>519286c3b619e8e6480c00a290c81d6ceb05af3f</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.CodeAnalysis" Version="5.0.0-2.26328.103">
+    <Dependency Name="Microsoft.CodeAnalysis" Version="5.0.0-2.26354.103">
       <Uri>https://github.com/dotnet/dotnet</Uri>
-      <Sha>d90771109c7250deb1786ca4b5a7d9bf2051a1e2</Sha>
+      <Sha>519286c3b619e8e6480c00a290c81d6ceb05af3f</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.CodeAnalysis.CSharp" Version="5.0.0-2.26328.103">
+    <Dependency Name="Microsoft.CodeAnalysis.CSharp" Version="5.0.0-2.26354.103">
       <Uri>https://github.com/dotnet/dotnet</Uri>
-      <Sha>d90771109c7250deb1786ca4b5a7d9bf2051a1e2</Sha>
+      <Sha>519286c3b619e8e6480c00a290c81d6ceb05af3f</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.CodeAnalysis.Analyzers" Version="5.0.0-2.26328.103">
+    <Dependency Name="Microsoft.CodeAnalysis.Analyzers" Version="5.0.0-2.26354.103">
       <Uri>https://github.com/dotnet/dotnet</Uri>
-      <Sha>d90771109c7250deb1786ca4b5a7d9bf2051a1e2</Sha>
+      <Sha>519286c3b619e8e6480c00a290c81d6ceb05af3f</Sha>
     </Dependency>
     <Dependency Name="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.110">
       <Uri>https://github.com/dotnet/dotnet</Uri>
-      <Sha>d90771109c7250deb1786ca4b5a7d9bf2051a1e2</Sha>
+      <Sha>519286c3b619e8e6480c00a290c81d6ceb05af3f</Sha>
     </Dependency>
     <!-- Flows the .NET SDK pin in global.json. Updated automatically by darc. -->
-    <Dependency Name="Microsoft.NET.Sdk" Version="10.0.110-servicing.26328.103">
+    <Dependency Name="Microsoft.NET.Sdk" Version="10.0.110-servicing.26354.103">
       <Uri>https://github.com/dotnet/dotnet</Uri>
-      <Sha>d90771109c7250deb1786ca4b5a7d9bf2051a1e2</Sha>
+      <Sha>519286c3b619e8e6480c00a290c81d6ceb05af3f</Sha>
     </Dependency>
   </ToolsetDependencies>
 </Dependencies>
