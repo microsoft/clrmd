@@ -32,9 +32,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private const string c_linuxCoreDbiFileName = "libmscordbi.so";
         private const string c_macOSCoreDbiFileName = "libmscordbi.dylib";
 
-        private const string c_windowsCDacFileName = "mscordaccore_universal.dll";
-        private const string c_linuxCDacFileName = "libmscordaccore_universal.so";
-        private const string c_macOSCDacFileName = "libmscordaccore_universal.dylib";
+        private const string c_cdacFileNameStem = "mscordaccore_universal";
+        private const string c_windowsCDacFileName = c_cdacFileNameStem + ".dll";
+        private const string c_linuxCDacFileName = "lib" + c_cdacFileNameStem + ".so";
+        private const string c_macOSCDacFileName = "lib" + c_cdacFileNameStem + ".dylib";
 
         private const string c_cdacContractDescriptorExport = "DotNetRuntimeContractDescriptor";
 
@@ -443,6 +444,21 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 return c_macOSCDacFileName;
 
             return null;
+        }
+
+        /// <summary>
+        /// Determines whether the given DAC path refers to the universal cDAC binary
+        /// (mscordaccore_universal.{dll,so,dylib}), regardless of platform or a "lib" prefix.
+        /// The cDAC is a NativeAOT library that shares no unload contract with its host and
+        /// must not be freed via FreeLibrary/dlclose, so callers use this to suppress freeing.
+        /// </summary>
+        internal static bool IsCDacFileName(string? path)
+        {
+            if (string.IsNullOrEmpty(path))
+                return false;
+
+            string fileName = Path.GetFileNameWithoutExtension(path!);
+            return fileName.IndexOf(c_cdacFileNameStem, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static bool IsSupportedRuntime(ModuleInfo module, out ClrFlavor flavor)

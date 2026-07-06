@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -90,6 +91,9 @@ namespace Microsoft.Diagnostics.Runtime
             // when inspecting the current process.  The DAC (libmscordaccore.so) shares internal
             // state with the running CLR (libcoreclr.so), and unloading it corrupts that state.
             // Suppress FreeLibrary when the target is the current process to avoid this.
+            //
+            // The cDAC (mscordaccore_universal) is a NativeAOT library that cannot be safely
+            // unloaded on any platform, so never free it either.
 #if NET6_0_OR_GREATER
             int currentPid = Environment.ProcessId;
 #else
@@ -97,8 +101,9 @@ namespace Microsoft.Diagnostics.Runtime
             using (Process p = Process.GetCurrentProcess())
                 currentPid = p.Id;
 #endif
-            bool suppressFree = !RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                                && dataTarget.DataReader.ProcessId == currentPid;
+            bool suppressFree = DotNetClrInfoProvider.IsCDacFileName(dacPath)
+                                || (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                                    && dataTarget.DataReader.ProcessId == currentPid);
             OwningLibrary = new RefCountedFreeLibrary(dacLibrary, suppressFree);
 
             IntPtr initAddr = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "DAC_PAL_InitializeDLL");
