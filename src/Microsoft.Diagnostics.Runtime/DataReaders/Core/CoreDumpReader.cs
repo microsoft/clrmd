@@ -115,7 +115,37 @@ namespace Microsoft.Diagnostics.Runtime
             string path = image.FileName.Replace(" (deleted)", "");
             if (file is not null)
             {
-                long size = image.Size > long.MaxValue ? long.MaxValue : unchecked((long)image.Size);
+                // ElfLoadedImage.Size is derived from core NT_FILE notes, which only cover
+                // file-backed VMAs. When a PT_LOAD segment has MemSiz > FileSiz (e.g. .bss
+                // or another NOBITS section), the loader splits the mapping into a
+                // file-backed VMA plus an anonymous zero-fill VMA. The anonymous portion
+                // has no filename in /proc/self/maps and therefore does not appear in
+                // NT_FILE, so the NT_FILE-derived span under-reports the module's true
+                // memory footprint. Fall back to the ELF PT_LOAD headers' MemSiz to
+                // recover the anon tail; keep the larger of the two so we never regress
+                // modules where the on-disk metric happened to be more generous.
+                ulong sizeU = image.Size;
+                ulong minVA = ulong.MaxValue;
+                ulong maxEnd = 0;
+                foreach (ElfProgramHeader ph in file.ProgramHeaders)
+                {
+                    if (ph.Type == ElfProgramHeaderType.Load)
+                    {
+                        if (ph.VirtualAddress < minVA)
+                            minVA = ph.VirtualAddress;
+                        ulong end = ph.VirtualAddress + ph.VirtualSize;
+                        if (end > maxEnd)
+                            maxEnd = end;
+                    }
+                }
+                if (maxEnd > minVA)
+                {
+                    ulong ptLoadSize = maxEnd - minVA;
+                    if (ptLoadSize > sizeU)
+                        sizeU = ptLoadSize;
+                }
+
+                long size = sizeU > long.MaxValue ? long.MaxValue : unchecked((long)sizeU);
                 return new ElfModuleInfo(this, file, image.BaseAddress, size, path);
             }
 
