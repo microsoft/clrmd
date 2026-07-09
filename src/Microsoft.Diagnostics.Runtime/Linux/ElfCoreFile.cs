@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -267,7 +268,14 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             foreach (KeyValuePair<string, List<ElfFileTableEntryPointers64>> kvp in entriesByPath)
             {
                 foreach (ElfLoadedImage image in BuildImagesForPath(kvp.Key, kvp.Value))
+                {
+                    // Distinct images (whether split from one path or belonging to different paths) should
+                    // have distinct base addresses. If a malformed dump violates that, the last one wins
+                    // (matching the historical single-image behavior) rather than throwing; assert in debug
+                    // builds so we notice the corruption during testing.
+                    Debug.Assert(!result.ContainsKey(image.BaseAddress), $"Duplicate ELF image base address 0x{image.BaseAddress:x} for '{image.FileName}'.");
                     result[image.BaseAddress] = image;
+                }
             }
 
             return result.ToImmutable();
@@ -296,22 +304,35 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             int[] clusterOf = new int[n];
             int clusterCount = 0;
-            ulong clusterBase = 0;
+            ulong clusterHeaderBase = 0; // address probed for the PE header / SizeOfImage
+            bool clusterHasHeader = false; // whether clusterHeaderBase is a PageOffset == 0 (header) entry
             ulong clusterEnd = 0;
             long clusterSizeOfImage = -1; // -1 = not read yet, 0 = unreadable / not a PE
             for (int k = 0; k < n; k++)
             {
                 ElfFileTableEntryPointers64 entry = entries[order[k]];
-                if (k == 0 || !IsSameImage(clusterBase, clusterEnd, ref clusterSizeOfImage, entry.Start))
+                if (k == 0 || !IsSameImage(clusterHeaderBase, clusterEnd, ref clusterSizeOfImage, entry.Start))
                 {
                     clusterCount++;
-                    clusterBase = entry.Start;
+                    clusterHeaderBase = entry.Start;
+                    clusterHasHeader = entry.PageOffset == 0;
                     clusterEnd = entry.Stop;
                     clusterSizeOfImage = -1;
                 }
-                else if (entry.Stop > clusterEnd)
+                else
                 {
-                    clusterEnd = entry.Stop;
+                    if (entry.Stop > clusterEnd)
+                        clusterEnd = entry.Stop;
+
+                    // The image header (and thus its PE SizeOfImage) lives at the first PageOffset == 0 entry,
+                    // which is not necessarily the lowest-address entry (e.g. .NET single-file modules). Once
+                    // such an entry joins, retarget the probe at it and re-read SizeOfImage.
+                    if (!clusterHasHeader && entry.PageOffset == 0)
+                    {
+                        clusterHeaderBase = entry.Start;
+                        clusterHasHeader = true;
+                        clusterSizeOfImage = -1;
+                    }
                 }
 
                 clusterOf[order[k]] = clusterCount - 1;
@@ -328,26 +349,28 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         }
 
         // Decides whether an entry starting at nextStart belongs to the current contiguity cluster.
-        // Small gaps are always the same image (section/alignment/anonymous slack within one
-        // mapping); very large gaps are always a distinct mapping. For borderline gaps we consult
-        // the image's declared SizeOfImage (read from the PE header at the cluster base) to decide,
-        // falling back to "same image" (the historical behavior) when the header is unavailable.
-        private bool IsSameImage(ulong clusterBase, ulong clusterEnd, ref long cachedSizeOfImage, ulong nextStart)
+        // The image's declared PE SizeOfImage (read from the header at headerBase) authoritatively
+        // bounds the mapping when available: an entry that starts at or beyond the end of the image
+        // is a distinct mapping of the same file (e.g. the flat vs loaded layouts of a managed
+        // ReadyToRun assembly). When SizeOfImage is unavailable -- a native ELF image with no PE
+        // header, or an unreadable header -- fall back to a gap heuristic: mappings that are far
+        // apart are distinct, otherwise they are treated as one image (the historical behavior).
+        private bool IsSameImage(ulong headerBase, ulong clusterEnd, ref long cachedSizeOfImage, ulong nextStart)
         {
-            ulong gap = nextStart > clusterEnd ? nextStart - clusterEnd : 0;
-            if (gap <= SmallGapThreshold)
-                return true;
-
-            if (gap >= LargeGapThreshold)
-                return false;
-
             if (cachedSizeOfImage < 0)
-                cachedSizeOfImage = TryReadPESizeOfImage(clusterBase);
+                cachedSizeOfImage = TryReadPESizeOfImage(headerBase);
 
             if (cachedSizeOfImage > 0)
-                return nextStart < clusterBase + (ulong)cachedSizeOfImage;
+            {
+                // nextStart >= headerBase because entries are visited in ascending start order and
+                // headerBase is a start of an entry already in the cluster; compute the offset by
+                // subtraction to avoid overflowing headerBase + SizeOfImage near the top of the range.
+                ulong offset = nextStart >= headerBase ? nextStart - headerBase : 0;
+                return offset < (ulong)cachedSizeOfImage;
+            }
 
-            return true;
+            ulong gap = nextStart > clusterEnd ? nextStart - clusterEnd : 0;
+            return gap < LargeGapThreshold;
         }
 
         // Reads the PE OptionalHeader.SizeOfImage for the image mapped at imageBase, or 0 if the
@@ -373,12 +396,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             return sizeOfImage ?? 0;
         }
 
-        // Gaps at or below this between same-path file-backed regions are always the same image
-        // (section/alignment/anonymous slack within a single mapping).
-        private const ulong SmallGapThreshold = 0x100000; // 1 MB
-
-        // Gaps at or above this always denote a distinct mapping of the same file (e.g. the flat vs
-        // loaded layouts of a managed ReadyToRun assembly, which are typically GBs apart).
+        // Fallback ceiling used only when a same-path mapping has no readable PE SizeOfImage (i.e. a
+        // native ELF image). It is far larger than the internal padding/alignment gaps within a
+        // single native mapping, but far smaller than the multi-GB separation seen between distinct
+        // mappings of the same file, so it distinguishes the two without a header to consult.
         private const ulong LargeGapThreshold = 0x10000000; // 256 MB
 
         public void Dispose()
