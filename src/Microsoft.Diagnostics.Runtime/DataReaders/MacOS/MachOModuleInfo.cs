@@ -15,7 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
         public override ModuleKind Kind => ModuleKind.MachO;
 
-        public override long ImageSize => _imageSize > long.MaxValue ? long.MaxValue : unchecked((long)_imageSize);
+        protected override long ImageSizeCore => _imageSize > long.MaxValue ? long.MaxValue : unchecked((long)_imageSize);
 
         public override Version Version
         {

@@ -121,10 +121,51 @@ namespace Microsoft.Diagnostics.Runtime
         /// </summary>
         public string FileName { get; }
 
+        private ulong _nextImageBase;
+
         /// <summary>
         /// The size of this image (may be different from <see cref="IndexFileSize"/>).
         /// </summary>
-        public virtual long ImageSize => IndexFileSize;
+        /// <remarks>
+        /// A module's declared image size (e.g. a PE's <c>SizeOfImage</c>) can overlap the module mapped
+        /// immediately after it: a PE mapped "flat" occupies far fewer bytes than its declared
+        /// <c>SizeOfImage</c>, and a loaded image's padding/<c>.bss</c> tail can extend past the next module's
+        /// base. When <see cref="DataTarget.EnumerateModules"/> detects such an overlap it clamps this value
+        /// to the next module's base so the reported ranges do not overlap. The clamp affects only
+        /// <see cref="ImageSize"/>; <see cref="IndexFileSize"/> (the symbol-server key) is never changed.
+        /// </remarks>
+        public long ImageSize
+        {
+            get
+            {
+                long size = ImageSizeCore;
+
+                ulong next = _nextImageBase;
+                if (next > ImageBase)
+                {
+                    long max = (long)(next - ImageBase);
+                    if (size > max)
+                        return max;
+                }
+
+                return size;
+            }
+        }
+
+        /// <summary>
+        /// The unclamped image size as computed for this image format. Derived classes override this to
+        /// provide a format-specific size; the default is <see cref="IndexFileSize"/>. Callers should read
+        /// <see cref="ImageSize"/> (which may clamp this value to avoid overlapping the next module) rather
+        /// than this property.
+        /// </summary>
+        protected virtual long ImageSizeCore => IndexFileSize;
+
+        /// <summary>
+        /// Records the base address of the module mapped immediately after this one (in ascending base
+        /// order) so <see cref="ImageSize"/> can clamp an overlapping declared size. Called by
+        /// <see cref="DataTarget.EnumerateModules"/> after the module list is sorted by base address.
+        /// </summary>
+        internal void SetNextImageBase(ulong nextImageBase) => _nextImageBase = nextImageBase;
 
         /// <summary>
         /// Gets the specific file size of the image used to index it on the symbol server.
