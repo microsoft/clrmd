@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -217,7 +218,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 throw new InvalidDataException($"ELF coredump file table reports {entryCount} entries, which exceeds the maximum of {_limits.MaxElfFileTableEntries}.");
 
             ElfFileTableEntryPointers64[] fileTable = new ElfFileTableEntryPointers64[entryCount];
-            Dictionary<string, ElfLoadedImage> lookup = new(fileTable.Length);
+            Dictionary<string, List<ElfFileTableEntryPointers64>> entriesByPath = new();
 
             for (int i = 0; i < fileTable.Length; i++)
             {
@@ -252,10 +253,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                     string path = Encoding.UTF8.GetString(bytes, start, end - start);
                     start = end + 1;
 
-                    if (!lookup.TryGetValue(path, out ElfLoadedImage? image))
-                        image = lookup[path] = new ElfLoadedImage(ElfFile.VirtualAddressReader, ElfFile.Header.Is64Bit, path);
+                    if (!entriesByPath.TryGetValue(path, out List<ElfFileTableEntryPointers64>? pathEntries))
+                        pathEntries = entriesByPath[path] = new List<ElfFileTableEntryPointers64>();
 
-                    image.AddTableEntryPointers(fileTable[i]);
+                    pathEntries.Add(fileTable[i]);
                 }
             }
             finally
@@ -264,13 +265,142 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             ImmutableDictionary<ulong, ElfLoadedImage>.Builder result = ImmutableDictionary.CreateBuilder<ulong, ElfLoadedImage>();
-            foreach (ElfLoadedImage image in lookup.Values)
+            foreach (KeyValuePair<string, List<ElfFileTableEntryPointers64>> kvp in entriesByPath)
             {
-                result.Add(image.BaseAddress, image);
+                foreach (ElfLoadedImage image in BuildImagesForPath(kvp.Key, kvp.Value))
+                {
+                    // Distinct images (whether split from one path or belonging to different paths) should
+                    // have distinct base addresses. If a malformed dump violates that, the last one wins
+                    // (matching the historical single-image behavior) rather than throwing; assert in debug
+                    // builds so we notice the corruption during testing.
+                    Debug.Assert(!result.ContainsKey(image.BaseAddress), $"Duplicate ELF image base address 0x{image.BaseAddress:x} for '{image.FileName}'.");
+                    result[image.BaseAddress] = image;
+                }
             }
 
             return result.ToImmutable();
         }
+
+        // A single file can be present in the NT_FILE table under several file-backed VMAs.
+        // Normally those are the segments of one mapping (e.g. the PT_LOAD sections of a .so, or
+        // the PE sections of a managed assembly's "loaded" layout) and belong to one module.
+        // However, the runtime maps a managed ReadyToRun assembly TWICE on Linux/macOS: a "flat"
+        // file layout and a "loaded"/converted layout, both file-backed by the same path but at
+        // disjoint (often multi-GB apart) address ranges. Grouping purely by path collapses those
+        // into one module whose size spans the entire gap, which is wrong and produces bogus,
+        // mutually-overlapping module ranges. Split a path's entries into contiguity clusters so
+        // each distinct mapping becomes its own module.
+        private List<ElfLoadedImage> BuildImagesForPath(string path, List<ElfFileTableEntryPointers64> entries)
+        {
+            int n = entries.Count;
+
+            // Order entries by start address to detect clusters, but keep original file order when
+            // populating each image so the base-address selection ("first PageOffset == 0 entry")
+            // matches the historical single-image behavior for entries that stay grouped together.
+            int[] order = new int[n];
+            for (int i = 0; i < n; i++)
+                order[i] = i;
+            Array.Sort(order, (a, b) => entries[a].Start.CompareTo(entries[b].Start));
+
+            int[] clusterOf = new int[n];
+            int clusterCount = 0;
+            ulong clusterHeaderBase = 0; // address probed for the PE header / SizeOfImage
+            bool clusterHasHeader = false; // whether clusterHeaderBase is a PageOffset == 0 (header) entry
+            ulong clusterEnd = 0;
+            long clusterSizeOfImage = -1; // -1 = not read yet, 0 = unreadable / not a PE
+            for (int k = 0; k < n; k++)
+            {
+                ElfFileTableEntryPointers64 entry = entries[order[k]];
+                if (k == 0 || !IsSameImage(clusterHeaderBase, clusterEnd, ref clusterSizeOfImage, entry.Start))
+                {
+                    clusterCount++;
+                    clusterHeaderBase = entry.Start;
+                    clusterHasHeader = entry.PageOffset == 0;
+                    clusterEnd = entry.Stop;
+                    clusterSizeOfImage = -1;
+                }
+                else
+                {
+                    if (entry.Stop > clusterEnd)
+                        clusterEnd = entry.Stop;
+
+                    // The image header (and thus its PE SizeOfImage) lives at the first PageOffset == 0 entry,
+                    // which is not necessarily the lowest-address entry (e.g. .NET single-file modules). Once
+                    // such an entry joins, retarget the probe at it and re-read SizeOfImage.
+                    if (!clusterHasHeader && entry.PageOffset == 0)
+                    {
+                        clusterHeaderBase = entry.Start;
+                        clusterHasHeader = true;
+                        clusterSizeOfImage = -1;
+                    }
+                }
+
+                clusterOf[order[k]] = clusterCount - 1;
+            }
+
+            ElfLoadedImage[] images = new ElfLoadedImage[clusterCount];
+            for (int c = 0; c < clusterCount; c++)
+                images[c] = new ElfLoadedImage(ElfFile.VirtualAddressReader, ElfFile.Header.Is64Bit, path);
+
+            for (int i = 0; i < n; i++)
+                images[clusterOf[i]].AddTableEntryPointers(entries[i]);
+
+            return new List<ElfLoadedImage>(images);
+        }
+
+        // Decides whether an entry starting at nextStart belongs to the current contiguity cluster.
+        // The image's declared PE SizeOfImage (read from the header at headerBase) authoritatively
+        // bounds the mapping when available: an entry that starts at or beyond the end of the image
+        // is a distinct mapping of the same file (e.g. the flat vs loaded layouts of a managed
+        // ReadyToRun assembly). When SizeOfImage is unavailable -- a native ELF image with no PE
+        // header, or an unreadable header -- fall back to a gap heuristic: mappings that are far
+        // apart are distinct, otherwise they are treated as one image (the historical behavior).
+        private bool IsSameImage(ulong headerBase, ulong clusterEnd, ref long cachedSizeOfImage, ulong nextStart)
+        {
+            if (cachedSizeOfImage < 0)
+                cachedSizeOfImage = TryReadPESizeOfImage(headerBase);
+
+            if (cachedSizeOfImage > 0)
+            {
+                // nextStart >= headerBase because entries are visited in ascending start order and
+                // headerBase is a start of an entry already in the cluster; compute the offset by
+                // subtraction to avoid overflowing headerBase + SizeOfImage near the top of the range.
+                ulong offset = nextStart >= headerBase ? nextStart - headerBase : 0;
+                return offset < (ulong)cachedSizeOfImage;
+            }
+
+            ulong gap = nextStart > clusterEnd ? nextStart - clusterEnd : 0;
+            return gap < LargeGapThreshold;
+        }
+
+        // Reads the PE OptionalHeader.SizeOfImage for the image mapped at imageBase, or 0 if the
+        // bytes are not present or the image is not a PE. SizeOfImage lives at offset 56 within the
+        // optional header for both PE32 and PE32+, so no bitness detection is required.
+        private long TryReadPESizeOfImage(ulong imageBase)
+        {
+            Reader reader = ElfFile.VirtualAddressReader;
+
+            if (reader.TryRead<ushort>(imageBase) is not 0x5A4D) // 'MZ'
+                return 0;
+
+            uint? lfanew = reader.TryRead<uint>(imageBase + 0x3C);
+            if (lfanew is null || lfanew.Value > 0x10000)
+                return 0;
+
+            ulong ntHeaders = imageBase + lfanew.Value;
+            if (reader.TryRead<uint>(ntHeaders) is not 0x00004550) // 'PE\0\0'
+                return 0;
+
+            // 4-byte PE signature + 20-byte COFF file header, then SizeOfImage at optional offset 56.
+            uint? sizeOfImage = reader.TryRead<uint>(ntHeaders + 4 + 20 + 56);
+            return sizeOfImage ?? 0;
+        }
+
+        // Fallback ceiling used only when a same-path mapping has no readable PE SizeOfImage (i.e. a
+        // native ELF image). It is far larger than the internal padding/alignment gaps within a
+        // single native mapping, but far smaller than the multi-GB separation seen between distinct
+        // mappings of the same file, so it distinguishes the two without a header to consult.
+        private const ulong LargeGapThreshold = 0x10000000; // 256 MB
 
         public void Dispose()
         {

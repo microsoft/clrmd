@@ -264,6 +264,13 @@ namespace Microsoft.Diagnostics.Runtime
             ModuleInfo[] modules = DataReader.EnumerateModules().Where(m => m.FileName != null && m.FileName.IndexOfAny(invalid) < 0).ToArray();
             Array.Sort(modules, (a, b) => a.ImageBase.CompareTo(b.ImageBase));
 
+            // A module's declared ImageSize (e.g. a PE's SizeOfImage) can overlap the module mapped right
+            // after it -- a flat-mapped PE occupies far fewer bytes than its SizeOfImage, and loaded images
+            // have padding/.bss tails. Record each module's successor base so ModuleInfo.ImageSize clamps any
+            // such overhang, keeping the reported ranges non-overlapping. IndexFileSize is left untouched.
+            for (int i = 0; i < modules.Length - 1; i++)
+                modules[i].SetNextImageBase(modules[i + 1].ImageBase);
+
             return _modules = modules;
         }
 

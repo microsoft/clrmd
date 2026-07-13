@@ -11,12 +11,13 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     {
         private readonly IDataReader _reader;
         private readonly ElfFile? _elf;
+        private readonly long _imageSize;
         private object? _buildId;
         private Version? _version;
 
         public override ModuleKind Kind => ModuleKind.Elf;
 
-        public override long ImageSize { get; }
+        protected override long ImageSizeCore => _imageSize;
 
         /// <inheritdoc/>
         public override ImmutableArray<byte> BuildId
@@ -70,7 +71,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             _reader = reader;
             _elf = elf;
-            ImageSize = size;
+            _imageSize = size;
         }
     }
 }
