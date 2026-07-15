@@ -100,7 +100,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             Marshal.AddRef(clrDataProcess);
 
             TargetProperties target = new(pointerSize: clrInfo.DataTarget.DataReader.PointerSize);
-            return new ClrDataProcess(library: null, dacLock, target, clrDataProcess);
+            return new ClrDataProcess(dacLock, target, clrDataProcess);
         }
 
         public void Dispose()
@@ -118,6 +118,11 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
                 _disposed = true;
                 _sos13?.LockedFlush();
+                // Dispose every COM wrapper (releasing its interface into the DAC module) BEFORE freeing the
+                // module via _dac. The wrappers no longer hold a reference to the module's RefCountedFreeLibrary,
+                // so the module stays loaded only because _dac owns the single reference; releasing a wrapper
+                // after FreeLibrary would call into unloaded code. _moduleHelper holds MetadataImport/ClrDataModule
+                // wrappers, so it must be disposed here too, before _dac.
                 _process.Dispose();
                 _sos.Dispose();
                 _sos6?.Dispose();
@@ -127,8 +132,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 _sos14?.Dispose();
                 _sos16?.Dispose();
                 _sos17?.Dispose();
-                _dac?.Dispose();
                 _moduleHelper?.Dispose();
+                _dac?.Dispose();
             }
         }
 

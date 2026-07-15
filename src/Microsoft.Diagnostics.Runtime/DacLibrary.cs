@@ -147,7 +147,7 @@ namespace Microsoft.Diagnostics.Runtime
                     throw new ClrDiagnosticsException($"Failure loading DAC: CreateDacInstance failed 0x{res:x}", res);
             }
 
-            _clrDataProcess = new ClrDataProcess(OwningLibrary, SyncRoot, TargetProperties, iUnk);
+            _clrDataProcess = new ClrDataProcess(SyncRoot, TargetProperties, iUnk);
         }
 
         public void Dispose()

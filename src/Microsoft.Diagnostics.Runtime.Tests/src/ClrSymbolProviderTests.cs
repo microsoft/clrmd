@@ -382,7 +382,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         private sealed class ClrSymbolProviderWrapper : CallableCOMWrapper
         {
             public ClrSymbolProviderWrapper(IntPtr pUnknown)
-                : base(library: null, in DacDataTarget.IID_ICLRSymbolProvider, pUnknown)
+                : base(in DacDataTarget.IID_ICLRSymbolProvider, pUnknown)
             {
             }
 

@@ -12,8 +12,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         private static readonly Guid IID_IXCLRDataMethodInstance = new("ECD73800-22CA-4b0d-AB55-E9BA7E6318A5");
 
-        public ClrDataMethod(RefCountedFreeLibrary? library, IntPtr pUnk)
-            : base(library, IID_IXCLRDataMethodInstance, pUnk)
+        public ClrDataMethod(IntPtr pUnk)
+            : base(IID_IXCLRDataMethodInstance, pUnk)
         {
         }
 

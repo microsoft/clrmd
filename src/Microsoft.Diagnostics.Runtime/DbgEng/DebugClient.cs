@@ -14,8 +14,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
 
         private readonly DebugSystemObjects _sys;
 
-        public DebugClient(RefCountedFreeLibrary library, IntPtr pUnk, DebugSystemObjects system)
-            : base(library, IID_IDebugClient, pUnk)
+        public DebugClient(IntPtr pUnk, DebugSystemObjects system)
+            : base(IID_IDebugClient, pUnk)
         {
             _sys = system;
             SuppressRelease();

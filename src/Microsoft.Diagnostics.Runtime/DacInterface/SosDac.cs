@@ -28,8 +28,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         // CLRDATA_REQUEST_REVISION version from the DAC
         public int DacVersion { get; set; }
 
-        public SOSDac(RefCountedFreeLibrary? library, object syncRoot, IntPtr ptr)
-            : base(library, IID_ISOSDac, ptr)
+        public SOSDac(object syncRoot, IntPtr ptr)
+            : base(IID_ISOSDac, ptr)
         {
             _syncRoot = syncRoot;
         }
@@ -360,7 +360,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             HResult hr = VTable.GetModule(Self, module.ToInteropAddress(), out IntPtr iunk);
             if (hr)
-                return new ClrDataModule(Library, iunk);
+                return new ClrDataModule(iunk);
 
             return null;
         }
@@ -384,7 +384,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             try
             {
-                return new MetadataImport(Library, iunk);
+                return new MetadataImport(iunk);
             }
             catch (InvalidCastException)
             {
@@ -756,7 +756,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 HResult hr = VTable.GetHandleEnumForTypes(Self, ptr, types.Length, out IntPtr ptrEnum);
                 if (hr)
                 {
-                    SOSHandleEnum result = new(Library, ptrEnum);
+                    SOSHandleEnum result = new(ptrEnum);
                     ReleaseLeakedDacRef(result, nameof(ISOSDacVTable.GetHandleEnumForTypes));
                     return result;
                 }
@@ -770,7 +770,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             HResult hr = VTable.GetHandleEnum(Self, out IntPtr ptrEnum);
             if (hr)
             {
-                SOSHandleEnum result = new(Library, ptrEnum);
+                SOSHandleEnum result = new(ptrEnum);
                 ReleaseLeakedDacRef(result, nameof(ISOSDacVTable.GetHandleEnum));
                 return result;
             }
@@ -784,7 +784,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             if (hr)
             {
-                SOSStackRefEnum result = new(Library, ptrEnum);
+                SOSStackRefEnum result = new(ptrEnum);
                 ReleaseLeakedDacRef(result, nameof(ISOSDacVTable.GetStackReferences));
                 return result;
             }

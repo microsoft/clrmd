@@ -15,8 +15,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         internal static readonly Guid IID_ISOSDacInterface17 = new("2f4bb585-ed50-479e-bbe0-10a95a5da3bb");
 
-        public SosDac17(RefCountedFreeLibrary? library, IntPtr ptr)
-            : base(library, IID_ISOSDacInterface17, ptr)
+        public SosDac17(IntPtr ptr)
+            : base(IID_ISOSDacInterface17, ptr)
         {
         }
 
@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             try
             {
-                return new SosStressLogThreadEnum(Library, ptr);
+                return new SosStressLogThreadEnum(ptr);
             }
             catch (InvalidOperationException)
             {
@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             try
             {
-                return new SosStressLogMsgEnum(Library, ptr);
+                return new SosStressLogMsgEnum(ptr);
             }
             catch (InvalidOperationException)
             {
@@ -73,7 +73,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             try
             {
-                return new SosMemoryEnum(Library, ptr);
+                return new SosMemoryEnum(ptr);
             }
             catch (InvalidOperationException)
             {
@@ -98,8 +98,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         internal static readonly Guid IID_ISOSStressLogThreadEnum = new("94a2bd3d-ab3d-43bf-81d8-3ae96b8e33cd");
 
-        public SosStressLogThreadEnum(RefCountedFreeLibrary? library, IntPtr pUnk)
-            : base(library, IID_ISOSStressLogThreadEnum, pUnk)
+        public SosStressLogThreadEnum(IntPtr pUnk)
+            : base(IID_ISOSStressLogThreadEnum, pUnk)
         {
         }
 
@@ -142,8 +142,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         internal static readonly Guid IID_ISOSStressLogMsgEnum = new("437cb033-afe7-4c0f-a4a7-82c891bc049e");
 
-        public SosStressLogMsgEnum(RefCountedFreeLibrary? library, IntPtr pUnk)
-            : base(library, IID_ISOSStressLogMsgEnum, pUnk)
+        public SosStressLogMsgEnum(IntPtr pUnk)
+            : base(IID_ISOSStressLogMsgEnum, pUnk)
         {
         }
 

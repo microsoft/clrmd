@@ -12,8 +12,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
     {
         internal static readonly Guid IID_IDebugDataSpaces2 = new("7a5e852f-96e9-468f-ac1b-0b3addc4a049");
 
-        public DebugDataSpaces(RefCountedFreeLibrary library, IntPtr pUnk, DebugSystemObjects sys)
-            : base(library, IID_IDebugDataSpaces2, pUnk)
+        public DebugDataSpaces(IntPtr pUnk, DebugSystemObjects sys)
+            : base(IID_IDebugDataSpaces2, pUnk)
         {
             _sys = sys;
             SuppressRelease();

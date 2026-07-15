@@ -13,8 +13,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
     {
         internal static readonly Guid IID_DebugSystemObjects3 = new("e9676e2f-e286-4ea3-b0f9-dfe5d9fc330e");
 
-        public DebugSystemObjects(RefCountedFreeLibrary library, IntPtr pUnk)
-            : base(library, IID_DebugSystemObjects3, pUnk)
+        public DebugSystemObjects(IntPtr pUnk)
+            : base(IID_DebugSystemObjects3, pUnk)
         {
             SuppressRelease();
         }

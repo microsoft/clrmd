@@ -17,8 +17,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private readonly TargetProperties _target;
 
-        public SosDac12(RefCountedFreeLibrary? library, TargetProperties target, IntPtr ptr)
-            : base(library, IID_ISOSDac12, ptr)
+        public SosDac12(TargetProperties target, IntPtr ptr)
+            : base(IID_ISOSDac12, ptr)
         {
             _target = target;
         }

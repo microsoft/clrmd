@@ -17,8 +17,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         internal static readonly Guid IID_ISOSDac13 = new("3176a8ed-597b-4f54-a71f-83695c6a8c5e");
 
-        public SOSDac13(RefCountedFreeLibrary? library, IntPtr ptr)
-            : base(library, IID_ISOSDac13, ptr)
+        public SOSDac13(IntPtr ptr)
+            : base(IID_ISOSDac13, ptr)
         {
         }
 
@@ -94,19 +94,19 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public SosMemoryEnum? GetHandleTableRegions()
         {
             HResult hr = VTable.GetHandleTableMemoryRegions(Self, out nint pUnk);
-            return hr ? new SosMemoryEnum(Library, pUnk) : null;
+            return hr ? new SosMemoryEnum(pUnk) : null;
         }
 
         public SosMemoryEnum? GetGCBookkeepingMemoryRegions()
         {
             HResult hr = VTable.GetGCBookkeepingMemoryRegions(Self, out nint pUnk);
-            return hr ? new SosMemoryEnum(Library, pUnk) : null;
+            return hr ? new SosMemoryEnum(pUnk) : null;
         }
 
         public SosMemoryEnum? GetGCFreeRegions()
         {
             HResult hr = VTable.GetGCFreeRegions(Self, out nint pUnk);
-            return hr ? new SosMemoryEnum(Library, pUnk) : null;
+            return hr ? new SosMemoryEnum(pUnk) : null;
         }
 
         public void LockedFlush()
