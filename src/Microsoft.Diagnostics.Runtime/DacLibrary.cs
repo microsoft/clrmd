@@ -49,7 +49,10 @@ namespace Microsoft.Diagnostics.Runtime
             // load below operate on a full path (callers may pass a relative or non-normalized path).
             dacPath = Path.GetFullPath(dacPath);
 
-            TargetProperties = new TargetProperties(pointerSize: dataTarget.DataReader.PointerSize);
+            // This TargetProperties feeds only pointer-size address translation (ClrDataProcess/SosDac12);
+            // its ThinLockLayout is never consumed here, so the conservative Legacy layout is used. The
+            // canonical layout for thin-lock decoding is computed per-runtime in DacServiceProvider.
+            TargetProperties = new TargetProperties(ThinLockLayout.Legacy, dataTarget.DataReader.PointerSize);
 
             IDisposable? fileLock = null;
             IntPtr dacLibrary;

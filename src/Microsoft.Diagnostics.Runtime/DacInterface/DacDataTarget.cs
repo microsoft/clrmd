@@ -51,7 +51,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public int PointerSize => _dataTarget.DataReader.PointerSize;
 
-        public TargetProperties TargetProperties => _targetProperties ??= new TargetProperties(pointerSize: PointerSize);
+        // Used only for pointer-size address translation in ReadVirtual; ThinLockLayout is never read
+        // here, so the conservative Legacy layout is used.
+        public TargetProperties TargetProperties => _targetProperties ??= new TargetProperties(ThinLockLayout.Legacy, PointerSize);
         private TargetProperties? _targetProperties;
 
         public void Flush()

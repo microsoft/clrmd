@@ -22,7 +22,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly IMemoryReader _memoryReader;
         private readonly TargetProperties _target;
         private readonly GCState _gcState;
-        private readonly ThinLockLayout _thinLockLayout;
         private readonly HashSet<ulong> _validMethodTables = new();
 
         private const uint LegacySyncBlockRecLevelMask = 0x0000FC00;
@@ -34,14 +33,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private const uint SyncBlockSpinLock = 0x10000000;
         private const uint SyncBlockHashOrSyncBlockIndex = 0x08000000;
 
-        internal enum ThinLockLayout
-        {
-            Legacy,
-            Large,
-            LargeWithLegacyFallback,
-        }
-
-        public DacHeap(SOSDac sos, SOSDac8? sos8, SosDac12? sos12, ISOSDac16? sos16, IMemoryReader reader, TargetProperties target, ThinLockLayout thinLockLayout, in GCInfo gcInfo, in CommonMethodTables commonMethodTables)
+        public DacHeap(SOSDac sos, SOSDac8? sos8, SosDac12? sos12, ISOSDac16? sos16, IMemoryReader reader, TargetProperties target, in GCInfo gcInfo, in CommonMethodTables commonMethodTables)
         {
             _sos = sos;
             _sos8 = sos8;
@@ -49,7 +41,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             _sos16 = sos16;
             _memoryReader = reader;
             _target = target;
-            _thinLockLayout = thinLockLayout;
 
             _gcState = new()
             {
@@ -419,7 +410,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
         public (ulong Thread, int Recursion) GetThinLock(uint header)
         {
-            if (!TryGetThinLock(header, _thinLockLayout, out ulong threadAddress, out uint recursion))
+            if (!TryGetThinLock(header, _target.ThinLockLayout, out ulong threadAddress, out uint recursion))
                 return default;
 
             return (threadAddress, recursion.ToSigned());

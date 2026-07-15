@@ -70,7 +70,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         {
             _clrInfo = clrInfo;
             _dataReader = _clrInfo.DataTarget.DataReader;
-            _target = new TargetProperties(pointerSize: _dataReader.PointerSize);
+            ThinLockLayout thinlockLayout = DacHeap.GetThinLockLayout(_clrInfo.Flavor, _clrInfo.Version);
+            _target = new TargetProperties(thinlockLayout, _dataReader.PointerSize);
 
             _dac = dac;
             _process = process;
@@ -99,7 +100,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             // when the process is disposed, leaving the host's reference intact.
             Marshal.AddRef(clrDataProcess);
 
-            TargetProperties target = new(pointerSize: clrInfo.DataTarget.DataReader.PointerSize);
+            ThinLockLayout thinlockLayout = DacHeap.GetThinLockLayout(clrInfo.Flavor, clrInfo.Version);
+            TargetProperties target = new(thinlockLayout, clrInfo.DataTarget.DataReader.PointerSize);
             return new ClrDataProcess(dacLock, target, clrDataProcess);
         }
 
@@ -173,7 +175,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     }
 
                     if (initialized)
-                        return _heapHelper = new DacHeap(_sos, _sos8, _sos12, _sos16, _dataReader, _target, DacHeap.GetThinLockLayout(_clrInfo.Flavor, _clrInfo.Version), data, mts);
+                        return _heapHelper = new DacHeap(_sos, _sos8, _sos12, _sos16, _dataReader, _target, data, mts);
 
                     return null;
                 }
