@@ -12,8 +12,9 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
     {
         private readonly ClrInfo _clrInfo;
         private readonly IDataReader _dataReader;
+        private readonly TargetProperties _target;
 
-        private readonly DacLibrary _dac;
+        private readonly DacLibrary? _dac;
         private readonly ClrDataProcess _process;
         private readonly SOSDac _sos;
         private readonly SOSDac6? _sos6;
@@ -46,6 +47,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         {
             _clrInfo = clrInfo;
             _dataReader = _clrInfo.DataTarget.DataReader;
+            _target = new TargetProperties(pointerSize: _dataReader.PointerSize);
 
             _dac = library;
             _process = library.CreateClrDataProcess();
@@ -85,7 +87,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 _sos14?.Dispose();
                 _sos16?.Dispose();
                 _sos17?.Dispose();
-                _dac.Dispose();
+                _dac?.Dispose();
                 _moduleHelper?.Dispose();
             }
         }
@@ -102,7 +104,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (r is not null)
                     return r;
                 lock (_serviceLock)
-                    return _runtime ??= new DacRuntime(_clrInfo, _process, _sos, _sos13, _dac.TargetProperties);
+                    return _runtime ??= new DacRuntime(_clrInfo, _process, _sos, _sos13, _target);
             }
 
             if (serviceType == typeof(IAbstractHeap))
@@ -126,7 +128,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     }
 
                     if (initialized)
-                        return _heapHelper = new DacHeap(_sos, _sos8, _sos12, _sos16, _dataReader, _dac.TargetProperties, DacHeap.GetThinLockLayout(_clrInfo.Flavor, _clrInfo.Version), data, mts);
+                        return _heapHelper = new DacHeap(_sos, _sos8, _sos12, _sos16, _dataReader, _target, DacHeap.GetThinLockLayout(_clrInfo.Flavor, _clrInfo.Version), data, mts);
 
                     return null;
                 }
@@ -139,8 +141,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     return t;
                 lock (_serviceLock)
                 {
-                    _moduleHelper ??= new(_sos, _dac.TargetProperties);
-                    return _typeHelper ??= new DacTypeHelpers(_process, _sos, _sos6, _sos8, _sos14, _dataReader, _moduleHelper, _dac.TargetProperties, _clrInfo.Flavor, _clrInfo.Version?.Major ?? 0);
+                    _moduleHelper ??= new(_sos, _target);
+                    return _typeHelper ??= new DacTypeHelpers(_process, _sos, _sos6, _sos8, _sos14, _dataReader, _moduleHelper, _target, _clrInfo.Flavor, _clrInfo.Version?.Major ?? 0);
                 }
             }
 
@@ -150,7 +152,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (n is not null)
                     return n;
                 lock (_serviceLock)
-                    return _nativeHeaps ??= new DacNativeHeaps(_clrInfo, _sos, _sos13, _dataReader, _dac.TargetProperties);
+                    return _nativeHeaps ??= new DacNativeHeaps(_clrInfo, _sos, _sos13, _dataReader, _target);
             }
 
             if (serviceType == typeof(IAbstractModuleHelpers))
@@ -159,7 +161,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (m is not null)
                     return m;
                 lock (_serviceLock)
-                    return _moduleHelper ??= new DacModuleHelpers(_sos, _dac.TargetProperties);
+                    return _moduleHelper ??= new DacModuleHelpers(_sos, _target);
             }
 
             if (serviceType == typeof(IAbstractComHelpers))
@@ -168,7 +170,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (c is not null)
                     return c;
                 lock (_serviceLock)
-                    return _com ??= new DacComHelpers(_sos, _dac.TargetProperties);
+                    return _com ??= new DacComHelpers(_sos, _target);
             }
 
             if (serviceType == typeof(IAbstractLegacyThreadPool))
@@ -177,7 +179,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (p is not null)
                     return p;
                 lock (_serviceLock)
-                    return _threadPool ??= new DacLegacyThreadPool(_sos, _dac.TargetProperties);
+                    return _threadPool ??= new DacLegacyThreadPool(_sos, _target);
             }
 
             if (serviceType == typeof(IAbstractMethodLocator))
@@ -186,7 +188,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (l is not null)
                     return l;
                 lock (_serviceLock)
-                    return _methodLocator ??= new DacMethodLocator(_sos, _dataReader, _dac.TargetProperties);
+                    return _methodLocator ??= new DacMethodLocator(_sos, _dataReader, _target);
             }
 
             if (serviceType == typeof(IAbstractThreadHelpers))
@@ -195,7 +197,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (th is not null)
                     return th;
                 lock (_serviceLock)
-                    return _threadHelper ??= new DacThreadHelpers(_process, _sos, _dataReader, _dac.TargetProperties);
+                    return _threadHelper ??= new DacThreadHelpers(_process, _sos, _dataReader, _target);
             }
 
             if (serviceType == typeof(IAbstractStressLog))
@@ -207,7 +209,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (s is not null)
                     return s;
                 lock (_serviceLock)
-                    return _stressLog ??= new DacStressLog(_sos, _sos17, _dac.TargetProperties);
+                    return _stressLog ??= new DacStressLog(_sos, _sos17, _target);
             }
 
             if (serviceType == typeof(IAbstractDacController))
