@@ -58,7 +58,6 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             _sos16 = _process.CreateSOSDacInterface16();
             _sos17 = _process.CreateSOSDacInterface17();
 
-            library.DacDataTarget.SetMagicCallback(_process.Flush);
             IsThreadSafe = _sos13 is not null || RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         }
 
@@ -240,37 +239,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 {
                     _sos13.LockedFlush();
                 }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    // IXClrDataProcess::Flush is unfortunately not wrapped with DAC_ENTER.  This means that
-                    // when it starts deleting memory, it's completely unsynchronized with parallel reads
-                    // and writes, leading to heap corruption and other issues.  This means that in order to
-                    // properly clear dac data structures, we need to trick the dac into entering the critical
-                    // section for us so we can call Flush safely then.
-
-                    // To accomplish this, we set a hook in our implementation of IDacDataTarget::ReadVirtual
-                    // which will call IXClrDataProcess::Flush if the dac tries to read the address set by
-                    // MagicCallbackConstant.  Additionally we make sure this doesn't interfere with other
-                    // reads by 1) Ensuring that the address is in kernel space, 2) only calling when we've
-                    // entered a special context.
-
-                    _dac.DacDataTarget.EnterMagicCallbackContext();
-                    try
-                    {
-                        _sos.GetWorkRequestData(ClrDataAddress.FromTargetAddress(DacDataTarget.MagicCallbackConstant, _dac.TargetProperties), out _);
-                    }
-                    finally
-                    {
-                        _dac.DacDataTarget.ExitMagicCallbackContext();
-                    }
-                }
                 else
                 {
-                    // On Linux/MacOS, skip the above workaround because calling Flush() in the DAC data target's
-                    // ReadVirtual function can cause a SEGSIGV because of an access of freed memory causing the
-                    // tool/app running CLRMD to crash. On Windows, it would be caught by the SEH try/catch handler
-                    // in DAC enter/leave code.
-
                     _process.Flush();
                 }
             }
