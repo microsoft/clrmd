@@ -14,6 +14,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         protected IntPtr Self { get; }
         private readonly IUnknownVTable* _unknownVTable;
 
+        /// <summary>
+        /// Returns the underlying COM interface pointer without adding a reference. The caller must ensure
+        /// this wrapper (and thus its reference) outlives any use of the returned pointer, or add its own
+        /// reference first. Intended for interop hand-off scenarios.
+        /// </summary>
+        internal IntPtr DangerousGetHandle() => Self;
+
         public RefCountedFreeLibrary? Library { get; }
 
         protected void* _vtable => _unknownVTable + 1;

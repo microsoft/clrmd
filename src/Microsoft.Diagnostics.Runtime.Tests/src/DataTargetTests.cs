@@ -1,14 +1,60 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using System.IO;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.DacInterface;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class DataTargetTests
     {
+        [Fact]
+        public void AddLoadedRuntime_ForeignClrDataProcess_MatchesNormalRuntime()
+        {
+            // Validates the host-supplied IXCLRDataProcess path (used by SOS). We stand in for the host by
+            // producing a fresh IXCLRDataProcess from ClrMD's own DAC, then feeding the raw pointer through
+            // AddLoadedRuntime and confirming the resulting runtime walks the heap identically.
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            ClrInfo clrInfo = dt.ClrVersions.Single();
+
+            using ClrRuntime baseline = clrInfo.CreateRuntime();
+            (ulong Address, string Type)[] expected = baseline.Heap.EnumerateObjects()
+                                                               .Take(2000)
+                                                               .Select(o => (o.Address, o.Type?.Name ?? ""))
+                                                               .ToArray();
+
+            DacLibrary dac = baseline.GetService<DacLibrary>();
+            Assert.NotNull(dac);
+
+            // A host would create its own IXCLRDataProcess; here we clone one from the DAC (this AddRefs it).
+            using ClrDataProcess process = dac.CreateClrDataProcess();
+            IntPtr pClrDataProcess = process.DangerousGetHandle();
+
+            ClrInfo hosted = new(dt, clrInfo.ModuleInfo, clrInfo.Version)
+            {
+                Flavor = clrInfo.Flavor,
+                IsSingleFile = clrInfo.IsSingleFile,
+            };
+
+            Assert.Same(hosted, dt.AddLoadedRuntime(hosted, pClrDataProcess));
+
+            using ClrRuntime foreign = hosted.CreateRuntime();
+            (ulong Address, string Type)[] actual = foreign.Heap.EnumerateObjects()
+                                                             .Take(2000)
+                                                             .Select(o => (o.Address, o.Type?.Name ?? ""))
+                                                             .ToArray();
+
+            Assert.Equal(expected.Length, actual.Length);
+            for (int i = 0; i < expected.Length; i++)
+            {
+                Assert.Equal(expected[i].Address, actual[i].Address);
+                Assert.Equal(expected[i].Type, actual[i].Type);
+            }
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]

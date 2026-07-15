@@ -27,14 +27,42 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Constructs a <see cref="ClrInfo"/> for a runtime whose DAC data-access interface
+        /// (<c>IXCLRDataProcess</c>) is supplied by the host through
+        /// <see cref="DataTarget.AddLoadedRuntime(ClrInfo, IntPtr, object?)"/>. Use this when the host
+        /// (e.g. SOS) performs its own runtime detection and DAC/cDAC construction instead of relying on
+        /// ClrMD's <see cref="IClrInfoProvider"/> discovery.
+        /// </summary>
+        public ClrInfo(DataTarget dt, ModuleInfo module, Version clrVersion)
+        {
+            DataTarget = dt ?? throw new ArgumentNullException(nameof(dt));
+            ModuleInfo = module ?? throw new ArgumentNullException(nameof(module));
+            Version = clrVersion ?? throw new ArgumentNullException(nameof(clrVersion));
+        }
+
+        /// <summary>
         /// The DataTarget containing this ClrInfo.
         /// </summary>
         public DataTarget DataTarget { get; }
 
         /// <summary>
-        /// The IClrInfoProvider which created this ClrInfo.
+        /// The IClrInfoProvider which created this ClrInfo, or <see langword="null"/> when this ClrInfo was
+        /// created for a host-supplied runtime (see <see cref="DataTarget.AddLoadedRuntime(ClrInfo, IntPtr, object?)"/>).
         /// </summary>
-        internal IClrInfoProvider ClrInfoProvider { get; }
+        internal IClrInfoProvider? ClrInfoProvider { get; }
+
+        /// <summary>
+        /// A factory that produces the host-owned <c>IXCLRDataProcess</c> pointer for this runtime, set by
+        /// <see cref="DataTarget.AddLoadedRuntime(ClrInfo, System.Func{IntPtr}, object?)"/>. When non-null,
+        /// <see cref="CreateRuntime()"/> uses it instead of loading a DAC through <see cref="ClrInfoProvider"/>.
+        /// </summary>
+        internal Func<IntPtr>? ClrDataProcessFactory { get; set; }
+
+        /// <summary>
+        /// The lock that serializes DAC calls for a host-supplied runtime. May be shared with the host so its
+        /// own DAC usage is serialized against ClrMD's.
+        /// </summary>
+        internal object? DacLock { get; set; }
 
         IDataTarget IClrInfo.DataTarget => DataTarget;
 
@@ -133,7 +161,28 @@ namespace Microsoft.Diagnostics.Runtime
         {
             try
             {
-                IServiceProvider services = ClrInfoProvider.GetDacServices(this, dacPath, ignoreMismatch, DataTarget.Options.VerifyDacOnWindows);
+                IServiceProvider services;
+                if (ClrDataProcessFactory is not null)
+                {
+                    // Host-supplied runtime: build DAC services over the host's IXCLRDataProcess instead of
+                    // loading a DAC ourselves. The provided dacPath/ignoreMismatch do not apply here.
+                    IntPtr clrDataProcess = ClrDataProcessFactory();
+                    if (clrDataProcess == IntPtr.Zero)
+                        throw new ClrDiagnosticsException("The IXCLRDataProcess factory returned a null pointer.");
+
+                    services = new DacImplementation.DacServiceProvider(this, clrDataProcess, DacLock ?? new object());
+                }
+                else if (ClrInfoProvider is not null)
+                {
+                    services = ClrInfoProvider.GetDacServices(this, dacPath, ignoreMismatch, DataTarget.Options.VerifyDacOnWindows);
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        "This ClrInfo cannot create a runtime: it has neither an IClrInfoProvider nor a host-supplied IXCLRDataProcess. " +
+                        "Register it via DataTarget.AddLoadedRuntime before calling CreateRuntime.");
+                }
+
                 return new ClrRuntime(this, services);
             }
             catch (Exception ex) when (DataTarget.DataReader is IDumpInfoProvider { IsCreatedByDotNetRuntime: false } provider)

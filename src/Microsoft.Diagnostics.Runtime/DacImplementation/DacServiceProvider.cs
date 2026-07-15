@@ -44,13 +44,36 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly object _serviceLock = new();
 
         public DacServiceProvider(ClrInfo clrInfo, DacLibrary library)
+            : this(clrInfo, library, library.CreateClrDataProcess())
+        {
+        }
+
+        /// <summary>
+        /// Constructs a <see cref="DacServiceProvider"/> over an <c>IXCLRDataProcess</c> that the host
+        /// (e.g. SOS) created and owns. ClrMD does not own or unload the underlying DAC module. The host
+        /// retains its own reference to <paramref name="clrDataProcess"/>: this constructor adds a reference
+        /// (balanced by a release on <see cref="Dispose"/>) so the host's reference is unaffected, but the
+        /// host must keep the pointer alive for the lifetime of the resulting runtime.
+        /// </summary>
+        /// <param name="clrInfo">The runtime this DAC represents.</param>
+        /// <param name="clrDataProcess">A host-owned <c>IXCLRDataProcess</c> pointer.</param>
+        /// <param name="dacLock">
+        /// The lock that serializes all DAC calls. Pass the host's lock to serialize the host's own DAC
+        /// usage against ClrMD's; the DAC is not thread-safe and concurrent calls corrupt its state.
+        /// </param>
+        public DacServiceProvider(ClrInfo clrInfo, IntPtr clrDataProcess, object dacLock)
+            : this(clrInfo, dac: null, CreateForeignProcess(clrInfo, clrDataProcess, dacLock))
+        {
+        }
+
+        private DacServiceProvider(ClrInfo clrInfo, DacLibrary? dac, ClrDataProcess process)
         {
             _clrInfo = clrInfo;
             _dataReader = _clrInfo.DataTarget.DataReader;
             _target = new TargetProperties(pointerSize: _dataReader.PointerSize);
 
-            _dac = library;
-            _process = library.CreateClrDataProcess();
+            _dac = dac;
+            _process = process;
             _sos = _process.CreateSOSDacInterface() ?? throw new InvalidOperationException($"Could not create ISOSDacInterface.");
             _sos6 = _process.CreateSOSDacInterface6();
             _sos8 = _process.CreateSOSDacInterface8();
@@ -61,6 +84,23 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             _sos17 = _process.CreateSOSDacInterface17();
 
             IsThreadSafe = _sos13 is not null || RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        }
+
+        private static ClrDataProcess CreateForeignProcess(ClrInfo clrInfo, IntPtr clrDataProcess, object dacLock)
+        {
+            if (clrDataProcess == IntPtr.Zero)
+                throw new ArgumentNullException(nameof(clrDataProcess));
+            if (dacLock is null)
+                throw new ArgumentNullException(nameof(dacLock));
+
+            // The ClrDataProcess wrapper's constructor does QueryInterface + Release(pUnknown), which is
+            // reference-count-neutral on the object but consumes the reference identity we pass in. AddRef
+            // here so the host keeps its own reference; the wrapper releases exactly this added reference
+            // when the process is disposed, leaving the host's reference intact.
+            Marshal.AddRef(clrDataProcess);
+
+            TargetProperties target = new(pointerSize: clrInfo.DataTarget.DataReader.PointerSize);
+            return new ClrDataProcess(library: null, dacLock, target, clrDataProcess);
         }
 
         public void Dispose()

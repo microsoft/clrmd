@@ -64,6 +64,66 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Registers a runtime whose DAC data-access interface (<c>IXCLRDataProcess</c>) is created and owned
+        /// by the host, bypassing ClrMD's <see cref="IClrInfoProvider"/> runtime discovery. Use this when the
+        /// host (e.g. SOS) performs its own runtime detection and DAC/cDAC construction.
+        /// <para>
+        /// The registered runtime is appended to <see cref="ClrVersions"/>. If <see cref="ClrVersions"/> has
+        /// not yet been queried, registering a runtime suppresses automatic discovery, so a host that wants
+        /// full control should register all runtimes before enumerating <see cref="ClrVersions"/>.
+        /// </para>
+        /// </summary>
+        /// <param name="clrInfo">
+        /// A <see cref="ClrInfo"/> created for this <see cref="DataTarget"/> (see
+        /// <see cref="ClrInfo(DataTarget, ModuleInfo, Version)"/>).
+        /// </param>
+        /// <param name="clrDataProcess">A host-owned <c>IXCLRDataProcess</c> pointer for the runtime.</param>
+        /// <param name="dacLock">
+        /// Optional lock serializing DAC calls. Pass the host's lock to serialize the host's own DAC usage
+        /// against ClrMD's (the DAC is not thread-safe). If <see langword="null"/>, ClrMD uses its own lock,
+        /// which only serializes ClrMD's callers.
+        /// </param>
+        /// <returns>The registered <paramref name="clrInfo"/>.</returns>
+        public ClrInfo AddLoadedRuntime(ClrInfo clrInfo, IntPtr clrDataProcess, object? dacLock = null)
+        {
+            if (clrDataProcess == IntPtr.Zero)
+                throw new ArgumentNullException(nameof(clrDataProcess));
+
+            return AddLoadedRuntime(clrInfo, () => clrDataProcess, dacLock);
+        }
+
+        /// <summary>
+        /// Registers a runtime whose DAC data-access interface (<c>IXCLRDataProcess</c>) is created lazily and
+        /// owned by the host. See <see cref="AddLoadedRuntime(ClrInfo, IntPtr, object?)"/> for details. The
+        /// factory is invoked the first time a runtime is created from <paramref name="clrInfo"/>.
+        /// </summary>
+        /// <param name="clrInfo">A <see cref="ClrInfo"/> created for this <see cref="DataTarget"/>.</param>
+        /// <param name="createClrDataProcess">
+        /// A factory returning a host-owned <c>IXCLRDataProcess</c> pointer. The host retains ownership; ClrMD
+        /// adds and releases its own reference and does not unload the underlying DAC module.
+        /// </param>
+        /// <param name="dacLock">Optional lock serializing DAC calls; see the other overload.</param>
+        /// <returns>The registered <paramref name="clrInfo"/>.</returns>
+        public ClrInfo AddLoadedRuntime(ClrInfo clrInfo, Func<IntPtr> createClrDataProcess, object? dacLock = null)
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(DataTarget));
+            if (clrInfo is null)
+                throw new ArgumentNullException(nameof(clrInfo));
+            if (createClrDataProcess is null)
+                throw new ArgumentNullException(nameof(createClrDataProcess));
+            if (clrInfo.DataTarget != this)
+                throw new InvalidOperationException("The ClrInfo was created for a different DataTarget.");
+
+            clrInfo.ClrDataProcessFactory = createClrDataProcess;
+            clrInfo.DacLock = dacLock;
+
+            ImmutableArray<ClrInfo> current = _clrs.IsDefault ? ImmutableArray<ClrInfo>.Empty : _clrs;
+            _clrs = current.Add(clrInfo);
+            return clrInfo;
+        }
+
+        /// <summary>
         /// The options set for this data target.
         /// </summary>
         public DataTargetOptions Options { get; } = _options ?? new DataTargetOptions();
