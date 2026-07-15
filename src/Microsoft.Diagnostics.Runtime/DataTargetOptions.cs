@@ -71,6 +71,14 @@ public class DataTargetOptions
     public bool ForceCompleteRuntimeEnumeration { get; set; }
 
     /// <summary>
+    /// If true, ClrMD performs no runtime enumeration at all and <see cref="DataTarget.ClrVersions"/> will be
+    /// empty unless runtimes are registered explicitly via <see cref="DataTarget.AddLoadedRuntime(ClrInfo, System.IntPtr, object)"/>.
+    /// Set this when a host performs its own complete runtime detection and does not want to pay the cost of
+    /// ClrMD's discovery. Defaults to false.
+    /// </summary>
+    public bool SkipRuntimeEnumeration { get; set; }
+
+    /// <summary>
     /// The TokenCredential to use for any Azure based symbol servers (set to null if not using one).
     /// </summary>
     public TokenCredential? SymbolTokenCredential { get; set; }

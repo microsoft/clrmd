@@ -12,6 +12,37 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     public class DataTargetTests
     {
         [Fact]
+        public void SkipRuntimeEnumeration_ClrVersionsIsEmpty()
+        {
+            // With SkipRuntimeEnumeration set, ClrMD performs no detection and ClrVersions is empty until a
+            // host registers a runtime explicitly.
+            using DataTarget dt = TestTargets.Types.LoadFullDump(options: new DataTargetOptions { SkipRuntimeEnumeration = true });
+            Assert.Empty(dt.ClrVersions);
+        }
+
+        [Fact]
+        public void AddLoadedRuntime_ReplacesRuntimeWithSameModuleInfo()
+        {
+            // Registering a runtime for a ModuleInfo that already has one (e.g. ClrMD detected it) replaces
+            // the existing entry rather than adding a duplicate.
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            ClrInfo detected = dt.ClrVersions.Single();
+            int originalCount = dt.ClrVersions.Length;
+
+            ClrInfo hosted = new(dt, detected.ModuleInfo, detected.Version)
+            {
+                Flavor = detected.Flavor,
+                IsSingleFile = detected.IsSingleFile,
+            };
+
+            dt.AddLoadedRuntime(hosted, () => IntPtr.Zero);
+
+            Assert.Equal(originalCount, dt.ClrVersions.Length);
+            Assert.Same(hosted, dt.ClrVersions.Single(c => ReferenceEquals(c.ModuleInfo, detected.ModuleInfo)));
+            Assert.DoesNotContain(detected, dt.ClrVersions);
+        }
+
+        [Fact]
         public void AddLoadedRuntime_ForeignClrDataProcess_MatchesNormalRuntime()
         {
             // Validates the host-supplied IXCLRDataProcess path (used by SOS). We stand in for the host by

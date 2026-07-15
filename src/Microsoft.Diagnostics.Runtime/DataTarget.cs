@@ -68,9 +68,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// by the host, bypassing ClrMD's <see cref="IClrInfoProvider"/> runtime discovery. Use this when the
         /// host (e.g. SOS) performs its own runtime detection and DAC/cDAC construction.
         /// <para>
-        /// The registered runtime is appended to <see cref="ClrVersions"/>. If <see cref="ClrVersions"/> has
-        /// not yet been queried, registering a runtime suppresses automatic discovery, so a host that wants
-        /// full control should register all runtimes before enumerating <see cref="ClrVersions"/>.
+        /// If a runtime with the same <see cref="ClrInfo.ModuleInfo"/> is already registered (for example one
+        /// ClrMD detected), it is replaced; otherwise the runtime is appended to <see cref="ClrVersions"/>. If
+        /// <see cref="ClrVersions"/> has not yet been queried, registering a runtime suppresses automatic
+        /// discovery, so a host that wants full control should register all runtimes before enumerating
+        /// <see cref="ClrVersions"/> (or set <see cref="DataTargetOptions.SkipRuntimeEnumeration"/>).
         /// </para>
         /// </summary>
         /// <param name="clrInfo">
@@ -119,6 +121,19 @@ namespace Microsoft.Diagnostics.Runtime
             clrInfo.DacLock = dacLock;
 
             ImmutableArray<ClrInfo> current = _clrs.IsDefault ? ImmutableArray<ClrInfo>.Empty : _clrs;
+
+            // A given module maps to a single runtime: if a ClrInfo for the same ModuleInfo is already
+            // registered (e.g. one ClrMD detected, or a prior registration for the same module), replace it
+            // rather than adding a duplicate. ClrVersions is short, so a linear scan is fine.
+            for (int i = 0; i < current.Length; i++)
+            {
+                if (ReferenceEquals(current[i].ModuleInfo, clrInfo.ModuleInfo))
+                {
+                    _clrs = current.SetItem(i, clrInfo);
+                    return clrInfo;
+                }
+            }
+
             _clrs = current.Add(clrInfo);
             return clrInfo;
         }
@@ -266,6 +281,14 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (_clrs.IsDefault)
             {
+                // A host may perform its own complete runtime detection and register runtimes via
+                // AddLoadedRuntime. In that case skip ClrMD's enumeration entirely so we don't pay for it.
+                if (Options.SkipRuntimeEnumeration)
+                {
+                    _clrs = ImmutableArray<ClrInfo>.Empty;
+                    return _clrs;
+                }
+
                 IEnumerable<ModuleInfo> modules = EnumerateModules();
                 List<ClrInfo>? clrs = null;
 
