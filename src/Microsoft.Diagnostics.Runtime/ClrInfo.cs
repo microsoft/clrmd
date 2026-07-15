@@ -4,7 +4,11 @@
 using System;
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.AbstractDac;
+using Microsoft.Diagnostics.Runtime.DacImplementation;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace Microsoft.Diagnostics.Runtime
@@ -15,23 +19,11 @@ namespace Microsoft.Diagnostics.Runtime
     public sealed class ClrInfo : IClrInfo
     {
         /// <summary>
-        /// Constructs a <see cref="ClrInfo"/>. Use this from a custom
-        /// <see cref="IClrInfoProvider"/>.
-        /// </summary>
-        public ClrInfo(DataTarget dt, ModuleInfo module, Version clrVersion, IClrInfoProvider provider)
-        {
-            DataTarget = dt ?? throw new ArgumentNullException(nameof(dt));
-            ModuleInfo = module ?? throw new ArgumentNullException(nameof(module));
-            ClrInfoProvider = provider ?? throw new ArgumentNullException(nameof(provider));
-            Version = clrVersion ?? throw new ArgumentNullException(nameof(clrVersion));
-        }
-
-        /// <summary>
         /// Constructs a <see cref="ClrInfo"/> for a runtime whose DAC data-access interface
         /// (<c>IXCLRDataProcess</c>) is supplied by the host through
         /// <see cref="DataTarget.AddLoadedRuntime(ClrInfo, IntPtr, object?)"/>. Use this when the host
         /// (e.g. SOS) performs its own runtime detection and DAC/cDAC construction instead of relying on
-        /// ClrMD's <see cref="IClrInfoProvider"/> discovery.
+        /// ClrMD's discovery.
         /// </summary>
         public ClrInfo(DataTarget dt, ModuleInfo module, Version clrVersion)
         {
@@ -46,15 +38,9 @@ namespace Microsoft.Diagnostics.Runtime
         public DataTarget DataTarget { get; }
 
         /// <summary>
-        /// The IClrInfoProvider which created this ClrInfo, or <see langword="null"/> when this ClrInfo was
-        /// created for a host-supplied runtime (see <see cref="DataTarget.AddLoadedRuntime(ClrInfo, IntPtr, object?)"/>).
-        /// </summary>
-        internal IClrInfoProvider? ClrInfoProvider { get; }
-
-        /// <summary>
         /// A factory that produces the host-owned <c>IXCLRDataProcess</c> pointer for this runtime, set by
         /// <see cref="DataTarget.AddLoadedRuntime(ClrInfo, System.Func{IntPtr}, object?)"/>. When non-null,
-        /// <see cref="CreateRuntime()"/> uses it instead of loading a DAC through <see cref="ClrInfoProvider"/>.
+        /// <see cref="CreateRuntime()"/> uses it instead of resolving and loading a DAC for this runtime.
         /// </summary>
         internal Func<IntPtr>? ClrDataProcessFactory { get; set; }
 
@@ -170,17 +156,13 @@ namespace Microsoft.Diagnostics.Runtime
                     if (clrDataProcess == IntPtr.Zero)
                         throw new ClrDiagnosticsException("The IXCLRDataProcess factory returned a null pointer.");
 
-                    services = new DacImplementation.DacServiceProvider(this, clrDataProcess, DacLock ?? new object());
-                }
-                else if (ClrInfoProvider is not null)
-                {
-                    services = ClrInfoProvider.GetDacServices(this, dacPath, ignoreMismatch, DataTarget.Options.VerifyDacOnWindows);
+                    services = new DacServiceProvider(this, clrDataProcess, DacLock ?? new object());
                 }
                 else
                 {
-                    throw new InvalidOperationException(
-                        "This ClrInfo cannot create a runtime: it has neither an IClrInfoProvider nor a host-supplied IXCLRDataProcess. " +
-                        "Register it via DataTarget.AddLoadedRuntime before calling CreateRuntime.");
+                    // Normal path: resolve and load a matching DAC for this runtime, then build DAC services.
+                    DacLibrary library = GetDacLibraryFromPath(dacPath, ignoreMismatch, DataTarget.Options.VerifyDacOnWindows);
+                    services = new DacServiceProvider(this, library);
                 }
 
                 return new ClrRuntime(this, services);
@@ -193,6 +175,89 @@ namespace Microsoft.Diagnostics.Runtime
                     $"Recollect the dump using createdump or set DOTNET_DbgEnableMiniDump=1. Original error: {ex.Message}",
                     ex);
             }
+        }
+
+        private DacLibrary GetDacLibraryFromPath(string? dacPath, bool ignoreMismatch, bool verifySignature)
+        {
+            if (dacPath is not null)
+                return CreateDacFromPath(dacPath, ignoreMismatch, verifySignature);
+
+            OSPlatform currentPlatform = DotNetClrInfoProvider.GetCurrentPlatform();
+            Architecture currentArch = RuntimeInformation.ProcessArchitecture;
+            Exception? exception = null;
+            bool foundOne = false;
+
+            IFileLocator? locator = DataTarget.FileLocator;
+
+            foreach (DebugLibraryInfo dac in DebuggingLibraries.Where(r => r.Kind == DebugLibraryKind.Dac && r.Platform == currentPlatform && r.TargetArchitecture == currentArch))
+            {
+                foundOne = true;
+
+                // If we have a full path, use it.  We already validated that the CLR matches.
+                if (Path.GetFileName(dac.FileName) != dac.FileName)
+                {
+                    dacPath = dac.FileName;
+                }
+                else
+                {
+                    // The properties we are requesting under may not be the actual file properties, so don't request them.
+
+                    if (locator != null)
+                    {
+                        if (!dac.IndexBuildId.IsDefaultOrEmpty)
+                        {
+                            dacPath = locator.FindPEImage(dac.FileName, SymbolProperties.Coreclr, dac.IndexBuildId, DataTarget.DataReader.TargetPlatform, checkProperties: false);
+                        }
+                        else if (dac.IndexTimeStamp != 0 && dac.IndexFileSize != 0)
+                        {
+                            if (dac.Platform == OSPlatform.Windows)
+                                dacPath = DataTarget.FileLocator?.FindPEImage(dac.FileName, dac.IndexTimeStamp, dac.IndexFileSize, checkProperties: false);
+                        }
+                    }
+                }
+
+                if (dacPath is not null && File.Exists(dacPath))
+                {
+                    try
+                    {
+                        // If we get the file from the symbol server, assume mismatches are expected.  Sometimes we replace dacs on the symbol
+                        // server to fix bugs.  If it's archived under the right path, use it.
+                        return CreateDacFromPath(dacPath, ignoreMismatch: true, verifySignature);
+                    }
+                    catch (Exception ex)
+                    {
+                        exception ??= ex;
+                        dacPath = null;
+                    }
+                }
+            }
+
+            if (exception is not null)
+                throw exception;
+
+            // We should have had at least one dac enumerated if this is a supported scenario.
+            if (!foundOne)
+                throw new InvalidOperationException($"Debugging a '{DataTarget.DataReader.TargetPlatform}' crash is not supported on '{currentPlatform}'.");
+
+            if (currentPlatform == OSPlatform.Windows)
+                throw new FileNotFoundException("Could not find matching DAC for this runtime.");
+
+            throw new FileNotFoundException("Could not find matching DAC for this runtime.  Note that symbol server download of the DAC is disabled for this platform.");
+        }
+
+        private DacLibrary CreateDacFromPath(string dacPath, bool ignoreMismatch, bool verifySignature)
+        {
+            if (!File.Exists(dacPath))
+                throw new FileNotFoundException(dacPath);
+
+            if (!ignoreMismatch && !IsSingleFile)
+            {
+                DataTarget.PlatformFunctions.GetFileVersion(dacPath, out int major, out int minor, out int revision, out int patch);
+                if (major != Version.Major || minor != Version.Minor || revision != Version.Build || patch != Version.Revision)
+                    throw new ClrDiagnosticsException($"Mismatched dac. Dac version: {major}.{minor}.{revision}.{patch}, expected: {Version}.");
+            }
+
+            return new(DataTarget, dacPath, ModuleInfo.ImageBase, ContractDescriptorAddress, verifySignature);
         }
 
         IClrRuntime IClrInfo.CreateRuntime() => CreateRuntime();
