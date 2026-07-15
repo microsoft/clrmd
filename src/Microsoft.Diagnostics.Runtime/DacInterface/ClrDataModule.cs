@@ -15,8 +15,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private static readonly Guid IID_IXCLRDataModule = new("88E32849-0A0A-4cb0-9022-7CD2E9E139E2");
 
-        public ClrDataModule(DacLibrary library, IntPtr pUnknown)
-            : base(library?.OwningLibrary, IID_IXCLRDataModule, pUnknown)
+        public ClrDataModule(RefCountedFreeLibrary? library, IntPtr pUnknown)
+            : base(library, IID_IXCLRDataModule, pUnknown)
         {
         }
 

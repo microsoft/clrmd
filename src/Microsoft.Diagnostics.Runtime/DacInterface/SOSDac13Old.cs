@@ -17,8 +17,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         internal static readonly Guid IID_ISOSDac13 = new("3176a8ed-597b-4f54-a71f-83695c6a8c5d");
 
-        public SOSDac13Old(DacLibrary library, IntPtr ptr)
-            : base(library.OwningLibrary, IID_ISOSDac13, ptr)
+        public SOSDac13Old(RefCountedFreeLibrary? library, IntPtr ptr)
+            : base(library, IID_ISOSDac13, ptr)
         {
         }
 

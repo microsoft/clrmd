@@ -22,11 +22,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
         }
 
-        public MetadataImport(DacLibrary library, IntPtr pUnknown)
-            : base(library?.OwningLibrary, IID_IMetaDataImport, pUnknown)
-        {
-        }
-
         private ref readonly IMetaDataImportVTable VTable => ref Unsafe.AsRef<IMetaDataImportVTable>(_vtable);
 
         public IEnumerable<int> EnumerateInterfaceImpls(int token)

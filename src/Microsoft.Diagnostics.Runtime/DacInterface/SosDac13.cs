@@ -15,14 +15,11 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     /// </summary>
     internal sealed unsafe class SOSDac13 : CallableCOMWrapper, ISOSDac13
     {
-        private readonly DacLibrary _library;
-
         internal static readonly Guid IID_ISOSDac13 = new("3176a8ed-597b-4f54-a71f-83695c6a8c5e");
 
-        public SOSDac13(DacLibrary library, IntPtr ptr)
-            : base(library.OwningLibrary, IID_ISOSDac13, ptr)
+        public SOSDac13(RefCountedFreeLibrary? library, IntPtr ptr)
+            : base(library, IID_ISOSDac13, ptr)
         {
-            _library = library;
         }
 
         private ref readonly ISOSDac13VTable VTable => ref Unsafe.AsRef<ISOSDac13VTable>(_vtable);
@@ -97,19 +94,19 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         public SosMemoryEnum? GetHandleTableRegions()
         {
             HResult hr = VTable.GetHandleTableMemoryRegions(Self, out nint pUnk);
-            return hr ? new SosMemoryEnum(_library, pUnk) : null;
+            return hr ? new SosMemoryEnum(Library, pUnk) : null;
         }
 
         public SosMemoryEnum? GetGCBookkeepingMemoryRegions()
         {
             HResult hr = VTable.GetGCBookkeepingMemoryRegions(Self, out nint pUnk);
-            return hr ? new SosMemoryEnum(_library, pUnk) : null;
+            return hr ? new SosMemoryEnum(Library, pUnk) : null;
         }
 
         public SosMemoryEnum? GetGCFreeRegions()
         {
             HResult hr = VTable.GetGCFreeRegions(Self, out nint pUnk);
-            return hr ? new SosMemoryEnum(_library, pUnk) : null;
+            return hr ? new SosMemoryEnum(Library, pUnk) : null;
         }
 
         public void LockedFlush()

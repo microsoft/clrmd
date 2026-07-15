@@ -16,19 +16,22 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     internal sealed unsafe class ClrDataProcess : CallableCOMWrapper
     {
         private static readonly Guid IID_IXCLRDataProcess = new("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
-        private readonly DacLibrary _library;
+        private readonly object _syncRoot;
+        private readonly TargetProperties _target;
 
-        public ClrDataProcess(DacLibrary library, IntPtr pUnknown)
-            : base(library.OwningLibrary, IID_IXCLRDataProcess, pUnknown)
+        public ClrDataProcess(RefCountedFreeLibrary? library, object syncRoot, TargetProperties target, IntPtr pUnknown)
+            : base(library, IID_IXCLRDataProcess, pUnknown)
         {
-            _library = library;
+            _syncRoot = syncRoot;
+            _target = target;
         }
 
         private ref readonly IXCLRDataProcessVTable VTable => ref Unsafe.AsRef<IXCLRDataProcessVTable>(_vtable);
 
-        public ClrDataProcess(DacLibrary library, CallableCOMWrapper toClone) : base(toClone)
+        public ClrDataProcess(object syncRoot, TargetProperties target, CallableCOMWrapper toClone) : base(toClone)
         {
-            _library = library;
+            _syncRoot = syncRoot;
+            _target = target;
         }
 
         public SOSDac? CreateSOSDacInterface()
@@ -39,7 +42,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             try
             {
-                return new SOSDac(_library, result);
+                return new SOSDac(Library, _syncRoot, result);
             }
             catch (InvalidOperationException)
             {
@@ -55,7 +58,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             try
             {
-                return new SOSDac6(_library, result);
+                return new SOSDac6(Library, result);
             }
             catch (InvalidOperationException)
             {
@@ -71,7 +74,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             try
             {
-                return new SOSDac8(_library, result);
+                return new SOSDac8(Library, result);
             }
             catch (InvalidOperationException)
             {
@@ -87,7 +90,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             try
             {
-                return new SosDac12(_library, result);
+                return new SosDac12(Library, _target, result);
             }
             catch (InvalidOperationException)
             {
@@ -102,7 +105,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             {
                 try
                 {
-                    return new SOSDac13(_library, result);
+                    return new SOSDac13(Library, result);
                 }
                 catch (InvalidOperationException)
                 {
@@ -114,7 +117,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             {
                 try
                 {
-                    return new SOSDac13Old(_library, result);
+                    return new SOSDac13Old(Library, result);
                 }
                 catch (InvalidOperationException)
                 {
@@ -132,7 +135,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             try
             {
-                return new SosDac14(_library, result);
+                return new SosDac14(Library, result);
             }
             catch (InvalidOperationException)
             {
@@ -148,7 +151,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             try
             {
-                return new SOSDac16(_library, result);
+                return new SOSDac16(Library, result);
             }
             catch (InvalidOperationException)
             {
@@ -164,7 +167,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             try
             {
-                return new SosDac17(_library, result);
+                return new SosDac17(Library, result);
             }
             catch (InvalidOperationException)
             {
@@ -190,13 +193,13 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             if (!hr)
                 return null;
 
-            using ClrDataTask dataTask = new(_library, pUnkTask);
+            using ClrDataTask dataTask = new(Library, pUnkTask);
             // There's a bug in certain runtimes where we will fail to release data deep in the runtime
             // when a C++ exception occurs while constructing a ClrDataStackWalk.  This is a workaround
             // for the largest of the leaks caused by this issue.
             //     https://github.com/Microsoft/clrmd/issues/47
             int count = AddRef();
-            ClrStackWalk? res = dataTask.CreateStackWalk(_library, flags);
+            ClrStackWalk? res = dataTask.CreateStackWalk(Library, flags);
             int released = Release();
             if (released == count && res is null)
                 Release();
@@ -214,7 +217,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             try
             {
                 while (VTable.EnumMethodInstanceByAddress(Self, ref handle, out IntPtr method) == HResult.S_OK)
-                    result.Add(new ClrDataMethod(_library, method));
+                    result.Add(new ClrDataMethod(Library, method));
             }
             finally
             {

@@ -14,8 +14,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         private readonly List<nint> _data = new();
         private static readonly Guid IID_ISOSStackRefEnum = new("8FA642BD-9F10-4799-9AA3-512AE78C77EE");
 
-        public SOSStackRefEnum(DacLibrary library, IntPtr pUnk)
-            : base(library?.OwningLibrary, IID_ISOSStackRefEnum, pUnk)
+        public SOSStackRefEnum(RefCountedFreeLibrary? library, IntPtr pUnk)
+            : base(library, IID_ISOSStackRefEnum, pUnk)
         {
         }
 

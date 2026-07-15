@@ -21,31 +21,31 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         internal static readonly Guid IID_ISOSDac = new("436f00f2-b42a-4b9f-870c-e73db66ae930");
 
-        private readonly DacLibrary _library;
+        private readonly object _syncRoot;
         private readonly Dictionary<int, string> _regNames = new();
         private readonly Dictionary<ClrDataAddress, string> _frameNames = new();
 
         // CLRDATA_REQUEST_REVISION version from the DAC
         public int DacVersion { get; set; }
 
-        public SOSDac(DacLibrary library, IntPtr ptr)
-            : base(library.OwningLibrary, IID_ISOSDac, ptr)
+        public SOSDac(RefCountedFreeLibrary? library, object syncRoot, IntPtr ptr)
+            : base(library, IID_ISOSDac, ptr)
         {
-            _library = library;
+            _syncRoot = syncRoot;
         }
 
         private ref readonly ISOSDacVTable VTable => ref Unsafe.AsRef<ISOSDacVTable>(_vtable);
 
-        public SOSDac(DacLibrary lib, CallableCOMWrapper toClone) : base(toClone)
+        public SOSDac(object syncRoot, CallableCOMWrapper toClone) : base(toClone)
         {
-            _library = lib;
+            _syncRoot = syncRoot;
         }
 
         /// <summary>
         /// Process-wide lock that serializes stateful DAC enumerations (stack walks, etc.).
         /// See <see cref="DacLibrary.SyncRoot"/> for the rationale.
         /// </summary>
-        internal object SyncRoot => _library.SyncRoot;
+        internal object SyncRoot => _syncRoot;
 
         public RejitData[] GetRejitData(ClrDataAddress md, ClrDataAddress ip = default)
         {
@@ -360,7 +360,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             HResult hr = VTable.GetModule(Self, module.ToInteropAddress(), out IntPtr iunk);
             if (hr)
-                return new ClrDataModule(_library, iunk);
+                return new ClrDataModule(Library, iunk);
 
             return null;
         }
@@ -384,7 +384,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             try
             {
-                return new MetadataImport(_library, iunk);
+                return new MetadataImport(Library, iunk);
             }
             catch (InvalidCastException)
             {
@@ -756,7 +756,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
                 HResult hr = VTable.GetHandleEnumForTypes(Self, ptr, types.Length, out IntPtr ptrEnum);
                 if (hr)
                 {
-                    SOSHandleEnum result = new(_library, ptrEnum);
+                    SOSHandleEnum result = new(Library, ptrEnum);
                     ReleaseLeakedDacRef(result, nameof(ISOSDacVTable.GetHandleEnumForTypes));
                     return result;
                 }
@@ -770,7 +770,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             HResult hr = VTable.GetHandleEnum(Self, out IntPtr ptrEnum);
             if (hr)
             {
-                SOSHandleEnum result = new(_library, ptrEnum);
+                SOSHandleEnum result = new(Library, ptrEnum);
                 ReleaseLeakedDacRef(result, nameof(ISOSDacVTable.GetHandleEnum));
                 return result;
             }
@@ -784,7 +784,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
             if (hr)
             {
-                SOSStackRefEnum result = new(_library, ptrEnum);
+                SOSStackRefEnum result = new(Library, ptrEnum);
                 ReleaseLeakedDacRef(result, nameof(ISOSDacVTable.GetStackReferences));
                 return result;
             }

@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public TargetProperties TargetProperties { get; }
 
-        public ClrDataProcess CreateClrDataProcess() => new(this, _clrDataProcess);
+        public ClrDataProcess CreateClrDataProcess() => new(SyncRoot, TargetProperties, _clrDataProcess);
 
         public unsafe DacLibrary(DataTarget dataTarget, string dacPath, ulong runtimeBaseAddress, ulong contractDescriptor, bool verifySignature)
         {
@@ -147,7 +147,7 @@ namespace Microsoft.Diagnostics.Runtime
                     throw new ClrDiagnosticsException($"Failure loading DAC: CreateDacInstance failed 0x{res:x}", res);
             }
 
-            _clrDataProcess = new ClrDataProcess(this, iUnk);
+            _clrDataProcess = new ClrDataProcess(OwningLibrary, SyncRoot, TargetProperties, iUnk);
         }
 
         public void Dispose()
