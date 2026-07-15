@@ -16,14 +16,14 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         /// <summary>
         /// Creates target properties for the specified pointer size.
         /// </summary>
-        /// <param name="thinlockLayout">The layout of thin locks in the target process.</param>
+        /// <param name="thinLockLayout">The layout of thin locks in the target process.</param>
         /// <param name="pointerSize">The target process pointer size (4 or 8).</param>
-        public TargetProperties(ThinLockLayout thinlockLayout, int pointerSize)
+        public TargetProperties(ThinLockLayout thinLockLayout, int pointerSize)
         {
             if (pointerSize != 4 && pointerSize != 8)
                 throw new ArgumentOutOfRangeException(nameof(pointerSize), pointerSize, "Pointer size must be 4 or 8.");
 
-            ThinLockLayout = thinlockLayout;
+            ThinLockLayout = thinLockLayout;
             PointerSize = pointerSize;
         }
 

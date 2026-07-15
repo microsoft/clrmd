@@ -32,6 +32,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private bool _disposed;
         private ImmutableArray<ClrInfo> _clrs;
+        private readonly object _clrsLock = new();
         private ModuleInfo[]? _modules;
         private readonly Dictionary<string, PEImage?> _pefileCache = new(StringComparer.OrdinalIgnoreCase);
 
@@ -117,25 +118,32 @@ namespace Microsoft.Diagnostics.Runtime
             if (clrInfo.DataTarget != this)
                 throw new InvalidOperationException("The ClrInfo was created for a different DataTarget.");
 
+            // Use a stable, non-null lock for the host-supplied DAC. When the caller does not provide one we
+            // create a single lock here (not per CreateRuntime) so repeated CreateRuntime calls on this
+            // ClrInfo share it. A host that also drives the DAC itself (e.g. SOS) should pass its own lock so
+            // its calls serialize against ClrMD's.
             clrInfo.ClrDataProcessFactory = createClrDataProcess;
-            clrInfo.DacLock = dacLock;
+            clrInfo.DacLock = dacLock ?? new object();
 
-            ImmutableArray<ClrInfo> current = _clrs.IsDefault ? ImmutableArray<ClrInfo>.Empty : _clrs;
-
-            // A given module maps to a single runtime: if a ClrInfo for the same ModuleInfo is already
-            // registered (e.g. one ClrMD detected, or a prior registration for the same module), replace it
-            // rather than adding a duplicate. ClrVersions is short, so a linear scan is fine.
-            for (int i = 0; i < current.Length; i++)
+            lock (_clrsLock)
             {
-                if (ReferenceEquals(current[i].ModuleInfo, clrInfo.ModuleInfo))
-                {
-                    _clrs = current.SetItem(i, clrInfo);
-                    return clrInfo;
-                }
-            }
+                ImmutableArray<ClrInfo> current = _clrs.IsDefault ? ImmutableArray<ClrInfo>.Empty : _clrs;
 
-            _clrs = current.Add(clrInfo);
-            return clrInfo;
+                // A given module maps to a single runtime: if a ClrInfo for the same ModuleInfo is already
+                // registered (e.g. one ClrMD detected, or a prior registration for the same module), replace it
+                // rather than adding a duplicate. ClrVersions is short, so a linear scan is fine.
+                for (int i = 0; i < current.Length; i++)
+                {
+                    if (ReferenceEquals(current[i].ModuleInfo, clrInfo.ModuleInfo))
+                    {
+                        _clrs = current.SetItem(i, clrInfo);
+                        return clrInfo;
+                    }
+                }
+
+                _clrs = current.Add(clrInfo);
+                return clrInfo;
+            }
         }
 
         /// <summary>
@@ -279,8 +287,14 @@ namespace Microsoft.Diagnostics.Runtime
             if (_disposed)
                 throw new ObjectDisposedException(nameof(DataTarget));
 
-            if (_clrs.IsDefault)
+            if (!_clrs.IsDefault)
+                return _clrs;
+
+            lock (_clrsLock)
             {
+                if (!_clrs.IsDefault)
+                    return _clrs;
+
                 // A host may perform its own complete runtime detection and register runtimes via
                 // AddLoadedRuntime. In that case skip ClrMD's enumeration entirely so we don't pay for it.
                 if (Options.SkipRuntimeEnumeration)

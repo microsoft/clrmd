@@ -70,19 +70,40 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         {
             _clrInfo = clrInfo;
             _dataReader = _clrInfo.DataTarget.DataReader;
-            ThinLockLayout thinlockLayout = DacHeap.GetThinLockLayout(_clrInfo.Flavor, _clrInfo.Version);
-            _target = new TargetProperties(thinlockLayout, _dataReader.PointerSize);
+            ThinLockLayout thinLockLayout = DacHeap.GetThinLockLayout(_clrInfo.Flavor, _clrInfo.Version);
+            _target = new TargetProperties(thinLockLayout, _dataReader.PointerSize);
 
             _dac = dac;
             _process = process;
-            _sos = _process.CreateSOSDacInterface() ?? throw new InvalidOperationException($"Could not create ISOSDacInterface.");
-            _sos6 = _process.CreateSOSDacInterface6();
-            _sos8 = _process.CreateSOSDacInterface8();
-            _sos12 = _process.CreateSOSDacInterface12();
-            _sos13 = _process.CreateSOSDacInterface13();
-            _sos14 = _process.CreateSOSDacInterface14();
-            _sos16 = _process.CreateSOSDacInterface16();
-            _sos17 = _process.CreateSOSDacInterface17();
+            try
+            {
+                _sos = _process.CreateSOSDacInterface() ?? throw new InvalidOperationException($"Could not create ISOSDacInterface.");
+                _sos6 = _process.CreateSOSDacInterface6();
+                _sos8 = _process.CreateSOSDacInterface8();
+                _sos12 = _process.CreateSOSDacInterface12();
+                _sos13 = _process.CreateSOSDacInterface13();
+                _sos14 = _process.CreateSOSDacInterface14();
+                _sos16 = _process.CreateSOSDacInterface16();
+                _sos17 = _process.CreateSOSDacInterface17();
+            }
+            catch
+            {
+                // Construction failed after we took ownership of the process (and, on the host path, its
+                // AddRef'd IXCLRDataProcess). Release everything created here so the pointer/interfaces do
+                // not leak. Disposing _process releases the reference CreateForeignProcess added.
+                SOSDac? sos = _sos;
+                sos?.Dispose();
+                _sos6?.Dispose();
+                _sos8?.Dispose();
+                _sos12?.Dispose();
+                _sos13?.Dispose();
+                _sos14?.Dispose();
+                _sos16?.Dispose();
+                _sos17?.Dispose();
+                _process.Dispose();
+                _dac?.Dispose();
+                throw;
+            }
 
             IsThreadSafe = _sos13 is not null || RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         }
@@ -99,16 +120,27 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             // here so the host keeps its own reference; the wrapper releases exactly this added reference
             // when the process is disposed, leaving the host's reference intact.
             Marshal.AddRef(clrDataProcess);
-
-            ThinLockLayout thinlockLayout = DacHeap.GetThinLockLayout(clrInfo.Flavor, clrInfo.Version);
-            TargetProperties target = new(thinlockLayout, clrInfo.DataTarget.DataReader.PointerSize);
-            return new ClrDataProcess(dacLock, target, clrDataProcess);
+            try
+            {
+                // This TargetProperties feeds only pointer-size address translation (ClrDataProcess/SosDac12);
+                // its ThinLockLayout is never consumed here, so the conservative Legacy layout is used. The
+                // canonical layout is computed once per runtime in the DacServiceProvider constructor.
+                TargetProperties target = new(ThinLockLayout.Legacy, clrInfo.DataTarget.DataReader.PointerSize);
+                return new ClrDataProcess(dacLock, target, clrDataProcess);
+            }
+            catch
+            {
+                // The wrapper's QueryInterface failed (or another failure occurred) before it took ownership
+                // of our added reference; release it so the host pointer's refcount is left unchanged.
+                Marshal.Release(clrDataProcess);
+                throw;
+            }
         }
 
         public void Dispose()
         {
             if (_disposed)
-                throw new ObjectDisposedException(GetType().FullName);
+                return;
 
             // Serialize teardown against in-flight DAC reads: every DAC entry point takes
             // _sos.SyncRoot (== _dac.SyncRoot), so disposing the native/COM wrappers under

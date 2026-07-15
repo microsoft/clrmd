@@ -156,7 +156,7 @@ namespace Microsoft.Diagnostics.Runtime
                     if (clrDataProcess == IntPtr.Zero)
                         throw new ClrDiagnosticsException("The IXCLRDataProcess factory returned a null pointer.");
 
-                    services = new DacServiceProvider(this, clrDataProcess, DacLock ?? new object());
+                    services = new DacServiceProvider(this, clrDataProcess, DacLock ?? throw new InvalidOperationException("A registered runtime must have a non-null DacLock."));
                 }
                 else
                 {

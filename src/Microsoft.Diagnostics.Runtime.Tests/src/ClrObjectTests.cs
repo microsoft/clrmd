@@ -34,7 +34,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     throw new InvalidOperationException($"Could not find {typeName} on heap.");
             }
 
-            public void Dispose() => DataTarget.Dispose();
+            public void Dispose()
+            {
+                Runtime.Dispose();
+                DataTarget.Dispose();
+            }
         }
 
         [Theory, MemberData(nameof(Variants))]
