@@ -12,6 +12,28 @@ namespace Microsoft.Diagnostics.Runtime.Tests
     public class DataTargetTests
     {
         [Fact]
+        public void AddLoadedRuntime_BeforeClrVersions_DoesNotSuppressEnumeration()
+        {
+            // Registering a runtime before ClrVersions is first queried must NOT suppress ClrMD's own
+            // enumeration (only DataTargetOptions.SkipRuntimeEnumeration does that). The registered runtime
+            // and the ClrMD-detected runtime should both appear.
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+
+            // Pick a non-runtime module so our registration can't dedup-collide with the detected runtime.
+            ModuleInfo nonRuntime = dt.EnumerateModules().First(m =>
+                m.FileName != null && m.FileName.IndexOf("clr", StringComparison.OrdinalIgnoreCase) < 0);
+
+            ClrInfo hosted = new(dt, nonRuntime, new Version(1, 0, 0, 0)) { Flavor = ClrFlavor.Core };
+            dt.AddLoadedRuntime(hosted, () => IntPtr.Zero);
+
+            System.Collections.Immutable.ImmutableArray<ClrInfo> versions = dt.ClrVersions;
+
+            Assert.Contains(hosted, versions);
+            // Enumeration still ran, so the real detected runtime is present in addition to our registration.
+            Assert.Contains(versions, v => !ReferenceEquals(v, hosted));
+        }
+
+        [Fact]
         public void SkipRuntimeEnumeration_ClrVersionsIsEmpty()
         {
             // With SkipRuntimeEnumeration set, ClrMD performs no detection and ClrVersions is empty until a

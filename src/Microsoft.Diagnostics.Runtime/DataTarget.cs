@@ -32,6 +32,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         private bool _disposed;
         private ImmutableArray<ClrInfo> _clrs;
+        private bool _enumerated;
         private readonly object _clrsLock = new();
         private ModuleInfo[]? _modules;
         private readonly Dictionary<string, PEImage?> _pefileCache = new(StringComparer.OrdinalIgnoreCase);
@@ -69,11 +70,11 @@ namespace Microsoft.Diagnostics.Runtime
         /// by the host, bypassing ClrMD's <see cref="IClrInfoProvider"/> runtime discovery. Use this when the
         /// host (e.g. SOS) performs its own runtime detection and DAC/cDAC construction.
         /// <para>
-        /// If a runtime with the same <see cref="ClrInfo.ModuleInfo"/> is already registered (for example one
-        /// ClrMD detected), it is replaced; otherwise the runtime is appended to <see cref="ClrVersions"/>. If
-        /// <see cref="ClrVersions"/> has not yet been queried, registering a runtime suppresses automatic
-        /// discovery, so a host that wants full control should register all runtimes before enumerating
-        /// <see cref="ClrVersions"/> (or set <see cref="DataTargetOptions.SkipRuntimeEnumeration"/>).
+        /// If a runtime with the same <see cref="ClrInfo.ModuleInfo"/> is already registered (or is later
+        /// found by ClrMD's own enumeration), the host-registered runtime takes precedence; otherwise it is
+        /// appended to <see cref="ClrVersions"/>. Registering a runtime does NOT by itself suppress ClrMD's
+        /// enumeration — set <see cref="DataTargetOptions.SkipRuntimeEnumeration"/> if the host performs
+        /// complete detection itself and does not want ClrMD to enumerate.
         /// </para>
         /// </summary>
         /// <param name="clrInfo">
@@ -287,19 +288,26 @@ namespace Microsoft.Diagnostics.Runtime
             if (_disposed)
                 throw new ObjectDisposedException(nameof(DataTarget));
 
-            if (!_clrs.IsDefault)
-                return _clrs;
+            if (_enumerated)
+                return _clrs.IsDefault ? ImmutableArray<ClrInfo>.Empty : _clrs;
 
             lock (_clrsLock)
             {
-                if (!_clrs.IsDefault)
-                    return _clrs;
+                if (_enumerated)
+                    return _clrs.IsDefault ? ImmutableArray<ClrInfo>.Empty : _clrs;
+
+                // Runtimes a host registered via AddLoadedRuntime before ClrVersions was first queried. These
+                // take precedence over anything ClrMD's own enumeration finds for the same module.
+                ImmutableArray<ClrInfo> registered = _clrs.IsDefault ? ImmutableArray<ClrInfo>.Empty : _clrs;
 
                 // A host may perform its own complete runtime detection and register runtimes via
-                // AddLoadedRuntime. In that case skip ClrMD's enumeration entirely so we don't pay for it.
+                // AddLoadedRuntime. SkipRuntimeEnumeration lets it skip ClrMD's enumeration entirely so we
+                // don't pay for it. Registering runtimes does NOT by itself suppress enumeration; only this
+                // option does (tracked separately from whether _clrs already has registered entries).
                 if (Options.SkipRuntimeEnumeration)
                 {
-                    _clrs = ImmutableArray<ClrInfo>.Empty;
+                    _enumerated = true;
+                    _clrs = registered;
                     return _clrs;
                 }
 
@@ -340,6 +348,19 @@ namespace Microsoft.Diagnostics.Runtime
                         select clrInfo);
                 }
 
+                // Overlay host-registered runtimes onto ClrMD's (sorted) enumeration: a host registration wins
+                // over an enumerated runtime for the same module (keeping its position), and host-only runtimes
+                // are appended.
+                foreach (ClrInfo host in registered)
+                {
+                    int index = clrs.FindIndex(c => ReferenceEquals(c.ModuleInfo, host.ModuleInfo));
+                    if (index >= 0)
+                        clrs[index] = host;
+                    else
+                        clrs.Add(host);
+                }
+
+                _enumerated = true;
                 _clrs = clrs.ToImmutableArray();
             }
 
