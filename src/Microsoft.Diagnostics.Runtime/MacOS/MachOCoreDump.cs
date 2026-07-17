@@ -223,7 +223,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             while (buffer.Length > 0 && FindSegmentContaining(address, out MachOSegment seg))
             {
                 ulong offset = address - seg.Address;
-                int len = Math.Min(buffer.Length, (int)(seg.Size - offset));
+                int len = (int)Math.Min((ulong)buffer.Length, seg.Size - offset);
                 if (len == 0)
                     break;
 
