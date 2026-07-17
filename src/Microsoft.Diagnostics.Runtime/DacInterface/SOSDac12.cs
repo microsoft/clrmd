@@ -17,10 +17,10 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private readonly TargetProperties _target;
 
-        public SosDac12(DacLibrary library, IntPtr ptr)
-            : base(library.OwningLibrary, IID_ISOSDac12, ptr)
+        public SosDac12(TargetProperties target, IntPtr ptr)
+            : base(IID_ISOSDac12, ptr)
         {
-            _target = library.TargetProperties;
+            _target = target;
         }
 
         private ref readonly ISOSDac12VTable VTable => ref Unsafe.AsRef<ISOSDac12VTable>(_vtable);

@@ -8,8 +8,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using Microsoft.Diagnostics.Runtime.AbstractDac;
-using Microsoft.Diagnostics.Runtime.DacImplementation;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
@@ -40,95 +38,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private const string c_cdacContractDescriptorExport = "DotNetRuntimeContractDescriptor";
 
         private static readonly string s_defaultAssembliesPath = AppContext.BaseDirectory;
-
-        public IServiceProvider GetDacServices(ClrInfo clrInfo, string? providedPath, bool ignoreMismatch, bool verifySignature)
-        {
-            DacLibrary library = GetDacLibraryFromPath(clrInfo, providedPath, ignoreMismatch, verifySignature);
-            return new DacServiceProvider(clrInfo, library);
-        }
-
-        private static DacLibrary GetDacLibraryFromPath(ClrInfo clrInfo, string? dacPath, bool ignoreMismatch, bool verifySignature)
-        {
-            if (dacPath is not null)
-                return CreateDacFromPath(clrInfo, dacPath, ignoreMismatch, verifySignature);
-
-            OSPlatform currentPlatform = GetCurrentPlatform();
-            Architecture currentArch = RuntimeInformation.ProcessArchitecture;
-            Exception? exception = null;
-            bool foundOne = false;
-
-            IFileLocator? locator = clrInfo.DataTarget.FileLocator;
-
-            foreach (DebugLibraryInfo dac in clrInfo.DebuggingLibraries.Where(r => r.Kind == DebugLibraryKind.Dac && r.Platform == currentPlatform && r.TargetArchitecture == currentArch))
-            {
-                foundOne = true;
-
-                // If we have a full path, use it.  We already validated that the CLR matches.
-                if (Path.GetFileName(dac.FileName) != dac.FileName)
-                {
-                    dacPath = dac.FileName;
-                }
-                else
-                {
-                    // The properties we are requesting under may not be the actual file properties, so don't request them.
-
-                    if (locator != null)
-                    {
-                        if (!dac.IndexBuildId.IsDefaultOrEmpty)
-                        {
-                            dacPath = locator.FindPEImage(dac.FileName, SymbolProperties.Coreclr, dac.IndexBuildId, clrInfo.DataTarget.DataReader.TargetPlatform, checkProperties: false);
-                        }
-                        else if (dac.IndexTimeStamp != 0 && dac.IndexFileSize != 0)
-                        {
-                            if (dac.Platform == OSPlatform.Windows)
-                                dacPath = clrInfo.DataTarget.FileLocator?.FindPEImage(dac.FileName, dac.IndexTimeStamp, dac.IndexFileSize, checkProperties: false);
-                        }
-                    }
-                }
-
-                if (dacPath is not null && File.Exists(dacPath))
-                {
-                    try
-                    {
-                        // If we get the file from the symbol server, assume mismatches are expected.  Sometimes we replace dacs on the symbol
-                        // server to fix bugs.  If it's archived under the right path, use it.
-                        return CreateDacFromPath(clrInfo, dacPath, ignoreMismatch: true, verifySignature);
-                    }
-                    catch (Exception ex)
-                    {
-                        exception ??= ex;
-                        dacPath = null;
-                    }
-                }
-            }
-
-            if (exception is not null)
-                throw exception;
-
-            // We should have had at least one dac enumerated if this is a supported scenario.
-            if (!foundOne)
-                throw new InvalidOperationException($"Debugging a '{clrInfo.DataTarget.DataReader.TargetPlatform}' crash is not supported on '{currentPlatform}'.");
-
-            if (currentPlatform == OSPlatform.Windows)
-                throw new FileNotFoundException("Could not find matching DAC for this runtime.");
-
-            throw new FileNotFoundException("Could not find matching DAC for this runtime.  Note that symbol server download of the DAC is disabled for this platform.");
-        }
-
-        private static DacLibrary CreateDacFromPath(ClrInfo clrInfo, string dacPath, bool ignoreMismatch, bool verifySignature)
-        {
-            if (!File.Exists(dacPath))
-                throw new FileNotFoundException(dacPath);
-
-            if (!ignoreMismatch && !clrInfo.IsSingleFile)
-            {
-                DataTarget.PlatformFunctions.GetFileVersion(dacPath, out int major, out int minor, out int revision, out int patch);
-                if (major != clrInfo.Version.Major || minor != clrInfo.Version.Minor || revision != clrInfo.Version.Build || patch != clrInfo.Version.Revision)
-                    throw new ClrDiagnosticsException($"Mismatched dac. Dac version: {major}.{minor}.{revision}.{patch}, expected: {clrInfo.Version}.");
-            }
-
-            return new(clrInfo.DataTarget, dacPath, clrInfo.ModuleInfo.ImageBase, clrInfo.ContractDescriptorAddress, verifySignature);
-        }
 
         public virtual ClrInfo? ProvideClrInfoForModule(DataTarget dataTarget, ModuleInfo module)
         {
@@ -355,7 +264,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                                                                  artifact.ArchivedUnder
                                                                          select artifact;
 
-            ClrInfo result = new(dataTarget, module, version, this)
+            ClrInfo result = new(dataTarget, module, version)
             {
                 Flavor = flavor,
                 DebuggingLibraries = orderedDebugLibraries.ToImmutableArray(),
@@ -493,7 +402,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return false;
         }
 
-        private static OSPlatform GetCurrentPlatform()
+        internal static OSPlatform GetCurrentPlatform()
         {
             OSPlatform currentPlatform;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))

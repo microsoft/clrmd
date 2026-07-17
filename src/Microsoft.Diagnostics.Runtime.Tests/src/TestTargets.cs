@@ -235,6 +235,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 VerifyDacOnWindows = false,
                 UseLockFreeMemoryMapReader = src.UseLockFreeMemoryMapReader,
                 ForceCompleteRuntimeEnumeration = src.ForceCompleteRuntimeEnumeration,
+                SkipRuntimeEnumeration = src.SkipRuntimeEnumeration,
             };
 
             return DataTarget.LoadDump(path, merged);

@@ -32,6 +32,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         private bool _disposed;
         private ImmutableArray<ClrInfo> _clrs;
+        private bool _enumerated;
+        private readonly object _clrsLock = new();
         private ModuleInfo[]? _modules;
         private readonly Dictionary<string, PEImage?> _pefileCache = new(StringComparer.OrdinalIgnoreCase);
 
@@ -61,6 +63,88 @@ namespace Microsoft.Diagnostics.Runtime
                 clrInfo.ContractDescriptorAddress,
                 verifySignature);
             return new DacImplementation.DacServiceProvider(clrInfo, library);
+        }
+
+        /// <summary>
+        /// Registers a runtime whose DAC data-access interface (<c>IXCLRDataProcess</c>) is created and owned
+        /// by the host, bypassing ClrMD's <see cref="IClrInfoProvider"/> runtime discovery. Use this when the
+        /// host (e.g. SOS) performs its own runtime detection and DAC/cDAC construction.
+        /// <para>
+        /// If a runtime with the same <see cref="ClrInfo.ModuleInfo"/> is already registered (or is later
+        /// found by ClrMD's own enumeration), the host-registered runtime takes precedence; otherwise it is
+        /// appended to <see cref="ClrVersions"/>. Registering a runtime does NOT by itself suppress ClrMD's
+        /// enumeration — set <see cref="DataTargetOptions.SkipRuntimeEnumeration"/> if the host performs
+        /// complete detection itself and does not want ClrMD to enumerate.
+        /// </para>
+        /// </summary>
+        /// <param name="clrInfo">
+        /// A <see cref="ClrInfo"/> created for this <see cref="DataTarget"/> (see
+        /// <see cref="ClrInfo(DataTarget, ModuleInfo, Version)"/>).
+        /// </param>
+        /// <param name="clrDataProcess">A host-owned <c>IXCLRDataProcess</c> pointer for the runtime.</param>
+        /// <param name="dacLock">
+        /// Optional lock serializing DAC calls. Pass the host's lock to serialize the host's own DAC usage
+        /// against ClrMD's (the DAC is not thread-safe). If <see langword="null"/>, ClrMD uses its own lock,
+        /// which only serializes ClrMD's callers.
+        /// </param>
+        /// <returns>The registered <paramref name="clrInfo"/>.</returns>
+        public ClrInfo AddLoadedRuntime(ClrInfo clrInfo, IntPtr clrDataProcess, object? dacLock = null)
+        {
+            if (clrDataProcess == IntPtr.Zero)
+                throw new ArgumentNullException(nameof(clrDataProcess));
+
+            return AddLoadedRuntime(clrInfo, () => clrDataProcess, dacLock);
+        }
+
+        /// <summary>
+        /// Registers a runtime whose DAC data-access interface (<c>IXCLRDataProcess</c>) is created lazily and
+        /// owned by the host. See <see cref="AddLoadedRuntime(ClrInfo, IntPtr, object?)"/> for details. The
+        /// factory is invoked the first time a runtime is created from <paramref name="clrInfo"/>.
+        /// </summary>
+        /// <param name="clrInfo">A <see cref="ClrInfo"/> created for this <see cref="DataTarget"/>.</param>
+        /// <param name="createClrDataProcess">
+        /// A factory returning a host-owned <c>IXCLRDataProcess</c> pointer. The host retains ownership; ClrMD
+        /// adds and releases its own reference and does not unload the underlying DAC module.
+        /// </param>
+        /// <param name="dacLock">Optional lock serializing DAC calls; see the other overload.</param>
+        /// <returns>The registered <paramref name="clrInfo"/>.</returns>
+        public ClrInfo AddLoadedRuntime(ClrInfo clrInfo, Func<IntPtr> createClrDataProcess, object? dacLock = null)
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(DataTarget));
+            if (clrInfo is null)
+                throw new ArgumentNullException(nameof(clrInfo));
+            if (createClrDataProcess is null)
+                throw new ArgumentNullException(nameof(createClrDataProcess));
+            if (clrInfo.DataTarget != this)
+                throw new InvalidOperationException("The ClrInfo was created for a different DataTarget.");
+
+            // Use a stable, non-null lock for the host-supplied DAC. When the caller does not provide one we
+            // create a single lock here (not per CreateRuntime) so repeated CreateRuntime calls on this
+            // ClrInfo share it. A host that also drives the DAC itself (e.g. SOS) should pass its own lock so
+            // its calls serialize against ClrMD's.
+            clrInfo.ClrDataProcessFactory = createClrDataProcess;
+            clrInfo.DacLock = dacLock ?? new object();
+
+            lock (_clrsLock)
+            {
+                ImmutableArray<ClrInfo> current = _clrs.IsDefault ? ImmutableArray<ClrInfo>.Empty : _clrs;
+
+                // A given module maps to a single runtime: if a ClrInfo for the same ModuleInfo is already
+                // registered (e.g. one ClrMD detected, or a prior registration for the same module), replace it
+                // rather than adding a duplicate. ClrVersions is short, so a linear scan is fine.
+                for (int i = 0; i < current.Length; i++)
+                {
+                    if (ReferenceEquals(current[i].ModuleInfo, clrInfo.ModuleInfo))
+                    {
+                        _clrs = current.SetItem(i, clrInfo);
+                        return clrInfo;
+                    }
+                }
+
+                _clrs = current.Add(clrInfo);
+                return clrInfo;
+            }
         }
 
         /// <summary>
@@ -204,8 +288,29 @@ namespace Microsoft.Diagnostics.Runtime
             if (_disposed)
                 throw new ObjectDisposedException(nameof(DataTarget));
 
-            if (_clrs.IsDefault)
+            if (_enumerated)
+                return _clrs.IsDefault ? ImmutableArray<ClrInfo>.Empty : _clrs;
+
+            lock (_clrsLock)
             {
+                if (_enumerated)
+                    return _clrs.IsDefault ? ImmutableArray<ClrInfo>.Empty : _clrs;
+
+                // Runtimes a host registered via AddLoadedRuntime before ClrVersions was first queried. These
+                // take precedence over anything ClrMD's own enumeration finds for the same module.
+                ImmutableArray<ClrInfo> registered = _clrs.IsDefault ? ImmutableArray<ClrInfo>.Empty : _clrs;
+
+                // A host may perform its own complete runtime detection and register runtimes via
+                // AddLoadedRuntime. SkipRuntimeEnumeration lets it skip ClrMD's enumeration entirely so we
+                // don't pay for it. Registering runtimes does NOT by itself suppress enumeration; only this
+                // option does (tracked separately from whether _clrs already has registered entries).
+                if (Options.SkipRuntimeEnumeration)
+                {
+                    _enumerated = true;
+                    _clrs = registered;
+                    return _clrs;
+                }
+
                 IEnumerable<ModuleInfo> modules = EnumerateModules();
                 List<ClrInfo>? clrs = null;
 
@@ -243,6 +348,19 @@ namespace Microsoft.Diagnostics.Runtime
                         select clrInfo);
                 }
 
+                // Overlay host-registered runtimes onto ClrMD's (sorted) enumeration: a host registration wins
+                // over an enumerated runtime for the same module (keeping its position), and host-only runtimes
+                // are appended.
+                foreach (ClrInfo host in registered)
+                {
+                    int index = clrs.FindIndex(c => ReferenceEquals(c.ModuleInfo, host.ModuleInfo));
+                    if (index >= 0)
+                        clrs[index] = host;
+                    else
+                        clrs.Add(host);
+                }
+
+                _enumerated = true;
                 _clrs = clrs.ToImmutableArray();
             }
 

@@ -13,20 +13,20 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
     {
         private static readonly Guid IID_IXCLRDataTask = new("A5B0BEEA-EC62-4618-8012-A24FFC23934C");
 
-        public ClrDataTask(DacLibrary library, IntPtr pUnk)
-            : base(library.OwningLibrary, IID_IXCLRDataTask, pUnk)
+        public ClrDataTask(IntPtr pUnk)
+            : base(IID_IXCLRDataTask, pUnk)
         {
         }
 
         private ref readonly ClrDataTaskVTable VTable => ref Unsafe.AsRef<ClrDataTaskVTable>(_vtable);
 
-        public ClrStackWalk? CreateStackWalk(DacLibrary library, uint flags)
+        public ClrStackWalk? CreateStackWalk(uint flags)
         {
             HResult hr = VTable.CreateStackWalk(Self, flags, out IntPtr pUnk);
             if (!hr)
                 return null;
 
-            return new ClrStackWalk(library, pUnk);
+            return new ClrStackWalk(pUnk);
         }
     }
 

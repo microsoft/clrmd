@@ -5,7 +5,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Threading;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
@@ -18,14 +17,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         internal static readonly Guid IID_ICLRContractLocator = new("17d5b8c6-34a9-407f-af4f-a930201d4e02");
         internal static readonly Guid IID_ICLRSymbolProvider = new("c4f8b7e2-9d3a-4f6c-b1e5-8a2d7c3f9b1e");
 
-        public const ulong MagicCallbackConstant = 0x43;
-
         private readonly DataTarget _dataTarget;
         private readonly IDataReader _dataReader;
         private volatile ModuleInfo[]? _modules;
-
-        private Action? _callback;
-        private volatile int _callbackContext;
 
         public ulong RuntimeBaseAddress { get; }
 
@@ -40,12 +34,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
             RuntimeBaseAddress = runtimeBaseAddress;
             ContractDescriptor = contractDescriptor;
         }
-
-        public void EnterMagicCallbackContext() => Interlocked.Increment(ref _callbackContext);
-
-        public void ExitMagicCallbackContext() => Interlocked.Decrement(ref _callbackContext);
-
-        public void SetMagicCallback(Action flushCallback) => _callback = flushCallback;
 
         public IMAGE_FILE_MACHINE MachineType
         {
@@ -63,7 +51,9 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         public int PointerSize => _dataTarget.DataReader.PointerSize;
 
-        public TargetProperties TargetProperties => _targetProperties ??= new TargetProperties(pointerSize: PointerSize);
+        // Used only for pointer-size address translation in ReadVirtual; ThinLockLayout is never read
+        // here, so the conservative Legacy layout is used.
+        public TargetProperties TargetProperties => _targetProperties ??= new TargetProperties(ThinLockLayout.Legacy, PointerSize);
         private TargetProperties? _targetProperties;
 
         public void Flush()
@@ -125,14 +115,6 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         {
             ulong address = cda.ToAddress(TargetProperties);
             Span<byte> span = new(buffer.ToPointer(), bytesRequested);
-
-            if (address == MagicCallbackConstant && _callbackContext > 0)
-            {
-                // See comment in RuntimeBuilder.FlushDac
-                _callback?.Invoke();
-                bytesRead = 0;
-                return false;
-            }
 
             int read = _dataReader.Read(address, span);
             if (read > 0)

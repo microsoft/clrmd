@@ -103,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     nint qiResult = module.QueryInterface(MetadataImport.IID_IMetaDataImport);
                     if (qiResult != 0)
                     {
-                        import = new(module.Library, qiResult);
+                        import = new(qiResult);
                     }
                 }
             }

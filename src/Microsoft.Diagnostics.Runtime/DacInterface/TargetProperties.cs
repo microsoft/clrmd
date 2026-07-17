@@ -7,7 +7,7 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
     /// <summary>
     /// Immutable target-process properties used throughout the DAC implementation.
-    /// A single <see cref="TargetProperties"/> instance is owned by <see cref="DacLibrary"/>
+    /// The canonical instance for a runtime is created by <see cref="DacImplementation.DacServiceProvider"/>
     /// and passed to DAC wrappers. Future target-level facts (endianness, machine type, etc.)
     /// can be added here without re-plumbing every DAC wrapper.
     /// </summary>
@@ -16,14 +16,19 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
         /// <summary>
         /// Creates target properties for the specified pointer size.
         /// </summary>
+        /// <param name="thinLockLayout">The layout of thin locks in the target process.</param>
         /// <param name="pointerSize">The target process pointer size (4 or 8).</param>
-        public TargetProperties(int pointerSize)
+        public TargetProperties(ThinLockLayout thinLockLayout, int pointerSize)
         {
             if (pointerSize != 4 && pointerSize != 8)
                 throw new ArgumentOutOfRangeException(nameof(pointerSize), pointerSize, "Pointer size must be 4 or 8.");
 
+            ThinLockLayout = thinLockLayout;
             PointerSize = pointerSize;
         }
+
+        /// <summary>Layout of thin locks in the target process.</summary>
+        public ThinLockLayout ThinLockLayout { get; }
 
         /// <summary>Pointer size in bytes (4 or 8).</summary>
         public int PointerSize { get; }

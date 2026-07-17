@@ -31,7 +31,6 @@ namespace Microsoft.Diagnostics.Runtime
         private List<ModuleInfo>? _modules;
         private int? _pointerSize;
         private Architecture? _architecture;
-        private static readonly RefCountedFreeLibrary _library = new(IntPtr.Zero);
 
         public string DisplayName { get; }
         public OSPlatform TargetPlatform => OSPlatform.Windows;
@@ -205,12 +204,12 @@ namespace Microsoft.Diagnostics.Runtime
 
         private void CreateClient(IntPtr ptr)
         {
-            _systemObjects = new DebugSystemObjects(_library, ptr);
-            _client = new DebugClient(_library, ptr, _systemObjects);
-            _control = new DebugControl(_library, ptr, _systemObjects);
-            _spaces = new DebugDataSpaces(_library, ptr, _systemObjects);
-            _advanced = new DebugAdvanced(_library, ptr, _systemObjects);
-            _symbols = new DebugSymbols(_library, ptr, _systemObjects);
+            _systemObjects = new DebugSystemObjects(ptr);
+            _client = new DebugClient(ptr, _systemObjects);
+            _control = new DebugControl(ptr, _systemObjects);
+            _spaces = new DebugDataSpaces(ptr, _systemObjects);
+            _advanced = new DebugAdvanced(ptr, _systemObjects);
+            _symbols = new DebugSymbols(ptr, _systemObjects);
 
             _client.SuppressRelease();
             _control.SuppressRelease();

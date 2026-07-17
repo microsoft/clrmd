@@ -12,8 +12,9 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
     {
         private readonly ClrInfo _clrInfo;
         private readonly IDataReader _dataReader;
+        private readonly TargetProperties _target;
 
-        private readonly DacLibrary _dac;
+        private readonly DacLibrary? _dac;
         private readonly ClrDataProcess _process;
         private readonly SOSDac _sos;
         private readonly SOSDac6? _sos6;
@@ -43,29 +44,103 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
         private readonly object _serviceLock = new();
 
         public DacServiceProvider(ClrInfo clrInfo, DacLibrary library)
+            : this(clrInfo, library, library.CreateClrDataProcess())
+        {
+        }
+
+        /// <summary>
+        /// Constructs a <see cref="DacServiceProvider"/> over an <c>IXCLRDataProcess</c> that the host
+        /// (e.g. SOS) created and owns. ClrMD does not own or unload the underlying DAC module. The host
+        /// retains its own reference to <paramref name="clrDataProcess"/>: this constructor adds a reference
+        /// (balanced by a release on <see cref="Dispose"/>) so the host's reference is unaffected, but the
+        /// host must keep the pointer alive for the lifetime of the resulting runtime.
+        /// </summary>
+        /// <param name="clrInfo">The runtime this DAC represents.</param>
+        /// <param name="clrDataProcess">A host-owned <c>IXCLRDataProcess</c> pointer.</param>
+        /// <param name="dacLock">
+        /// The lock that serializes all DAC calls. Pass the host's lock to serialize the host's own DAC
+        /// usage against ClrMD's; the DAC is not thread-safe and concurrent calls corrupt its state.
+        /// </param>
+        public DacServiceProvider(ClrInfo clrInfo, IntPtr clrDataProcess, object dacLock)
+            : this(clrInfo, dac: null, CreateForeignProcess(clrInfo, clrDataProcess, dacLock))
+        {
+        }
+
+        private DacServiceProvider(ClrInfo clrInfo, DacLibrary? dac, ClrDataProcess process)
         {
             _clrInfo = clrInfo;
             _dataReader = _clrInfo.DataTarget.DataReader;
+            ThinLockLayout thinLockLayout = DacHeap.GetThinLockLayout(_clrInfo.Flavor, _clrInfo.Version);
+            _target = new TargetProperties(thinLockLayout, _dataReader.PointerSize);
 
-            _dac = library;
-            _process = library.CreateClrDataProcess();
-            _sos = _process.CreateSOSDacInterface() ?? throw new InvalidOperationException($"Could not create ISOSDacInterface.");
-            _sos6 = _process.CreateSOSDacInterface6();
-            _sos8 = _process.CreateSOSDacInterface8();
-            _sos12 = _process.CreateSOSDacInterface12();
-            _sos13 = _process.CreateSOSDacInterface13();
-            _sos14 = _process.CreateSOSDacInterface14();
-            _sos16 = _process.CreateSOSDacInterface16();
-            _sos17 = _process.CreateSOSDacInterface17();
+            _dac = dac;
+            _process = process;
+            try
+            {
+                _sos = _process.CreateSOSDacInterface() ?? throw new InvalidOperationException($"Could not create ISOSDacInterface.");
+                _sos6 = _process.CreateSOSDacInterface6();
+                _sos8 = _process.CreateSOSDacInterface8();
+                _sos12 = _process.CreateSOSDacInterface12();
+                _sos13 = _process.CreateSOSDacInterface13();
+                _sos14 = _process.CreateSOSDacInterface14();
+                _sos16 = _process.CreateSOSDacInterface16();
+                _sos17 = _process.CreateSOSDacInterface17();
+            }
+            catch
+            {
+                // Construction failed after we took ownership of the process (and, on the host path, its
+                // AddRef'd IXCLRDataProcess). Release everything created here so the pointer/interfaces do
+                // not leak. Disposing _process releases the reference CreateForeignProcess added.
+                SOSDac? sos = _sos;
+                sos?.Dispose();
+                _sos6?.Dispose();
+                _sos8?.Dispose();
+                _sos12?.Dispose();
+                _sos13?.Dispose();
+                _sos14?.Dispose();
+                _sos16?.Dispose();
+                _sos17?.Dispose();
+                _process.Dispose();
+                _dac?.Dispose();
+                throw;
+            }
 
-            library.DacDataTarget.SetMagicCallback(_process.Flush);
             IsThreadSafe = _sos13 is not null || RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        }
+
+        private static ClrDataProcess CreateForeignProcess(ClrInfo clrInfo, IntPtr clrDataProcess, object dacLock)
+        {
+            if (clrDataProcess == IntPtr.Zero)
+                throw new ArgumentNullException(nameof(clrDataProcess));
+            if (dacLock is null)
+                throw new ArgumentNullException(nameof(dacLock));
+
+            // The ClrDataProcess wrapper's constructor does QueryInterface + Release(pUnknown), which is
+            // reference-count-neutral on the object but consumes the reference identity we pass in. AddRef
+            // here so the host keeps its own reference; the wrapper releases exactly this added reference
+            // when the process is disposed, leaving the host's reference intact.
+            Marshal.AddRef(clrDataProcess);
+            try
+            {
+                // This TargetProperties feeds only pointer-size address translation (ClrDataProcess/SosDac12);
+                // its ThinLockLayout is never consumed here, so the conservative Legacy layout is used. The
+                // canonical layout is computed once per runtime in the DacServiceProvider constructor.
+                TargetProperties target = new(ThinLockLayout.Legacy, clrInfo.DataTarget.DataReader.PointerSize);
+                return new ClrDataProcess(dacLock, target, clrDataProcess);
+            }
+            catch
+            {
+                // The wrapper's QueryInterface failed (or another failure occurred) before it took ownership
+                // of our added reference; release it so the host pointer's refcount is left unchanged.
+                Marshal.Release(clrDataProcess);
+                throw;
+            }
         }
 
         public void Dispose()
         {
             if (_disposed)
-                throw new ObjectDisposedException(GetType().FullName);
+                return;
 
             // Serialize teardown against in-flight DAC reads: every DAC entry point takes
             // _sos.SyncRoot (== _dac.SyncRoot), so disposing the native/COM wrappers under
@@ -77,6 +152,11 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
 
                 _disposed = true;
                 _sos13?.LockedFlush();
+                // Dispose every COM wrapper (releasing its interface into the DAC module) BEFORE freeing the
+                // module via _dac. The wrappers no longer hold a reference to the module's RefCountedFreeLibrary,
+                // so the module stays loaded only because _dac owns the single reference; releasing a wrapper
+                // after FreeLibrary would call into unloaded code. _moduleHelper holds MetadataImport/ClrDataModule
+                // wrappers, so it must be disposed here too, before _dac.
                 _process.Dispose();
                 _sos.Dispose();
                 _sos6?.Dispose();
@@ -86,8 +166,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 _sos14?.Dispose();
                 _sos16?.Dispose();
                 _sos17?.Dispose();
-                _dac.Dispose();
                 _moduleHelper?.Dispose();
+                _dac?.Dispose();
             }
         }
 
@@ -103,7 +183,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (r is not null)
                     return r;
                 lock (_serviceLock)
-                    return _runtime ??= new DacRuntime(_clrInfo, _process, _sos, _sos13, _dac.TargetProperties);
+                    return _runtime ??= new DacRuntime(_clrInfo, _process, _sos, _sos13, _target);
             }
 
             if (serviceType == typeof(IAbstractHeap))
@@ -127,7 +207,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     }
 
                     if (initialized)
-                        return _heapHelper = new DacHeap(_sos, _sos8, _sos12, _sos16, _dataReader, _dac.TargetProperties, DacHeap.GetThinLockLayout(_clrInfo.Flavor, _clrInfo.Version), data, mts);
+                        return _heapHelper = new DacHeap(_sos, _sos8, _sos12, _sos16, _dataReader, _target, data, mts);
 
                     return null;
                 }
@@ -140,8 +220,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     return t;
                 lock (_serviceLock)
                 {
-                    _moduleHelper ??= new(_sos, _dac.TargetProperties);
-                    return _typeHelper ??= new DacTypeHelpers(_process, _sos, _sos6, _sos8, _sos14, _dataReader, _moduleHelper, _dac.TargetProperties, _clrInfo.Flavor, _clrInfo.Version?.Major ?? 0);
+                    _moduleHelper ??= new(_sos, _target);
+                    return _typeHelper ??= new DacTypeHelpers(_process, _sos, _sos6, _sos8, _sos14, _dataReader, _moduleHelper, _target, _clrInfo.Flavor, _clrInfo.Version?.Major ?? 0);
                 }
             }
 
@@ -151,7 +231,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (n is not null)
                     return n;
                 lock (_serviceLock)
-                    return _nativeHeaps ??= new DacNativeHeaps(_clrInfo, _sos, _sos13, _dataReader, _dac.TargetProperties);
+                    return _nativeHeaps ??= new DacNativeHeaps(_clrInfo, _sos, _sos13, _dataReader, _target);
             }
 
             if (serviceType == typeof(IAbstractModuleHelpers))
@@ -160,7 +240,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (m is not null)
                     return m;
                 lock (_serviceLock)
-                    return _moduleHelper ??= new DacModuleHelpers(_sos, _dac.TargetProperties);
+                    return _moduleHelper ??= new DacModuleHelpers(_sos, _target);
             }
 
             if (serviceType == typeof(IAbstractComHelpers))
@@ -169,7 +249,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (c is not null)
                     return c;
                 lock (_serviceLock)
-                    return _com ??= new DacComHelpers(_sos, _dac.TargetProperties);
+                    return _com ??= new DacComHelpers(_sos, _target);
             }
 
             if (serviceType == typeof(IAbstractLegacyThreadPool))
@@ -178,7 +258,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (p is not null)
                     return p;
                 lock (_serviceLock)
-                    return _threadPool ??= new DacLegacyThreadPool(_sos, _dac.TargetProperties);
+                    return _threadPool ??= new DacLegacyThreadPool(_sos, _target);
             }
 
             if (serviceType == typeof(IAbstractMethodLocator))
@@ -187,7 +267,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (l is not null)
                     return l;
                 lock (_serviceLock)
-                    return _methodLocator ??= new DacMethodLocator(_sos, _dataReader, _dac.TargetProperties);
+                    return _methodLocator ??= new DacMethodLocator(_sos, _dataReader, _target);
             }
 
             if (serviceType == typeof(IAbstractThreadHelpers))
@@ -196,7 +276,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (th is not null)
                     return th;
                 lock (_serviceLock)
-                    return _threadHelper ??= new DacThreadHelpers(_process, _sos, _dataReader, _dac.TargetProperties);
+                    return _threadHelper ??= new DacThreadHelpers(_process, _sos, _dataReader, _target);
             }
 
             if (serviceType == typeof(IAbstractStressLog))
@@ -208,7 +288,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 if (s is not null)
                     return s;
                 lock (_serviceLock)
-                    return _stressLog ??= new DacStressLog(_sos, _sos17, _dac.TargetProperties);
+                    return _stressLog ??= new DacStressLog(_sos, _sos17, _target);
             }
 
             if (serviceType == typeof(IAbstractDacController))
@@ -240,37 +320,8 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                 {
                     _sos13.LockedFlush();
                 }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    // IXClrDataProcess::Flush is unfortunately not wrapped with DAC_ENTER.  This means that
-                    // when it starts deleting memory, it's completely unsynchronized with parallel reads
-                    // and writes, leading to heap corruption and other issues.  This means that in order to
-                    // properly clear dac data structures, we need to trick the dac into entering the critical
-                    // section for us so we can call Flush safely then.
-
-                    // To accomplish this, we set a hook in our implementation of IDacDataTarget::ReadVirtual
-                    // which will call IXClrDataProcess::Flush if the dac tries to read the address set by
-                    // MagicCallbackConstant.  Additionally we make sure this doesn't interfere with other
-                    // reads by 1) Ensuring that the address is in kernel space, 2) only calling when we've
-                    // entered a special context.
-
-                    _dac.DacDataTarget.EnterMagicCallbackContext();
-                    try
-                    {
-                        _sos.GetWorkRequestData(ClrDataAddress.FromTargetAddress(DacDataTarget.MagicCallbackConstant, _dac.TargetProperties), out _);
-                    }
-                    finally
-                    {
-                        _dac.DacDataTarget.ExitMagicCallbackContext();
-                    }
-                }
                 else
                 {
-                    // On Linux/MacOS, skip the above workaround because calling Flush() in the DAC data target's
-                    // ReadVirtual function can cause a SEGSIGV because of an access of freed memory causing the
-                    // tool/app running CLRMD to crash. On Windows, it would be caught by the SEH try/catch handler
-                    // in DAC enter/leave code.
-
                     _process.Flush();
                 }
             }

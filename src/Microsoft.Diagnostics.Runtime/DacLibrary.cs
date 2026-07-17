@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime
 
         public TargetProperties TargetProperties { get; }
 
-        public ClrDataProcess CreateClrDataProcess() => new(this, _clrDataProcess);
+        public ClrDataProcess CreateClrDataProcess() => new(SyncRoot, TargetProperties, _clrDataProcess);
 
         public unsafe DacLibrary(DataTarget dataTarget, string dacPath, ulong runtimeBaseAddress, ulong contractDescriptor, bool verifySignature)
         {
@@ -49,7 +49,10 @@ namespace Microsoft.Diagnostics.Runtime
             // load below operate on a full path (callers may pass a relative or non-normalized path).
             dacPath = Path.GetFullPath(dacPath);
 
-            TargetProperties = new TargetProperties(pointerSize: dataTarget.DataReader.PointerSize);
+            // This TargetProperties feeds only pointer-size address translation (ClrDataProcess/SosDac12);
+            // its ThinLockLayout is never consumed here, so the conservative Legacy layout is used. The
+            // canonical layout for thin-lock decoding is computed per-runtime in DacServiceProvider.
+            TargetProperties = new TargetProperties(ThinLockLayout.Legacy, dataTarget.DataReader.PointerSize);
 
             IDisposable? fileLock = null;
             IntPtr dacLibrary;
@@ -147,7 +150,7 @@ namespace Microsoft.Diagnostics.Runtime
                     throw new ClrDiagnosticsException($"Failure loading DAC: CreateDacInstance failed 0x{res:x}", res);
             }
 
-            _clrDataProcess = new ClrDataProcess(this, iUnk);
+            _clrDataProcess = new ClrDataProcess(SyncRoot, TargetProperties, iUnk);
         }
 
         public void Dispose()

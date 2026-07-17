@@ -544,24 +544,29 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             {
                 foreach (ClrDataMethod method in _clrDataProcess.EnumerateMethodInstancesByAddress(ClrDataAddress.FromTargetAddress(ip, _target)))
                 {
-                    ILToNativeMap[]? map = method.GetILToNativeMap();
-                    if (map != null)
+                    try
                     {
-                        for (int i = 0; i < map.Length; i++)
+                        ILToNativeMap[]? map = method.GetILToNativeMap();
+                        if (map != null)
                         {
-                            if (map[i].StartAddress > map[i].EndAddress)
+                            for (int i = 0; i < map.Length; i++)
                             {
-                                if (i + 1 == map.Length)
-                                    map[i].EndAddress = FindEnd(hotCold, map[i].StartAddress);
-                                else
-                                    map[i].EndAddress = map[i + 1].StartAddress - 1;
+                                if (map[i].StartAddress > map[i].EndAddress)
+                                {
+                                    if (i + 1 == map.Length)
+                                        map[i].EndAddress = FindEnd(hotCold, map[i].StartAddress);
+                                    else
+                                        map[i].EndAddress = map[i + 1].StartAddress - 1;
+                                }
                             }
+
+                            result.AddRange(map);
                         }
-
-                        result.AddRange(map);
                     }
-
-                    method.Dispose();
+                    finally
+                    {
+                        method.Dispose();
+                    }
                 }
             }
 

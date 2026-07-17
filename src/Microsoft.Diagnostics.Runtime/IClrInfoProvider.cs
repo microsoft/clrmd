@@ -1,9 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System;
-using Microsoft.Diagnostics.Runtime.AbstractDac;
-
 namespace Microsoft.Diagnostics.Runtime
 {
     public interface IClrInfoProvider
@@ -15,17 +12,5 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="module">The module to inspect.</param>
         /// <returns>A ClrInfo if module is a CLR runtime, null otherwise.</returns>
         ClrInfo? ProvideClrInfoForModule(DataTarget dataTarget, ModuleInfo module);
-
-        /// <summary>
-        /// Creates an instance of an <see cref="IServiceProvider"/> for the given <see cref="ClrInfo"/>.
-        /// Note that this will only be called on the interface which previously provided the given ClrInfo.
-        /// </summary>
-        /// <param name="clrInfo">A ClrInfo previously returned by this same instance.</param>
-        /// <param name="providedPath">The path provided to DataTarget.CreateRuntime.</param>
-        /// <param name="ignorePathMismatch">The ignore mismatch parameter provided to DataTarget.CreateRuntime.</param>
-        /// <param name="verifySignature">If true, verify the DAC signature</param>
-        /// <returns>An <see cref="IServiceProvider"/> interface to use with the specified clr runtime that provides
-        /// <see cref="IAbstractRuntime"/> related services.</returns>
-        IServiceProvider GetDacServices(ClrInfo clrInfo, string? providedPath, bool ignorePathMismatch, bool verifySignature);
     }
 }

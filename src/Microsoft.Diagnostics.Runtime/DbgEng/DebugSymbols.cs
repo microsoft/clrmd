@@ -13,8 +13,8 @@ namespace Microsoft.Diagnostics.Runtime.DbgEng
     {
         internal static readonly Guid IID_IDebugSymbols3 = new("f02fbecc-50ac-4f36-9ad9-c975e8f32ff8");
 
-        public DebugSymbols(RefCountedFreeLibrary library, IntPtr pUnk, DebugSystemObjects sys)
-            : base(library, IID_IDebugSymbols3, pUnk)
+        public DebugSymbols(IntPtr pUnk, DebugSystemObjects sys)
+            : base(IID_IDebugSymbols3, pUnk)
         {
             _sys = sys;
             SuppressRelease();

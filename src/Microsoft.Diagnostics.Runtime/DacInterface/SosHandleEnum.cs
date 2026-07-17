@@ -15,8 +15,8 @@ namespace Microsoft.Diagnostics.Runtime.DacInterface
 
         private static readonly Guid IID_ISOSHandleEnum = new("3E269830-4A2B-4301-8EE2-D6805B29B2FA");
 
-        public SOSHandleEnum(DacLibrary library, IntPtr pUnk)
-            : base(library?.OwningLibrary, IID_ISOSHandleEnum, pUnk)
+        public SOSHandleEnum(IntPtr pUnk)
+            : base(IID_ISOSHandleEnum, pUnk)
         {
         }
 
