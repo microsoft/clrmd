@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
@@ -90,23 +89,18 @@ namespace Microsoft.Diagnostics.Runtime
                 fileLock?.Dispose();
             }
 
-            // On non-Windows platforms, calling dlclose on the DAC library can crash the process
-            // when inspecting the current process.  The DAC (libmscordaccore.so) shares internal
-            // state with the running CLR (libcoreclr.so), and unloading it corrupts that state.
-            // Suppress FreeLibrary when the target is the current process to avoid this.
+            // On non-Windows platforms, calling dlclose on the DAC library can crash the process.
+            // The DAC embeds a copy of the PAL, whose TLSInitialize() registers a pthread key
+            // with the thread-exit destructor InternalEndCurrentThreadWrapper.
+            // Once the library is unloaded with dlclose that destructor code is unmapped, but the
+            // pthread key is not removed. When any thread that entered theDAC's PAL later exits,
+            // glibc invokes the now-dangling destructor and the process crashes with SIGSEGV inside
+            // __nptl_deallocate_tsd.
             //
             // The cDAC (mscordaccore_universal) is a NativeAOT library that cannot be safely
             // unloaded on any platform, so never free it either.
-#if NET6_0_OR_GREATER
-            int currentPid = Environment.ProcessId;
-#else
-            int currentPid;
-            using (Process p = Process.GetCurrentProcess())
-                currentPid = p.Id;
-#endif
             bool suppressFree = DotNetClrInfoProvider.IsCDacFileName(dacPath)
-                                || (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                                    && dataTarget.DataReader.ProcessId == currentPid);
+                                || !RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
             OwningLibrary = new RefCountedFreeLibrary(dacLibrary, suppressFree);
 
             IntPtr initAddr = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "DAC_PAL_InitializeDLL");
