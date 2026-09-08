@@ -94,7 +94,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                         stream.Read(new Span<byte>(&seg, sizeof(Segment64LoadCommand)));
 #endif
 
-                        if (seg.VMAddr == SpecialThreadInfoHeader.SpecialThreadInfoAddress)
+                        if (seg.VMAddr == SpecialThreadInfoHeader.SpecialThreadInfoAddress ||
+                            seg.VMAddr == SpecialThreadInfoHeader.SpecialThreadInfoLegacyAddress)
                         {
                             stream.Position = (long)seg.FileOffset;
 
