@@ -16,6 +16,7 @@ public unsafe static class AuthenticodeUtil
 
     private const int CERT_CHAIN_POLICY_MICROSOFT_ROOT = 7;
     private const int WTD_STATEACTION_CLOSE = 0x2;
+    private const uint WTD_REVOCATION_CHECK_CHAIN = 0x40;
     private const string DOTNET_DAC_CERT_OID = "1.3.6.1.4.1.311.84.4.1";
 
     /// <summary>
@@ -55,7 +56,7 @@ public unsafe static class AuthenticodeUtil
         {
             cbStruct = (uint)sizeof(WINTRUST_DATA),
             dwUIChoice = 2,         // WTD_UI_NONE
-            dwProvFlags = 0x1040,   // WTD_REVOCATION_CHECK_CHAIN | WTD_CACHE_ONLY_URL_RETRIEVAL
+            dwProvFlags = WTD_REVOCATION_CHECK_CHAIN,
             dwStateAction = 1,      // WTD_STATEACTION_VERIFY
             dwUnionChoice = 1,      // WTD_CHOICE_FILE
             pFile = new IntPtr(&trustInfo)

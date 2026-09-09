@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public override string? FindPEImage(string fileName, int buildTimeStamp, int imageSize, bool checkProperties)
         {
-            if (Path.GetFileName(fileName) != fileName && File.Exists(fileName))
+            if (PathUtilities.IsSafeAbsoluteLocalPath(fileName) && File.Exists(fileName))
             {
                 if (checkProperties)
                 {

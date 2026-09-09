@@ -2,8 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
 using Xunit;
 
@@ -165,6 +168,62 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             using DataTarget dt = TestTargets.NestedException.LoadFullDump(singleFile);
             Assert.True(dt.DataReader.ProcessId > 0);
+        }
+
+        // Security regression test for CLRMD-001: a dump-controlled UNC/remote module
+        // path must be reduced to its leaf filename (routed through the file locator /
+        // symbol cache) and never probed as a UNC path, which would leak NTLM and set
+        // up the DAC verify/load TOCTOU. A safe absolute local path is passed through
+        // unchanged.
+        [WindowsFact]
+        public void LoadPEImageLooksUpRemotePathByFileName()
+        {
+            // Ensure the dump exists, then reopen it with our capturing locator.
+            using (DataTarget _ = TestTargets.Types.LoadFullDump())
+            {
+            }
+
+            string dumpPath = TestTargets.Types.BuildDumpName(GCMode.Workstation, full: true);
+            CapturingFileLocator locator = new();
+
+            using FileStream stream = File.OpenRead(dumpPath);
+            using DataTarget dt = DataTarget.LoadDump("<display name>", stream, options: new DataTargetOptions
+            {
+                FileLocator = locator,
+            });
+
+            // A dump-controlled UNC path must be reduced to its leaf filename.
+            const string unc = @"\\attacker.example\share\coreclr.dll";
+            _ = dt.LoadPEImage(unc, timeStamp: 0x1234, fileSize: 0x5678, checkProperties: false, imageBase: 0);
+
+            Assert.Contains("coreclr.dll", locator.RequestedFileNames);
+            Assert.DoesNotContain(locator.RequestedFileNames, f => f.IndexOf("attacker.example", System.StringComparison.OrdinalIgnoreCase) >= 0);
+            Assert.DoesNotContain(locator.RequestedFileNames, f => f.StartsWith(@"\\"));
+
+            // A safe absolute local path is passed through unchanged (non-existent path,
+            // so nothing is actually opened; we only assert what the locator received).
+            locator.RequestedFileNames.Clear();
+            const string safeLocal = @"C:\nonexistent\clrmd_test_dir\coreclr.dll";
+            _ = dt.LoadPEImage(safeLocal, timeStamp: 0x1234, fileSize: 0x5678, checkProperties: false, imageBase: 0);
+
+            Assert.Contains(safeLocal, locator.RequestedFileNames);
+        }
+
+        private sealed class CapturingFileLocator : IFileLocator
+        {
+            public List<string> RequestedFileNames { get; } = new();
+
+            public string FindPEImage(string fileName, int buildTimeStamp, int imageSize, bool checkProperties)
+            {
+                RequestedFileNames.Add(fileName);
+                return null;
+            }
+
+            public string FindPEImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildIdOrUUID, OSPlatform originalPlatform, bool checkProperties)
+            {
+                RequestedFileNames.Add(fileName);
+                return null;
+            }
         }
     }
 }

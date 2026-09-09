@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.DacInterface;
@@ -54,9 +55,13 @@ namespace Microsoft.Diagnostics.Runtime
             TargetProperties = new TargetProperties(ThinLockLayout.Legacy, dataTarget.DataReader.PointerSize);
 
             IDisposable? fileLock = null;
+            CopiedDacFile? copiedDac = null;
             IntPtr dacLibrary;
+            bool loaded = false;
             try
             {
+                string dacLoadPath = dacPath;
+
                 // VerifyDacDll uses WinVerifyTrust, which only exists on windows.  For non-windows platforms, we do
                 // not verify signatures of the DAC.  We also do not download DACs from the internet on those platforms,
                 // leaving it up to the consumer of ClrMD to safely procure the DAC.
@@ -69,7 +74,10 @@ namespace Microsoft.Diagnostics.Runtime
 
                 if (verify && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
-                    if (!AuthenticodeUtil.VerifyDacDll(dacPath, out fileLock))
+                    copiedDac = CopiedDacFile.Create(dacPath);
+                    dacLoadPath = copiedDac.FilePath;
+
+                    if (!AuthenticodeUtil.VerifyDacDll(dacLoadPath, out fileLock))
                     {
                         throw new ClrDiagnosticsException("Failed to load dac: not properly signed.");
                     }
@@ -77,7 +85,8 @@ namespace Microsoft.Diagnostics.Runtime
 
                 try
                 {
-                    dacLibrary = DataTarget.PlatformFunctions.LoadLibrary(dacPath);
+                    dacLibrary = DataTarget.PlatformFunctions.LoadLibrary(dacLoadPath);
+                    loaded = true;
                 }
                 catch (Exception e) when (e is DllNotFoundException or BadImageFormatException)
                 {
@@ -87,6 +96,8 @@ namespace Microsoft.Diagnostics.Runtime
             finally
             {
                 fileLock?.Dispose();
+                if (!loaded)
+                    copiedDac?.Dispose();
             }
 
             // On non-Windows platforms, calling dlclose on the DAC library can crash the process.
@@ -101,50 +112,61 @@ namespace Microsoft.Diagnostics.Runtime
             // unloaded on any platform, so never free it either.
             bool suppressFree = DotNetClrInfoProvider.IsCDacFileName(dacPath)
                                 || !RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-            OwningLibrary = new RefCountedFreeLibrary(dacLibrary, suppressFree);
+            Action? deleteCopiedDac = copiedDac is not null ? copiedDac.Dispose : null;
+            OwningLibrary = new RefCountedFreeLibrary(dacLibrary, suppressFree, deleteCopiedDac);
+            copiedDac = null;
 
-            IntPtr initAddr = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "DAC_PAL_InitializeDLL");
-            if (initAddr == IntPtr.Zero)
-                initAddr = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "PAL_InitializeDLL");
-
-            if (initAddr != IntPtr.Zero)
+            try
             {
-                IntPtr dllMain = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "DllMain");
-                if (dllMain == IntPtr.Zero)
-                    throw new ClrDiagnosticsException("Failed to obtain dac DllMain");
+                IntPtr initAddr = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "DAC_PAL_InitializeDLL");
+                if (initAddr == IntPtr.Zero)
+                    initAddr = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "PAL_InitializeDLL");
 
-                delegate* unmanaged[Stdcall]<IntPtr, int, IntPtr, int> main = (delegate* unmanaged[Stdcall]<IntPtr, int, IntPtr, int>)dllMain;
-                main(dacLibrary, 1, IntPtr.Zero);
-            }
+                if (initAddr != IntPtr.Zero)
+                {
+                    IntPtr dllMain = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "DllMain");
+                    if (dllMain == IntPtr.Zero)
+                        throw new ClrDiagnosticsException("Failed to obtain dac DllMain");
 
-            IntPtr addr = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "CLRDataCreateInstance");
-            if (addr == IntPtr.Zero)
-                throw new ClrDiagnosticsException("Failed to obtain Dac CLRDataCreateInstance");
+                    delegate* unmanaged[Stdcall]<IntPtr, int, IntPtr, int> main = (delegate* unmanaged[Stdcall]<IntPtr, int, IntPtr, int>)dllMain;
+                    main(dacLibrary, 1, IntPtr.Zero);
+                }
 
-            DacDataTarget = new DacDataTarget(dataTarget, runtimeBaseAddress, contractDescriptor);
+                IntPtr addr = DataTarget.PlatformFunctions.GetLibraryExport(dacLibrary, "CLRDataCreateInstance");
+                if (addr == IntPtr.Zero)
+                    throw new ClrDiagnosticsException("Failed to obtain Dac CLRDataCreateInstance");
 
-            delegate* unmanaged[Stdcall]<in Guid, IntPtr, out IntPtr, int> func = (delegate* unmanaged[Stdcall]<in Guid, IntPtr, out IntPtr, int>)addr;
-            Guid guid = new("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
+                DacDataTarget = new DacDataTarget(dataTarget, runtimeBaseAddress, contractDescriptor);
+
+                delegate* unmanaged[Stdcall]<in Guid, IntPtr, out IntPtr, int> func = (delegate* unmanaged[Stdcall]<in Guid, IntPtr, out IntPtr, int>)addr;
+                Guid guid = new("5c552ab6-fc09-4cb3-8e36-22fa03c798b7");
 
 #if NET6_0_OR_GREATER
-            IntPtr iDacDataTarget = DacDataTargetCOM.CreateIDacDataTarget(DacDataTarget);
-            int res = func(guid, iDacDataTarget, out nint iUnk);
-            Marshal.Release(iDacDataTarget);
+                IntPtr iDacDataTarget = DacDataTargetCOM.CreateIDacDataTarget(DacDataTarget);
+                int res = func(guid, iDacDataTarget, out nint iUnk);
+                Marshal.Release(iDacDataTarget);
 #else
-            LegacyDacDataTargetWrapper wrapper = new(DacDataTarget);
-            int res = func(guid, wrapper.IDacDataTarget, out nint iUnk);
-            GC.KeepAlive(wrapper);
+                LegacyDacDataTargetWrapper wrapper = new(DacDataTarget);
+                int res = func(guid, wrapper.IDacDataTarget, out nint iUnk);
+                GC.KeepAlive(wrapper);
 #endif
 
-            unchecked
-            {
-                if ((uint)res == 0x80131c4f)
-                    throw new ClrDiagnosticsException($"Failure loading DAC: CreateDacInstance failed 0x{res:x}, which usually indicates the dump file was taken incorrectly.", res);
-                else if (res != 0)
-                    throw new ClrDiagnosticsException($"Failure loading DAC: CreateDacInstance failed 0x{res:x}", res);
-            }
+                unchecked
+                {
+                    if ((uint)res == 0x80131c4f)
+                        throw new ClrDiagnosticsException($"Failure loading DAC: CreateDacInstance failed 0x{res:x}, which usually indicates the dump file was taken incorrectly.", res);
+                    else if (res != 0)
+                        throw new ClrDiagnosticsException($"Failure loading DAC: CreateDacInstance failed 0x{res:x}", res);
+                }
 
-            _clrDataProcess = new ClrDataProcess(SyncRoot, TargetProperties, iUnk);
+                _clrDataProcess = new ClrDataProcess(SyncRoot, TargetProperties, iUnk);
+            }
+            catch
+            {
+                OwningLibrary.Release();
+                _disposed = true;
+                throw;
+            }
         }
 
         public void Dispose()
@@ -168,6 +190,80 @@ namespace Microsoft.Diagnostics.Runtime
                 OwningLibrary?.Release();
 
                 _disposed = true;
+            }
+        }
+
+        private sealed class CopiedDacFile : IDisposable
+        {
+            private readonly string _directory;
+
+            public string FilePath { get; }
+
+            private CopiedDacFile(string directory, string filePath)
+            {
+                _directory = directory;
+                FilePath = filePath;
+            }
+
+            public static CopiedDacFile Create(string sourcePath)
+            {
+                string directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                Directory.CreateDirectory(directory);
+
+                string fileName = Path.GetFileName(sourcePath);
+                if (string.IsNullOrEmpty(fileName))
+                    fileName = "dac.dll";
+
+                string destination = Path.Combine(directory, fileName);
+                bool success = false;
+                try
+                {
+                    using (FileStream source = File.OpenRead(sourcePath))
+                    using (FileStream destinationStream = new(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                        source.CopyTo(destinationStream);
+
+                    success = true;
+                }
+                finally
+                {
+                    if (!success)
+                    {
+                        TryDeleteFile(destination);
+                        TryDeleteDirectory(directory);
+                    }
+                }
+
+                return new CopiedDacFile(directory, destination);
+            }
+
+            public void Dispose()
+            {
+                TryDeleteFile(FilePath);
+                TryDeleteDirectory(_directory);
+            }
+
+            private static void TryDeleteFile(string path)
+            {
+                try
+                {
+                    File.Delete(path);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    Trace.TraceWarning($"Could not delete temporary file '{path}': {ex.Message}");
+                }
+            }
+
+            private static void TryDeleteDirectory(string path)
+            {
+                try
+                {
+                    Directory.Delete(path);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    Trace.TraceWarning($"Could not delete temporary directory '{path}': {ex.Message}");
+                }
             }
         }
     }
