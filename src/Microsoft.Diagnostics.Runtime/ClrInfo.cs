@@ -192,42 +192,42 @@ namespace Microsoft.Diagnostics.Runtime
             foreach (DebugLibraryInfo dac in DebuggingLibraries.Where(r => r.Kind == DebugLibraryKind.Dac && r.Platform == currentPlatform && r.TargetArchitecture == currentArch))
             {
                 foundOne = true;
+                string? currentDacPath = null;
 
-                // If we have a full path, use it.  We already validated that the CLR matches.
-                if (Path.GetFileName(dac.FileName) != dac.FileName)
+                if (PathUtilities.IsSafeAbsoluteLocalPath(dac.FileName))
                 {
-                    dacPath = dac.FileName;
+                    currentDacPath = dac.FileName;
                 }
                 else
                 {
                     // The properties we are requesting under may not be the actual file properties, so don't request them.
 
-                    if (locator != null)
+                    string dacFileName = PathUtilities.GetFileName(dac.FileName);
+                    if (locator != null && !string.IsNullOrEmpty(dacFileName))
                     {
                         if (!dac.IndexBuildId.IsDefaultOrEmpty)
                         {
-                            dacPath = locator.FindPEImage(dac.FileName, SymbolProperties.Coreclr, dac.IndexBuildId, DataTarget.DataReader.TargetPlatform, checkProperties: false);
+                            currentDacPath = locator.FindPEImage(dacFileName, SymbolProperties.Coreclr, dac.IndexBuildId, DataTarget.DataReader.TargetPlatform, checkProperties: false);
                         }
                         else if (dac.IndexTimeStamp != 0 && dac.IndexFileSize != 0)
                         {
                             if (dac.Platform == OSPlatform.Windows)
-                                dacPath = DataTarget.FileLocator?.FindPEImage(dac.FileName, dac.IndexTimeStamp, dac.IndexFileSize, checkProperties: false);
+                                currentDacPath = locator.FindPEImage(dacFileName, dac.IndexTimeStamp, dac.IndexFileSize, checkProperties: false);
                         }
                     }
                 }
 
-                if (dacPath is not null && File.Exists(dacPath))
+                if (currentDacPath is not null && File.Exists(currentDacPath))
                 {
                     try
                     {
                         // If we get the file from the symbol server, assume mismatches are expected.  Sometimes we replace dacs on the symbol
                         // server to fix bugs.  If it's archived under the right path, use it.
-                        return CreateDacFromPath(dacPath, ignoreMismatch: true, verifySignature);
+                        return CreateDacFromPath(currentDacPath, ignoreMismatch: true, verifySignature);
                     }
                     catch (Exception ex)
                     {
                         exception ??= ex;
-                        dacPath = null;
                     }
                 }
             }

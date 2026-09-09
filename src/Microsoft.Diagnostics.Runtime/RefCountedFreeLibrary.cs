@@ -10,12 +10,14 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private readonly IntPtr _library;
         private readonly bool _suppressFree;
+        private readonly Action? _onRelease;
         private int _refCount;
 
-        public RefCountedFreeLibrary(IntPtr library, bool suppressFree = false)
+        public RefCountedFreeLibrary(IntPtr library, bool suppressFree = false, Action? onRelease = null)
         {
             _library = library;
             _suppressFree = suppressFree;
+            _onRelease = onRelease;
             _refCount = 1;
         }
 
@@ -27,8 +29,13 @@ namespace Microsoft.Diagnostics.Runtime
         public int Release()
         {
             int count = Interlocked.Decrement(ref _refCount);
-            if (count == 0 && _library != IntPtr.Zero && !_suppressFree)
-                DataTarget.PlatformFunctions.FreeLibrary(_library);
+            if (count == 0)
+            {
+                if (_library != IntPtr.Zero && !_suppressFree)
+                    DataTarget.PlatformFunctions.FreeLibrary(_library);
+
+                _onRelease?.Invoke();
+            }
 
             return count;
         }

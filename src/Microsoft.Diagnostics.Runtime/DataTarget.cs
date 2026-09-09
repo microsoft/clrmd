@@ -203,7 +203,11 @@ namespace Microsoft.Diagnostics.Runtime
             if (string.IsNullOrEmpty(fileName))
                 return null;
 
-            string key = $"{fileName}/{timeStamp:x}{fileSize:x}";
+            string lookupFileName = PathUtilities.IsSafeAbsoluteLocalPath(fileName) ? fileName : PathUtilities.GetFileName(fileName);
+            if (string.IsNullOrEmpty(lookupFileName))
+                return null;
+
+            string key = $"{lookupFileName}/{timeStamp:x}{fileSize:x}";
 
             PEImage? result = null;
 
@@ -215,7 +219,7 @@ namespace Microsoft.Diagnostics.Runtime
 
             if (FileLocator is not null)
             {
-                string? foundFile = FileLocator.FindPEImage(fileName, timeStamp, fileSize, checkProperties);
+                string? foundFile = FileLocator.FindPEImage(lookupFileName, timeStamp, fileSize, checkProperties);
                 if (!string.IsNullOrWhiteSpace(foundFile) && File.Exists(foundFile))
                 {
                     try
@@ -234,7 +238,7 @@ namespace Microsoft.Diagnostics.Runtime
             if (result is null)
             {
                 // If we have a custom file locator (or null), we might not have checked the file on disk
-                if (Path.GetFileName(fileName) != fileName && File.Exists(fileName))
+                if (PathUtilities.IsSafeAbsoluteLocalPath(fileName) && File.Exists(fileName))
                 {
                     try
                     {

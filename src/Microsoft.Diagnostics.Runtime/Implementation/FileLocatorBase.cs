@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public virtual string? FindPEImage(string fileName, int buildTimeStamp, int imageSize, bool checkProperties)
         {
-            fileName = Path.GetFileName(fileName).ToLowerInvariant();
+            fileName = PathUtilities.GetFileName(fileName).ToLowerInvariant();
             return $"{fileName}\\{unchecked((uint)buildTimeStamp):x8}{unchecked((uint)imageSize):x}\\{fileName}";
         }
 
@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (buildId.IsDefaultOrEmpty)
                 return null;
 
-            fileName = Path.GetFileName(fileName).ToLowerInvariant();
+            fileName = PathUtilities.GetFileName(fileName).ToLowerInvariant();
             string specialKey = "";
             if (archivedUnder == SymbolProperties.Coreclr)
                 specialKey = "coreclr-";

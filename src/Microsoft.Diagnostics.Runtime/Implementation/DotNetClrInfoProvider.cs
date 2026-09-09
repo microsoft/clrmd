@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -129,11 +129,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                     bool foundLocalDac = false;
 
                     // Check if the user has the same CLR installed locally, and if so
-                    string? directory = Path.GetDirectoryName(module.FileName);
-                    if (!string.IsNullOrWhiteSpace(directory))
+                    if (PathUtilities.IsSafeAbsoluteLocalPath(module.FileName))
                     {
-                        string potentialClr = Path.Combine(directory, Path.GetFileName(module.FileName));
-                        if (File.Exists(potentialClr))
+                        string? directory = Path.GetDirectoryName(module.FileName);
+                        string potentialClr = module.FileName;
+                        if (!string.IsNullOrWhiteSpace(directory) && File.Exists(potentialClr))
                         {
                             try
                             {
@@ -141,7 +141,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                                 if (peimage.IndexFileSize == indexFileSize && peimage.IndexTimeStamp == indexTimeStamp)
                                 {
                                     string dacFound = Path.Combine(directory, dacCurrentPlatform);
-                                    if (File.Exists(dacFound))
+                                    if (PathUtilities.IsSafeAbsoluteLocalPath(dacFound) && File.Exists(dacFound))
                                     {
                                         dacCurrentPlatform = dacFound;
                                         foundLocalDac = true;
@@ -260,7 +260,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             // Do NOT take a dependency on the order of enumerated libraries.  I reserve the right to change this at any time.
             IOrderedEnumerable<DebugLibraryInfo> orderedDebugLibraries = from artifact in EnumerateUnique(artifacts)
                                                                          orderby artifact.Kind,
-                                                                                 Path.GetFileName(artifact.FileName) == artifact.FileName, // if we have a full local path, put it first
+                                                                                 !PathUtilities.IsSafeAbsoluteLocalPath(artifact.FileName),
                                                                                  artifact.ArchivedUnder
                                                                          select artifact;
 
@@ -374,7 +374,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             flavor = default;
 
-            string moduleName = Path.GetFileName(module.FileName);
+            string moduleName = PathUtilities.GetFileName(module.FileName);
             if (moduleName.Equals(c_desktopModuleName, StringComparison.OrdinalIgnoreCase))
             {
                 flavor = ClrFlavor.Desktop;

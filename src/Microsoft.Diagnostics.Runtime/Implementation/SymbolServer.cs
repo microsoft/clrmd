@@ -8,6 +8,7 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 using Azure.Core;
 using Azure.Identity;
@@ -53,15 +54,18 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         {
             // We concatenate the Uri later, and if the last path does not end with a / then
             // it gets erased when we combine uris.
+            UriBuilder builder = new(uri)
+            {
+                Query = "",
+                Fragment = ""
+            };
+
             // If the URI's AbsolutePath already ends with '/', return as is.
-            if (uri.AbsolutePath.EndsWith("/"))
-                return uri;
+            if (builder.Path.EndsWith("/"))
+                return builder.Uri;
 
             // Rebuild the URI with a trailing slash in the path.
-            var builder = new UriBuilder(uri)
-            {
-                Path = uri.AbsolutePath + "/"
-            };
+            builder.Path += "/";
             return builder.Uri;
         }
 
@@ -108,16 +112,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         private async Task<Stream?> FindFileOnServer(string key)
         {
-            key = key.Replace('\\', '/').TrimStart('/');
-            Uri fullPath = new(Server, key);
+            Uri? fullPath = TryCreateSymbolUri(Server, key);
+            if (fullPath is null)
+                return null;
 
             string? accessToken = IsSymweb ? await GetAccessTokenAsync().ConfigureAwait(false) : null;
-            if (accessToken is not null)
-                _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-            else
-                _http.DefaultRequestHeaders.Authorization = null;
+            using HttpRequestMessage request = new(HttpMethod.Get, fullPath);
+            if (accessToken is not null && IsSameServer(Server, fullPath))
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-            HttpResponseMessage response = await _http.GetAsync(fullPath).ConfigureAwait(false);
+            HttpResponseMessage response = await _http.SendAsync(request).ConfigureAwait(false);
 
             if (_trace)
                 Trace.WriteLine($"ClrMD symbol request: {fullPath} returned {response.StatusCode}");
@@ -127,6 +131,53 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             response.Dispose();
             return null;
+        }
+
+        internal static Uri? TryCreateSymbolUri(Uri server, string key)
+        {
+            string? relativePath = EscapeSymbolKey(key);
+            if (relativePath is null)
+                return null;
+
+            Uri normalizedServer = EnsureTrailingSlash(server);
+            string baseUri = normalizedServer.GetLeftPart(UriPartial.Path);
+            if (!baseUri.EndsWith("/", StringComparison.Ordinal))
+                baseUri += "/";
+
+            Uri result = new(baseUri + relativePath, UriKind.Absolute);
+            return IsSameServer(normalizedServer, result) ? result : null;
+        }
+
+        private static string? EscapeSymbolKey(string key)
+        {
+            string normalizedKey = key.Replace('\\', '/').TrimStart('/');
+            if (normalizedKey.Length == 0)
+                return null;
+
+            string[] segments = normalizedKey.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            if (segments.Length == 0)
+                return null;
+
+            StringBuilder builder = new();
+            foreach (string segment in segments)
+            {
+                if (segment == "." || segment == "..")
+                    return null;
+
+                if (builder.Length != 0)
+                    builder.Append('/');
+
+                builder.Append(Uri.EscapeDataString(segment));
+            }
+
+            return builder.ToString();
+        }
+
+        private static bool IsSameServer(Uri expected, Uri actual)
+        {
+            return expected.Scheme.Equals(actual.Scheme, StringComparison.OrdinalIgnoreCase)
+                   && expected.Host.Equals(actual.Host, StringComparison.OrdinalIgnoreCase)
+                   && expected.Port == actual.Port;
         }
 
 
