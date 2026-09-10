@@ -73,14 +73,24 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             foreach (MemoryRange ac in allocationContexts)
             {
-                Assert.True(ac.Length > 0);
-
                 ClrSegment seg = heap.GetSegmentByAddress(ac.Start);
                 Assert.NotNull(seg);
-                Assert.Same(seg, heap.GetSegmentByAddress(ac.End - 1));
+                if (ac.Length > 0)
+                    Assert.Same(seg, heap.GetSegmentByAddress(ac.End - 1));
 
-                Assert.True(seg.ObjectRange.Contains(ac));
+                Assert.True(seg.ObjectRange.Contains(ac.Start));
+                Assert.True(ac.End <= seg.ObjectRange.End);
             }
+        }
+
+        [Theory]
+        [InlineData(0UL, 0UL, false)]
+        [InlineData(0x1000UL, 0x0fffUL, false)]
+        [InlineData(0x1000UL, 0x1000UL, true)]
+        [InlineData(0x1000UL, 0x2000UL, true)]
+        public void AllocationContextValidity(ulong pointer, ulong limit, bool expected)
+        {
+            Assert.Equal(expected, ClrHeap.IsValidAllocationContext(pointer, limit));
         }
 
         [Theory, MemberData(nameof(TypesWithSingleFile))]
