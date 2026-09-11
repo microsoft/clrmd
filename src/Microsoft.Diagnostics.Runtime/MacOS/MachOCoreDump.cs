@@ -319,7 +319,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 ulong end = Math.Min(seg.FileSize, maxSearch);
 
                 if (firstPass)
-                    end = skip * firstPassAttemptCount;
+                    end = Math.Min(end, skip * firstPassAttemptCount);
                 else
                     start = skip * firstPassAttemptCount;
 
