@@ -1338,13 +1338,18 @@ namespace Microsoft.Diagnostics.Runtime
                     result[allocContext.Start] = allocContext.End;
 
                 foreach (ClrSubHeap subHeap in SubHeaps)
-                    if (subHeap.AllocationContext.Start < subHeap.AllocationContext.End)
+                    if (IsValidAllocationContext(subHeap.AllocationContext.Start, subHeap.AllocationContext.End))
                         result[subHeap.AllocationContext.Start] = subHeap.AllocationContext.End;
 
                 _allocationContexts = result;
                 return result;
             }
         }
+
+        // The GC reserves an aligned minimum-object tail after the allocation limit. An exhausted
+        // context with pointer == limit still marks that non-object tail and must be retained.
+        internal static bool IsValidAllocationContext(ulong pointer, ulong limit)
+            => pointer != 0 && pointer <= limit;
 
         private (ulong Source, ulong Target)[] GetDependentHandles()
         {

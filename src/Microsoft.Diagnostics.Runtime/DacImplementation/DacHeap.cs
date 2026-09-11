@@ -64,7 +64,7 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
             {
                 if (_sos12 is not null && _sos12.GetGlobalAllocationContext(out ulong allocPointer, out ulong allocLimit))
                 {
-                    if (allocPointer < allocLimit)
+                    if (ClrHeap.IsValidAllocationContext(allocPointer, allocLimit))
                     {
                         results ??= new List<MemoryRange>();
                         results.Add(new(allocPointer, allocLimit));
@@ -80,10 +80,12 @@ namespace Microsoft.Diagnostics.Runtime.DacImplementation
                     if (!_sos.GetThreadData(ClrDataAddress.FromTargetAddress(address, _target), out ThreadData thread))
                         break;
 
-                    if (thread.AllocationContextPointer.ToAddress(_target) < thread.AllocationContextLimit.ToAddress(_target))
+                    ulong threadAllocPointer = thread.AllocationContextPointer.ToAddress(_target);
+                    ulong threadAllocLimit = thread.AllocationContextLimit.ToAddress(_target);
+                    if (ClrHeap.IsValidAllocationContext(threadAllocPointer, threadAllocLimit))
                     {
                         results ??= new List<MemoryRange>();
-                        results.Add(new(thread.AllocationContextPointer.ToAddress(_target), thread.AllocationContextLimit.ToAddress(_target)));
+                        results.Add(new(threadAllocPointer, threadAllocLimit));
                     }
 
                     address = thread.NextThread.ToAddress(_target);
