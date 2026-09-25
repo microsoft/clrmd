@@ -36,7 +36,7 @@ public class DataTargetOptions
                 Directory.CreateDirectory(SymbolCachePath);
                 FileSymbolCache cache = new(SymbolCachePath);
                 IEnumerable<SymbolServer> servers = SymbolPaths.Select(r =>
-                                                        new SymbolServer(cache, r, TraceSymbolRequests, SymbolTokenCredential));
+                                                        new SymbolServer(cache, r, TraceSymbolRequests, SymbolTokenCredential, AllowPrivateSymbolServers));
                 field = new SymbolGroup(servers);
                 return field;
             }
@@ -62,6 +62,17 @@ public class DataTargetOptions
     /// <see cref="FileLocator"/> is non-null, this property has no effect.
     /// </summary>
     public string[] SymbolPaths { get; set; } = ["https://msdl.microsoft.com/download/symbols"];
+
+    /// <summary>
+    /// Gets or sets whether the built-in file locator allows private symbol server addresses and plain HTTP.
+    /// Defaults to false, requiring HTTPS and blocking private, loopback, link-local, and other special-purpose addresses.
+    /// </summary>
+    /// <remarks>
+    /// Enable only for trusted symbol servers. This disables the built-in AntiSSRF IP address restrictions and permits
+    /// unencrypted downloads. HTTPS certificate validation remains enabled. Set this before first accessing
+    /// <see cref="FileLocator"/>; it has no effect on a custom file locator.
+    /// </remarks>
+    public bool AllowPrivateSymbolServers { get; set; }
 
     /// <summary>
     /// If true, all runtimes in the target process will be enumerated.  This enables us to find single-file runtimes

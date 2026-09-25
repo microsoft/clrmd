@@ -8,10 +8,12 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using Azure.Core;
 using Azure.Identity;
+using Microsoft.Security.AntiSSRF;
 
 namespace Microsoft.Diagnostics.Runtime.Implementation
 {
@@ -23,17 +25,17 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private AccessToken _accessToken;
         private readonly FileSymbolCache _cache;
         private readonly bool _trace;
-        private readonly HttpClient _http = new();
+        private readonly HttpClient _http;
 
         public Uri Server { get; private set; }
         private bool IsSymweb => Server.Host.Equals(SymwebHost.Host, StringComparison.OrdinalIgnoreCase);
 
-        internal SymbolServer(FileSymbolCache cache, string server, bool trace, TokenCredential? credential)
-            : this(cache, Sanitize(server), trace, credential)
+        internal SymbolServer(FileSymbolCache cache, string server, bool trace, TokenCredential? credential, bool allowPrivateSymbolServers = false)
+            : this(cache, Sanitize(server), trace, credential, allowPrivateSymbolServers)
         {
         }
 
-        internal SymbolServer(FileSymbolCache cache, Uri server, bool trace, TokenCredential? credential)
+        internal SymbolServer(FileSymbolCache cache, Uri server, bool trace, TokenCredential? credential, bool allowPrivateSymbolServers = false)
         {
             _cache = cache ?? throw new ArgumentNullException(nameof(cache));
             _trace = trace;
@@ -42,6 +44,37 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
             if (IsSymweb)
                 _tokenCredential ??= new InteractiveBrowserCredential();
+
+            _http = new HttpClient(CreateHttpHandler(allowPrivateSymbolServers));
+        }
+
+        internal static AntiSSRFHandler CreateHttpHandler(bool allowPrivateSymbolServers)
+        {
+            AntiSSRFPolicy policy = new(allowPrivateSymbolServers ? PolicyConfigOptions.None : PolicyConfigOptions.ExternalOnlyLatest)
+            {
+                AllowPlainTextHttp = allowPrivateSymbolServers
+            };
+
+            AntiSSRFHandler handler = policy.GetHandler();
+#if NET6_0_OR_GREATER
+            handler.SslOptions.CertificateRevocationCheckMode = X509RevocationMode.Online;
+#else
+            // A netstandard consumer on .NET 8+ loads AntiSSRF's net8.0 asset, which
+            // replaces CheckCertificateRevocationList with SslOptions. Select the loaded API.
+            if (typeof(AntiSSRFHandler).GetProperty("CheckCertificateRevocationList") is { } revocationProperty)
+            {
+                revocationProperty.SetValue(handler, true);
+            }
+            else
+            {
+                object sslOptions = typeof(AntiSSRFHandler).GetProperty("SslOptions")?.GetValue(handler)
+                    ?? throw new MissingMemberException(typeof(AntiSSRFHandler).FullName, "SslOptions");
+                System.Reflection.PropertyInfo modeProperty = sslOptions.GetType().GetProperty("CertificateRevocationCheckMode")
+                    ?? throw new MissingMemberException(sslOptions.GetType().FullName, "CertificateRevocationCheckMode");
+                modeProperty.SetValue(sslOptions, X509RevocationMode.Online);
+            }
+#endif
+            return handler;
         }
 
         private static Uri Sanitize(string server)
@@ -103,8 +136,10 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 if (stream != null)
                     return _cache.Store(stream, key);
             }
-            catch (AggregateException)
+            catch (AggregateException ex)
             {
+                if (_trace)
+                    Trace.WriteLine($"ClrMD symbol request for {key} failed: {ex}");
             }
 
             return null;

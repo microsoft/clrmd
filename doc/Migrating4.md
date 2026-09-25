@@ -62,6 +62,7 @@ The `DataTargetOptions` class provides:
 | `SymbolPaths` | Symbol server URLs to contact | `["https://msdl.microsoft.com/download/symbols"]` |
 | `SymbolCachePath` | Local directory for downloaded symbols | `%TEMP%\symbols` |
 | `SymbolTokenCredential` | `Azure.Core.TokenCredential` for authenticated symbol servers | `null` |
+| `AllowPrivateSymbolServers` | Allow private/local symbol servers and plain HTTP | `false` |
 | `VerifyDacSignature` | Verify DAC Authenticode signature on Windows before loading | `true` |
 | `FileLocator` | Custom `IFileLocator` (overrides built-in symbol chain) | Built-in symbol server chain |
 | `ForceCompleteRuntimeEnumeration` | Search all modules for single-file runtimes | `false` |
@@ -101,6 +102,14 @@ using DataTarget dt = DataTarget.LoadDump("crash.dmp", new DataTargetOptions
 ClrMD defaults to a single symbol path pointing at the public Microsoft symbol server
 (`https://msdl.microsoft.com/download/symbols`) with a cache under
 `Path.Combine(Path.GetTempPath(), "symbols")`.
+
+The built-in downloader now uses Microsoft AntiSSRF. By default, it requires HTTPS
+and blocks private, loopback, link-local, and other special-purpose addresses,
+including redirect destinations. To continue using trusted private servers or
+legacy HTTP endpoints, set `AllowPrivateSymbolServers = true` before first
+accessing the file locator. This removes IP address restrictions and allows plain
+HTTP; HTTPS certificate validation and revocation checking remain enabled.
+Custom `FileLocator` implementations are not affected.
 
 To restore v3-like behavior (read `_NT_SYMBOL_PATH` and use it as the symbol path),
 parse the environment variable yourself and feed the results into `DataTargetOptions`.

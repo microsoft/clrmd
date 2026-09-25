@@ -60,6 +60,13 @@ ClrMD contacts symbol servers to download DAC binaries (Windows only) and IL ima
 
 **Default:** `https://msdl.microsoft.com/download/symbols` (HTTPS).
 
+The built-in file locator uses `Microsoft.Security.AntiSSRF` with
+`PolicyConfigOptions.ExternalOnlyLatest`. By default,
+`DataTargetOptions.AllowPrivateSymbolServers` is `false`: requests require HTTPS,
+and private, loopback, link-local, and other special-purpose IP addresses are
+blocked. The policy also applies to redirected requests. HTTPS certificate
+revocation checking is enabled.
+
 **Configuring custom servers:**
 ```csharp
 var options = new DataTargetOptions
@@ -70,11 +77,34 @@ var options = new DataTargetOptions
 
 **Security implications:**
 - ClrMD will contact every URL in `SymbolPaths`.  Only configure endpoints you trust.
-- If you configure an HTTP (non-TLS) endpoint, downloads are not encrypted and are
+- HTTP (non-TLS) endpoints are blocked unless you opt out as described below.
+  When permitted, their downloads are not encrypted and are
   subject to man-in-the-middle attacks.  **Always use HTTPS.**
 - A malicious symbol server could serve a tampered DAC, but on Windows the Authenticode
   check (enabled by default) will reject it.  IL images downloaded from symbol servers
   are used as read-only data sources and are never loaded as executable code.
+
+### Private or HTTP Symbol Servers
+
+For trusted private/local symbol servers or legacy HTTP endpoints, explicitly opt
+out before the built-in file locator is first accessed:
+
+```csharp
+var options = new DataTargetOptions
+{
+    SymbolPaths = new[] { "https://symbols.internal.example/" },
+    AllowPrivateSymbolServers = true,
+};
+```
+
+This uses `PolicyConfigOptions.None` and permits plain HTTP, removing IP address
+restrictions for all servers in this locator, including redirect destinations.
+HTTPS certificate validation and revocation checking remain enabled. Only use this
+option with trusted configuration and servers; prefer HTTPS even when private
+addresses are required.
+
+These policies apply only to ClrMD's built-in symbol downloader. A custom
+`DataTargetOptions.FileLocator` is responsible for its own network security.
 
 ### Authenticated Servers (Symweb)
 
