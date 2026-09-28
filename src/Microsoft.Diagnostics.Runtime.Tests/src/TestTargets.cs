@@ -230,6 +230,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 SymbolPaths = src.SymbolPaths ?? [],
                 SymbolCachePath = src.SymbolCachePath,
                 SymbolTokenCredential = src.SymbolTokenCredential,
+                AllowPrivateSymbolServers = src.AllowPrivateSymbolServers,
                 TraceSymbolRequests = src.TraceSymbolRequests,
                 Limits = src.Limits,
                 VerifyDacOnWindows = false,
