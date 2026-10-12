@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Azure.Core;
 using Microsoft.Diagnostics.Runtime.Implementation;
@@ -33,8 +32,8 @@ public class DataTargetOptions
         {
             if (field is null)
             {
-                Directory.CreateDirectory(SymbolCachePath);
-                FileSymbolCache cache = new(SymbolCachePath);
+                string cachePath = SymbolCacheDirectory.EnsureExists(SymbolCachePath);
+                FileSymbolCache cache = new(cachePath);
                 IEnumerable<SymbolServer> servers = SymbolPaths.Select(r =>
                                                         new SymbolServer(cache, r, TraceSymbolRequests, SymbolTokenCredential, AllowPrivateSymbolServers));
                 field = new SymbolGroup(servers);
@@ -48,13 +47,13 @@ public class DataTargetOptions
     /// <summary>
     /// Gets or sets the directory path used to cache downloaded symbol files.
     /// </summary>
-    /// <remarks>If not explicitly set, the property defaults to a temporary directory named "symbols" within
-    /// the system's temporary path. This path is used to store symbol files retrieved during symbol
-    /// resolution.</remarks>
+    /// <remarks>If not explicitly set, the property defaults to a per-user cache directory under the
+    /// current user's local application data folder.  On Unix that directory is restricted to the current
+    /// user.  This path is used to store symbol files retrieved during symbol resolution.</remarks>
     public string SymbolCachePath
     {
         set;
-        get => field ??= Path.Combine(Path.GetTempPath(), "symbols");
+        get => field ??= SymbolCacheDirectory.GetDefaultPath();
     }
 
     /// <summary>

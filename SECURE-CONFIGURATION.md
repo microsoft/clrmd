@@ -14,6 +14,7 @@ By default, ClrMD is configured for secure operation:
 
 - DAC binaries are Authenticode-verified on Windows before loading
 - DAC binaries are not downloaded on non-Windows platforms
+- Automatic DAC discovery uses configured file locators and symbol sources
 - Symbol server downloads are bounded in size and time
 - All file parsers enforce upper bounds on structure counts
 - The default symbol server is Microsoft's public HTTPS endpoint
@@ -48,6 +49,10 @@ var options = new DataTargetOptions { VerifyDacSignature = false };
 macOS.  ClrMD does not download DAC binaries on these platforms at all.  If you provide
 a DAC path directly via `ClrInfo.CreateRuntime(dacPath)`, you are responsible for
 verifying the binary through your own mechanism before providing it.
+
+ClrMD does not automatically probe beside the runtime module for a DAC. Applications
+that deploy a DAC beside the runtime must validate it according to their trust policy
+and pass its path explicitly to `ClrInfo.CreateRuntime(dacPath)`.
 
 ---
 
@@ -152,12 +157,22 @@ slowloris-style denial of service.
 
 ### Symbol Cache Directory
 
-**Default:** `%TEMP%\symbols` (`DataTargetOptions.SymbolCachePath`).
+**Default:** A per-user cache directory (`DataTargetOptions.SymbolCachePath`).
+On Windows this is `%LOCALAPPDATA%\Microsoft\ClrMD\symbols`. On Linux and macOS it is
+`Microsoft.ClrMD/symbols` under the current user's local application data directory:
+`$XDG_DATA_HOME` or `~/.local/share` on Linux, and `~/Library/Application Support`
+on macOS. On Unix, ClrMD creates its directories with mode `0700` and re-establishes
+that mode on both `Microsoft.ClrMD` and `symbols` before reading or writing the
+default cache. Those two directories must not be symbolic links. Existing application
+data directories retain their permissions and must only be writable by trusted users.
+If a per-user location cannot be determined, ClrMD throws and you must set
+`SymbolCachePath` explicitly.
 
 Downloaded files are stored here.  ClrMD sanitizes cache keys using
-`Path.GetFileName` to prevent directory traversal.  Ensure this directory has
-appropriate filesystem permissions — files cached here include DAC binaries that
-will be loaded as executable code on Windows.
+`Path.GetFileName` to prevent directory traversal. If you explicitly configure
+`SymbolCachePath` or a cache in a symbol path, ClrMD treats that location as trusted.
+Ensure it is owned by the analyzer account or by an administrator and cannot be
+modified by unrelated users.
 
 ---
 
