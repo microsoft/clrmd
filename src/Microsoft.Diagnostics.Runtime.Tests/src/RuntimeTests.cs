@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Diagnostics.Runtime.Implementation;
 using Xunit;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
@@ -33,11 +34,34 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         {
             using DataTarget dt = TestTargets.NestedException.LoadFullDump(variant);
             ClrInfo info = dt.ClrVersions.Single();
-            foreach (DebugLibraryInfo dac in info.DebuggingLibraries.Where(r => Path.GetFileName(r.FileName) != r.FileName && File.Exists(r.FileName) && r.Kind == DebugLibraryKind.Dac))
+            // These test dumps come from a trusted local runtime installation.
+            string directory = Path.GetDirectoryName(info.ModuleInfo.FileName);
+            Assert.False(string.IsNullOrEmpty(directory));
+            string[] dacPaths = info.DebuggingLibraries
+                .Where(library => library.Kind == DebugLibraryKind.Dac)
+                .Select(library => Path.Combine(directory, library.FileName))
+                .Where(File.Exists)
+                .Distinct()
+                .ToArray();
+            Assert.NotEmpty(dacPaths);
+
+            foreach (string dacPath in dacPaths)
             {
-                using ClrRuntime runtime = info.CreateRuntime(dac.FileName, ignoreMismatch: true);
+                using ClrRuntime runtime = info.CreateRuntime(dacPath, ignoreMismatch: true);
                 Assert.NotNull(runtime);
             }
+        }
+
+        [Theory, MemberData(nameof(NestedExceptionVariants))]
+        public void AutomaticDacDiscoveryDoesNotUseRuntimeDirectory(DumpVariant variant)
+        {
+            using DataTarget dt = TestTargets.NestedException.LoadFullDump(variant);
+            ClrInfo info = dt.ClrVersions.Single();
+
+            Assert.DoesNotContain(
+                info.DebuggingLibraries,
+                library => library.Kind == DebugLibraryKind.Dac
+                           && PathUtilities.IsSafeAbsoluteLocalPath(library.FileName));
         }
 
         [Theory, MemberData(nameof(NestedExceptionVariants))]

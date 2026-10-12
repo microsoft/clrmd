@@ -15,6 +15,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
     internal sealed class FileSymbolCache : FileLocatorBase
     {
         private readonly Dictionary<string, Task> _writingTo = new(GetEqualityComparer());
+        private readonly SymbolCacheDirectory? _defaultDirectory;
 
         public static bool IsCaseInsensitiveFileSystem => RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
 
@@ -28,12 +29,23 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 
         public string Location { get; }
 
-        public FileSymbolCache(string cacheLocation)
+        public FileSymbolCache(string cacheLocation) : this(cacheLocation, SymbolCacheDirectory.GetDefaultForPath(cacheLocation))
+        {
+        }
+
+        internal FileSymbolCache(SymbolCacheDirectory directory) : this(directory.GetPath(), directory)
+        {
+        }
+
+        private FileSymbolCache(string cacheLocation, SymbolCacheDirectory? defaultDirectory)
         {
             if (string.IsNullOrWhiteSpace(cacheLocation))
                 throw new ArgumentNullException(nameof(cacheLocation));
 
-            if (!Directory.Exists(cacheLocation))
+            _defaultDirectory = defaultDirectory;
+            if (_defaultDirectory is not null)
+                _defaultDirectory.GetPath();
+            else if (!Directory.Exists(cacheLocation))
                 throw new DirectoryNotFoundException($"No symbol cache directory found at '{cacheLocation}'.");
 
             Location = cacheLocation;
@@ -75,6 +87,7 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (key is null)
                 return null;
 
+            EnsureCacheDirectory();
             string fullPath = Path.Combine(Location, key);
             if (File.Exists(fullPath))
             {
@@ -93,14 +106,19 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             if (string.IsNullOrWhiteSpace(key))
                 throw new InvalidOperationException($"Cannot store to an empty {nameof(key)}.");
 
+            EnsureCacheDirectory();
             string fullPath = Path.Combine(Location, key);
 
             TaskCompletionSource<int> source = new();
             Task? currentWrite = null;
             lock (_writingTo)
             {
-                if (!_writingTo.TryGetValue(fullPath, out currentWrite))
-                    _writingTo.Add(fullPath, source.Task);
+                if (!_writingTo.TryGetValue(fullPath, out currentWrite)
+                    || (currentWrite is { Status: TaskStatus.RanToCompletion } && !File.Exists(fullPath)))
+                {
+                    _writingTo[fullPath] = source.Task;
+                    currentWrite = null;
+                }
             }
 
             if (currentWrite != null)
@@ -134,6 +152,12 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 // completes this method and the other will overwrite that file again.  A third thread might see the file
                 // exists and tries to open the half written file.  Better to just 'leak' the path.
             }
+        }
+
+        private void EnsureCacheDirectory()
+        {
+            if (_defaultDirectory is not null)
+                _defaultDirectory.GetPath();
         }
     }
 }

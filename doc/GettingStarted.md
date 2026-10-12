@@ -89,6 +89,10 @@ When you call CreateRuntime without specifying the location of mscordacwks.dll, 
 
 On Windows, ClrMD downloads the DAC, verifies its Authenticode signature, and loads it.  On Linux and macOS, ClrMD does not download DAC binaries from the network because there is no mechanism to verify their integrity.  If the matching DAC is not already on disk, ClrMD throws an exception telling you which DAC is needed.  You are responsible for acquiring the DAC through a mechanism you trust and providing the path directly.
 
+Automatic discovery does not probe the runtime module's directory for an adjacent
+DAC. Applications that deploy a DAC beside the runtime must pass its trusted path
+explicitly to `ClrInfo.CreateRuntime(dacPath)`.
+
 The `DataTarget.FileLocator` property (configured via `DataTargetOptions.FileLocator`) controls how ClrMD resolves symbol server requests.  You can provide a custom `IFileLocator` implementation to override this behavior entirely.
 
 However, if you have built .Net Core yourself from source or are using a non-standard build, you will have to keep track of the correct dac yourself (these will not be on the symbol servers).  In that case you will need to pass the path of the dac on disk to ClrInfo.CreateRuntime manually.

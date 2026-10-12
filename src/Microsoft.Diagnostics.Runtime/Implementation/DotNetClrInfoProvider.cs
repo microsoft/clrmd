@@ -126,51 +126,11 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
                 // We are debugging the process on the same operating system.
                 if (dacCurrentPlatform is not null)
                 {
-                    bool foundLocalDac = false;
-
-                    // Check if the user has the same CLR installed locally, and if so
-                    if (PathUtilities.IsSafeAbsoluteLocalPath(module.FileName))
-                    {
-                        string? directory = Path.GetDirectoryName(module.FileName);
-                        string potentialClr = module.FileName;
-                        if (!string.IsNullOrWhiteSpace(directory) && File.Exists(potentialClr))
-                        {
-                            try
-                            {
-                                using PEImage peimage = new(File.OpenRead(potentialClr));
-                                if (peimage.IndexFileSize == indexFileSize && peimage.IndexTimeStamp == indexTimeStamp)
-                                {
-                                    string dacFound = Path.Combine(directory, dacCurrentPlatform);
-                                    if (PathUtilities.IsSafeAbsoluteLocalPath(dacFound) && File.Exists(dacFound))
-                                    {
-                                        dacCurrentPlatform = dacFound;
-                                        foundLocalDac = true;
-                                    }
-                                }
-                            }
-                            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
-                            {
-                            }
-                        }
-                    }
-
                     if (indexFileSize != 0 && indexTimeStamp != 0)
-                    {
-                        DebugLibraryInfo dacLibraryInfo = new(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, SymbolProperties.Coreclr, indexFileSize, indexTimeStamp);
-                        if (foundLocalDac)
-                            artifacts.Insert(0, dacLibraryInfo);
-                        else
-                            artifacts.Add(dacLibraryInfo);
-                    }
+                        artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, SymbolProperties.Coreclr, indexFileSize, indexTimeStamp));
 
                     if (!buildId.IsDefaultOrEmpty)
-                    {
-                        DebugLibraryInfo dacLibraryInfo = new(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, buildId);
-                        if (foundLocalDac)
-                            artifacts.Insert(0, dacLibraryInfo);
-                        else
-                            artifacts.Add(dacLibraryInfo);
-                    }
+                        artifacts.Add(new DebugLibraryInfo(DebugLibraryKind.Dac, dacCurrentPlatform, targetArch, targetPlatform, SymbolProperties.Coreclr, buildId));
                 }
 
                 if (dbiCurrentPlatform is not null)

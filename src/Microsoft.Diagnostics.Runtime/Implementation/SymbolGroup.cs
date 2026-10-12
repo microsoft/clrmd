@@ -15,7 +15,6 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
 {
     internal sealed class SymbolGroup : IFileLocator
     {
-        private static readonly string s_defaultCacheLocation = Path.Combine(Path.GetTempPath(), "symbols");
         private static volatile FileSymbolCache? s_cache;
 
 
@@ -50,18 +49,16 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
             return null;
         }
 
-        private static FileSymbolCache GetDefaultCache()
+        internal static FileSymbolCache GetDefaultCache()
         {
+            string location = SymbolCacheDirectory.GetDefaultPath();
+
             FileSymbolCache? cache = s_cache;
             if (cache != null)
                 return cache;
 
-            // We always expect to be able to create a temporary directory
-            Directory.CreateDirectory(s_defaultCacheLocation);
-            cache = new FileSymbolCache(s_defaultCacheLocation);
-
-            Interlocked.CompareExchange(ref s_cache, cache, null);
-            return s_cache!;
+            cache = new FileSymbolCache(location);
+            return Interlocked.CompareExchange(ref s_cache, cache, null) ?? cache;
         }
 
         public static IFileLocator CreateFromSymbolPath(string symbolPath, bool trace, TokenCredential? credential, bool allowPrivateSymbolServers = false)

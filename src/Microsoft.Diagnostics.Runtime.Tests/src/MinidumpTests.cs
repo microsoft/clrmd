@@ -85,7 +85,24 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             };
 
             using DataTarget dt = TestTargets.NestedException.LoadMinidump(singleFile, options);
-            using ClrRuntime runtime = dt.ClrVersions.Single().CreateRuntime();
+            ClrInfo info = dt.ClrVersions.Single();
+
+            // Resolve only the DAC from a trusted installation; keep all target binary lookups disabled.
+            IFileLocator dacLocator = InstalledRuntimeLocator.Instance;
+            string dacPath = info.DebuggingLibraries
+                .Where(dac => dac.Kind == DebugLibraryKind.Dac
+                              && dac.Platform == dt.DataReader.TargetPlatform
+                              && dac.TargetArchitecture == dt.DataReader.Architecture)
+                .Select(dac => dac.IndexBuildId.IsDefaultOrEmpty
+                    ? dacLocator.FindPEImage(dac.FileName, dac.IndexTimeStamp, dac.IndexFileSize, checkProperties: false)
+                    : dacLocator.FindPEImage(dac.FileName, dac.ArchivedUnder, dac.IndexBuildId, dt.DataReader.TargetPlatform, checkProperties: false))
+                .FirstOrDefault(path => path is not null);
+
+            Assert.NotNull(dacPath);
+            Assert.IsType<NullBinaryLocator>(dt.FileLocator);
+            // The locator matched the runtime's build ID or PE properties. A Linux minidump
+            // without binary lookup may not contain the version string (reported as 0.0).
+            using ClrRuntime runtime = info.CreateRuntime(dacPath, ignoreMismatch: true);
             ExceptionTests.TestProperties(runtime);
         }
     }
