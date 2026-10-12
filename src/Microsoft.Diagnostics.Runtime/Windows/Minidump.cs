@@ -224,7 +224,24 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 ? ImmutableArray<MinidumpMemoryInfo>.Empty
                 : ReadMemoryInfoList(stream, _directories[memoryInfoListIndex].Rva);
 
-            _threadTask = ReadThreadData(stream);
+            // Read the thread list before returning, while nothing else is using the stream yet. When this read ran
+            // on a background task, it could still be reading after the caller had moved on to the memory reader and
+            // Dispose, which close the stream. A failure is kept in the task and surfaces where thread data is used,
+            // with cancellation completing the task as canceled, as it did when this method was async.
+            try
+            {
+                _threadTask = Task.FromResult(ReadThreadData(stream));
+            }
+            catch (OperationCanceledException ex)
+            {
+                TaskCompletionSource<ThreadReadResult> canceled = new();
+                canceled.TrySetCanceled(ex.CancellationToken);
+                _threadTask = canceled.Task;
+            }
+            catch (Exception ex)
+            {
+                _threadTask = Task.FromException<ThreadReadResult>(ex);
+            }
         }
 
         public void Dispose()
@@ -281,7 +298,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
         }
 
         #region ReadThreadData
-        private async Task<ThreadReadResult> ReadThreadData(Stream stream)
+        private ThreadReadResult ReadThreadData(Stream stream)
         {
             Dictionary<uint, (uint Rva, uint Size, ulong Teb)> threadContextLocations = new();
             Dictionary<uint, MinidumpThreadInfo> threadInfos = new();
@@ -306,7 +323,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 {
                     if (directory.StreamType == MinidumpStreamType.ThreadListStream)
                     {
-                        uint numThreads = await ReadAsync<uint>(stream, buffer, directory.Rva).ConfigureAwait(false);
+                        uint numThreads = Read<uint>(stream, directory.Rva);
                         if (numThreads == 0)
                             continue;
 
@@ -314,7 +331,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                             throw new InvalidDataException($"Minidump '{_displayName}' reports {numThreads} threads in ThreadListStream, which exceeds the maximum of {_limits.MaxThreads}.");
 
                         int count = ResizeBytesForArray<MinidumpThread>(numThreads, ref buffer);
-                        int read = await ReadAsync(stream, buffer, count).ConfigureAwait(false);
+                        int read = stream.Read(buffer, 0, count);
 
                         for (int i = 0; i < read; i += SizeOf<MinidumpThread>())
                         {
@@ -329,7 +346,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     }
                     else if (directory.StreamType == MinidumpStreamType.ThreadExListStream)
                     {
-                        uint numThreads = await ReadAsync<uint>(stream, buffer, directory.Rva).ConfigureAwait(false);
+                        uint numThreads = Read<uint>(stream, directory.Rva);
                         if (numThreads == 0)
                             continue;
 
@@ -337,7 +354,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                             throw new InvalidDataException($"Minidump '{_displayName}' reports {numThreads} threads in ThreadExListStream, which exceeds the maximum of {_limits.MaxThreads}.");
 
                         int count = ResizeBytesForArray<MinidumpThreadEx>(numThreads, ref buffer);
-                        int read = await ReadAsync(stream, buffer, count).ConfigureAwait(false);
+                        int read = stream.Read(buffer, 0, count);
 
                         for (int i = 0; i < read; i += SizeOf<MinidumpThreadEx>())
                         {
@@ -355,7 +372,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                     }
                     else if (directory.StreamType == MinidumpStreamType.ThreadInfoListStream)
                     {
-                        MinidumpThreadInfoList threadInfoList = await ReadAsync<MinidumpThreadInfoList>(stream, buffer, directory.Rva).ConfigureAwait(false);
+                        MinidumpThreadInfoList threadInfoList = Read<MinidumpThreadInfoList>(stream, directory.Rva);
                         if (threadInfoList.NumberOfEntries <= 0)
                             continue;
 
@@ -367,7 +384,7 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
                         stream.Position = directory.Rva + threadInfoList.SizeOfHeader;
                         int count = ResizeBytesForArray<MinidumpThreadInfo>((ulong)threadInfoList.NumberOfEntries, ref buffer);
-                        int read = await ReadAsync(stream, buffer, count).ConfigureAwait(false);
+                        int read = stream.Read(buffer, 0, count);
 
                         for (int i = 0; i < read; i += threadInfoList.SizeOfEntry)
                         {
@@ -407,15 +424,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 ThreadInfos = threadInfos.ToImmutableDictionary(),
                 ThreadStates = threadStates.ToImmutableDictionary()
             };
-        }
-
-        private static async Task<int> ReadAsync(Stream stream, byte[] buffer, int count)
-        {
-#if NETCOREAPP3_1 || NET5_0
-            return await stream.ReadAsync(buffer.AsMemory(0, count)).ConfigureAwait(false);
-#else
-            return await stream.ReadAsync(buffer, 0, count).ConfigureAwait(false);
-#endif
         }
         #endregion
 
@@ -506,24 +514,6 @@ namespace Microsoft.Diagnostics.Runtime.Windows
             }
 
             return size;
-        }
-
-        private static async Task<T> ReadAsync<T>(Stream stream, byte[] buffer, long offset)
-            where T : unmanaged
-        {
-            int size = SizeOf<T>();
-            if (buffer.Length < size)
-                buffer = new byte[size];
-
-            stream.Position = offset;
-            int read = await ReadAsync(stream, buffer, size).ConfigureAwait(false);
-            if (read == size)
-            {
-                T result = Unsafe.As<byte, T>(ref buffer[0]);
-                return result;
-            }
-
-            return default;
         }
 
         private static unsafe int SizeOf<T>() where T : unmanaged => sizeof(T);
