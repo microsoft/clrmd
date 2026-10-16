@@ -11,9 +11,9 @@ namespace Microsoft.Diagnostics.Runtime.Implementation
         private long _pos;
         private readonly long _disp;
         private long _len;
-        private readonly IDataReader _dataReader;
+        private readonly IMemoryReader _dataReader;
 
-        public ReadVirtualStream(IDataReader dataReader, long displacement, long len)
+        public ReadVirtualStream(IMemoryReader dataReader, long displacement, long len)
         {
             _dataReader = dataReader;
             _disp = displacement;

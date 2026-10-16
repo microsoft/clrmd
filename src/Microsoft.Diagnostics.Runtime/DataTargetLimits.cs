@@ -30,6 +30,9 @@ public sealed class DataTargetLimits
     /// <summary>Maximum number of symbols in a Mach-O symbol table.</summary>
     public int MaxMachOSymbols { get => field; init => field = ValidatePositive(value); } = 10_000_000;
 
+    /// <summary>Maximum size in bytes of a Mach-O export trie.</summary>
+    public int MaxMachOExportTrieSize { get => field; init => field = ValidatePositive(value); } = 64 * 1024 * 1024;
+
     /// <summary>Maximum length of an ASCII string read from a Mach-O core dump.</summary>
     public int MaxMachOAsciiLength { get => field; init => field = ValidatePositive(value); } = 4_096;
 

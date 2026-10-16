@@ -30,5 +30,8 @@ namespace Microsoft.Diagnostics.Runtime.MacOS.Structs
         PrebindChksum,
         Segment64 = 0x19,
         Uuid = 0x1b,
+        DyldInfo = 0x22,
+        DyldInfoOnly = unchecked((int)0x80000022),
+        DyldExportsTrie = unchecked((int)0x80000033),
     }
 }

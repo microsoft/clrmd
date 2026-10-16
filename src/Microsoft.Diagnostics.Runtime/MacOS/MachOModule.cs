@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Text;
 using Microsoft.Diagnostics.Runtime.MacOS.Structs;
+using Microsoft.Diagnostics.Runtime.MacOS.Trie;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
@@ -27,9 +28,14 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         private readonly MachHeader64 _header;
         private readonly SymtabLoadCommand _symtab;
         private readonly DysymtabLoadCommand _dysymtab;
+        private readonly LinkeditDataCommand _exportsTrie;
+        private readonly DyldInfoCommand _dyldInfo;
+        private readonly uint _exportTrieFileOffset;
+        private readonly uint _exportTrieSize;
         private readonly MachOSegment[] _segments;
         private readonly ulong _stringTableAddress;
         private volatile NList64[]? _symTable;
+        private volatile MachOModuleExportTrie? _symTrie;
 
         public MachOModule(IDataReader reader, ulong address, string path, DataTargetLimits? limits = null)
             : this(null, reader, reader.Read<MachHeader64>(address), address, path, limits)
@@ -90,6 +96,15 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                         _dysymtab = DataReader.Read<DysymtabLoadCommand>(cmdAddress);
                         break;
 
+                    case LoadCommandType.DyldExportsTrie:
+                        _exportsTrie = DataReader.Read<LinkeditDataCommand>(cmdAddress);
+                        break;
+
+                    case LoadCommandType.DyldInfo:
+                    case LoadCommandType.DyldInfoOnly:
+                        _dyldInfo = DataReader.Read<DyldInfoCommand>(cmdAddress);
+                        break;
+
                     case LoadCommandType.Uuid:
                         UuidLoadCommand uuid = DataReader.Read<UuidLoadCommand>(cmdAddress);
                         if (uuid.Header.Kind == LoadCommandType.Uuid)
@@ -105,6 +120,19 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             segments.Sort((x, y) => x.Address.CompareTo(y.Address));
             _segments = segments.ToArray();
 
+            // The export trie is described either by LC_DYLD_EXPORTS_TRIE or, in images produced
+            // before chained fixups, by the export section of LC_DYLD_INFO[_ONLY].
+            if (_exportsTrie.Header.Kind == LoadCommandType.DyldExportsTrie)
+            {
+                _exportTrieFileOffset = _exportsTrie.DataOffset;
+                _exportTrieSize = _exportsTrie.DataSize;
+            }
+            else if (_dyldInfo.Header.Kind is LoadCommandType.DyldInfo or LoadCommandType.DyldInfoOnly)
+            {
+                _exportTrieFileOffset = _dyldInfo.ExportOffset;
+                _exportTrieSize = _dyldInfo.ExportSize;
+            }
+
             if (_symtab.StrOff != 0)
                 _stringTableAddress = GetAddressFromFileOffset(_symtab.StrOff);
         }
@@ -113,6 +141,22 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
         {
             if (symbol is null)
                 throw new ArgumentNullException(nameof(symbol));
+
+            MachOModuleExportTrie? trie = ReadSymbolTrie();
+            if (trie is not null)
+            {
+                // Mach-O symbol names carry a leading underscore, which callers may omit.
+                string symbolName = symbol.Length > 0 && symbol[0] == '_' ? symbol : "_" + symbol;
+                ulong? exportAddress = trie.FindSymbol(symbolName)?.GetAddress(BaseAddress);
+                if (!exportAddress.HasValue)
+                {
+                    address = 0;
+                    return false;
+                }
+
+                address = exportAddress.Value;
+                return true;
+            }
 
             if (_stringTableAddress != 0)
             {
@@ -205,6 +249,23 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
             _symTable = symTable;
             return symTable;
+        }
+
+        private MachOModuleExportTrie? ReadSymbolTrie()
+        {
+            if (_symTrie != null)
+                return _symTrie;
+
+            if (_exportTrieSize <= 0)
+            {
+                return null;
+            }
+
+            if (_exportTrieSize > _limits.MaxMachOExportTrieSize)
+                throw new InvalidDataException($"Mach-O module at {BaseAddress:x} reports a trie of size {_exportTrieSize}, which exceeds the maximum of {_limits.MaxMachOExportTrieSize}.");
+
+            ulong trieAddress = GetAddressFromFileOffset(_exportTrieFileOffset);
+            return _symTrie = new MachOModuleExportTrie(trieAddress, _exportTrieSize, DataReader);
         }
 
         private ulong GetAddressFromFileOffset(uint fileOffset)
