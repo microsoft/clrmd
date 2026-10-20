@@ -11,7 +11,6 @@ using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Runtime.Windows
 {
@@ -25,7 +24,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
         private readonly string _displayName;
         private readonly MinidumpDirectory[] _directories;
-        private readonly Task<ThreadReadResult> _threadTask;
+        private readonly ThreadReadResult? _threadData;
+        private readonly Exception? _threadReadError;
         private readonly MemoryMappedFile? _file;
         private ImmutableArray<MinidumpContextData> _contextsCached;
 
@@ -38,28 +38,31 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 if (!_contextsCached.IsDefault)
                     return _contextsCached;
 
-                _contextsCached = _threadTask.Result.ContextData;
+                _contextsCached = ThreadData.ContextData;
                 return _contextsCached;
             }
         }
 
-        public ImmutableArray<uint> OrderedThreads => _threadTask.Result.Threads;
+        public ImmutableArray<uint> OrderedThreads => ThreadData.Threads;
 
-        public ImmutableDictionary<uint, ulong> Tebs => _threadTask.Result.Tebs;
+        public ImmutableDictionary<uint, ulong> Tebs => ThreadData.Tebs;
 
         /// <summary>
         /// Per-thread <c>MINIDUMP_THREAD_INFO</c> records (CPU times, create/exit
         /// times, start address, dump flags) keyed by OS thread id. Empty when the
         /// dump has no <c>ThreadInfoListStream</c>.
         /// </summary>
-        public ImmutableDictionary<uint, MinidumpThreadInfo> ThreadInfos => _threadTask.Result.ThreadInfos;
+        public ImmutableDictionary<uint, MinidumpThreadInfo> ThreadInfos => ThreadData.ThreadInfos;
 
         /// <summary>
         /// Per-thread <c>MINIDUMP_THREAD</c> records (stack range, suspend count,
         /// priority) keyed by OS thread id. Available whenever the dump has a
         /// <c>ThreadListStream</c> or <c>ThreadExListStream</c>.
         /// </summary>
-        public ImmutableDictionary<uint, MinidumpThread> ThreadStates => _threadTask.Result.ThreadStates;
+        public ImmutableDictionary<uint, MinidumpThread> ThreadStates => ThreadData.ThreadStates;
+
+        private ThreadReadResult ThreadData => _threadData
+            ?? throw new InvalidDataException($"Thread data is unavailable for minidump '{_displayName}'.", _threadReadError);
 
         public ImmutableArray<MinidumpModule> Modules { get; }
 
@@ -226,21 +229,15 @@ namespace Microsoft.Diagnostics.Runtime.Windows
 
             // Read the thread list before returning, while nothing else is using the stream yet. When this read ran
             // on a background task, it could still be reading after the caller had moved on to the memory reader and
-            // Dispose, which close the stream. A failure is kept in the task and surfaces where thread data is used,
-            // with cancellation completing the task as canceled, as it did when this method was async.
+            // Dispose, which close the stream. A failure does not fail loading: thread data is then unavailable, and
+            // using it throws InvalidDataException with the original failure as the inner exception.
             try
             {
-                _threadTask = Task.FromResult(ReadThreadData(stream));
-            }
-            catch (OperationCanceledException ex)
-            {
-                TaskCompletionSource<ThreadReadResult> canceled = new();
-                canceled.TrySetCanceled(ex.CancellationToken);
-                _threadTask = canceled.Task;
+                _threadData = ReadThreadData(stream);
             }
             catch (Exception ex)
             {
-                _threadTask = Task.FromException<ThreadReadResult>(ex);
+                _threadReadError = ex;
             }
         }
 

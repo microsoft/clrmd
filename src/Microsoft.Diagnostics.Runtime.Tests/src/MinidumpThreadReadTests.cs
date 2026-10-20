@@ -66,7 +66,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                     {
                         _ = pendingReader.EnumerateOSThreadIds().ToArray();
                     }
-                    catch (AggregateException)
+                    catch (InvalidDataException)
                     {
                     }
                 }
@@ -92,16 +92,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [Fact]
         public void LoadDump_DefersThreadListFailure()
         {
-            // A thread count over the limit makes reading the thread list fail. Loading still succeeds, the failure
-            // surfaces where thread data is used, and Dispose does not throw.
+            // A thread count over the limit makes reading the thread list fail. Loading still succeeds, using thread
+            // data throws InvalidDataException with the read's failure as the inner exception, and Dispose does not throw.
             using var stream = new MemoryStream(CreateMinidump(threadCount: uint.MaxValue));
             var dataTarget = DataTarget.LoadDump("test.dmp", stream);
             Exception disposeException;
             try
             {
                 var threadReader = Assert.IsAssignableFrom<IThreadReader>(dataTarget.DataReader);
-                var ex = Assert.Throws<AggregateException>(() => threadReader.EnumerateOSThreadIds().ToArray());
-                Assert.IsType<InvalidDataException>(ex.InnerException);
+                var ex = Assert.Throws<InvalidDataException>(() => threadReader.EnumerateOSThreadIds().ToArray());
+                var inner = Assert.IsType<InvalidDataException>(ex.InnerException);
+                Assert.Contains("exceeds the maximum", inner.Message);
             }
             finally
             {
@@ -112,17 +113,17 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         }
 
         [Fact]
-        public void LoadDump_DefersThreadListCancellationAsCanceled()
+        public void LoadDump_DefersThreadListCancellation()
         {
-            // A stream that throws OperationCanceledException while the thread list is read leaves thread data
-            // canceled, so using it throws TaskCanceledException inside the AggregateException, as before.
+            // A stream that throws OperationCanceledException while the thread list is read does not fail loading
+            // either: using thread data throws InvalidDataException with the cancellation as the inner exception.
             using var stream = new CancelingMemoryStream(CreateMinidump(threadCount: 1), ThreadListRva);
             var dataTarget = DataTarget.LoadDump("test.dmp", stream);
             try
             {
                 var threadReader = Assert.IsAssignableFrom<IThreadReader>(dataTarget.DataReader);
-                var ex = Assert.Throws<AggregateException>(() => threadReader.EnumerateOSThreadIds().ToArray());
-                Assert.IsType<TaskCanceledException>(ex.InnerException);
+                var ex = Assert.Throws<InvalidDataException>(() => threadReader.EnumerateOSThreadIds().ToArray());
+                Assert.IsType<OperationCanceledException>(ex.InnerException);
             }
             finally
             {
