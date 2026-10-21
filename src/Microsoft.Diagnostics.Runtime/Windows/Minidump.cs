@@ -227,10 +227,8 @@ namespace Microsoft.Diagnostics.Runtime.Windows
                 ? ImmutableArray<MinidumpMemoryInfo>.Empty
                 : ReadMemoryInfoList(stream, _directories[memoryInfoListIndex].Rva);
 
-            // Read the thread list before returning, while nothing else is using the stream yet. When this read ran
-            // on a background task, it could still be reading after the caller had moved on to the memory reader and
-            // Dispose, which close the stream. A failure does not fail loading: thread data is then unavailable, and
-            // using it throws InvalidDataException with the original failure as the inner exception.
+            // Read thread data before returning to avoid concurrent access to the stream.
+            // Defer any read failure until thread data is requested.
             try
             {
                 _threadData = ReadThreadData(stream);
