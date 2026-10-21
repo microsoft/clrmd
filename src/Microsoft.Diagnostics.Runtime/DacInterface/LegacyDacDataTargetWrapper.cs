@@ -2,13 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.DacInterface
 {
-    [RequiresDynamicCode("Requires dynamic code generation to build interfaces.")]
     internal sealed unsafe class LegacyDacDataTargetWrapper : COMCallableIUnknown
     {
         private readonly DacDataTarget _dacDataTarget;
