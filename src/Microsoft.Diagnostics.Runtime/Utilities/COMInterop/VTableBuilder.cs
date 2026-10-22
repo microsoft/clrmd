@@ -17,8 +17,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private readonly Guid _guid;
         private readonly COMCallableIUnknown _wrapper;
         private readonly bool _forceValidation;
-        private readonly List<Delegate> _delegates = new();
-        private readonly List<IntPtr> _methods = new();
+        private readonly List<(Delegate Delegate, IntPtr Method)> _methods = new();
 
         private bool _complete;
 
@@ -61,8 +60,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             IntPtr method = Marshal.GetFunctionPointerForDelegate(func);
-            _delegates.Add(func);
-            _methods.Add(method);
+            _methods.Add((func, method));
         }
 
         /// <summary>
@@ -89,8 +87,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 throw new ArgumentException("The callback's runtime type must exactly match TDelegate.", nameof(callback));
 
             IntPtr method = Marshal.GetFunctionPointerForDelegate<TDelegate>(callback);
-            _delegates.Add(callback);
-            _methods.Add(method);
+            _methods.Add((callback, method));
         }
 
         /// <summary>
@@ -105,9 +102,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
             _complete = true;
 
+            List<Delegate> delegates = new(_methods.Count);
             IntPtr obj = Marshal.AllocHGlobal(IntPtr.Size);
 
-            int vtablePartSize = _delegates.Count * IntPtr.Size;
+            int vtablePartSize = _methods.Count * IntPtr.Size;
             IntPtr* vtable = (IntPtr*)Marshal.AllocHGlobal(vtablePartSize + sizeof(IUnknownVTable));
             *(void**)obj = vtable;
 
@@ -116,10 +114,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             *vtable++ = new IntPtr(iunk.AddRef);
             *vtable++ = new IntPtr(iunk.Release);
 
-            foreach (IntPtr method in _methods)
+            foreach ((Delegate callback, IntPtr method) in _methods)
+            {
                 *vtable++ = method;
+                delegates.Add(callback);
+            }
 
-            _wrapper.RegisterInterface(_guid, obj, _delegates);
+            _wrapper.RegisterInterface(_guid, obj, delegates);
             return obj;
         }
     }
