@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -75,11 +74,10 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// Adds an IUnknown based interface to this COM object.
         /// </summary>
         /// <param name="guid">The GUID of this interface.</param>
-        /// <param name="validate">Whether or not to validate the delegates that
-        /// used to build this COM interface's methods.</param>
+        /// <param name="validate">Whether to validate signatures registered through the non-generic
+        /// <see cref="VTableBuilder.AddMethod(Delegate, bool)"/> overload. The generic overload does not validate signatures.</param>
         /// <returns>A VTableBuilder to construct this interface.  Note that until VTableBuilder.Complete
         /// is called, the interface will not be registered.</returns>
-        [RequiresDynamicCode("This class uses reflection over delegates to generate code.  If used for NativeAOT, consider building a VTable with [UnmanagedCallersOnly] and native delegates instead.")]
         public VTableBuilder AddInterface(Guid guid, bool validate)
         {
 #if DEBUG
