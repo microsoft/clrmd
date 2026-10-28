@@ -72,7 +72,8 @@ public class DataTargetOptions
 
     /// <summary>
     /// If true, ClrMD performs no runtime enumeration at all and <see cref="DataTarget.ClrVersions"/> will be
-    /// empty unless runtimes are registered explicitly via <see cref="DataTarget.AddLoadedRuntime(ClrInfo, System.IntPtr, object)"/>.
+    /// empty unless runtimes are registered explicitly via <see cref="DataTarget.AddRuntime(ClrInfo)"/> or
+    /// <see cref="DataTarget.AddLoadedRuntime(ClrInfo, System.IntPtr, object)"/>.
     /// Set this when a host performs its own complete runtime detection and does not want to pay the cost of
     /// ClrMD's discovery. Defaults to false.
     /// </summary>

@@ -14,8 +14,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 {
     public class DataTargetTests
     {
-        [Fact]
-        public void AddLoadedRuntime_BeforeClrVersions_DoesNotSuppressEnumeration()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void RegisterRuntime_BeforeClrVersions_DoesNotSuppressEnumeration(bool loaded)
         {
             // Registering a runtime before ClrVersions is first queried must NOT suppress ClrMD's own
             // enumeration (only DataTargetOptions.SkipRuntimeEnumeration does that). The registered runtime
@@ -27,7 +29,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 m.FileName != null && m.FileName.IndexOf("clr", StringComparison.OrdinalIgnoreCase) < 0);
 
             ClrInfo hosted = new(dt, nonRuntime, new Version(1, 0, 0, 0)) { Flavor = ClrFlavor.Core };
-            dt.AddLoadedRuntime(hosted, () => IntPtr.Zero);
+            if (loaded)
+                dt.AddLoadedRuntime(hosted, () => IntPtr.Zero);
+            else
+                dt.AddRuntime(hosted);
 
             System.Collections.Immutable.ImmutableArray<ClrInfo> versions = dt.ClrVersions;
 
@@ -45,8 +50,10 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Empty(dt.ClrVersions);
         }
 
-        [Fact]
-        public void AddLoadedRuntime_ReplacesRuntimeWithSameModuleInfo()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void RegisterRuntime_ReplacesRuntimeWithSameModuleInfo(bool loaded)
         {
             // Registering a runtime for a ModuleInfo that already has one (e.g. ClrMD detected it) replaces
             // the existing entry rather than adding a duplicate.
@@ -60,11 +67,128 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 IsSingleFile = detected.IsSingleFile,
             };
 
-            dt.AddLoadedRuntime(hosted, () => IntPtr.Zero);
+            if (loaded)
+                dt.AddLoadedRuntime(hosted, () => IntPtr.Zero);
+            else
+                dt.AddRuntime(hosted);
 
             Assert.Equal(originalCount, dt.ClrVersions.Length);
             Assert.Same(hosted, dt.ClrVersions.Single(c => ReferenceEquals(c.ModuleInfo, detected.ModuleInfo)));
             Assert.DoesNotContain(detected, dt.ClrVersions);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void AddRuntime_SkipRuntimeEnumeration_RegistersMetadata(bool enumerateFirst)
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump(options: new DataTargetOptions { SkipRuntimeEnumeration = true });
+            if (enumerateFirst)
+                Assert.Empty(dt.ClrVersions);
+
+            ClrInfo hosted = new(dt, dt.EnumerateModules().First(), new Version(1, 0, 0, 0)) { Flavor = ClrFlavor.Core };
+
+            Assert.Same(hosted, dt.AddRuntime(hosted));
+            Assert.Same(hosted, Assert.Single(dt.ClrVersions));
+            Assert.Null(hosted.ClrDataProcessFactory);
+            Assert.Null(hosted.DacLock);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void RegisterRuntime_BeforeEnumeration_TakesPrecedence(bool loaded)
+        {
+            using DataTarget discovery = TestTargets.Types.LoadFullDump();
+            ClrInfo detected = discovery.ClrVersions.Single();
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            ModuleInfo module = dt.EnumerateModules().Single(m => m.ImageBase == detected.ModuleInfo.ImageBase);
+            ClrInfo hosted = new(dt, module, detected.Version) { Flavor = detected.Flavor };
+
+            if (loaded)
+                dt.AddLoadedRuntime(hosted, () => IntPtr.Zero);
+            else
+                dt.AddRuntime(hosted);
+
+            Assert.Same(hosted, Assert.Single(dt.ClrVersions));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void RegisterRuntime_RejectsNullMetadata(bool loaded)
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+
+            ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() =>
+                loaded ? dt.AddLoadedRuntime(null, () => IntPtr.Zero) : dt.AddRuntime(null));
+
+            Assert.Equal("clrInfo", exception.ParamName);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void RegisterRuntime_RejectsDisposedTarget(bool loaded)
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump();
+            ClrInfo hosted = new(dt, dt.EnumerateModules().First(), new Version(1, 0, 0, 0));
+            dt.Dispose();
+
+            Assert.Throws<ObjectDisposedException>(() =>
+                loaded ? dt.AddLoadedRuntime(hosted, () => IntPtr.Zero) : dt.AddRuntime(hosted));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void RegisterRuntime_RejectsMetadataFromAnotherTarget(bool loaded)
+        {
+            using DataTarget dt = TestTargets.Types.LoadFullDump(options: new DataTargetOptions { SkipRuntimeEnumeration = true });
+            using DataTarget other = TestTargets.Types.LoadFullDump();
+            ClrInfo hosted = new(other, other.EnumerateModules().First(), new Version(1, 0, 0, 0));
+
+            Assert.Throws<InvalidOperationException>(() =>
+                loaded ? dt.AddLoadedRuntime(hosted, () => IntPtr.Zero) : dt.AddRuntime(hosted));
+            Assert.Empty(dt.ClrVersions);
+            Assert.Null(hosted.ClrDataProcessFactory);
+            Assert.Null(hosted.DacLock);
+        }
+
+        [Fact]
+        public void AddRuntime_SkipRuntimeEnumeration_CanLoadLegacyDac()
+        {
+            using DataTarget discovery = TestTargets.Types.LoadFullDump();
+            ClrInfo detected = discovery.ClrVersions.Single();
+            using ClrRuntime baseline = detected.CreateRuntime();
+            (ulong Address, string Type)[] expected = baseline.Heap.EnumerateObjects()
+                                                               .Take(2000)
+                                                               .Select(o => (o.Address, o.Type?.Name ?? ""))
+                                                               .ToArray();
+
+            using DataTarget dt = TestTargets.Types.LoadFullDump(options: new DataTargetOptions { SkipRuntimeEnumeration = true });
+            ModuleInfo module = dt.EnumerateModules().Single(m => m.ImageBase == detected.ModuleInfo.ImageBase);
+            ClrInfo hosted = new(dt, module, detected.Version)
+            {
+                Flavor = detected.Flavor,
+                IsSingleFile = detected.IsSingleFile,
+                BuildId = detected.BuildId,
+                ContractDescriptorAddress = detected.ContractDescriptorAddress,
+                DebuggingLibraries = detected.DebuggingLibraries,
+                IndexFileSize = detected.IndexFileSize,
+                IndexTimeStamp = detected.IndexTimeStamp,
+            };
+
+            dt.AddRuntime(hosted);
+
+            using ClrRuntime runtime = hosted.CreateRuntime();
+            (ulong Address, string Type)[] actual = runtime.Heap.EnumerateObjects()
+                                                              .Take(2000)
+                                                              .Select(o => (o.Address, o.Type?.Name ?? ""))
+                                                              .ToArray();
+
+            Assert.NotEmpty(expected);
+            Assert.Equal(expected, actual);
         }
 
         [Fact]
