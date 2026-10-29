@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Diagnostics.Runtime.DataReaders.Implementation;
@@ -131,7 +132,64 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             }
         }
 
-        private static byte[] CreateMinidump(uint threadCount)
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void GetThreadContextHonorsFlagsAndRecordedSize(bool truncated)
+        {
+            byte[] source = new byte[AMD64Context.Size];
+            ref AMD64Context registers = ref MemoryMarshal.AsRef<AMD64Context>(source.AsSpan());
+            registers.ContextFlags = AMD64Context.Context | 0xb;
+            registers.Rax = 0x1122334455667788;
+            registers.Rip = 0x8877665544332211;
+            double xmm6 = 3.5;
+            MemoryMarshal.Write(source.AsSpan(0x200), in xmm6);
+            uint size = truncated ? 0x100u : (uint)source.Length;
+            using MemoryStream stream = new(CreateMinidump(1, source, size));
+            using MinidumpReader reader = new("test.dmp", stream, new CacheOptions(), leaveOpen: false);
+            byte[] destination = Enumerable.Repeat((byte)0xa5, source.Length + 16).ToArray();
+
+            Assert.True(reader.GetThreadContext(1, AMD64Context.ContextControl, destination));
+            Assert.Equal(AMD64Context.ContextControl, MemoryMarshal.Read<AMD64Context>(destination).ContextFlags);
+            Assert.Equal(registers.Rip, MemoryMarshal.Read<AMD64Context>(destination).Rip);
+            Assert.Equal(0xa5a5a5a5a5a5a5a5ul, MemoryMarshal.Read<AMD64Context>(destination).Rax);
+            Assert.Equal(0xa5a5a5a5a5a5a5a5ul, MemoryMarshal.Read<ulong>(destination.AsSpan(0x200)));
+
+            Assert.True(reader.GetThreadContext(1, 0, destination));
+            Assert.Equal(registers.Rax, MemoryMarshal.Read<AMD64Context>(destination).Rax);
+            Assert.Equal(AMD64Context.Context | (truncated ? 3u : 0xbu), MemoryMarshal.Read<AMD64Context>(destination).ContextFlags);
+            if (truncated)
+                Assert.Equal(0xa5a5a5a5a5a5a5a5ul, MemoryMarshal.Read<ulong>(destination.AsSpan(0x200)));
+            else
+                Assert.Equal(3.5, MemoryMarshal.Read<double>(destination.AsSpan(0x200)));
+            Assert.Equal(0xa5a5a5a5a5a5a5a5ul, MemoryMarshal.Read<ulong>(destination.AsSpan(source.Length)));
+            Assert.False(reader.GetThreadContext(1, AMD64Context.ContextControl, destination.AsSpan(0, 0xff)));
+        }
+
+        [Fact]
+        public void GetThreadContextAcceptsLegacyX86Context()
+        {
+            byte[] source = new byte[X86Context.Size];
+            ref X86Context registers = ref MemoryMarshal.AsRef<X86Context>(source.AsSpan());
+            uint flags = X86Context.ContextControl | X86Context.ContextFloatingPoint;
+            registers.ContextFlags = flags | X86Context.ContextExtendedRegisters;
+            registers.Eip = 0x11223344;
+            registers.ControlWord = 0x27f;
+            ulong st0 = 0x8877665544332211;
+            MemoryMarshal.Write(source.AsSpan(0x38), in st0);
+            using MemoryStream stream = new(CreateMinidump(1, source, processorArchitecture: 0));
+            using MinidumpReader reader = new("test.dmp", stream, new CacheOptions(), leaveOpen: false);
+            byte[] destination = Enumerable.Repeat((byte)0xa5, 0xcc + 16).ToArray();
+
+            Assert.True(reader.GetThreadContext(1, flags, destination.AsSpan(0, 0xcc)));
+            Assert.Equal(flags, ThreadContext.GetFlags(Architecture.X86, destination));
+            Assert.Equal(registers.Eip, MemoryMarshal.Read<uint>(destination.AsSpan(0xb8)));
+            Assert.Equal(registers.ControlWord, MemoryMarshal.Read<uint>(destination.AsSpan(0x1c)));
+            Assert.Equal(st0, MemoryMarshal.Read<ulong>(destination.AsSpan(0x38)));
+            Assert.All(destination.Skip(0xcc), value => Assert.Equal((byte)0xa5, value));
+        }
+
+        private static byte[] CreateMinidump(uint threadCount, byte[] context = null, uint? contextBytes = null, ushort processorArchitecture = 9)
         {
             // Header, then directories for SystemInfo, ModuleList (no modules) and ThreadList, then their data.
             const uint headerSize = 32;
@@ -170,20 +228,24 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             bw.Write(sizeof(uint) + threadsWritten * threadSize);
             bw.Write(threadListRva);
 
-            // MINIDUMP_SYSTEM_INFO: ProcessorArchitecture = Amd64 (9), rest zero.
-            bw.Write((ushort)9);
+            // MINIDUMP_SYSTEM_INFO: target architecture, rest zero.
+            bw.Write(processorArchitecture);
             bw.Write(new byte[systemInfoSize - sizeof(ushort)]);
 
             // Module list: no modules.
             bw.Write((uint)0);
 
-            // Thread list: the count, then one MINIDUMP_THREAD with ThreadId 1 and no context.
+            // Thread list: the count, then one MINIDUMP_THREAD with ThreadId 1.
             bw.Write(threadCount);
             if (threadsWritten != 0)
             {
                 bw.Write((uint)1);
-                bw.Write(new byte[threadSize - sizeof(uint)]);
+                bw.Write(new byte[threadSize - sizeof(uint) - 8]);
+                bw.Write(contextBytes ?? (uint)(context?.Length ?? 0));
+                bw.Write(context == null ? 0u : threadListRva + sizeof(uint) + threadSize);
             }
+            if (context != null)
+                bw.Write(context);
 
             bw.Flush();
             Assert.Equal(ThreadListRva, threadListRva);

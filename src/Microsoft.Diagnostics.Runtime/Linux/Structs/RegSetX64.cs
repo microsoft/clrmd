@@ -18,8 +18,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public readonly ulong Rbx;
         public readonly ulong R11;
         public readonly ulong R10;
-        public readonly ulong R8;
         public readonly ulong R9;
+        public readonly ulong R8;
         public readonly ulong Rax;
         public readonly ulong Rcx;
         public readonly ulong Rdx;
@@ -38,19 +38,38 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public readonly ulong FS;
         public readonly ulong GS;
 
-        public bool CopyContext(Span<byte> context)
+        public bool CopyContext(uint contextFlags, Span<byte> context)
         {
             if (context.Length < AMD64Context.Size)
                 return false;
 
             ref AMD64Context contextRef = ref Unsafe.As<byte, AMD64Context>(ref MemoryMarshal.GetReference(context));
 
-            contextRef.ContextFlags = AMD64Context.ContextControl | AMD64Context.ContextInteger | AMD64Context.ContextSegments;
+            contextRef.ContextFlags = AMD64Context.Context | ((contextFlags == 0 ? uint.MaxValue : contextFlags) &
+                (AMD64Context.ContextControl | AMD64Context.ContextInteger | AMD64Context.ContextSegments));
+            if ((contextRef.ContextFlags & AMD64Context.ContextControl) == AMD64Context.ContextControl)
+            {
+                contextRef.Rbp = Rbp;
+                contextRef.Rip = Rip;
+                contextRef.Rsp = Rsp;
+                contextRef.EFlags = unchecked((int)EFlags);
+                contextRef.Cs = (ushort)CS;
+                contextRef.Ss = (ushort)SS;
+            }
+            if ((contextRef.ContextFlags & AMD64Context.ContextSegments) == AMD64Context.ContextSegments)
+            {
+                contextRef.Ds = (ushort)DS;
+                contextRef.Es = (ushort)ES;
+                contextRef.Fs = (ushort)FS;
+                contextRef.Gs = (ushort)GS;
+            }
+            if ((contextRef.ContextFlags & AMD64Context.ContextInteger) != AMD64Context.ContextInteger)
+                return true;
+
             contextRef.R15 = R15;
             contextRef.R14 = R14;
             contextRef.R13 = R13;
             contextRef.R12 = R12;
-            contextRef.Rbp = Rbp;
             contextRef.Rbx = Rbx;
             contextRef.R11 = R11;
             contextRef.R10 = R10;
@@ -61,13 +80,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             contextRef.Rdx = Rdx;
             contextRef.Rsi = Rsi;
             contextRef.Rdi = Rdi;
-            contextRef.Rip = Rip;
-            contextRef.Rsp = Rsp;
-            contextRef.Cs = (ushort)CS;
-            contextRef.Ds = (ushort)DS;
-            contextRef.Ss = (ushort)SS;
-            contextRef.Fs = (ushort)FS;
-            contextRef.Gs = (ushort)GS;
 
             return true;
         }

@@ -210,7 +210,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public unsafe bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
             LoadThreads();
-            if (!_threadIDs.Contains(threadID) || Architecture == Architecture.X86)
+            if (!_threadIDs.Contains(threadID))
                 return false;
 
             int regSize = Architecture switch
@@ -220,37 +220,70 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 (Architecture)9 /* Architecture.RiscV64 */ => sizeof(RegSetRiscV64),
                 (Architecture)6 /* Architecture.LoongArch64 */ => sizeof(RegSetLoongArch64),
                 Architecture.X64 => sizeof(RegSetX64),
-                _ => sizeof(RegSetX86),
+                Architecture.X86 => sizeof(RegSetX86),
+                _ => 0,
             };
+            if (regSize == 0)
+                return false;
 
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(regSize);
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(1024);
             try
             {
-                fixed (byte* data = buffer)
-                {
-                    ptrace(PTRACE_GETREGS, (int)threadID, IntPtr.Zero, new IntPtr(data));
-                }
+                if (ReadRegisterSet(threadID, ElfNoteType.PrpsStatus, buffer.AsSpan(0, regSize)) != regSize)
+                    return false;
 
                 switch (Architecture)
                 {
                     case Architecture.Arm:
-                        Unsafe.As<byte, RegSetArm>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        if (!Unsafe.As<byte, RegSetArm>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(contextFlags, context))
+                            return false;
                         break;
                     case Architecture.Arm64:
-                        Unsafe.As<byte, RegSetArm64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        if (!Unsafe.As<byte, RegSetArm64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(contextFlags, context))
+                            return false;
                         break;
                     case (Architecture)9 /* Architecture.RiscV64 */:
-                        Unsafe.As<byte, RegSetRiscV64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        if (!Unsafe.As<byte, RegSetRiscV64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(contextFlags, context))
+                            return false;
                         break;
                     case (Architecture)6 /* Architecture.LoongArch64 */:
-                        Unsafe.As<byte, RegSetLoongArch64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        if (!Unsafe.As<byte, RegSetLoongArch64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(contextFlags, context))
+                            return false;
                         break;
                     case Architecture.X64:
-                        Unsafe.As<byte, RegSetX64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        if (!Unsafe.As<byte, RegSetX64>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(contextFlags, context))
+                            return false;
                         break;
                     default:
-                        Unsafe.As<byte, RegSetX86>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        if (!Unsafe.As<byte, RegSetX86>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(contextFlags, context))
+                            return false;
                         break;
+                }
+
+                uint floatingPoint = ThreadContext.FloatingPointFlag(Architecture);
+                if (contextFlags == 0 || (contextFlags & floatingPoint) != 0 ||
+                    (Architecture == Architecture.X86 && (contextFlags & (X86Context.ContextExtendedRegisters & ~X86Context.Context)) != 0))
+                {
+                    ElfNoteType type = Architecture == Architecture.Arm ? ElfNoteType.ArmVfp : ElfNoteType.PrpsFpreg;
+                    int read = ReadRegisterSet(threadID, type, buffer);
+                    if (read > 0)
+                        ElfNote.CopyFloatingPoint(Architecture, type, buffer.AsSpan(0, read), contextFlags, context);
+
+                    if (Architecture == Architecture.X86)
+                    {
+                        read = ReadRegisterSet(threadID, ElfNoteType.PrXfpreg, buffer);
+                        if (read > 0)
+                            ElfNote.CopyFloatingPoint(Architecture, ElfNoteType.PrXfpreg, buffer.AsSpan(0, read), contextFlags, context);
+                    }
+                    else if (Architecture == (Architecture)6 /* Architecture.LoongArch64 */)
+                    {
+                        read = ReadRegisterSet(threadID, ElfNoteType.LoongArchLsx, buffer);
+                        if (read > 0)
+                            ElfNote.CopyFloatingPoint(Architecture, ElfNoteType.LoongArchLsx, buffer.AsSpan(0, read), contextFlags, context);
+                        read = ReadRegisterSet(threadID, ElfNoteType.LoongArchLasx, buffer);
+                        if (read > 0)
+                            ElfNote.CopyFloatingPoint(Architecture, ElfNoteType.LoongArchLasx, buffer.AsSpan(0, read), contextFlags, context);
+                    }
                 }
             }
             finally
@@ -259,6 +292,18 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             }
 
             return true;
+        }
+
+        private unsafe int ReadRegisterSet(uint threadId, ElfNoteType type, Span<byte> buffer)
+        {
+            fixed (byte* data = buffer)
+            {
+                IOVEC vector = new() { iov_base = data, iov_len = (IntPtr)buffer.Length };
+                if (ptrace(PTRACE_GETREGSET, (int)threadId, (IntPtr)(uint)type, (IntPtr)(&vector)).ToInt64() != 0)
+                    return 0;
+
+                return (int)vector.iov_len;
+            }
         }
 
         private void LoadThreadsAndAttach()
@@ -415,7 +460,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             public IntPtr iov_len;
         }
 
-        private const int PTRACE_GETREGS = 12;
+        private const int PTRACE_GETREGSET = 0x4204;
         private const int PTRACE_ATTACH = 16;
         private const int PTRACE_DETACH = 17;
     }

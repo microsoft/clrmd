@@ -17,7 +17,7 @@ namespace Microsoft.Diagnostics.Runtime
     {
         private readonly ElfCoreFile _core;
         private readonly DataTargetLimits? _limits;
-        private Dictionary<uint, IElfPRStatus>? _threads;
+        private Dictionary<uint, (IElfPRStatus Status, List<ElfNote> Registers)>? _threads;
         private List<ModuleInfo>? _modules;
         // 0 = unknown, 1 = false, 2 = true. Single int gives an atomic, lock-free
         // tri-state without the torn-read hazard of Nullable<bool> (which is two fields).
@@ -77,8 +77,8 @@ namespace Microsoft.Diagnostics.Runtime
         {
             get
             {
-                foreach (IElfPRStatus status in _core.EnumeratePRStatus())
-                    return (int)status.ProcessId;
+                foreach (var thread in _core.EnumeratePRStatus())
+                    return (int)thread.Status.ProcessId;
 
                 return -1;
             }
@@ -165,20 +165,27 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IEnumerable<uint> EnumerateOSThreadIds()
         {
-            foreach (IElfPRStatus status in _core.EnumeratePRStatus())
-                yield return status.ThreadId;
+            foreach (var thread in _core.EnumeratePRStatus())
+                yield return thread.Status.ThreadId;
         }
 
         public ulong GetThreadTeb(uint osThreadId) => 0;
 
         public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
-            Dictionary<uint, IElfPRStatus> threads = LoadThreads();
+            if (!LoadThreads().TryGetValue(threadID, out var thread) ||
+                !thread.Status.CopyRegistersAsContext(contextFlags, context))
+                return false;
 
-            if (threads.TryGetValue(threadID, out IElfPRStatus? status))
-                return status.CopyRegistersAsContext(context);
-
-            return false;
+            Span<byte> registers = stackalloc byte[1024];
+            // LSX/LASX supplement the FP state, including when notes appear out of order.
+            foreach (ElfNote note in thread.Registers.OrderBy(n => n.Type is ElfNoteType.LoongArchLsx or ElfNoteType.LoongArchLasx ? (uint)n.Type : 0))
+            {
+                Span<byte> buffer = registers.Slice(0, Math.Min(registers.Length, note.ContentSize));
+                if (note.ReadContents(0, buffer) == buffer.Length)
+                    ElfNote.CopyFloatingPoint(Architecture, note.Type, buffer, contextFlags, context);
+            }
+            return true;
         }
 
         public override int Read(ulong address, Span<byte> buffer)
@@ -187,15 +194,15 @@ namespace Microsoft.Diagnostics.Runtime
             return address > long.MaxValue ? 0 : _core.ReadMemory(address, buffer);
         }
 
-        private Dictionary<uint, IElfPRStatus> LoadThreads()
+        private Dictionary<uint, (IElfPRStatus Status, List<ElfNote> Registers)> LoadThreads()
         {
-            Dictionary<uint, IElfPRStatus>? threads = Volatile.Read(ref _threads);
+            var threads = Volatile.Read(ref _threads);
             if (threads is not null)
                 return threads;
 
-            Dictionary<uint, IElfPRStatus> fresh = new();
-            foreach (IElfPRStatus status in _core.EnumeratePRStatus())
-                fresh.Add(status.ThreadId, status);
+            Dictionary<uint, (IElfPRStatus Status, List<ElfNote> Registers)> fresh = new();
+            foreach (var thread in _core.EnumeratePRStatus())
+                fresh.Add(thread.Status.ThreadId, thread);
 
             // First publisher wins; the loser's Dictionary is dropped on the floor.
             return Interlocked.CompareExchange(ref _threads, fresh, null) ?? fresh;
@@ -221,9 +228,9 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool TryGetThreadInfo(uint osThreadId, out ThreadInfo info)
         {
-            if (LoadThreads().TryGetValue(osThreadId, out IElfPRStatus? status))
+            if (LoadThreads().TryGetValue(osThreadId, out var thread))
             {
-                info = BuildThreadInfo(status);
+                info = BuildThreadInfo(thread.Status);
                 return true;
             }
 
@@ -233,8 +240,8 @@ namespace Microsoft.Diagnostics.Runtime
 
         public IEnumerable<ThreadInfo> EnumerateThreadInfo()
         {
-            foreach (KeyValuePair<uint, IElfPRStatus> kvp in LoadThreads())
-                yield return BuildThreadInfo(kvp.Value);
+            foreach (var thread in LoadThreads().Values)
+                yield return BuildThreadInfo(thread.Status);
         }
 
         private static ThreadInfo BuildThreadInfo(IElfPRStatus status) => new()
@@ -254,14 +261,14 @@ namespace Microsoft.Diagnostics.Runtime
             TimeSpan userTime = TimeSpan.Zero;
             TimeSpan kernelTime = TimeSpan.Zero;
             bool anyTimes = false;
-            foreach (KeyValuePair<uint, IElfPRStatus> kvp in LoadThreads())
+            foreach (var thread in LoadThreads().Values)
             {
-                if (kvp.Value.UserTime is TimeSpan ut)
+                if (thread.Status.UserTime is TimeSpan ut)
                 {
                     userTime += ut;
                     anyTimes = true;
                 }
-                if (kvp.Value.KernelTime is TimeSpan kt)
+                if (thread.Status.KernelTime is TimeSpan kt)
                 {
                     kernelTime += kt;
                     anyTimes = true;
