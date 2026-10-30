@@ -43,10 +43,11 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// <see cref="ArmContext"/>
         /// <see cref="X86Context"/>
         /// </summary>
+        /// <param name="contextFlags">The requested context flags, or 0 for all available groups.</param>
         /// <param name="context">A span to copy the context into.  This should generally be one of the predefined *Context structs,
         /// e.g. <see cref="AMD64Context"/>.</param>
         /// <returns>True if the registers were copied to the context, false otherwise.  Usually a return value of false means that
         /// <paramref name="context"/> was too small.</returns>
-        bool CopyRegistersAsContext(Span<byte> context);
+        bool CopyRegistersAsContext(uint contextFlags, Span<byte> context);
     }
 }

@@ -52,6 +52,10 @@ namespace Microsoft.Diagnostics.Runtime
         /// <param name="threadID">The OS thread ID to read the context from.</param>
         /// <param name="contextFlags">The requested context flags, or 0 for default flags.</param>
         /// <param name="context">A span to write the context to.</param>
+        /// <remarks>
+        /// Only requested register groups available in the target are copied. The returned ContextFlags
+        /// identifies those groups; unrequested or unavailable registers are left unchanged.
+        /// </remarks>
         bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context);
 
         /// <summary>

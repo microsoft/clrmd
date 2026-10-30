@@ -15,15 +15,25 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public ulong pc;
         public ulong pstate;
 
-        public unsafe bool CopyContext(Span<byte> context)
+        public unsafe bool CopyContext(uint contextFlags, Span<byte> context)
         {
             if (context.Length < Arm64Context.Size)
                 return false;
 
             ref Arm64Context contextRef = ref Unsafe.As<byte, Arm64Context>(ref MemoryMarshal.GetReference(context));
 
-            contextRef.ContextFlags = Arm64Context.ContextControl | Arm64Context.ContextInteger;
-            contextRef.Cpsr = (uint)pstate;
+            contextRef.ContextFlags = Arm64Context.Context | ((contextFlags == 0 ? uint.MaxValue : contextFlags) &
+                (Arm64Context.ContextControl | Arm64Context.ContextInteger));
+            if ((contextRef.ContextFlags & Arm64Context.ContextControl) == Arm64Context.ContextControl)
+            {
+                contextRef.Cpsr = (uint)pstate;
+                contextRef.Fp = regs[29];
+                contextRef.Lr = regs[30];
+                contextRef.Sp = sp;
+                contextRef.Pc = pc;
+            }
+            if ((contextRef.ContextFlags & Arm64Context.ContextInteger) != Arm64Context.ContextInteger)
+                return true;
 
             contextRef.X0 = regs[0];
             contextRef.X1 = regs[1];
@@ -54,11 +64,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             contextRef.X26 = regs[26];
             contextRef.X27 = regs[27];
             contextRef.X28 = regs[28];
-
-            contextRef.Fp = regs[29];
-            contextRef.Lr = regs[30];
-            contextRef.Sp = sp;
-            contextRef.Pc = pc;
 
             return true;
         }

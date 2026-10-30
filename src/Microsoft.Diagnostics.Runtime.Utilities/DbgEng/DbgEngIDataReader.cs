@@ -201,6 +201,8 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
 
         public bool GetThreadContext(uint systemId, uint contextFlags, Span<byte> context)
         {
+            Span<byte> source = new byte[context.Length];
+
             int curr = DebugSystemObjects.CurrentThreadId;
             try
             {
@@ -208,7 +210,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities.DbgEng
                     return false;
 
                 DebugSystemObjects.CurrentThreadId = id;
-                return DebugAdvanced.GetThreadContext(context) >= 0;
+                return DebugAdvanced.GetThreadContext(source) >= 0 && ThreadContext.Copy(Architecture, contextFlags, source, context);
             }
             finally
             {

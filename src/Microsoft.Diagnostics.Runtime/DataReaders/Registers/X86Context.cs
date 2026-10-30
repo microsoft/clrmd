@@ -17,6 +17,7 @@ namespace Microsoft.Diagnostics.Runtime
         public const uint ContextSegments = Context | 0x4;
         public const uint ContextFloatingPoint = Context | 0x8;
         public const uint ContextDebugRegisters = Context | 0x10;
+        public const uint ContextExtendedRegisters = Context | 0x20;
 
         public static int Size => 0x2cc;
 

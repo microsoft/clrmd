@@ -291,10 +291,12 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 switch (Architecture)
                 {
                     case Architecture.X64:
-                        Unsafe.As<byte, x86_thread_state64_t>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        if (!Unsafe.As<byte, x86_thread_state64_t>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(contextFlags, context))
+                            return false;
                         break;
                     case Architecture.Arm64:
-                        Unsafe.As<byte, arm_thread_state64_t>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(context);
+                        if (!Unsafe.As<byte, arm_thread_state64_t>(ref MemoryMarshal.GetReference(buffer.AsSpan())).CopyContext(contextFlags, context))
+                            return false;
                         break;
                     default:
                         throw new PlatformNotSupportedException();
@@ -305,7 +307,28 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                 ArrayPool<byte>.Shared.Return(buffer);
             }
 
+            if (contextFlags == 0 || (contextFlags & ThreadContext.FloatingPointFlag(Architecture)) != 0)
+                ReadThreadState(threadAct, Architecture == Architecture.X64 ? Native.x86_FLOAT_STATE64 : Native.ARM_NEON_STATE64, contextFlags, context);
+
+            uint debugFlag = Architecture == Architecture.X64
+                ? AMD64Context.ContextDebugRegisters & ~AMD64Context.Context
+                : Arm64Context.ContextDebugRegisters & ~Arm64Context.Context;
+            if (contextFlags == 0 || (contextFlags & debugFlag) != 0)
+                ReadThreadState(threadAct, Architecture == Architecture.X64 ? Native.x86_DEBUG_STATE64 : Native.ARM_DEBUG_STATE64, contextFlags, context);
+
             return true;
+        }
+
+        private unsafe void ReadThreadState(uint threadAct, uint flavor, uint contextFlags, Span<byte> context)
+        {
+            int size = thread_state_t.StateSize(Architecture, flavor);
+            Span<byte> state = stackalloc byte[size];
+            int count = size / sizeof(uint);
+            fixed (byte* data = state)
+            {
+                if (Native.thread_get_state(threadAct, (int)flavor, (IntPtr)data, ref count) == 0 && count >= size / sizeof(uint))
+                    thread_state_t.CopyState(Architecture, flavor, state, contextFlags, context);
+            }
         }
 
         private unsafe void LoadThreads()
@@ -379,7 +402,18 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             internal const int TASK_DYLD_INFO = 17;
             internal const int THREAD_IDENTIFIER_INFO = 4;
             internal const int x86_THREAD_STATE64 = 4;
+            internal const uint x86_FLOAT_STATE64 = 5;
+            internal const uint x86_THREAD_STATE = 7;
+            internal const uint x86_FLOAT_STATE = 8;
+            internal const uint x86_DEBUG_STATE64 = 11;
+            internal const uint x86_DEBUG_STATE = 12;
+            internal const uint x86_AVX_STATE64 = 17;
+            internal const uint x86_AVX_STATE = 18;
+            internal const uint x86_AVX512_STATE64 = 20;
+            internal const uint x86_AVX512_STATE = 21;
             internal const int ARM_THREAD_STATE64 = 6;
+            internal const uint ARM_NEON_STATE64 = 17;
+            internal const uint ARM_DEBUG_STATE64 = 15;
             internal const int VM_REGION_BASIC_INFO_64 = 9;
 
             internal static readonly unsafe int TASK_DYLD_INFO_COUNT = sizeof(task_dyld_info) / sizeof(uint);

@@ -32,22 +32,40 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public readonly ulong __fs;
         public readonly ulong __gs;
 
-        public bool CopyContext(Span<byte> context)
+        public bool CopyContext(uint contextFlags, Span<byte> context)
         {
             if (context.Length < AMD64Context.Size)
                 return false;
 
             ref AMD64Context contextRef = ref Unsafe.As<byte, AMD64Context>(ref MemoryMarshal.GetReference(context));
 
-            contextRef.ContextFlags = AMD64Context.ContextControl | AMD64Context.ContextInteger | AMD64Context.ContextSegments;
+            contextRef.ContextFlags = AMD64Context.Context | ((contextFlags == 0 ? uint.MaxValue : contextFlags) &
+                (AMD64Context.ContextControl | AMD64Context.ContextInteger | AMD64Context.ContextSegments));
+            if ((contextRef.ContextFlags & AMD64Context.ContextControl) == AMD64Context.ContextControl)
+            {
+                contextRef.Rbp = __rbp;
+                contextRef.Rsp = __rsp;
+                contextRef.Rip = __rip;
+                contextRef.EFlags = (int)__rflags;
+                contextRef.Cs = (ushort)__cs;
+                contextRef.Ss = 0;
+            }
+            if ((contextRef.ContextFlags & AMD64Context.ContextSegments) == AMD64Context.ContextSegments)
+            {
+                contextRef.Ds = 0;
+                contextRef.Es = 0;
+                contextRef.Fs = (ushort)__fs;
+                contextRef.Gs = (ushort)__gs;
+            }
+            if ((contextRef.ContextFlags & AMD64Context.ContextInteger) != AMD64Context.ContextInteger)
+                return true;
+
             contextRef.Rax = __rax;
             contextRef.Rbx = __rbx;
             contextRef.Rcx = __rcx;
             contextRef.Rdx = __rdx;
             contextRef.Rdi = __rdi;
             contextRef.Rsi = __rsi;
-            contextRef.Rbp = __rbp;
-            contextRef.Rsp = __rsp;
             contextRef.R8 = __r8;
             contextRef.R9 = __r9;
             contextRef.R10 = __r10;
@@ -56,14 +74,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             contextRef.R13 = __r13;
             contextRef.R14 = __r14;
             contextRef.R15 = __r15;
-            contextRef.Rip = __rip;
-            contextRef.EFlags = (int)__rflags;
-            contextRef.Cs = (ushort)__cs;
-            contextRef.Ss = 0;
-            contextRef.Ds = 0;
-            contextRef.Es = 0;
-            contextRef.Fs = (ushort)__fs;
-            contextRef.Gs = (ushort)__gs;
 
             return true;
         }

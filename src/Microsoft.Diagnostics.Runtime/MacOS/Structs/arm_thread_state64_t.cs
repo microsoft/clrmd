@@ -18,15 +18,26 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public uint __cpsr;
         public uint __pad; // or __opaque_flags when ptrauth is enabled
 
-        public unsafe bool CopyContext(Span<byte> context)
+        public unsafe bool CopyContext(uint contextFlags, Span<byte> context)
         {
             if (context.Length < Arm64Context.Size)
                 return false;
 
             ref Arm64Context contextRef = ref Unsafe.As<byte, Arm64Context>(ref MemoryMarshal.GetReference(context));
 
-            contextRef.ContextFlags = Arm64Context.ContextControl | Arm64Context.ContextInteger;
-            contextRef.Cpsr = __cpsr;
+            contextRef.ContextFlags = Arm64Context.Context | ((contextFlags == 0 ? uint.MaxValue : contextFlags) &
+                (Arm64Context.ContextControl | Arm64Context.ContextInteger));
+            if ((contextRef.ContextFlags & Arm64Context.ContextControl) == Arm64Context.ContextControl)
+            {
+                contextRef.Cpsr = __cpsr;
+                // no ptrauth
+                contextRef.Fp = __fp;
+                contextRef.Lr = __lr;
+                contextRef.Sp = __sp;
+                contextRef.Pc = __pc;
+            }
+            if ((contextRef.ContextFlags & Arm64Context.ContextInteger) != Arm64Context.ContextInteger)
+                return true;
 
             contextRef.X0 = __x[0];
             contextRef.X1 = __x[1];
@@ -57,12 +68,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             contextRef.X26 = __x[26];
             contextRef.X27 = __x[27];
             contextRef.X28 = __x[28];
-
-            // no ptrauth
-            contextRef.Fp = __fp;
-            contextRef.Lr = __lr;
-            contextRef.Sp = __sp;
-            contextRef.Pc = __pc;
 
             return true;
         }

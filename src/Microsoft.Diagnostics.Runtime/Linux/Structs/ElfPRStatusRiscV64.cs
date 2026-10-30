@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 
         TimeSpan? IElfPRStatus.KernelTime => SystemTime.ToTimeSpan();
 
-        public bool CopyRegistersAsContext(Span<byte> context) => RegisterSet.CopyContext(context);
+        public bool CopyRegistersAsContext(uint contextFlags, Span<byte> context) => RegisterSet.CopyContext(contextFlags, context);
 
     }
 }

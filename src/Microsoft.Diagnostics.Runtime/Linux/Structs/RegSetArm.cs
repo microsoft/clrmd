@@ -29,14 +29,25 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public uint cpsr;
         public uint orig_r0;
 
-        public bool CopyContext(Span<byte> context)
+        public bool CopyContext(uint contextFlags, Span<byte> context)
         {
             if (context.Length < ArmContext.Size)
                 return false;
 
             ref ArmContext contextRef = ref Unsafe.As<byte, ArmContext>(ref MemoryMarshal.GetReference(context));
 
-            contextRef.ContextFlags = ArmContext.ContextControl | ArmContext.ContextInteger;
+            contextRef.ContextFlags = ArmContext.Context | ((contextFlags == 0 ? uint.MaxValue : contextFlags) &
+                (ArmContext.ContextControl | ArmContext.ContextInteger));
+            if ((contextRef.ContextFlags & ArmContext.ContextControl) == ArmContext.ContextControl)
+            {
+                contextRef.Sp = sp;
+                contextRef.Lr = lr;
+                contextRef.Pc = pc;
+                contextRef.Cpsr = cpsr;
+            }
+            if ((contextRef.ContextFlags & ArmContext.ContextInteger) != ArmContext.ContextInteger)
+                return true;
+
             contextRef.R0 = r0;
             contextRef.R1 = r1;
             contextRef.R2 = r2;
@@ -50,10 +61,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             contextRef.R10 = r10;
             contextRef.R11 = fp;
             contextRef.R12 = ip;
-            contextRef.Sp = sp;
-            contextRef.Lr = lr;
-            contextRef.Pc = pc;
-            contextRef.Cpsr = cpsr;
 
             return true;
         }
