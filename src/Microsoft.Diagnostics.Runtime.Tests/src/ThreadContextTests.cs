@@ -302,7 +302,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                         Write(fp, 256, value); // XMM6
                         Write(fp, 272, 3.5); // XMM7
                         if (architecture == Architecture.X86)
-                            type = ElfNoteType.PrXfpreg;
+                            type = (ElfNoteType)0x46e62b7f; // NT_PRXFPREG from the Linux ABI, independent of the production enum.
                     }
                     else if (architecture == Architecture.Arm)
                     {
