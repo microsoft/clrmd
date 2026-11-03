@@ -19,11 +19,10 @@ namespace Microsoft.Diagnostics.Runtime
     public sealed class ClrInfo : IClrInfo
     {
         /// <summary>
-        /// Constructs a <see cref="ClrInfo"/> for a runtime whose DAC data-access interface
-        /// (<c>IXCLRDataProcess</c>) is supplied by the host through
-        /// <see cref="DataTarget.AddLoadedRuntime(ClrInfo, IntPtr, object?)"/>. Use this when the host
-        /// (e.g. SOS) performs its own runtime detection and DAC/cDAC construction instead of relying on
-        /// ClrMD's discovery.
+        /// Constructs metadata for a host-discovered runtime. Register it with
+        /// <see cref="DataTarget.AddRuntime(ClrInfo)"/> to use ClrMD's normal DAC loading, or with
+        /// <see cref="DataTarget.AddLoadedRuntime(ClrInfo, IntPtr, object?)"/> when the host supplies
+        /// the DAC data-access interface (<c>IXCLRDataProcess</c>).
         /// </summary>
         public ClrInfo(DataTarget dt, ModuleInfo module, Version clrVersion)
         {

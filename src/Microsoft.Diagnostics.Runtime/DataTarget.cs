@@ -66,6 +66,29 @@ namespace Microsoft.Diagnostics.Runtime
         }
 
         /// <summary>
+        /// Registers host-discovered runtime metadata without creating or supplying a DAC data-access interface.
+        /// The runtime uses ClrMD's normal DAC resolution and loading when <see cref="ClrInfo.CreateRuntime()"/> is called.
+        /// <para>
+        /// A registration replaces any runtime with the same <see cref="ClrInfo.ModuleInfo"/> instance and takes
+        /// precedence over subsequent ClrMD discovery. Set <see cref="DataTargetOptions.SkipRuntimeEnumeration"/>
+        /// to disable ClrMD's discovery when the host performs complete runtime detection itself.
+        /// </para>
+        /// </summary>
+        /// <param name="clrInfo">A <see cref="ClrInfo"/> created for this <see cref="DataTarget"/>.</param>
+        /// <returns>The registered <paramref name="clrInfo"/>.</returns>
+        public ClrInfo AddRuntime(ClrInfo clrInfo)
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(DataTarget));
+            if (clrInfo is null)
+                throw new ArgumentNullException(nameof(clrInfo));
+            if (clrInfo.DataTarget != this)
+                throw new InvalidOperationException("The ClrInfo was created for a different DataTarget.");
+
+            return RegisterRuntime(clrInfo);
+        }
+
+        /// <summary>
         /// Registers a runtime whose DAC data-access interface (<c>IXCLRDataProcess</c>) is created and owned
         /// by the host, bypassing ClrMD's <see cref="IClrInfoProvider"/> runtime discovery. Use this when the
         /// host (e.g. SOS) performs its own runtime detection and DAC/cDAC construction.
@@ -114,10 +137,10 @@ namespace Microsoft.Diagnostics.Runtime
                 throw new ObjectDisposedException(nameof(DataTarget));
             if (clrInfo is null)
                 throw new ArgumentNullException(nameof(clrInfo));
-            if (createClrDataProcess is null)
-                throw new ArgumentNullException(nameof(createClrDataProcess));
             if (clrInfo.DataTarget != this)
                 throw new InvalidOperationException("The ClrInfo was created for a different DataTarget.");
+            if (createClrDataProcess is null)
+                throw new ArgumentNullException(nameof(createClrDataProcess));
 
             // Use a stable, non-null lock for the host-supplied DAC. When the caller does not provide one we
             // create a single lock here (not per CreateRuntime) so repeated CreateRuntime calls on this
@@ -126,6 +149,11 @@ namespace Microsoft.Diagnostics.Runtime
             clrInfo.ClrDataProcessFactory = createClrDataProcess;
             clrInfo.DacLock = dacLock ?? new object();
 
+            return RegisterRuntime(clrInfo);
+        }
+
+        private ClrInfo RegisterRuntime(ClrInfo clrInfo)
+        {
             lock (_clrsLock)
             {
                 ImmutableArray<ClrInfo> current = _clrs.IsDefault ? ImmutableArray<ClrInfo>.Empty : _clrs;
@@ -300,12 +328,12 @@ namespace Microsoft.Diagnostics.Runtime
                 if (_enumerated)
                     return _clrs.IsDefault ? ImmutableArray<ClrInfo>.Empty : _clrs;
 
-                // Runtimes a host registered via AddLoadedRuntime before ClrVersions was first queried. These
+                // Runtimes a host registered before ClrVersions was first queried. These
                 // take precedence over anything ClrMD's own enumeration finds for the same module.
                 ImmutableArray<ClrInfo> registered = _clrs.IsDefault ? ImmutableArray<ClrInfo>.Empty : _clrs;
 
                 // A host may perform its own complete runtime detection and register runtimes via
-                // AddLoadedRuntime. SkipRuntimeEnumeration lets it skip ClrMD's enumeration entirely so we
+                // AddRuntime or AddLoadedRuntime. SkipRuntimeEnumeration lets it skip ClrMD's enumeration entirely so we
                 // don't pay for it. Registering runtimes does NOT by itself suppress enumeration; only this
                 // option does (tracked separately from whether _clrs already has registered entries).
                 if (Options.SkipRuntimeEnumeration)
