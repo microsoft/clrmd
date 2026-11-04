@@ -10,7 +10,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal struct RegSetRiscV64
     {
-        public readonly ulong R0;
+        public readonly ulong Pc;
         public readonly ulong Ra;
         public readonly ulong Sp;
         public readonly ulong Gp;
@@ -42,25 +42,32 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public readonly ulong T4;
         public readonly ulong T5;
         public readonly ulong T6;
-        public readonly ulong Pc;
 
-        public unsafe bool CopyContext(Span<byte> context)
+        public unsafe bool CopyContext(uint contextFlags, Span<byte> context)
         {
             if (context.Length < RiscV64Context.Size)
                 return false;
 
             ref RiscV64Context contextRef = ref Unsafe.As<byte, RiscV64Context>(ref MemoryMarshal.GetReference(context));
 
-            contextRef.ContextFlags = RiscV64Context.ContextControl | RiscV64Context.ContextInteger;
-            contextRef.R0 = R0;
-            contextRef.Ra = Ra;
-            contextRef.Sp = Sp;
+            contextRef.ContextFlags = RiscV64Context.Context | ((contextFlags == 0 ? uint.MaxValue : contextFlags) &
+                (RiscV64Context.ContextControl | RiscV64Context.ContextInteger));
+            if ((contextRef.ContextFlags & RiscV64Context.ContextControl) == RiscV64Context.ContextControl)
+            {
+                contextRef.Ra = Ra;
+                contextRef.Sp = Sp;
+                contextRef.Fp = Fp;
+                contextRef.Pc = Pc;
+            }
+            if ((contextRef.ContextFlags & RiscV64Context.ContextInteger) != RiscV64Context.ContextInteger)
+                return true;
+
+            contextRef.R0 = 0;
             contextRef.Gp = Gp;
             contextRef.Tp = Tp;
             contextRef.T0 = T0;
             contextRef.T1 = T1;
             contextRef.T2 = T2;
-            contextRef.Fp = Fp;
             contextRef.S1 = S1;
             contextRef.A0 = A0;
             contextRef.A1 = A1;
@@ -84,7 +91,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             contextRef.T4 = T4;
             contextRef.T5 = T5;
             contextRef.T6 = T6;
-            contextRef.Pc = Pc;
 
             return true;
         }

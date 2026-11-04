@@ -97,7 +97,10 @@ namespace Microsoft.Diagnostics.Runtime
             if (ctx.ContextRva == 0 || ctx.ContextBytes == 0)
                 return false;
 
-            return _minidump.MemoryReader.ReadFromRva(ctx.ContextRva, context) == context.Length;
+            Span<byte> source = new byte[context.Length];
+            source = source.Slice(0, (int)Math.Min(ctx.ContextBytes, (uint)source.Length));
+            return _minidump.MemoryReader.ReadFromRva(ctx.ContextRva, source) == source.Length &&
+                ThreadContext.Copy(Architecture, contextFlags, source, context);
         }
 
         public int Read(ulong address, Span<byte> buffer) => MemoryReader.Read(address, buffer);

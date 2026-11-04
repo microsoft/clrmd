@@ -148,9 +148,11 @@ namespace Microsoft.Diagnostics.Runtime
 
         public bool GetThreadContext(uint threadID, uint contextFlags, Span<byte> context)
         {
+            Span<byte> source = new byte[context.Length];
+
             uint id = _systemObjects.GetThreadIdBySystemId(threadID);
             _systemObjects.SetCurrentThread(id);
-            return _advanced.GetThreadContext(context);
+            return _advanced.GetThreadContext(source) && ThreadContext.Copy(Architecture, contextFlags, source, context);
         }
 
         private ulong[] GetImageBases()

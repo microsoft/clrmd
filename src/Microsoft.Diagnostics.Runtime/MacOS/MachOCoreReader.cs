@@ -59,18 +59,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             if (!_core.Threads.TryGetValue(threadID, out thread_state_t thread))
                 return false;
 
-            switch (Architecture)
-            {
-                case Architecture.X64:
-                    thread.x64.CopyContext(context);
-                    break;
-                case Architecture.Arm64:
-                    thread.arm.CopyContext(context);
-                    break;
-                default:
-                    throw new PlatformNotSupportedException();
-            }
-            return true;
+            return thread.CopyContext(Architecture, contextFlags, context);
         }
 
         public override int Read(ulong address, Span<byte> buffer) => _core.ReadMemory(address, buffer);

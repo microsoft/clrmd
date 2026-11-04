@@ -28,21 +28,33 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public readonly uint Esp;
         public readonly uint Xss;
 
-        public bool CopyContext(Span<byte> context)
+        public bool CopyContext(uint contextFlags, Span<byte> context)
         {
             if (context.Length < X86Context.Size)
                 return false;
 
             ref X86Context contextRef = ref Unsafe.As<byte, X86Context>(ref MemoryMarshal.GetReference(context));
 
-            contextRef.ContextFlags = X86Context.ContextControl | X86Context.ContextInteger;
-
-            contextRef.Ebp = Ebp;
-            contextRef.Eip = Eip;
-            contextRef.Ecx = Ecx;
-            contextRef.EFlags = EFlags;
-            contextRef.Esp = Esp;
-            contextRef.Ss = Xss;
+            contextRef.ContextFlags = X86Context.Context | ((contextFlags == 0 ? uint.MaxValue : contextFlags) &
+                (X86Context.ContextControl | X86Context.ContextInteger | X86Context.ContextSegments));
+            if ((contextRef.ContextFlags & X86Context.ContextControl) == X86Context.ContextControl)
+            {
+                contextRef.Ebp = Ebp;
+                contextRef.Eip = Eip;
+                contextRef.EFlags = EFlags;
+                contextRef.Esp = Esp;
+                contextRef.Ss = Xss;
+                contextRef.Cs = Xcs;
+            }
+            if ((contextRef.ContextFlags & X86Context.ContextSegments) == X86Context.ContextSegments)
+            {
+                contextRef.Ds = Xds;
+                contextRef.Es = Xes;
+                contextRef.Fs = Xfs;
+                contextRef.Gs = Xgs;
+            }
+            if ((contextRef.ContextFlags & X86Context.ContextInteger) != X86Context.ContextInteger)
+                return true;
 
             contextRef.Edi = Edi;
             contextRef.Esi = Esi;

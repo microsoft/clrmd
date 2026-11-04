@@ -40,27 +40,46 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         /// Enumerates all prstatus notes contained within this coredump.
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<IElfPRStatus> EnumeratePRStatus()
+        public IEnumerable<(IElfPRStatus Status, List<ElfNote> Registers)> EnumeratePRStatus()
         {
-            ElfMachine architecture = ElfFile.Header.Architecture;
-
-            return GetNotes(ElfNoteType.PrpsStatus).Select<ElfNote, IElfPRStatus>(r => {
-                return architecture switch
+            IElfPRStatus? thread = null;
+            List<ElfNote> registers = new();
+            int count = 0;
+            foreach (ElfNote note in ElfFile.Notes)
+            {
+                if (note.Type == ElfNoteType.PrpsStatus && note.Name == "CORE")
                 {
-                    ElfMachine.EM_X86_64 => r.ReadContents<ElfPRStatusX64>(0),
-                    ElfMachine.EM_ARM => r.ReadContents<ElfPRStatusArm>(0),
-                    ElfMachine.EM_AARCH64 => r.ReadContents<ElfPRStatusArm64>(0),
-                    ElfMachine.EM_386 => r.ReadContents<ElfPRStatusX86>(0),
-                    ElfMachine.EM_RISCV => ElfFile.Header.Is64Bit ?
-                                                r.ReadContents<ElfPRStatusRiscV64>(0) :
-                                                throw new NotSupportedException($"Invalid architecture RISC-V 32bit"),
-                    ElfMachine.EM_LOONGARCH => ElfFile.Header.Is64Bit ?
-                                                r.ReadContents<ElfPRStatusLoongArch64>(0) :
-                                                throw new NotSupportedException($"Invalid architecture LoongArch 32bit"),
-                    _ => throw new NotSupportedException($"Invalid architecture {architecture}"),
-                };
-            });
+                    if (thread != null)
+                    {
+                        yield return (thread, registers);
+                        registers = new();
+                    }
+                    if (++count > _limits.MaxThreads)
+                        throw new InvalidDataException($"ELF coredump contains more than {_limits.MaxThreads} threads.");
+
+                    thread = ReadPRStatus(note, ElfFile.Header.Architecture);
+                }
+                else if (thread != null && note.Name is "CORE" or "LINUX" &&
+                    note.Type is ElfNoteType.PrpsFpreg or ElfNoteType.PrXfpreg or ElfNoteType.X86XState or
+                        ElfNoteType.ArmVfp or ElfNoteType.LoongArchLsx or ElfNoteType.LoongArchLasx)
+                {
+                    registers.Add(note);
+                }
+            }
+            if (thread != null)
+                yield return (thread, registers);
         }
+
+        private IElfPRStatus ReadPRStatus(ElfNote note, ElfMachine architecture) => architecture switch
+        {
+            ElfMachine.EM_X86_64 => note.ReadContents<ElfPRStatusX64>(0),
+            ElfMachine.EM_ARM => note.ReadContents<ElfPRStatusArm>(0),
+            ElfMachine.EM_AARCH64 => note.ReadContents<ElfPRStatusArm64>(0),
+            ElfMachine.EM_386 => note.ReadContents<ElfPRStatusX86>(0),
+            ElfMachine.EM_RISCV when ElfFile.Header.Is64Bit => note.ReadContents<ElfPRStatusRiscV64>(0),
+            ElfMachine.EM_LOONGARCH when ElfFile.Header.Is64Bit => note.ReadContents<ElfPRStatusLoongArch64>(0),
+            _ => throw new NotSupportedException($"Invalid architecture {architecture}"),
+        };
 
         /// <summary>
         /// Returns the Auxv value of the given type.

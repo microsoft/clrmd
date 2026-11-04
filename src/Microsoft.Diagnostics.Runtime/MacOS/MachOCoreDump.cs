@@ -9,14 +9,12 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Diagnostics.Runtime.MacOS.Structs;
 using Microsoft.Diagnostics.Runtime.Utilities;
+using Native = Microsoft.Diagnostics.Runtime.MacOS.MacOSProcessDataReader.Native;
 
 namespace Microsoft.Diagnostics.Runtime.MacOS
 {
     internal sealed unsafe class MachOCoreDump : IDisposable
     {
-        private const uint X86_THREAD_STATE64 = 4;
-        private const uint ARM_THREAD_STATE64 = 6;
-
         internal readonly DataTargetLimits _limits;
 
         private readonly object _sync = new();
@@ -67,6 +65,7 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
             Dictionary<ulong, uint> threadIds = new();
             List<thread_state_t> contexts = new();
             List<MachOSegment> segments = new((int)_header.NumberCommands);
+            Span<byte> stateBuffer = stackalloc byte[1024];
 
             for (int i = 0; i < _header.NumberCommands; i++)
             {
@@ -124,24 +123,62 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
 
                     case LoadCommandType.Thread:
                         thread_state_t threadState = default;
-                        uint flavor = Read<uint>(stream);
-                        uint count = Read<uint>(stream);
-
-                        switch (_header.CpuType)
+                        while (stream.Position < next)
                         {
-                            case MachOCpuType.X86_64:
-                                if (flavor == X86_THREAD_STATE64)
-                                {
-                                    threadState.x64 = Read<x86_thread_state64_t>(stream);
-                                }
-                                break;
+                            if (next - stream.Position < 8)
+                                throw new InvalidDataException("Truncated Mach-O thread state header.");
 
-                            case MachOCpuType.ARM64:
-                                if (flavor == ARM_THREAD_STATE64)
+                            uint flavor = Read<uint>(stream);
+                            uint count = Read<uint>(stream);
+                            if (count > (ulong)(next - stream.Position) / sizeof(uint))
+                                throw new InvalidDataException("Mach-O thread state exceeds its load command.");
+
+                            long stateEnd = stream.Position + (long)count * sizeof(uint);
+                            if (Architecture == Architecture.X64 && flavor is Native.x86_THREAD_STATE or Native.x86_FLOAT_STATE or Native.x86_DEBUG_STATE or Native.x86_AVX_STATE or Native.x86_AVX512_STATE)
+                            {
+                                if (count < 2)
+                                    throw new InvalidDataException("Truncated Mach-O combined thread state header.");
+
+                                flavor = Read<uint>(stream);
+                                uint innerCount = Read<uint>(stream);
+                                if (innerCount > count - 2)
+                                    throw new InvalidDataException("Mach-O combined thread state exceeds its container.");
+                                count = innerCount;
+                            }
+
+                            int size = thread_state_t.StateSize(Architecture, flavor);
+                            if (size > 0)
+                            {
+                                if (count * (ulong)sizeof(uint) < (ulong)size)
+                                    throw new InvalidDataException("Truncated Mach-O thread state.");
+
+                                Span<byte> state = stateBuffer.Slice(0, size);
+                                int read = 0;
+                                while (read < size)
                                 {
-                                    threadState.arm = Read<arm_thread_state64_t>(stream);
+                                    int bytesRead = stream.Read(state.Slice(read));
+                                    if (bytesRead == 0)
+                                        throw new EndOfStreamException();
+                                    read += bytesRead;
                                 }
-                                break;
+                                switch (Architecture, flavor)
+                                {
+                                    case (Architecture.X64, Native.x86_THREAD_STATE64):
+                                        threadState.x64 = MemoryMarshal.Read<x86_thread_state64_t>(state);
+                                        break;
+                                    case (Architecture.Arm64, Native.ARM_THREAD_STATE64):
+                                        threadState.arm = MemoryMarshal.Read<arm_thread_state64_t>(state);
+                                        break;
+                                    case (Architecture.X64, Native.x86_DEBUG_STATE64):
+                                    case (Architecture.Arm64, Native.ARM_DEBUG_STATE64):
+                                        threadState.Debug = state.ToArray();
+                                        break;
+                                    default:
+                                        threadState.FloatingPoint = state.ToArray();
+                                        break;
+                                }
+                            }
+                            stream.Position = stateEnd;
                         }
                         contexts.Add(threadState);
                         break;

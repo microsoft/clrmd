@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    internal struct RegSetLoongArch64
+    internal unsafe struct RegSetLoongArch64
     {
         public readonly ulong R0;
         public readonly ulong Ra;
@@ -42,20 +42,32 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         public readonly ulong S6;
         public readonly ulong S7;
         public readonly ulong S8;
+        public readonly ulong OrigA0;
         public readonly ulong Pc;
+        public readonly ulong BadV;
+        private fixed ulong _reserved[10];
 
-        public unsafe bool CopyContext(Span<byte> context)
+        public unsafe bool CopyContext(uint contextFlags, Span<byte> context)
         {
             if (context.Length < LoongArch64Context.Size)
                 return false;
 
             ref LoongArch64Context contextRef = ref Unsafe.As<byte, LoongArch64Context>(ref MemoryMarshal.GetReference(context));
 
-            contextRef.ContextFlags = LoongArch64Context.ContextControl | LoongArch64Context.ContextInteger;
+            contextRef.ContextFlags = LoongArch64Context.Context | ((contextFlags == 0 ? uint.MaxValue : contextFlags) &
+                (LoongArch64Context.ContextControl | LoongArch64Context.ContextInteger));
+            if ((contextRef.ContextFlags & LoongArch64Context.ContextControl) == LoongArch64Context.ContextControl)
+            {
+                contextRef.Ra = Ra;
+                contextRef.Sp = Sp;
+                contextRef.Fp = Fp;
+                contextRef.Pc = Pc;
+            }
+            if ((contextRef.ContextFlags & LoongArch64Context.ContextInteger) != LoongArch64Context.ContextInteger)
+                return true;
+
             contextRef.R0 = R0;
-            contextRef.Ra = Ra;
             contextRef.Tp = Tp;
-            contextRef.Sp = Sp;
             contextRef.A0 = A0;
             contextRef.A1 = A1;
             contextRef.A2 = A2;
@@ -74,7 +86,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             contextRef.T7 = T7;
             contextRef.T8 = T8;
             contextRef.X0 = X0;
-            contextRef.Fp = Fp;
             contextRef.S0 = S0;
             contextRef.S1 = S1;
             contextRef.S2 = S2;
@@ -84,7 +95,6 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             contextRef.S6 = S6;
             contextRef.S7 = S7;
             contextRef.S8 = S8;
-            contextRef.Pc = Pc;
 
             return true;
         }
