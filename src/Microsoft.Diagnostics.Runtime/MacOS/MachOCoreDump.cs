@@ -126,7 +126,15 @@ namespace Microsoft.Diagnostics.Runtime.MacOS
                         while (stream.Position < next)
                         {
                             if (next - stream.Position < 8)
-                                throw new InvalidDataException("Truncated Mach-O thread state header.");
+                            {
+                                // 64-bit Mach-O load commands may end in zero padding to preserve 8-byte alignment.
+                                while (stream.Position < next)
+                                {
+                                    if (stream.ReadByte() != 0)
+                                        throw new InvalidDataException("Truncated Mach-O thread state header.");
+                                }
+                                break;
+                            }
 
                             uint flavor = Read<uint>(stream);
                             uint count = Read<uint>(stream);

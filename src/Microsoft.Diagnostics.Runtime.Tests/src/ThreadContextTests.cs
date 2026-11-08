@@ -212,6 +212,16 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Throws<InvalidDataException>(() => new MachOCoreReader("test.core", stream, leaveOpen: true));
         }
 
+        [Fact]
+        public void MachCoreRejectsNonZeroThreadStatePadding()
+        {
+            using MemoryStream stream = CreateMachCore(Architecture.X64);
+            stream.Position = stream.Length - 1;
+            stream.WriteByte(1);
+            stream.Position = 0;
+            Assert.Throws<InvalidDataException>(() => new MachOCoreReader("test.core", stream, leaveOpen: true));
+        }
+
         private static void AssertGeneralRegisters(Architecture architecture, byte[] context)
         {
             switch (architecture)
@@ -409,7 +419,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Write(general, 48, RegisterValue + 3);
             Write(floating, x64 ? 264 : 0, RegisterValue);
             Write(debug, 0, RegisterValue + 2);
-            uint commandSize = (uint)(8 + 3 * 8 + general.Length + floating.Length + debug.Length);
+            uint unalignedCommandSize = (uint)(8 + 3 * 8 + general.Length + floating.Length + debug.Length);
+            uint commandSize = (unalignedCommandSize + 7) & ~7u;
             MemoryStream stream = new();
             using (BinaryWriter writer = new(stream, System.Text.Encoding.UTF8, leaveOpen: true))
             {
@@ -426,6 +437,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 WriteState(writer, x64 ? floatingPointFlavor : Native.ARM_NEON_STATE64, floating);
                 WriteState(writer, (uint)(x64 ? Native.x86_THREAD_STATE64 : Native.ARM_THREAD_STATE64), general);
                 WriteState(writer, x64 ? Native.x86_DEBUG_STATE64 : Native.ARM_DEBUG_STATE64, debug);
+                while (writer.BaseStream.Position % 8 != 0)
+                    writer.Write((byte)0);
             }
             stream.Position = 0;
             return stream;
