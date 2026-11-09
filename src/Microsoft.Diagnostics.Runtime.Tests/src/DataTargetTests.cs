@@ -166,7 +166,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                                                                .Select(o => (o.Address, o.Type?.Name ?? ""))
                                                                .ToArray();
 
-            using DataTarget dt = TestTargets.Types.LoadFullDump(options: new DataTargetOptions { SkipRuntimeEnumeration = true });
+            using DataTarget dt = TestTargets.Types.LoadFullDump(options: new DataTargetOptions { FileLocator = InstalledRuntimeLocator.Instance, SkipRuntimeEnumeration = true });
             ModuleInfo module = dt.EnumerateModules().Single(m => m.ImageBase == detected.ModuleInfo.ImageBase);
             ClrInfo hosted = new(dt, module, detected.Version)
             {

@@ -4,20 +4,19 @@
 #nullable enable
 
 using System;
-using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using Microsoft.Diagnostics.Runtime.Utilities;
 
 namespace Microsoft.Diagnostics.Runtime.Tests
 {
     /// <summary>
     /// A file locator that searches locally installed .NET runtime directories for DAC files.
-    /// Used by tests to find the DAC for single-file app dumps where the DAC isn't next to
-    /// the CLR module.
+    /// Matches the runtime's PE properties, ELF build ID, or Mach-O UUID without downloading binaries.
     /// </summary>
     internal sealed class InstalledRuntimeLocator : IFileLocator
     {
@@ -25,26 +24,26 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public string? FindPEImage(string fileName, int buildTimeStamp, int imageSize, bool checkProperties)
         {
-            string? sharedFrameworkDir = GetSharedFrameworkDir();
-            if (sharedFrameworkDir is null)
-                return null;
-
-            foreach (string dir in Directory.EnumerateDirectories(sharedFrameworkDir))
+            fileName = Path.GetFileName(fileName);
+            foreach (string dir in EnumerateRuntimeDirectories())
             {
-                string potentialClr = Path.Combine(dir, "coreclr.dll");
-                if (!File.Exists(potentialClr))
+                string potentialFile = Path.Combine(dir, fileName);
+                if (!File.Exists(potentialFile))
                     continue;
 
                 try
                 {
-                    if (PEMatchesProperties(potentialClr, buildTimeStamp, imageSize))
+                    foreach (string indexedFile in new[] { potentialFile, Path.Combine(dir, "coreclr.dll"), Path.Combine(dir, "clr.dll") })
                     {
-                        string potentialDac = Path.Combine(dir, fileName);
-                        if (File.Exists(potentialDac))
-                            return potentialDac;
+                        if (!File.Exists(indexedFile))
+                            continue;
+
+                        using PEImage image = new(File.OpenRead(indexedFile));
+                        if (image.IsValid && image.IndexTimeStamp == buildTimeStamp && image.IndexFileSize == imageSize)
+                            return potentialFile;
                     }
                 }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
                 {
                 }
             }
@@ -54,7 +53,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
         public string? FindPEImage(string fileName, SymbolProperties archivedUnder, ImmutableArray<byte> buildIdOrUUID, OSPlatform originalPlatform, bool checkProperties)
         {
-            if (buildIdOrUUID.IsDefaultOrEmpty)
+            if (buildIdOrUUID.IsDefaultOrEmpty || archivedUnder == SymbolProperties.None)
                 return null;
 
             string runtimeModuleName;
@@ -65,21 +64,30 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             else
                 return null;
 
+            fileName = Path.GetFileName(fileName);
             foreach (string dir in EnumerateRuntimeDirectories())
             {
-                string potentialClr = Path.Combine(dir, runtimeModuleName);
-                if (!File.Exists(potentialClr))
+                string potentialFile = Path.Combine(dir, fileName);
+                string indexedFile = archivedUnder == SymbolProperties.Self ? potentialFile : Path.Combine(dir, runtimeModuleName);
+                if (!File.Exists(potentialFile) || !File.Exists(indexedFile))
                     continue;
 
                 try
                 {
-                    using ElfFile elf = new(potentialClr);
-                    if (!elf.BuildId.IsDefaultOrEmpty && elf.BuildId.SequenceEqual(buildIdOrUUID))
+                    ImmutableArray<byte> buildId;
+                    if (originalPlatform == OSPlatform.Linux)
                     {
-                        string potentialDac = Path.Combine(dir, fileName);
-                        if (File.Exists(potentialDac))
-                            return potentialDac;
+                        using ElfFile elf = new(indexedFile);
+                        buildId = elf.BuildId;
                     }
+                    else
+                    {
+                        MachFile mach = new(indexedFile);
+                        buildId = mach.BuildId;
+                    }
+
+                    if (!buildId.IsDefaultOrEmpty && buildId.SequenceEqual(buildIdOrUUID))
+                        return potentialFile;
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
                 {
@@ -100,6 +108,22 @@ namespace Microsoft.Diagnostics.Runtime.Tests
 
             foreach (string dir in EnumerateNuGetRuntimePackDirectories())
                 yield return dir;
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                foreach (string dir in EnumerateFrameworkDirectories())
+                    yield return dir;
+            }
+        }
+
+        [SupportedOSPlatform("windows")]
+        private static IEnumerable<string> EnumerateFrameworkDirectories()
+        {
+            string framework = Environment.Is64BitProcess ? "Framework64" : "Framework";
+            string frameworkRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Microsoft.NET", framework);
+            if (Directory.Exists(frameworkRoot))
+                foreach (string dir in Directory.EnumerateDirectories(frameworkRoot))
+                    yield return dir;
         }
 
         private static IEnumerable<string> EnumerateNuGetRuntimePackDirectories()
@@ -164,54 +188,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             };
 
             return $"{os}-{arch}";
-        }
-
-        private static bool PEMatchesProperties(string path, int expectedTimeStamp, int expectedSize)
-        {
-            using FileStream fs = File.OpenRead(path);
-            Span<byte> buffer = stackalloc byte[256];
-
-            // Read DOS header to get PE offset
-            if (fs.Read(buffer.Slice(0, 64)) < 64)
-                return false;
-
-            if (buffer[0] != 'M' || buffer[1] != 'Z')
-                return false;
-
-            int peOffset = BinaryPrimitives.ReadInt32LittleEndian(buffer.Slice(60));
-            if (peOffset < 0 || peOffset > 1024)
-                return false;
-
-            fs.Position = peOffset;
-            if (fs.Read(buffer.Slice(0, 8)) < 8)
-                return false;
-
-            // Verify PE signature
-            if (buffer[0] != 'P' || buffer[1] != 'E' || buffer[2] != 0 || buffer[3] != 0)
-                return false;
-
-            // COFF header: TimeDateStamp is at offset 4, SizeOfImage is in optional header
-            int timeStamp = BinaryPrimitives.ReadInt32LittleEndian(buffer.Slice(8));
-
-            // Read rest of COFF header (20 bytes total) + start of optional header
-            fs.Position = peOffset + 4; // skip PE\0\0
-            if (fs.Read(buffer.Slice(0, 24)) < 24)
-                return false;
-
-            int timeDateStamp = BinaryPrimitives.ReadInt32LittleEndian(buffer.Slice(4));
-            int sizeOfOptionalHeader = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(16));
-
-            if (sizeOfOptionalHeader < 60)
-                return false;
-
-            // Read optional header to get SizeOfImage (offset 56 in optional header)
-            fs.Position = peOffset + 4 + 20; // PE sig + COFF header
-            if (fs.Read(buffer.Slice(0, 60)) < 60)
-                return false;
-
-            int sizeOfImage = BinaryPrimitives.ReadInt32LittleEndian(buffer.Slice(56));
-
-            return timeDateStamp == expectedTimeStamp && sizeOfImage == expectedSize;
         }
 
         private static string? GetSharedFrameworkDir()
