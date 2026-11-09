@@ -222,11 +222,11 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             // would spuriously fail tests.  Properties on DataTargetOptions are init-only,
             // so we rebuild the options here with the test-only defaults forced on, while
             // preserving anything the caller provided (e.g. UseLockFreeMemoryMapReader).
-            DataTargetOptions src = options ?? new DataTargetOptions();
+            DataTargetOptions src = options ?? new DataTargetOptions { FileLocator = InstalledRuntimeLocator.Instance };
             DataTargetOptions merged = new()
             {
                 CacheOptions = src.CacheOptions,
-                FileLocator = src.FileLocator ?? InstalledRuntimeLocator.Instance,
+                FileLocator = src.FileLocator,
                 SymbolPaths = src.SymbolPaths ?? [],
                 SymbolCachePath = src.SymbolCachePath,
                 SymbolTokenCredential = src.SymbolTokenCredential,
@@ -316,7 +316,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             DumpGenerator.EnsureDump(Name, ProjectDir, dumpPath, architecture, framework, gc, full: true, companionTargets: CompanionTargets);
 
             Utilities.DbgEng.DbgEngIDataReader dbgengReader = new(dumpPath);
-            return new DataTarget(dbgengReader, options ?? new DataTargetOptions() { VerifyDacOnWindows = false });
+            return new DataTarget(dbgengReader, options ?? new DataTargetOptions { FileLocator = InstalledRuntimeLocator.Instance, VerifyDacOnWindows = false });
         }
 
         /// <summary>

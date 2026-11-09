@@ -33,6 +33,6 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         /// Returns a <see cref="DataTargetOptions"/> configured for this reader kind.
         /// </summary>
         public static DataTargetOptions ToOptions(this DataReaderKind kind)
-            => new() { UseLockFreeMemoryMapReader = kind == DataReaderKind.LockFreeMmf };
+            => new() { FileLocator = InstalledRuntimeLocator.Instance, UseLockFreeMemoryMapReader = kind == DataReaderKind.LockFreeMmf };
     }
 }

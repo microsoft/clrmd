@@ -316,7 +316,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
         [InlineData(true)]
         public void LockFreeMmf_PassesAuxiliaryInterfacesThrough(bool singleFile)
         {
-            DataTargetOptions options = new() { UseLockFreeMemoryMapReader = true };
+            DataTargetOptions options = new() { FileLocator = InstalledRuntimeLocator.Instance, UseLockFreeMemoryMapReader = true };
             using DataTarget dt = TestTargets.Types.LoadFullDump(singleFile, options);
 
             // Ensure the wrapper actually wrapped the inner reader.
