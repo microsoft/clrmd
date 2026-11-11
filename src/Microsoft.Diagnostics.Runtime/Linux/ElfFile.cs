@@ -103,7 +103,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     if (header.Type == ElfProgramHeaderType.Dynamic)
                     {
-                        fresh = new ElfDynamicSection(Reader, Header.Is64Bit, _position + (_virtual ? header.VirtualAddress : header.FileOffset), _virtual ? header.VirtualSize : header.FileSize, _limits);
+                        fresh = new ElfDynamicSection(Reader, Header.Is64Bit, _position + (_virtual ? header.VirtualAddress : header.FileOffset), _virtual ? header.VirtualSize : header.FileSize, _virtual ? _position : 0, _limits);
                         break;
                     }
                 }
