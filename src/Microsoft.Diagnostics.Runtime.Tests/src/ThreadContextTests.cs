@@ -136,7 +136,7 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             const int Pc = 0x108, FloatingPoint = 0x110;
             byte[] source = new byte[size];
             for (int i = 0; i < size; i++)
-                source[i] = (byte)(i + 1);
+                source[i] = unchecked((byte)(i + 1));
             uint archFlag = ThreadContext.ArchitectureFlag(architecture);
             ThreadContext.SetFlags(architecture, source, archFlag | 7);
 
