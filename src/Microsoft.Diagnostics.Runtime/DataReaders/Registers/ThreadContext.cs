@@ -39,6 +39,22 @@ namespace Microsoft.Diagnostics.Runtime
             (Arm64Context.ContextFloatingPointHigh, 0x210, 0x100),
             (Arm64Context.ContextDebugRegisters, 0x318, 0x78)
         };
+        private static readonly (uint Flag, int Offset, int Size)[] s_riscv64 =
+        {
+            (RiscV64Context.ContextControl, 0x10, 0x10), (RiscV64Context.ContextControl, 0x48, 8),
+            (RiscV64Context.ContextControl, 0x108, 8),
+            (RiscV64Context.ContextInteger, 8, 8), (RiscV64Context.ContextInteger, 0x20, 0x28),
+            (RiscV64Context.ContextInteger, 0x50, 0xb8),
+            (RiscV64Context.ContextFloatingPoint, 0x110, 0x104)
+        };
+        private static readonly (uint Flag, int Offset, int Size)[] s_loongarch64 =
+        {
+            (LoongArch64Context.ContextControl, 0x10, 8), (LoongArch64Context.ContextControl, 0x20, 8),
+            (LoongArch64Context.ContextControl, 0xb8, 8), (LoongArch64Context.ContextControl, 0x108, 8),
+            (LoongArch64Context.ContextInteger, 8, 8), (LoongArch64Context.ContextInteger, 0x18, 8),
+            (LoongArch64Context.ContextInteger, 0x28, 0x90), (LoongArch64Context.ContextInteger, 0xc0, 0x48),
+            (LoongArch64Context.ContextFloatingPoint, 0x110, 0x40c)
+        };
 
         public static uint ArchitectureFlag(Architecture architecture) => architecture switch
         {
@@ -96,6 +112,8 @@ namespace Microsoft.Diagnostics.Runtime
                 Architecture.X86 => s_x86,
                 Architecture.Arm => s_arm,
                 Architecture.Arm64 => s_arm64,
+                (Architecture)9 => s_riscv64,
+                (Architecture)6 => s_loongarch64,
                 _ => throw new PlatformNotSupportedException()
             };
 

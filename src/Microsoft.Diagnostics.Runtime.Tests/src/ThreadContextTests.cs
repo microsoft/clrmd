@@ -128,6 +128,35 @@ namespace Microsoft.Diagnostics.Runtime.Tests
             Assert.Equal(Untouched, Read<ulong>(destination, 0x200));
         }
 
+        [Theory]
+        [InlineData((Architecture)9, 0x220, 0x18, 0x20, 0x214)]
+        [InlineData((Architecture)6, 0x520, 0x20, 0x28, 0x51c)]
+        public void CopyCopiesRequestedRegisterGroups(Architecture architecture, int size, int sp, int integer, int registersEnd)
+        {
+            const int Pc = 0x108, FloatingPoint = 0x110;
+            byte[] source = new byte[size];
+            for (int i = 0; i < size; i++)
+                source[i] = unchecked((byte)(i + 1));
+            uint archFlag = ThreadContext.ArchitectureFlag(architecture);
+            ThreadContext.SetFlags(architecture, source, archFlag | 7);
+
+            foreach (uint group in new uint[] { 1, 2, 4 })
+            {
+                byte[] destination = Enumerable.Repeat((byte)0xa5, size).ToArray();
+                Assert.True(ThreadContext.Copy(architecture, archFlag | group, source, destination));
+                Assert.Equal(archFlag | group, ThreadContext.GetFlags(architecture, destination));
+                Assert.Equal(group == 1, Read<ulong>(destination, sp) == Read<ulong>(source, sp));
+                Assert.Equal(group == 1, Read<ulong>(destination, Pc) == Read<ulong>(source, Pc));
+                Assert.Equal(group == 2, Read<ulong>(destination, integer) == Read<ulong>(source, integer));
+                Assert.Equal(group == 4, Read<ulong>(destination, FloatingPoint) == Read<ulong>(source, FloatingPoint));
+            }
+
+            // Together the groups cover every register after ContextFlags.
+            byte[] all = new byte[size];
+            Assert.True(ThreadContext.Copy(architecture, archFlag | 7, source, all));
+            Assert.True(all.AsSpan(8, registersEnd - 8).SequenceEqual(source.AsSpan(8, registersEnd - 8)));
+        }
+
         [Fact]
         public void X86ExtendedRegistersAreIndependentOfLegacyFloatingPointGroup()
         {

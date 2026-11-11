@@ -7,8 +7,13 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
 {
     internal sealed class ElfDynamicSection
     {
-        public ElfDynamicSection(Reader reader, bool is64Bit, ulong address, ulong size, DataTargetLimits? limits = null)
+        public ElfDynamicSection(Reader reader, bool is64Bit, ulong address, ulong size, ulong loadBias, DataTargetLimits? limits = null)
         {
+            // glibc relocates the pointers in a loaded image's _DYNAMIC in place on most architectures, but not on
+            // RISC-V (DL_RO_DYN_SECTION), and musl and bionic never do. Relocated pointers are never below the load
+            // bias, so smaller values are still relative to the image.
+            ulong Rebase(ulong ptr) => loadBias != 0 && ptr < loadBias ? ptr + loadBias : ptr;
+
             ulong endAddress = address + size;
             while (address < endAddress)
             {
@@ -32,15 +37,15 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 }
                 else if (tag == ElfDynamicEntryTag.GnuHash)
                 {
-                    GnuHashTableVA = ptr;
+                    GnuHashTableVA = Rebase(ptr);
                 }
                 else if (tag == ElfDynamicEntryTag.StrTab)
                 {
-                    StringTableVA = ptr;
+                    StringTableVA = Rebase(ptr);
                 }
                 else if (tag == ElfDynamicEntryTag.SymTab)
                 {
-                    SymbolTableVA = ptr;
+                    SymbolTableVA = Rebase(ptr);
                 }
                 else if (tag == ElfDynamicEntryTag.StrSz)
                 {

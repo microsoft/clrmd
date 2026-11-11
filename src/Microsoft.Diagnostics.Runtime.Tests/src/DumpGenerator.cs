@@ -130,7 +130,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 throw new FileNotFoundException($"Could not find project file: {csprojPath}");
 
             string tfm = isFramework ? "net48" : "net10.0";
-            string platform = architecture == "x86" ? "x86" : "x64";
+            // Other architectures only load IL-only assemblies that are not marked for a specific platform.
+            string platform = architecture is "x86" or "x64" ? architecture : "AnyCPU";
 
             // Build the project (including its dependencies like SharedLibrary).
             // Don't use -o to avoid file locking between projects sharing an output dir.
@@ -960,6 +961,8 @@ namespace Microsoft.Diagnostics.Runtime.Tests
                 Architecture.X64 => "x64",
                 Architecture.Arm => "arm",
                 Architecture.Arm64 => "arm64",
+                Architecture.RiscV64 => "riscv64",
+                Architecture.LoongArch64 => "loongarch64",
                 _ => "x64"
             };
         }

@@ -13,10 +13,12 @@ namespace Microsoft.Diagnostics.Runtime
         [return: NotNullIfNotNull(nameof(version))]
         internal static bool GetVersionInfo(this IDataReader dataReader, ulong baseAddress, ElfFile loadedFile, out System.Version? version)
         {
+            // The first writable segment is often the RELRO one; the version string lives in .data.
             foreach (ElfProgramHeader programHeader in loadedFile.ProgramHeaders)
             {
-                if (programHeader.Type == ElfProgramHeaderType.Load && programHeader.IsWritable)
-                    return GetVersionInfo(dataReader, baseAddress + programHeader.VirtualAddress, programHeader.VirtualSize, out version);
+                if (programHeader.Type == ElfProgramHeaderType.Load && programHeader.IsWritable &&
+                    GetVersionInfo(dataReader, baseAddress + programHeader.VirtualAddress, programHeader.VirtualSize, out version))
+                    return true;
             }
 
             version = null;
