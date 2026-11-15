@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
         private Reader? _virtualAddressReader;
         private ImmutableArray<ElfNote> _notes;
         private ImmutableArray<ElfProgramHeader> _programHeaders;
-        private ulong _loadBias;
+        private long _loadBias;
         private ImmutableArray<byte> _buildId;
         private ElfDynamicSection? _dynamicSection;
 
@@ -104,7 +104,9 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
                 {
                     if (header.Type == ElfProgramHeaderType.Dynamic)
                     {
-                        fresh = new ElfDynamicSection(Reader, Header.Is64Bit, _position + (_virtual ? header.VirtualAddress : header.FileOffset), _virtual ? header.VirtualSize : header.FileSize, _virtual ? _loadBias : 0, _limits);
+                        ulong address = _virtual ? unchecked(header.VirtualAddress + (ulong)_loadBias) : header.VirtualAddress;
+                        fresh = new ElfDynamicSection(VirtualAddressReader, Header.Is64Bit, address,
+                            _virtual ? header.VirtualSize : header.FileSize, _virtual ? _loadBias : 0, ProgramHeaders, _limits);
                         break;
                     }
                 }
@@ -297,7 +299,7 @@ namespace Microsoft.Diagnostics.Runtime.Utilities
             for (uint i = 0; i < programHeaders.Count; i++)
                 programHeaders[(int)i] = new ElfProgramHeader(Reader, Header.Is64Bit, _position + Header.ProgramHeaderOffset + i * Header.ProgramHeaderEntrySize, loadBias, _virtual);
 
-            _loadBias = (ulong)loadBias;
+            _loadBias = loadBias;
             _programHeaders = programHeaders.MoveOrCopyToImmutable();
         }
 
